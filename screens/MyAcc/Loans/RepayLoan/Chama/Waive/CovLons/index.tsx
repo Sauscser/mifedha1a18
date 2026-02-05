@@ -87,7 +87,7 @@ const WaiverScreen = () => {
         return;
       }
       if (parseFloat(amounts) > parseFloat(LonBal1)) {
-        Alert.alert(`The Loan Balance is lesser: Ksh. ${lonBala}`);
+        Alert.alert(`The Loan Balance is lesser: ${formatAmountSync(Number(lonBala), nationality || undefined, ratesMap)}`);
         setIsLoading(false);
         return;
       }

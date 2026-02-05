@@ -1,10 +1,92 @@
 import { StyleSheet, Dimensions } from 'react-native';
+
+const { width } = Dimensions.get('window');
+
 const styles = StyleSheet.create({
+  safeAreaContainer: {
+    flex: 1,
+    backgroundColor: '#F5F7FA',
+  },
+  scrollContainer: {
+    flex: 1,
+    backgroundColor: '#F5F7FA',
+  },
+  headerContainer: {
+    paddingHorizontal: 16,
+    paddingVertical: 24,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E0E6ED',
+  },
+  headerTitle: {
+    fontSize: 32,
+    fontWeight: '700',
+    color: '#1F2937',
+    marginBottom: 4,
+  },
+  headerSubtitle: {
+    fontSize: 14,
+    color: '#6B7280',
+    fontWeight: '400',
+  },
+  contentContainer: {
+    paddingHorizontal: 12,
+    paddingVertical: 16,
+  },
+  sectionContainer: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    marginBottom: 16,
+    paddingVertical: 16,
+    paddingHorizontal: 0,
+    borderLeftWidth: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 12,
+    paddingHorizontal: 16,
+  },
+  itemsContainer: {
+    paddingHorizontal: 0,
+  },
+  settingItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
+  },
+  settingItemPressed: {
+    backgroundColor: '#F9FAFB',
+  },
+  settingItemText: {
+    fontSize: 14,
+    color: '#374151',
+    fontWeight: '500',
+    flex: 1,
+  },
+  settingItemArrow: {
+    fontSize: 20,
+    color: '#9CA3AF',
+    marginLeft: 8,
+  },
+  footerSpacing: {
+    height: 24,
+  },
+
+  // Keep old styles for backward compatibility
   adminImage: {
     width: '100%',
-    height: "100%",
+    height: '100%',
     resizeMode: 'cover',
-    top: "2%"
   },
   title: {
     fontSize: 45,
@@ -12,7 +94,7 @@ const styles = StyleSheet.create({
     color: 'green',
     width: '70%',
     marginLeft: 25,
-    top: 5
+    top: 5,
   },
   loanFriendButton: {
     backgroundColor: '#064bfb',
@@ -24,7 +106,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     position: 'absolute',
     top: 100,
-    zIndex: 10
+    zIndex: 10,
   },
   chamaLoanAndCreditSalesButton: {
     backgroundColor: 'white',
@@ -34,17 +116,17 @@ const styles = StyleSheet.create({
     width: Dimensions.get('screen').width - 60,
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 10
+    marginTop: 10,
   },
   ChamaLoanAndCreditSalesText: {
     fontSize: 30,
     fontWeight: 'bold',
-    color: 'black'
+    color: 'black',
   },
   loanAFriendText: {
     fontSize: 30,
     fontWeight: 'bold',
-    color: 'white'
+    color: 'white',
   },
   viewForPressables: {
     backgroundColor: 'green',
@@ -55,7 +137,7 @@ const styles = StyleSheet.create({
     marginTop: 10,
     justifyContent: 'center',
     alignItems: 'center',
-    flexDirection: 'column'
+    flexDirection: 'column',
   },
   viewForSalesPressables: {
     backgroundColor: 'green',
@@ -66,7 +148,7 @@ const styles = StyleSheet.create({
     marginTop: 10,
     justifyContent: 'center',
     alignItems: 'center',
-    flexDirection: 'row'
+    flexDirection: 'row',
   },
   SalesPressables: {
     backgroundColor: 'purple',
@@ -77,107 +159,107 @@ const styles = StyleSheet.create({
     marginTop: 10,
     justifyContent: 'center',
     alignItems: 'center',
-    flexDirection: 'row'
+    flexDirection: 'row',
   },
   salesPressableText: {
     color: 'white',
-    fontSize: 13
+    fontSize: 13,
   },
   viewForSalesText: {
     color: 'white',
     fontSize: 20,
     marginTop: 1,
-    height: 50
+    height: 50,
   },
   salesText: {
     fontSize: 20,
-    color: "blue",
-    marginBottom: "1.5%"
+    color: 'blue',
+    marginBottom: '1.5%',
   },
   viewForClientsPressables: {
     backgroundColor: 'pink',
-    height: "100%",
+    height: '100%',
     borderRadius: 4,
     justifyContent: 'center',
     alignItems: 'center',
     flexDirection: 'row',
-    width: "100%"
+    width: '100%',
   },
   viewForClientsCategories: {
     backgroundColor: 'brown',
-    marginTop: "5%",
-    marginBottom: "5%",
-    height: "100%",
+    marginTop: '5%',
+    marginBottom: '5%',
+    height: '100%',
     borderRadius: 4,
     justifyContent: 'center',
     alignItems: 'center',
     flexDirection: 'column',
-    width: "33%"
+    width: '33%',
   },
   viewForClientsCategoriesLnSt: {
     backgroundColor: 'brown',
-    marginTop: "4%",
-    marginBottom: "4%",
-    height: "100%",
+    marginTop: '4%',
+    marginBottom: '4%',
+    height: '100%',
     borderRadius: 4,
-    marginLeft: "10%",
-    marginRight: "10%",
+    marginLeft: '10%',
+    marginRight: '10%',
     justifyContent: 'center',
     alignItems: 'center',
     flexDirection: 'column',
-    width: "33%"
+    width: '33%',
   },
   viewForClientsAndTitleLnSt: {
     backgroundColor: 'brown',
-    width: "100%",
-    height: "50%",
+    width: '100%',
+    height: '50%',
     borderRadius: 4,
     justifyContent: 'center',
     alignItems: 'center',
-    flexDirection: 'row'
+    flexDirection: 'row',
   },
   viewForClientsAndTitleMFNdogo: {
     backgroundColor: 'pink',
-    width: "100%",
-    height: "100%",
+    width: '100%',
+    height: '100%',
     borderRadius: 4,
     justifyContent: 'center',
     alignItems: 'center',
-    flexDirection: 'row'
+    flexDirection: 'row',
   },
   viewForClientsAndTitle: {
     backgroundColor: 'brown',
-    width: "100%",
-    height: "50%",
+    width: '100%',
+    height: '50%',
     borderRadius: 4,
     justifyContent: 'center',
     alignItems: 'center',
-    flexDirection: 'row'
+    flexDirection: 'row',
   },
   clientsView: {
     backgroundColor: 'brown',
-    width: "100%",
-    height: "16%",
+    width: '100%',
+    height: '16%',
     borderRadius: 4,
     justifyContent: 'center',
     alignItems: 'center',
-    flexDirection: 'column'
+    flexDirection: 'column',
   },
   ClientsPressables: {
     backgroundColor: 'purple',
-    width: "45%",
-    marginLeft: "1%",
-    marginRight: "1%",
-    height: "90%",
+    width: '45%',
+    marginLeft: '1%',
+    marginRight: '1%',
+    height: '90%',
     borderRadius: 4,
     justifyContent: 'center',
     alignItems: 'center',
-    flexDirection: 'row'
+    flexDirection: 'row',
   },
   clientsPressableText: {
     color: 'white',
     fontSize: 10,
-    marginTop: 1
+    marginTop: 1,
   },
   acEarningsView: {
     backgroundColor: 'brown',
@@ -188,18 +270,18 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     flexDirection: 'column',
-    marginTop: "2%"
+    marginTop: '2%',
   },
   viewForAcEarningsPressables: {
     backgroundColor: 'brown',
     marginHorizontal: 15,
     width: Dimensions.get('screen').width - 30,
-    height: "60%",
+    height: '60%',
     borderRadius: 20,
-    marginTop: "0.5%",
+    marginTop: '0.5%',
     justifyContent: 'center',
     alignItems: 'center',
-    flexDirection: 'row'
+    flexDirection: 'row',
   },
   earningsAcPressables: {
     backgroundColor: 'purple',
@@ -208,13 +290,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     flexDirection: 'row',
-    width: "40%",
-    marginHorizontal: "10%"
+    width: '40%',
+    marginHorizontal: '10%',
   },
   earningsAcPressableText: {
     color: 'white',
     fontSize: 15,
-    marginTop: 1
-  }
+    marginTop: 1,
+  },
 });
+
 export default styles;

@@ -150,7 +150,7 @@ const ViewSMDeposts = ({ SMAc }: SMAccount) => {
       <Pressable style={styles.card}>
         <Text style={styles.prodInfo}>
           {transportName} transport services || {sellerName} to {buyerName} ||
-          Aerial Distance: {distance} Kilometer || Order Total Cost: Ksh. {orderCost} ||
+          {(() => { const { nationality, ratesMap } = useExchange(); return <>Aerial Distance: {distance} Kilometer || Order Total Cost: {formatAmountSync(orderCost, nationalityToCode(nationality), ratesMap)} ||</> })()}
           TransportCost: Ksh. {deliveryCost} || Contact: {transportkntct} || {engagementStatus} ||
           {((Date.now() - deliveryStart) / 3600000).toFixed(4)} hours ago
         </Text>

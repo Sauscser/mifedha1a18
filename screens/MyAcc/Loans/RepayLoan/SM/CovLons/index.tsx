@@ -1,12 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import Communications from 'react-native-communications';
-import { createSMLoansCovered, createSMLoansNonCovered, createNonLoans, updateCompany, updateSMAccount, updateSMLoansCovered, createLoanRepayments } from '../../../../../../src/graphql/mutations';
+import { createSMLoansCovered, createNonLoans, updateCompany, updateSMAccount, updateSMLoansCovered, createLoanRepayments } from '../../../../../../src/graphql/mutations';
 import { getCompany, getSMAccount, getSMLoansCovered } from '../../../../../../src/graphql/queries';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { View, Text, ImageBackground, Pressable, TextInput, ScrollView, KeyboardAvoidingView, Platform, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
 import styles from './styles';
 import { getCurrentUser, fetchUserAttributes } from "aws-amplify/auth";
 import { generateClient } from "aws-amplify/api";
+import { useExchange } from '../../../../../../src/contexts/ExchangeContext';
+import { formatAmountSync } from '../../../../../../src/utils/exchange';
 const client = generateClient();
 const RepayCovLnsss = props => {
   const [SnderPW, setSnderPW] = useState("");
@@ -14,6 +16,7 @@ const RepayCovLnsss = props => {
   const [Desc, setDesc] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const route = useRoute();
+  const { ratesMap } = useExchange();
   const fetchSenderUsrDtls = async () => {
     if (isLoading) {
       return;
@@ -282,8 +285,11 @@ const RepayCovLnsss = props => {
                         return;
                       }
                     }
-                    Alert.alert("Cleared. ClearanceFee: " + ClranceAmt.toFixed(2) + ". Transaction: " + (parseFloat(UsrTransferFee) * parseFloat(amounts)).toFixed(2));
-                    Communications.textWithoutEncoding(phonecontactz, 'Hi ' + namess + ', your loan of ID ' + route.params.loanID + 'has been repaid Ksh. ' + amounts + ' by ' + names + '. For clarification call the loanee: ' + attributes.phone_number + '. Thank you. MiFedha');
+                    const formattedClearing = formatAmountSync(Number(ClranceAmt || 0), accountDtl.data.getSMAccount.nationality, ratesMap);
+                    const formattedTxFee = formatAmountSync((parseFloat(UsrTransferFee) * parseFloat(amounts)), accountDtl.data.getSMAccount.nationality, ratesMap);
+                    Alert.alert(`Cleared. ClearanceFee: ${formattedClearing}. Transaction: ${formattedTxFee}`);
+                    const formattedAmt = formatAmountSync(parseFloat(amounts), accountDtl.data.getSMAccount.nationality, ratesMap);
+                    Communications.textWithoutEncoding(phonecontactz, `Hi ${namess}, your loan of ID ${route.params.loanID} has been repaid ${formattedAmt} by ${names}. For clarification call the loanee: ${attributes.phone_number}. Thank you. MiFedha`);
                     setIsLoading(false);
                   };
                   const repyCovLn = async () => {
@@ -426,8 +432,8 @@ const RepayCovLnsss = props => {
                         return;
                       }
                     }
-                    Alert.alert("Partially paid. Clearance: " + ClranceAmt.toFixed(2) + ". Transaction: " + (parseFloat(UsrTransferFee) * parseFloat(amounts)).toFixed(2));
-                    Communications.textWithoutEncoding(phonecontactz, 'Hi ' + namess + ', your loan of ID ' + route.params.loanID + ' has been repaid Ksh. ' + amounts + ' by ' + names + '. For clarification call the loanee: ' + attributes.phone_number + '. Thank you. MiFedha');
+                    Alert.alert("Partially paid. Clearance: " + formatAmountSync(ClranceAmt, attributes.nationality, ratesMap) + ". Transaction: " + formatAmountSync(parseFloat(UsrTransferFee) * parseFloat(amounts), attributes.nationality, ratesMap));
+                    Communications.textWithoutEncoding(phonecontactz, 'Hi ' + namess + ', your loan of ID ' + route.params.loanID + ' has been repaid ' + formatAmountSync(parseFloat(amounts), attributes.nationality, ratesMap) + ' by ' + names + '. For clarification call the loanee: ' + attributes.phone_number + '. Thank you. MiFedha');
                     setIsLoading(false);
                   };
                   if (userInfo.userId !== owner) {

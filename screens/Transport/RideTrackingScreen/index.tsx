@@ -7,6 +7,8 @@ import { Observable } from 'zen-observable-ts';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getCurrentUser, fetchUserAttributes } from "aws-amplify/auth";
 import { generateClient } from "aws-amplify/api";
+import { useExchange } from '../../../src/contexts/ExchangeContext';
+import { formatAmountSync } from '../../../src/utils/exchange';
 
 const client = generateClient();
 const SCREEN_WIDTH = Dimensions.get('window').width;
@@ -31,6 +33,7 @@ export default function RideTrackingScreen({ navigation }: any) {
   const mapRef = useRef<MapView | null>(null);
 
   const [userEmail, setUserEmail] = useState<string | null>(null);
+  const { nationality, ratesMap } = useExchange();
 
   useEffect(() => {
     let sub: any = null;
@@ -292,28 +295,31 @@ export default function RideTrackingScreen({ navigation }: any) {
         keyExtractor={item => item.id}
         contentContainerStyle={{ padding: 16 }}
         extraData={selectedIdx}
-        renderItem={({ item, index }) => (
-          <View style={[styles.card, selectedIdx === index && { borderColor: '#1f8ef1', borderWidth: 2 }]}
-            onTouchStart={() => setSelectedIdx(index)}>
-            <Text style={styles.cardTitle}>{item.riderName || 'Rider'}</Text>
-            <Text>Status: {item.rideStatus}</Text>
-            {/* Route distance (pickup -> destination) */}
-            <Text>Route distance: {(selectedIdx === index && routeDistanceKm != null) ? routeDistanceKm.toFixed(2) : (item.distance || 0).toFixed(2)} km</Text>
-            {/* Estimated / live cost */}
-            <Text>Est. Cost: KES {selectedIdx === index && routeDistanceKm != null ? Math.round((item.riderRate || 0) * routeDistanceKm) : (item.estimatedCost || 0)}</Text>
-            {/* Distance to pickup or live trip metrics for selected ride */}
-            {selectedIdx === index && item.riderLatitude && item.riderLongitude && item.rideStatus !== 'Active' ? <Text>Distance to pickup: {getDistanceKm(item.riderLatitude, item.riderLongitude, item.pickupLatitude, item.pickupLongitude).toFixed(2)} km</Text> : null}
-            {selectedIdx === index && item.rideStatus === 'Active' ? <Text>Live distance: {(item.distance || 0).toFixed(2)} km • Cost: KES {(item.estimatedCost || 0).toFixed(2)}</Text> : null}
-            <Text>Requested: {item.createdAt ? new Date(item.createdAt).toLocaleString() : ''}</Text>
-            {/* Action buttons depending on status */}
-            <View style={{ flexDirection: 'row', marginTop: 8 }}>
-                {item.rideStatus === 'transportRequestYes' && (
-                <Text style={styles.actionBtn} onPress={() => updateRideStatus(item, 'Cancelled')}>Cancel Ride</Text>
-              )}
-              {/* Passenger cannot start/complete trips; those actions are performed by the transporter */}
+        renderItem={({ item, index }) => {
+          const estCostNum = (selectedIdx === index && routeDistanceKm != null) ? ((item.riderRate || 0) * routeDistanceKm) : (item.estimatedCost || 0);
+          return (
+            <View style={[styles.card, selectedIdx === index && { borderColor: '#1f8ef1', borderWidth: 2 }]}
+              onTouchStart={() => setSelectedIdx(index)}>
+              <Text style={styles.cardTitle}>{item.riderName || 'Rider'}</Text>
+              <Text>Status: {item.rideStatus}</Text>
+              {/* Route distance (pickup -> destination) */}
+              <Text>Route distance: {(selectedIdx === index && routeDistanceKm != null) ? routeDistanceKm.toFixed(2) : (item.distance || 0).toFixed(2)} km</Text>
+              {/* Estimated / live cost */}
+              <Text>Est. Cost: {formatAmountSync(estCostNum, nationality, ratesMap)}</Text>
+              {/* Distance to pickup or live trip metrics for selected ride */}
+              {selectedIdx === index && item.riderLatitude && item.riderLongitude && item.rideStatus !== 'Active' ? <Text>Distance to pickup: {getDistanceKm(item.riderLatitude, item.riderLongitude, item.pickupLatitude, item.pickupLongitude).toFixed(2)} km</Text> : null}
+              {selectedIdx === index && item.rideStatus === 'Active' ? <Text>Live distance: {(item.distance || 0).toFixed(2)} km • Cost: {formatAmountSync(item.estimatedCost || 0, nationality, ratesMap)}</Text> : null}
+              <Text>Requested: {item.createdAt ? new Date(item.createdAt).toLocaleString() : ''}</Text>
+              {/* Action buttons depending on status */}
+              <View style={{ flexDirection: 'row', marginTop: 8 }}>
+                  {item.rideStatus === 'transportRequestYes' && (
+                  <Text style={styles.actionBtn} onPress={() => updateRideStatus(item, 'Cancelled')}>Cancel Ride</Text>
+                )}
+                {/* Passenger cannot start/complete trips; those actions are performed by the transporter */}
+              </View>
             </View>
-          </View>
-        )}
+          );
+        }}
         showsHorizontalScrollIndicator={false}
       />
     </View>

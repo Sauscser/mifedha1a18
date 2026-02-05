@@ -122,6 +122,8 @@ ViewMinutes: {
       Vw2FloatGrpLoans:undefined;
       ViewMessages:undefined;
       FunderClearBill:undefined;
+            UpdateExRates2:undefined;
+
       
       FloatLnReq: {grpContact:string}
       VwFloatedLoans: {
@@ -270,6 +272,8 @@ ViewMinutes: {
       VwBenProds:undefined;
       BizReadPayPalTNC:undefined;
       CreateExRates:undefined;
+      CreateAllExRates:undefined;
+      UpdateExRates:undefined;
       AddBeneficiaryProduct:undefined;
       LinkBizBeneficiary: {id:string};
       LinkPalBeneficiary: {id:string};

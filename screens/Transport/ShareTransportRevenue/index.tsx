@@ -7,6 +7,9 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import { Linking } from 'react-native';
 import { View, Text, ImageBackground, Pressable, TextInput, ScrollView, StyleSheet, Platform, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
 import { getCompany, getSMAccount } from '../../../src/graphql/queries';
+import { formatAmountForUser, formatAmountSync, convertForeignToKsh, getUserNationalityByEmail } from '../../../src/utils/exchange';
+import { nationalityToCode } from '../../../src/utils/nationalityToCode';
+import { useExchange } from '../../../src/contexts/ExchangeContext';
 import { getTransportOrder, getTransportRegister } from '../../../src/graphql/queries';
 import { getCurrentUser, fetchUserAttributes } from "aws-amplify/auth";
 import { generateClient } from "aws-amplify/api";
@@ -21,6 +24,7 @@ const SMASendNonLns = props => {
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const route = useRoute();
   const navigation = useNavigation();
+  const { nationality, ratesMap } = useExchange();
   const SndChmMmbrMny = () => {
     navigation.navigate("AutomaticRepayAllTyps");
   };
@@ -78,18 +82,25 @@ const SMASendNonLns = props => {
        }
                else if (parseFloat(orderDtlz.orderCost) > parseFloat(userDtlsz.grpBal)) 
       {
-      Alert.alert("Sorry!", "Your group's balance is less than the purchase cost: Ksh."
-       + orderDtlz.orderCost )
+      Alert.alert("Sorry!", "Your group's balance is less than the purchase cost: " + formatAmountSync(Number(orderDtlz.orderCost ?? 0), nationalityToCode(nationality), ratesMap) )
         return;
       }
          else if (parseFloat(userDtlsz.grpBal ) >= parseFloat(orderDtlz.orderCost)) 
                */else {
+        // determine seller nationality (transport owner) and convert submitted amount to KES
+        let sellerNationality = TransportOwnerz?.nationality || null;
+        try {
+          if (!sellerNationality && transportDtlz?.transportOwnerEmail) sellerNationality = await getUserNationalityByEmail(transportDtlz.transportOwnerEmail);
+        } catch (e) {}
+        const foreignAmount = parseFloat(amounts) || 0;
+        const amountKes = await convertForeignToKsh(foreignAmount, sellerNationality);
+        // update recipient balance in KES
         await client.graphql({
           query: updateSMAccount,
           variables: {
             input: {
               awsemail: RecNatId,
-              balance: parseFloat(TransporterDtlsz.balance) + parseFloat(amounts)
+              balance: parseFloat(TransporterDtlsz.balance) + Number(amountKes)
             }
           }
         });
@@ -102,7 +113,7 @@ const SMASendNonLns = props => {
               RecName: TransporterDtlsz.name,
               description: `Transport revenue share by ` + transportDtlz.transportName + " Transport Services",
               SenderName: transportDtlz.transportName,
-              amount: parseFloat(amounts),
+              amount: Number(amountKes),
               status: "SMNonLons",
               owner: attributes.sub
             }
@@ -113,7 +124,7 @@ const SMASendNonLns = props => {
           variables: {
             input: {
               id: route.params.id,
-              Earnings: parseFloat(transportDtlz.Earnings) - parseFloat(amounts)
+              Earnings: parseFloat(transportDtlz.Earnings) - Number(amountKes)
             }
           }
         });
@@ -126,7 +137,19 @@ const SMASendNonLns = props => {
           };
 
           // Example usage inside registerTransport or on button press:
-          sendSMS(TransporterDtlsz.phonecontact, transportDtlz.transportName + ' transport services has shared with you revenue of ' + "Ksh: " + amounts + '. ' + ' You may contact them through ' + transportDtlz.transportkntct);
+          try {
+            const formattedAmt = await formatAmountForUser(Number(amountKes), TransporterDtlsz.nationality);
+            sendSMS(TransporterDtlsz.phonecontact, transportDtlz.transportName + ' transport services has shared with you revenue of ' + formattedAmt + '. ' + ' You may contact them through ' + transportDtlz.transportkntct);
+          } catch (e) {
+          try {
+            const formatted = await formatAmountForUser(parseFloat(amounts), TransporterDtlsz.nationality);
+            sendSMS(TransporterDtlsz.phonecontact, transportDtlz.transportName + ' transport services has shared with you revenue of ' + formatted + '. ' + ' You may contact them through ' + transportDtlz.transportkntct);
+          } catch (e) {
+            // synchronous fallback using cached rates
+            const formattedFallback = formatAmountSync(parseFloat(amounts), nationalityToCode(TransporterDtlsz.nationality), ratesMap);
+            sendSMS(TransporterDtlsz.phonecontact, transportDtlz.transportName + ' transport services has shared with you revenue of ' + formattedFallback + '. ' + ' You may contact them through ' + transportDtlz.transportkntct);
+          }
+          }
         }
       }
     } catch (err) {

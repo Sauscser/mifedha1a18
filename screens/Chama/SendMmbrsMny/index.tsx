@@ -104,8 +104,10 @@ const SMASendNonLns = () => {
       });
 
       // Notify receiver
-      Communications.textWithoutEncoding(receiver.phonecontact, `Hi ${receiver.name}, ${group.grpName} has sent you Ksh. ${amount}. Contact ${attributes.phone_number} for clarification.`);
-      showAlert(`Remittance of Ksh. ${parseFloat(amount).toFixed(2)} successfully booked`);
+      const { nationality, ratesMap } = useExchange();
+      const formattedAmount = formatAmountSync(parseFloat(amount), nationality, ratesMap);
+      Communications.textWithoutEncoding(receiver.phonecontact, `Hi ${receiver.name}, ${group.grpName} has sent you ${formattedAmount}. Contact ${attributes.phone_number} for clarification.`);
+      showAlert(`Remittance of ${formattedAmount} successfully booked`);
       resetForm();
     } catch (error) {
       console.log(error);

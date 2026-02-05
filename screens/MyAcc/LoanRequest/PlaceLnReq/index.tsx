@@ -8,6 +8,9 @@ import styles from './styles';
 import { createReqLoan } from '../../../../src/graphql/mutations';
 import { getCurrentUser, fetchUserAttributes } from "aws-amplify/auth";
 import { generateClient } from "aws-amplify/api";
+import { useExchange } from '../../../../src/contexts/ExchangeContext';
+import { formatAmountSync } from '../../../../src/utils/exchange';
+import { nationalityToCode } from '../../../../src/utils/nationalityToCode';
 const client = generateClient();
 const CreateBiz = props => {
   const [ChmPhn, setChmPhn] = useState('');
@@ -27,6 +30,7 @@ const CreateBiz = props => {
   const [InstFreq, setInstFreq] = useState("");
   const [itemTwn, setitemTwn] = useState('');
   const route = useRoute();
+  const { nationality, ratesMap } = useExchange();
   const gtBizna = async () => {
     if (isLoading) {
       return;
@@ -122,7 +126,7 @@ const CreateBiz = props => {
                   }
                 }
                 Alert.alert("Loan Request Successful");
-                Communications.textWithoutEncoding(phonecontactz, 'MiFedha. Hi ' + namez + '. It is ' + name + '. I request a soft loan of Ksh. ' + itemPrys + ' from you. ' + 'Please go to MiFedha app to grant me the request' + '. Thank you.');
+                Communications.textWithoutEncoding(phonecontactz, 'MiFedha. Hi ' + namez + '. It is ' + name + '. I request a soft loan of ' + formatAmountSync(parseFloat(itemPrys), nationalityToCode(nationality), ratesMap) + ' from you. ' + 'Please go to MiFedha app to grant me the request' + '. Thank you.');
               };
               const gtAdvDtls = async () => {
                 if (isLoading) {
@@ -184,7 +188,7 @@ const CreateBiz = props => {
                       }
                     }
                     Alert.alert("Loan Request Successful");
-                    Communications.textWithoutEncoding(phonecontact, 'MiFedha. Greetings! ' + 'We ' + name + ', the loanee and ' + namez + ', the loaner humbly' + ' request that you witness our loan contract on MiFedha app amounting to Ksh. ' + itemPrys + ' repayable with ' + lnPrsntg + '% interest by the end of ' + rpymntPrd + ' days. Default penalty is Ksh. ' + MmbaID + '. You can reach my loaner through ' + phonecontactz + '. You can also reach me through ' + phonecontacts + '. Thank you.');
+                    Communications.textWithoutEncoding(phonecontact, 'MiFedha. Greetings! ' + 'We ' + name + ', the loanee and ' + namez + ', the loaner humbly' + ' request that you witness our loan contract on MiFedha app amounting to ' + formatAmountSync(parseFloat(itemPrys), nationalityToCode(nationality), ratesMap) + ' repayable with ' + lnPrsntg + '% interest by the end of ' + rpymntPrd + ' days. Default penalty is ' + formatAmountSync(parseFloat(MmbaID), nationalityToCode(nationality), ratesMap) + '. You can reach my loaner through ' + phonecontactz + '. You can also reach me through ' + phonecontacts + '. Thank you.');
                   };
                   CreateNewSMAc();
                 } catch (e) {

@@ -277,7 +277,7 @@ const RepayCovLnsss = props => {
                       }
                     }
                     Alert.alert("Cleared.");
-                    Communications.textWithoutEncoding(loaneePhns, 'MiFedha. Hi ' + names + ', your loan of ID ' + route.params.loanID + 'has been waived Ksh. ' + amounts + ' by ' + busName + '. For clarification call the loaner: ' + loanerPhns + '. Thank you.');
+                    Communications.textWithoutEncoding(loaneePhns, 'MiFedha. Hi ' + names + ', your loan of ID ' + route.params.loanID + ' has been waived ' + formatAmountSync(Number(amounts), nationality, ratesMap) + ' by ' + busName + '. For clarification call the loaner: ' + loanerPhns + '. Thank you.');
                     setIsLoading(false);
                     await sendNonLnLnOver();
                   };
@@ -411,7 +411,7 @@ const RepayCovLnsss = props => {
                       }
                     }
                     Alert.alert("Partially Waived.");
-                    Communications.textWithoutEncoding(loaneeEmail, 'Hi ' + names + ', your loan of ID ' + route.params.loanID + ' has been partially waived Ksh. ' + amounts + ' by ' + busName + '. For clarification call the loaner: ' + loanerPhns + '. Thank you. MiFedha');
+                    Communications.textWithoutEncoding(loaneeEmail, 'Hi ' + names + ', your loan of ID ' + route.params.loanID + ' has been partially waived ' + formatAmountSync(Number(amounts), nationality, ratesMap) + ' by ' + busName + '. For clarification call the loaner: ' + loanerPhns + '. Thank you. MiFedha');
                     setIsLoading(false);
                     await sendNonLnLnOver2();
                   };

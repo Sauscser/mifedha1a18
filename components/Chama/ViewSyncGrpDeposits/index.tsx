@@ -42,7 +42,8 @@ const SMCvLnStts = (props:SMAccount) => {
           <View style={styles.card}>
             <Text style={styles.prodInfo}><Text style={styles.label}>Group Name:</Text> {ChamaName}</Text>
             <Text style={styles.prodInfo}><Text style={styles.label}>Group Account:</Text> {GrpAc}</Text>
-            <Text style={styles.prodInfo}><Text style={styles.label}>Sync Amount:</Text> KES {amount.toFixed(2)}</Text>
+            {/* Replace KES with dynamic currency */}
+            <Text style={styles.prodInfo}><Text style={styles.label}>Sync Amount:</Text> {formatAmountSync(amount)}</Text>
             <Text style={styles.prodInfo}><Text style={styles.label}>Time Synced:</Text> {createdAt}</Text>
           </View>
         </View> 

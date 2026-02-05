@@ -29,7 +29,7 @@ const RepayCovChmLnsss = () => {
     amountPaid,
     loanBalanceAfter
   }) => {
-    const messageBody = isFullRepayment ? `Your loan from ${grpName} has been fully repaid. Amount paid: KES ${amountPaid}. Your loan balance is now KES 0.` : `A partial repayment of KES ${amountPaid} has been made to your loan from ${grpName}. Remaining loan balance: KES ${loanBalanceAfter}.`;
+    const messageBody = isFullRepayment ? `Your loan from ${grpName} has been fully repaid. Amount paid: ${formatAmountSync(Number(amountPaid), nationality || undefined, ratesMap)}. Your loan balance is now ${formatAmountSync(0, nationality || undefined, ratesMap)}.` : `A partial repayment of ${formatAmountSync(Number(amountPaid), nationality || undefined, ratesMap)} has been made to your loan from ${grpName}. Remaining loan balance: ${formatAmountSync(Number(loanBalanceAfter), nationality || undefined, ratesMap)}.`;
     const title = isFullRepayment ? 'MiFedha: Loan Fully Repaid' : 'MiFedha: Loan Partially Repaid';
     await client.graphql({
       query: createMessages,
@@ -281,7 +281,7 @@ const RepayCovChmLnsss = () => {
         amountPaid: parseFloat(amounts).toFixed(0),
         loanBalanceAfter: LonBalAfter.toFixed(0)
       });
-      Alert.alert('Payment Successful', isFullRepayment ? `Loan fully repaid.\nClearance Fee: KES ${ClranceAmt.toFixed(2)}\nTransaction Fee: KES ${(parseFloat(chmLnRpymntFee) * parseFloat(amounts)).toFixed(2)}` : `Partial repayment successful.\nRemaining balance: KES ${LonBalAfter.toFixed(2)}`);
+      Alert.alert('Payment Successful', isFullRepayment ? `Loan fully repaid.\nClearance Fee: ${formatAmountSync(Number(ClranceAmt), nationality || undefined, ratesMap)}\nTransaction Fee: ${formatAmountSync(parseFloat(chmLnRpymntFee) * parseFloat(amounts), nationality || undefined, ratesMap)}` : `Partial repayment successful.\nRemaining balance: ${formatAmountSync(Number(LonBalAfter), nationality || undefined, ratesMap)}`);
       resetForm();
     } catch (error) {
       console.log(error);

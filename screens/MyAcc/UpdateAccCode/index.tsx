@@ -6,10 +6,12 @@ import { View, Text, ImageBackground, Pressable, TextInput, ScrollView, Activity
 import styles from './styles';
 import { updateBankAdmin } from '../../../src/graphql/mutations';
 import { getCurrentUser, fetchUserAttributes } from "aws-amplify/auth";
+import { useExchange } from '../../../src/contexts/ExchangeContext';
 import { generateClient } from "aws-amplify/api";
 const client = generateClient();
 const UpdtSMPW = props => {
   const navigation = useNavigation();
+  const { nationality, ratesMap } = useExchange();
   const [SigntryPW, setSigntryPW] = useState("");
   const [groupCnt, setgroupCnt] = useState("");
   const [LnAcCod, setLnAcCod] = useState("");
@@ -163,7 +165,7 @@ const UpdtSMPW = props => {
 
                   <View style={styles.sendLoanView}>
                     <TextInput keyboardType={"decimal-pad"} value={DfltPnlty} autoCompleteType={"off"} onChangeText={setDfltPnlty} style={styles.sendLoanInput} editable={true}></TextInput>
-                    <Text style={styles.sendLoanText}>Default Penalty (Ksh)</Text>
+                    <Text style={styles.sendLoanText}>Default Penalty ({ratesMap?.[nationality]?.symbol || 'KES'})</Text>
                   </View>       
 
                   <View style={styles.sendLoanView}>

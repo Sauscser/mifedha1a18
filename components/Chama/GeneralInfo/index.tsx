@@ -1,6 +1,8 @@
 
 import React from 'react';
 import {View, Text,   ScrollView} from 'react-native';
+import { useExchange } from '../../../src/contexts/ExchangeContext';
+import { formatAmountSync } from '../../../src/utils/exchange';
 
 import styles from './styles';
 
@@ -87,6 +89,8 @@ const ChmInfo = (props:ChmaInfo) => {
       description,
    }} = props ;
 
+    const { nationality, ratesMap } = useExchange();
+
     return (
         <View style = {styles.pageContainer}>              
             
@@ -96,18 +100,18 @@ const ChmInfo = (props:ChmaInfo) => {
             <Text style={styles.prodInfo}><Text style={styles.label}>Chama Contact:</Text> {grpContact}</Text>
             <Text style={styles.prodInfo}><Text style={styles.label}>Chama Name:</Text> {grpName}</Text>
             <Text style={styles.prodInfo}><Text style={styles.label}>Registration Number:</Text> {regNo}</Text>
-            <Text style={styles.prodInfo}><Text style={styles.label}>Account Balance:</Text> KES {grpBal.toFixed(2)}</Text>
-            <Text style={styles.prodInfo}><Text style={styles.label}>Chama Benefits:</Text> KES {TtlActvLonsTmsLnrChmNonCov.toFixed(2)}</Text>
+            <Text style={styles.prodInfo}><Text style={styles.label}>Account Balance:</Text> {formatAmountSync(Number(grpBal), nationality, ratesMap)}</Text>
+            <Text style={styles.prodInfo}><Text style={styles.label}>Chama Benefits:</Text> {formatAmountSync(Number(TtlActvLonsTmsLnrChmNonCov), nationality, ratesMap)}</Text>
             <Text style={styles.prodInfo}><Text style={styles.label}>Chama Members:</Text>  {ttlGrpMembers}</Text>
-            <Text style={styles.prodInfo}><Text style={styles.label}>Chama Deposits:</Text> KES {ttlDpst.toFixed(2)}</Text>
-            <Text style={styles.prodInfo}><Text style={styles.label}>Chama Withdrawals:</Text> KES {ttlWthdrwn.toFixed(2)}</Text>
-            <Text style={styles.prodInfo}><Text style={styles.label}>After sync dividend balance:</Text> KES {MemberDividendSync.toFixed(2)}</Text>
-            <Text style={styles.prodInfo}><Text style={styles.label}>After sync withrawal Balance:</Text> KES {WithdrawalSync.toFixed(2)}</Text>
-            <Text style={styles.prodInfo}><Text style={styles.label}>After sync loan Balance:</Text> KES {GrpLoanOutSync.toFixed(2)}</Text>
-            <Text style={styles.prodInfo}><Text style={styles.label}>Total Loans Given:</Text> KES {TtlActvLonsAmtLnrChmCov.toFixed(2)}</Text>
-            <Text style={styles.prodInfo}><Text style={styles.label}>Loans Recovered:</Text> KES {TtlClrdLonsAmtLnrChmCov.toFixed(2)}</Text>
-            <Text style={styles.prodInfo}><Text style={styles.label}>Members Contributions:</Text> KES {ttlNonLonsRecChm.toFixed(2)}</Text>
-            <Text style={styles.prodInfo}><Text style={styles.label}>Money Sent to Members:</Text> KES {ttlNonLonsSentChm.toFixed(2)}</Text>
+            <Text style={styles.prodInfo}><Text style={styles.label}>Chama Deposits:</Text> {formatAmountSync(Number(ttlDpst), nationality, ratesMap)}</Text>
+            <Text style={styles.prodInfo}><Text style={styles.label}>Chama Withdrawals:</Text> {formatAmountSync(Number(ttlWthdrwn), nationality, ratesMap)}</Text>
+            <Text style={styles.prodInfo}><Text style={styles.label}>After sync dividend balance:</Text> {formatAmountSync(Number(MemberDividendSync), nationality, ratesMap)}</Text>
+            <Text style={styles.prodInfo}><Text style={styles.label}>After sync withrawal Balance:</Text> {formatAmountSync(Number(WithdrawalSync), nationality, ratesMap)}</Text>
+            <Text style={styles.prodInfo}><Text style={styles.label}>After sync loan Balance:</Text> {formatAmountSync(Number(GrpLoanOutSync), nationality, ratesMap)}</Text>
+            <Text style={styles.prodInfo}><Text style={styles.label}>Total Loans Given:</Text> {formatAmountSync(Number(TtlActvLonsAmtLnrChmCov), nationality, ratesMap)}</Text>
+            <Text style={styles.prodInfo}><Text style={styles.label}>Loans Recovered:</Text> {formatAmountSync(Number(TtlClrdLonsAmtLnrChmCov), nationality, ratesMap)}</Text>
+            <Text style={styles.prodInfo}><Text style={styles.label}>Members Contributions:</Text> {formatAmountSync(Number(ttlNonLonsRecChm), nationality, ratesMap)}</Text>
+            <Text style={styles.prodInfo}><Text style={styles.label}>Money Sent to Members:</Text> {formatAmountSync(Number(ttlNonLonsSentChm), nationality, ratesMap)}</Text>
             
         </View>
                 

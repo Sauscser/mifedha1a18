@@ -10,7 +10,7 @@ const FetchSMNonCovLns = () => {
   const [loanees, setLoanees] = useState<any[]>([]);
   const navigation = useNavigation();
   const navigateTo = (screen: string, params = {}) => {
-    navigation.navigate(screen as never, params as never);
+    (navigation as any).navigate(screen, params);
   };
   const fetchUsrDtls = async () => {
     try {

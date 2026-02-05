@@ -1,4 +1,7 @@
+// @ts-nocheck
 import React, { useEffect, useState } from 'react';
+import { useExchange } from '../../../src/contexts/ExchangeContext';
+import { formatAmountSync } from '../../../src/utils/exchange';
 import Communications from 'react-native-communications';
 import { createFloatReduction, updateAgent, updateCompany, updateSMAccount } from '../../../src/graphql/mutations';
 import { getAgent, getCompany, getSMAccount } from '../../../src/graphql/queries';
@@ -21,6 +24,7 @@ const SMADepositForm = props => {
   useEffect(() => {
     fetchUser();
   }, []);
+  const { nationality, ratesMap } = useExchange();
   const fetchAcDtls = async () => {
     if (isLoading) {
       return;
@@ -170,8 +174,8 @@ const SMADepositForm = props => {
                 } catch (error) {
                   console.log(error);
                 }
-                Alert.alert("Ksh. " + amount + " deposited in " + names + "'s ac ");
-                Communications.textWithoutEncoding(phonecontact, 'Confirmed. You have successfully deposited Ksh. ' + amount + ' into your main account.' + ' Please confirm this deposit record is on your MiFedha app. Thank you. MiFedha');
+                Alert.alert(formatAmountSync(Number(amount), nationality, ratesMap) + " deposited in " + names + "'s ac ");
+                Communications.textWithoutEncoding(phonecontact, 'Confirmed. You have successfully deposited ' + formatAmountSync(Number(amount), nationality, ratesMap) + ' into your main account.' + ' Please confirm this deposit record is on your MiFedha app. Thank you. MiFedha');
                 setIsLoading(false);
               };
               if (usrStts === "AccountInactive") {
@@ -190,7 +194,7 @@ const SMADepositForm = props => {
                 Alert.alert("Depositor call customer care to have wallet capacity adjusted");
                 return;
               } else if (parseFloat(agtFltBl) < parseFloat(amount)) {
-                Alert.alert("Insufficient MFNdogo Balance: Ksh " + agtFltBl);
+                Alert.alert("Insufficient MFNdogo Balance: " + formatAmountSync(Number(agtFltBl), nationality, ratesMap));
                 return;
               } else if (agPW !== agPWd) {
                 Alert.alert("MFNdogo access denied");

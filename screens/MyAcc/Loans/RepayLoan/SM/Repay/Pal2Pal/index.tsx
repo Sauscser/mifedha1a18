@@ -6,6 +6,8 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import { View, Text, ImageBackground, Pressable, TextInput, ScrollView, KeyboardAvoidingView, Platform, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
 import styles from './styles';
 import { getCurrentUser, fetchUserAttributes } from "aws-amplify/auth";
+import { useExchange } from '../../../../../../../src/contexts/ExchangeContext';
+import { getUserNationalityByEmail, formatAmountForUser, formatAmountSync } from '../../../../../../../src/utils/exchange';
 import { generateClient } from "aws-amplify/api";
 const client = generateClient();
 const RepayCovLnsss = props => {
@@ -14,6 +16,7 @@ const RepayCovLnsss = props => {
   const [Desc, setDesc] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const route = useRoute();
+  const { nationality, ratesMap } = useExchange();
   const fetchSenderUsrDtls = async () => {
     if (isLoading) {
       return;
@@ -308,7 +311,14 @@ const RepayCovLnsss = props => {
                       }
                     }
                     Alert.alert("Cleared. ClearanceFee: " + ClranceAmt.toFixed(2) + ". Transaction: " + (parseFloat(UsrTransferFee) * parseFloat(amounts)).toFixed(2));
-                    Communications.textWithoutEncoding(phonecontactz, 'Hi ' + namess + ', your loan of ID ' + route.params.loanID + 'has been repaid Ksh. ' + amounts + ' by ' + names + '. For clarification call the loanee: ' + attributes.phone_number + '. Thank you. MiFedha');
+                    try {
+                      const loanerNat = await getUserNationalityByEmail(loanerEmail);
+                      const formattedAmt = await formatAmountForUser(parseFloat(amounts), loanerNat);
+                      Communications.textWithoutEncoding(phonecontactz, 'Hi ' + namess + ', your loan of ID ' + route.params.loanID + ' has been repaid ' + formattedAmt + ' by ' + names + '. For clarification call the loanee: ' + attributes.phone_number + '. Thank you. MiFedha');
+                    } catch (e) {
+                      const formattedFallback = formatAmountSync(parseFloat(amounts), nationality, ratesMap);
+                      Communications.textWithoutEncoding(phonecontactz, 'Hi ' + namess + ', your loan of ID ' + route.params.loanID + ' has been repaid ' + formattedFallback + ' by ' + names + '. For clarification call the loanee: ' + attributes.phone_number + '. Thank you. MiFedha');
+                    }
                     setIsLoading(false);
                   };
                   const repyCovLn = async () => {
@@ -450,7 +460,14 @@ const RepayCovLnsss = props => {
                       }
                     }
                     Alert.alert("Partially paid. Clearance: " + ClranceAmt.toFixed(2) + ". Transaction: " + (parseFloat(UsrTransferFee) * parseFloat(amounts)).toFixed(2));
-                    Communications.textWithoutEncoding(phonecontactz, 'Hi ' + namess + ', your loan of ID ' + route.params.loanID + ' has been repaid Ksh. ' + amounts + ' by ' + names + '. For clarification call the loanee: ' + attributes.phone_number + '. Thank you. MiFedha');
+                    try {
+                      const loanerNat = await getUserNationalityByEmail(loanerEmail);
+                      const formattedAmt = await formatAmountForUser(parseFloat(amounts), loanerNat);
+                      Communications.textWithoutEncoding(phonecontactz, 'Hi ' + namess + ', your loan of ID ' + route.params.loanID + ' has been repaid ' + formattedAmt + ' by ' + names + '. For clarification call the loanee: ' + attributes.phone_number + '. Thank you. MiFedha');
+                    } catch (e) {
+                      const formattedFallback = formatAmountSync(parseFloat(amounts), nationality, ratesMap);
+                      Communications.textWithoutEncoding(phonecontactz, 'Hi ' + namess + ', your loan of ID ' + route.params.loanID + ' has been repaid ' + formattedFallback + ' by ' + names + '. For clarification call the loanee: ' + attributes.phone_number + '. Thank you. MiFedha');
+                    }
                     setIsLoading(false);
                   };
                   if (userInfo.userId !== owner) {

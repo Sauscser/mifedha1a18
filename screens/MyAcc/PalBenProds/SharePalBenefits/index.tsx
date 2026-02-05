@@ -8,6 +8,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { getCurrentUser, fetchUserAttributes } from "aws-amplify/auth";
 import { generateClient } from "aws-amplify/api";
+import { useExchange } from '../../../../src/contexts/ExchangeContext';
+import { formatAmountSync } from '../../../../src/utils/exchange';
 const client = generateClient();
 const SMASendNonLns = props => {
   const [SenderNatId, setSenderNatId] = useState('');
@@ -19,6 +21,7 @@ const SMASendNonLns = props => {
   const [isLoading, setIsLoading] = useState(false);
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const route = useRoute();
+  const { ratesMap } = useExchange();
   const fetchBenProdUsrDtls = async () => {
     if (isLoading) {
       return;
@@ -204,8 +207,10 @@ const SMASendNonLns = props => {
                         return;
                       }
                     }
-                    Alert.alert("Benefits Ksh. " + parseFloat(amounts).toFixed(2) + " sent. Transaction: Ksh. " + (parseFloat(UsrTransferFee) * parseFloat(amounts)).toFixed(2));
-                    Communications.textWithoutEncoding(beneficiaryPhones, 'Confirmed. ' + busNames + ' Benefactor has sent you Ksh. ' + amounts + ' as Benefits ' + 'Please confirm this transaction record is on your Mifedha app. Thank you. MiFedha');
+                    const formattedAmount = formatAmountSync(parseFloat(amounts), accountDtl.data.getSMAccount.nationality, ratesMap);
+                    const formattedTxFee = formatAmountSync((parseFloat(UsrTransferFee) * parseFloat(amounts)), accountDtl.data.getSMAccount.nationality, ratesMap);
+                    Alert.alert(`Benefits ${formattedAmount} sent. Transaction: ${formattedTxFee}`);
+                    Communications.textWithoutEncoding(beneficiaryPhones, `Confirmed. ${busNames} Benefactor has sent you ${formattedAmount} as Benefits. Please confirm this transaction record is on your Mifedha app. Thank you. MiFedha`);
                     setIsLoading(false);
                   };
                   if (statuss !== "AccountActive") {

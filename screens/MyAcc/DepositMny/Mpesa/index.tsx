@@ -1,4 +1,7 @@
 import React, { useEffect, useState } from 'react';
+import { useExchange } from '../../../../src/contexts/ExchangeContext';
+import { formatAmountSync } from '../../../../src/utils/exchange';
+import { nationalityToCode } from '../../../../src/utils/nationalityToCode';
 import { View, Text, TextInput, ScrollView, StyleSheet, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { WebView } from 'react-native-webview';
@@ -11,6 +14,7 @@ import { generateClient } from "aws-amplify/api";
 const client = generateClient();
 const DepositScreen = () => {
   const navigation = useNavigation();
+  const { nationality, ratesMap } = useExchange();
   const [amount, setAmount] = useState('');
   const [password, setPassword] = useState('');
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
@@ -59,7 +63,7 @@ const DepositScreen = () => {
         body: JSON.stringify({
           email: userEmail,
           amount: Math.round(amountValue * 100),
-          currency: 'KES',
+          currency: nationality ? (ratesMap?.[nationality]?.cur || 'KES') : 'KES',
           reference: `MiFedha_${Date.now()}`
         })
       });
@@ -156,7 +160,7 @@ const DepositScreen = () => {
           }
         }
       });
-      Alert.alert(`KSH. ${convertedAmount} deposited in ${account.name}'s account`);
+      Alert.alert(`${formatAmountSync(parseFloat(convertedAmount), nationalityToCode(nationality), ratesMap)} deposited in ${account.name}'s account`);
     } catch (error) {
       console.log(error);
       Alert.alert('Error', 'Transaction update failed. Try again.');

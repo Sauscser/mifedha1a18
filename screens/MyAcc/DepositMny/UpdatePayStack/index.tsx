@@ -1,4 +1,6 @@
 import React, { useEffect, useState } from 'react';
+import { useExchange } from '../../../../src/contexts/ExchangeContext';
+import { formatAmountSync } from '../../../../src/utils/exchange';
 import { View, Text, TextInput, ScrollView, StyleSheet, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
@@ -66,6 +68,7 @@ const DepositScreen = () => {
       }
       const paystackFees = await fetchPaystackFees(amountValue);
       const totalAmount = amountValue * 100 + paystackFees;
+      const { nationality, ratesMap } = useExchange();
       const response = await fetch('https://api.paystack.co/transaction/initialize', {
         method: 'POST',
         headers: {
@@ -75,7 +78,7 @@ const DepositScreen = () => {
         body: JSON.stringify({
           email: userEmail,
           amount: Math.round(totalAmount),
-          currency: 'KES',
+          currency: nationality ? (ratesMap?.[nationality]?.cur || 'KES') : 'KES',
           reference: `MiFedha_${Date.now()}`
         })
       });

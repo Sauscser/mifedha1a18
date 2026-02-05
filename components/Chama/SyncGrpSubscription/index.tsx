@@ -88,7 +88,8 @@ const SMCvLnStts = (props: SMAccount & { onSyncComplete: () => void }) => {
         <Text style={styles.prodInfo}><Text style={styles.label}>Group Account:</Text> {grpContact}</Text>
         <Text style={styles.prodInfo}><Text style={styles.label}>Group Admin Contact:</Text> {signitoryContact}</Text>
         <Text style={styles.prodInfo}><Text style={styles.label}>Group Admin Name:</Text> {signitoryName}</Text>
-        <Text style={styles.prodInfo}><Text style={styles.label}>Sync Amount:</Text> KES {MemberSubscrptnSync.toFixed(2)}</Text>
+        {/* Replace KES with dynamic currency */}
+        <Text style={styles.prodInfo}><Text style={styles.label}>Sync Amount:</Text> {formatAmountSync(MemberSubscrptnSync, nationalityToCode(signitoryName))}</Text>
       </View>
 
       <View style={styles.buttonRow}>

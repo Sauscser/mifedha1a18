@@ -7,6 +7,8 @@ import { updateSMAccount, updateTransportOrder } from "../../../src/graphql/muta
 import * as Location from "expo-location";
 import { useNavigation } from "@react-navigation/native";
 import { getCurrentUser, fetchUserAttributes } from "aws-amplify/auth";
+import { useExchange } from '../../../src/contexts/ExchangeContext';
+import { formatAmountSync, getUserNationalityByEmail, getExRatesForNationality, convertForeignToKsh } from '../../../src/utils/exchange';
 import { generateClient } from "aws-amplify/api";
 const client = generateClient();
 const screenWidth = Dimensions.get("window").width;
@@ -17,6 +19,8 @@ const TransportMapScreen = () => {
   const [loadingItemId, setLoadingItemId] = useState<string | null>(null);
   const [loadingType, setLoadingType] = useState<"accept" | "view" | null>(null);
   const [distanceMeters, setDistanceMeters] = useState<number>(0);
+  const [userNationality, setUserNationality] = useState<string | null>(null);
+  const [userRateData, setUserRateData] = useState<{ buyingPrice:number; sellingPrice:number; symbol?: string } | null>(null);
   const navigation = useNavigation();
   const mapRef = useRef(null);
   useEffect(() => {
@@ -24,6 +28,23 @@ const TransportMapScreen = () => {
     getTransporterLocation();
     const interval = setInterval(getTransporterLocation, 10000);
     return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    const fetchNat = async () => {
+      try {
+        const attributes = await fetchUserAttributes();
+        const nat = await getUserNationalityByEmail(attributes.email);
+        setUserNationality(nat);
+        if (nat) {
+          const data = await getExRatesForNationality(nat);
+          setUserRateData(data);
+        }
+      } catch (e) {
+        console.warn('fetch nat', e);
+      }
+    };
+    fetchNat();
   }, []);
   const fetchRegisterData = async () => {
     try {
@@ -91,6 +112,12 @@ const TransportMapScreen = () => {
       const deliveryCost = parseFloat(orderDtlz.deliveryCost);
       const userBalance = parseFloat(userDtlsz.balance);
       const buyerBalance = parseFloat(buyerDtlsz.balance);
+      // determine seller (transport owner) nationality and convert incoming amounts to KES
+      let sellerNationality = null;
+      if (orderDtlz.transportOwnerEmail) sellerNationality = await getUserNationalityByEmail(orderDtlz.transportOwnerEmail);
+      if (!sellerNationality && item.transportOwnerEmail) sellerNationality = await getUserNationalityByEmail(item.transportOwnerEmail);
+      const orderCostKes = sellerNationality ? await convertForeignToKsh(orderCost, sellerNationality) : orderCost;
+      const deliveryCostKes = sellerNationality ? await convertForeignToKsh(deliveryCost, sellerNationality) : deliveryCost;
       let computedDistance = 0;
       if (orderDtlz.sellerLatitude && orderDtlz.sellerLongitude && orderDtlz.deliveryLatitude && orderDtlz.deliveryLongitude && !isNaN(Number(orderDtlz.sellerLatitude)) && !isNaN(Number(orderDtlz.sellerLongitude)) && !isNaN(Number(orderDtlz.deliveryLatitude)) && !isNaN(Number(orderDtlz.deliveryLongitude))) {
         const rawDistance = getDistance({
@@ -103,26 +130,26 @@ const TransportMapScreen = () => {
         setDistanceMeters(rawDistance);
         computedDistance = rawDistance / 1000; // convert to km
       }
-      if (deliveryCost > buyerDtlsz.balance) {
+      if (deliveryCostKes > buyerDtlsz.balance) {
         Alert.alert("Sorry", "The buyer cannot cover the delivery cost.");
         return;
       } else if (orderDtlz.customerEmail === user.email) {
         Alert.alert("Sorry", "You cannot be the client and the transporter.");
         return;
-      } else if (orderCost > userBalance) {
+      } else if (orderCostKes > userBalance) {
         navigation.navigate("ViewChama2CommitTransport", {
           id: item.id
         });
         return;
       }
 
-      // Deduct balances
+      // Deduct balances (use KES)
       await client.graphql({
         query: updateSMAccount,
         variables: {
           input: {
             awsemail: user.email,
-            balance: userBalance - orderCost
+            balance: userBalance - orderCostKes
           }
         }
       });
@@ -131,7 +158,7 @@ const TransportMapScreen = () => {
         variables: {
           input: {
             awsemail: item.customerEmail,
-            balance: buyerBalance - deliveryCost
+            balance: buyerBalance - deliveryCostKes
           }
         }
       });
@@ -143,7 +170,7 @@ const TransportMapScreen = () => {
           input: {
             id: item.id,
             engagementStatus: "TransportEngaged",
-            UsrAcCommitment: orderDtlz.orderCost,
+            UsrAcCommitment: String(orderCostKes),
             deliveryStart: Date.now(),
             distance: computedDistance
           }
@@ -210,7 +237,7 @@ const TransportMapScreen = () => {
       }) => <View style={[styles.card, index === activeIndex && styles.activeCard]}>
               <Text style={styles.cardTitle}>
                 {item.sellerName} to {item.buyerName} || Aerial Distance: {item.distance} Km ||
-                Ksh. {item.orderCost} || Contact: {item.buyerContact} || {item.transportRequest} 
+                {formatAmountSync(Number(item.orderCost ?? 0), nationality, ratesMap)} || Contact: {item.buyerContact} || {item.transportRequest} 
                 || {item.engagementStatus}
               </Text>
               <Text numberOfLines={2} ellipsizeMode="tail">

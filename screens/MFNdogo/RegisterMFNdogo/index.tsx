@@ -123,7 +123,7 @@ const RegisterKFNdgAcForm = props => {
                             name: nam,
                             ttlEarnings: 0,
                             pw: pword,
-                            email: eml,
+                            email: attributes.email,
                             sagentregno: saRegNo,
                             bankName: BkAcNu,
                             bkAcNo: BkName,

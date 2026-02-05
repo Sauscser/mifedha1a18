@@ -14,6 +14,9 @@ import { remove } from 'aws-amplify/storage';
 import { listSokoAds, getBizna, getCompany, getSMAccount, listCovCreditSellers, listCvrdGroupLoans, listSMLoansCovereds } from '../../../../src/graphql/queries';
 import { createBenefitContributions2, createNonLoans, updateCompany, updateSMAccount, updateBizna, createMarketConsumption } from '../../../../src/graphql/mutations';
 import { getSignedImageUrl } from '../../../../src/utils/getSignedImageUrl';
+import { formatAmountSync, convertForeignToKsh, getUserNationalityByEmail } from '../../../../src/utils/exchange';
+import { useExchange } from '../../../../src/contexts/ExchangeContext';
+import { nationalityToCode } from '../../../../src/utils/nationalityToCode';
 import { FontAwesome } from '@expo/vector-icons';
 import { Image } from 'react-native';
 const client = generateClient();
@@ -34,6 +37,11 @@ const PLACEHOLDERS: Record<string,string> = {
 export default function SalesItemMapScreen({
   navigation
 }: { navigation: any }) {
+  // Dynamic currency context
+  const { nationality, ratesMap } = useExchange();
+  // Defensive: ensure nationality is a simple string (some flows return null or an object)
+  const safeNationality = typeof nationality === 'string' ? nationality : (nationality && typeof nationality === 'object' && 'nationality' in nationality ? (nationality as any).nationality : null);
+  const natCode = nationalityToCode(safeNationality);
   const [filters, setFilters] = useState({
     radius: '0.1 KM',
     brand: '',
@@ -168,11 +176,21 @@ export default function SalesItemMapScreen({
         setAllItems(rawItems);
         const ads = await Promise.all(rawItems.map(async (item: any) => {
           const signedUrl = item.itemPhoto ? await getSignedImageUrl(item.itemPhoto) : null;
+          // try to enrich item with seller nationality for dual-currency display
+          let sellerNationality = null;
+          try {
+            const bizRes: any = await client.graphql({ query: getBizna, variables: { BusKntct: item.sokokntct } });
+            const biz = bizRes?.data?.getBizna;
+            if (biz?.email) sellerNationality = await getUserNationalityByEmail(biz.email);
+          } catch (e) {
+            // ignore enrichment failures
+          }
           return {
             ...item,
             latitude: parseFloat(item.latitude),
             longitude: parseFloat(item.longitude),
-            signedUrl
+            signedUrl,
+            sellerNationality
           };
         }));
         setItems3(ads);
@@ -430,27 +448,44 @@ export default function SalesItemMapScreen({
           sellerTotals[item.sokokntct] = {
             totalItemCost: 0,
             totalBenefit: 0,
-            description: []
+            description: [],
+            // store last item id for this seller
+            lastItemId: item.id
           };
         }
         sellerTotals[item.sokokntct].description.push(description);
         sellerTotals[item.sokokntct].totalItemCost += itemCost;
         sellerTotals[item.sokokntct].totalBenefit += benefit;
+        // update lastItemId to the most recent item id for this seller
+        sellerTotals[item.sokokntct].lastItemId = item.id;
         totalCost += itemCost;
         totalCompanyEarnings += compEarnings;
         totalBenefit += benefit;
       }
 
       // Update sellers
+      let totalCostKes = 0;
       for (const sokokntct in sellerTotals) {
         const totals = sellerTotals[sokokntct];
+        // use tracked lastItemId as owner's reference; fallback to seller contact
+        const allItemsID = totals.lastItemId;
         const bizResult: any = await client.graphql({
           query: getBizna,
           variables: {
             BusKntct: sokokntct
           }
         });
+        console.log(allItemsID)
         const biz = bizResult.data.getBizna;
+        // determine seller nationality (via biz email -> SMAccount)
+        let sellerNationality = null;
+        try {
+          if (biz?.email) sellerNationality = await getUserNationalityByEmail(biz.email);
+        } catch (e) {}
+        // convert seller totals (assumed in seller currency) to KES for backend accounting
+        const totalInKes = await convertForeignToKsh(totals.totalItemCost, sellerNationality);
+        const benefitInKes = await convertForeignToKsh(totals.totalBenefit, sellerNationality);
+        totalCostKes += Number(totalInKes || 0);
         const usrDtls: any = await client.graphql({
           query: getSMAccount,
           variables: {
@@ -459,29 +494,41 @@ export default function SalesItemMapScreen({
         });
         const usrDtlsx = usrDtls.data.getSMAccount;
         await client.graphql({
+          query: updateBizna,
+          variables: {
+            input: {
+              BusKntct: sokokntct,
+              netEarnings: (parseFloat(biz.netEarnings) + totalInKes).toFixed(0),
+              earningsBal: (parseFloat(biz.earningsBal) + totalInKes).toFixed(0),
+              benefitsAmount: parseFloat(biz.benefitsAmount) + benefitInKes
+            }
+          }
+        });
+        console.log('Creating NonLoans for', sokokntct, 'owner:', allItemsID);
+        await client.graphql({
           query: createNonLoans,
           variables: {
             input: {
               recPhn: sokokntct,
               senderPhn: attributes.email,
-              amount: totals.totalItemCost.toFixed(0),
+              amount: totalInKes.toFixed(0),
               description: totals.description.join('\n'),
               RecName: biz.busName,
               SenderName: usrDtlsx.name,
               status: "cashSales",
-              owner: sokokntct
+              owner: allItemsID
             }
           }
         });
       }
 
-      // Update user
+      // Update user (use KES totals where available)
       await client.graphql({
         query: updateSMAccount,
         variables: {
           input: {
             awsemail: attributes.email,
-            ttlNonLonsSentSM: parseFloat(sender.ttlNonLonsSentSM) + totalCost,
+            ttlNonLonsSentSM: parseFloat(sender.ttlNonLonsSentSM) + (totalCostKes || totalCost),
             balance: parseFloat(sender.balance) - OverallTotalDebit,
             benefitsAmount: parseFloat(sender.benefitsAmount) + totalBenefit
           }
@@ -649,20 +696,26 @@ export default function SalesItemMapScreen({
           sellerTotals[item.sokokntct] = {
             totalItemCost: 0,
             totalBenefit: 0,
-            description: []
+            description: [],
+            // store last item id for this seller
+            lastItemId: item.id
           };
         }
         sellerTotals[item.sokokntct].description.push(description);
         sellerTotals[item.sokokntct].totalItemCost += itemCost;
         sellerTotals[item.sokokntct].totalBenefit += benefit;
+        // update lastItemId to the most recent item id for this seller
+        sellerTotals[item.sokokntct].lastItemId = item.id;
         totalCost += itemCost;
         totalCompanyEarnings += compEarnings;
         totalBenefit += benefit;
       }
 
-      // Update sellers
+      // Update sellers (convert seller totals to KES when necessary)
+      let totalCostKes = 0;
       for (const sokokntct in sellerTotals) {
         const totals = sellerTotals[sokokntct];
+        const allItemsID = totals.lastItemId;
         const bizResult: any = await client.graphql({
           query: getBizna,
           variables: {
@@ -670,6 +723,14 @@ export default function SalesItemMapScreen({
           }
         });
         const biz = bizResult.data.getBizna;
+        // seller nationality (via biz email -> SMAccount)
+        let sellerNationality = null;
+        try {
+          if (biz?.email) sellerNationality = await getUserNationalityByEmail(biz.email);
+        } catch (e) {}
+        const totalInKes = await convertForeignToKsh(totals.totalItemCost, sellerNationality);
+        const benefitInKes = await convertForeignToKsh(totals.totalBenefit, sellerNationality);
+        totalCostKes += Number(totalInKes || 0);
         const usrDt: any = await client.graphql({
           query: getSMAccount,
           variables: {
@@ -682,24 +743,25 @@ export default function SalesItemMapScreen({
           variables: {
             input: {
               BusKntct: sokokntct,
-              netEarnings: (parseFloat(biz.netEarnings) + totals.totalItemCost).toFixed(0),
-              earningsBal: (parseFloat(biz.earningsBal) + totals.totalItemCost).toFixed(0),
-              benefitsAmount: parseFloat(biz.benefitsAmount) + totals.totalBenefit
+              netEarnings: (parseFloat(biz.netEarnings) + totalInKes).toFixed(0),
+              earningsBal: (parseFloat(biz.earningsBal) + totalInKes).toFixed(0),
+              benefitsAmount: parseFloat(biz.benefitsAmount) + benefitInKes
             }
           }
         });
+        console.log('Creating NonLoans for', sokokntct, 'owner:', allItemsID);
         await client.graphql({
           query: createNonLoans,
           variables: {
             input: {
               recPhn: sokokntct,
               senderPhn: attributes.email,
-              amount: totals.totalItemCost.toFixed(0),
+              amount: totalInKes.toFixed(0),
               description: totals.description.join('\n'),
               RecName: biz.busName,
               SenderName: usrDts.name,
               status: "cashSales",
-              owner: sokokntct
+              owner: allItemsID
             }
           }
         });
@@ -713,8 +775,8 @@ export default function SalesItemMapScreen({
             AdminId: "BaruchHabaB'ShemAdonai2",
             companyEarningBal: totalCompanyEarnings + parseFloat(company.companyEarningBal),
             companyEarning: totalCompanyEarnings + parseFloat(company.companyEarning),
-            ttlNonLonssRecSM: totalCost + parseFloat(company.ttlNonLonssRecSM),
-            ttlNonLonssSentSM: totalCost + parseFloat(company.ttlNonLonssSentSM)
+            ttlNonLonssRecSM: (totalCostKes || totalCost) + parseFloat(company.ttlNonLonssRecSM),
+            ttlNonLonssSentSM: (totalCostKes || totalCost) + parseFloat(company.ttlNonLonssSentSM)
           }
         }
       });
@@ -725,7 +787,7 @@ export default function SalesItemMapScreen({
         variables: {
           input: {
             awsemail: attributes.email,
-            ttlNonLonsSentSM: parseFloat(sender.ttlNonLonsSentSM) + totalCost,
+            ttlNonLonsSentSM: parseFloat(sender.ttlNonLonsSentSM) + (totalCostKes || totalCost),
             balance: parseFloat(sender.balance) - OverallTotalDebit,
             benefitsAmount: parseFloat(sender.benefitsAmount) + totalBenefit
           }
@@ -840,7 +902,7 @@ export default function SalesItemMapScreen({
             paddingRight: 10
           }}>
                   <Text style={styles.text}>
-                    [{qty}×{item.unitQuantity}] {item.itemUnit} {item.itemBrand} {item.sokoname} @ KES {item.sokoprice} at {item.bizName} ({item.businessType}) = KES {total}
+                    [{qty}×{item.unitQuantity}] {item.itemUnit} {item.itemBrand} {item.sokoname} @ {formatAmountSync(Number(item.sokoprice), natCode, ratesMap)}{item.sellerNationality ? ` (${formatAmountSync(Number(item.sokoprice), nationalityToCode(item.sellerNationality), ratesMap)})` : ''} at {item.bizName} ({item.businessType}) = {formatAmountSync(Number(total), natCode, ratesMap)}
                     {'\n'}{item.bizContact} | Long press to add to cart
                   </Text>
 
@@ -853,7 +915,7 @@ export default function SalesItemMapScreen({
                 item: item.id
               })} style={[styles.btn, {
                 backgroundColor: '#e58d29'
-              }]}>
+              }]}> 
                       <Text style={{
                   color: 'white',
                   fontSize: 12
@@ -870,9 +932,7 @@ export default function SalesItemMapScreen({
       </Animated.View>
 
       {/* Cart - collapsible */}
-      <View style={[styles.cartContainer, {
-      width: SCREEN_WIDTH * 0.5
-    }]}>
+        <View style={styles.cartContainer}> 
         <TouchableOpacity onPress={() => setCartExpanded(!cartExpanded)}>
           <Text style={{
           fontWeight: 'bold'
@@ -882,7 +942,7 @@ export default function SalesItemMapScreen({
             {cart.map(item => <View key={item.id} style={{
           marginVertical: 5
         }}>
-                <Text>{item.sokoname} @ {item.sokoprice} × {quantities[item.id] || 1}</Text>
+                <Text>{item.sokoname} @ {formatAmountSync(Number(item.sokoprice), natCode, ratesMap)}{item.sellerNationality ? ` (${formatAmountSync(Number(item.sokoprice), nationalityToCode(item.sellerNationality), ratesMap)})` : ''} × {quantities[item.id] || 1}</Text>
                 <TouchableOpacity onPress={() => removeFromCart(item.id)}>
                   <Text style={{
               color: 'red'
@@ -892,7 +952,7 @@ export default function SalesItemMapScreen({
             <Text style={{
           fontWeight: 'bold',
           marginTop: 10
-        }}>Total: KES {OverallTotalDebit.toFixed(2)}</Text>
+        }}>{`Total: ${formatAmountSync(Number(OverallTotalDebit), natCode, ratesMap)}`}</Text>
             <TextInput placeholder="Enter Password" secureTextEntry={!isPasswordVisible} value={password} onChangeText={setPassword} style={styles.passwordInput} />
             <TouchableOpacity onPress={validateAndTransact2} style={styles.checkoutBtn}>
               {isLoading2 ? <ActivityIndicator color="white" /> : <Text style={{
@@ -1005,13 +1065,17 @@ const styles = StyleSheet.create({
     justifyContent: 'center'
   },
   cartContainer: {
-    position: 'absolute',
-    bottom: 0,
-    right: 0,
-    backgroundColor: '#fff',
-    borderTopLeftRadius: 12,
-    padding: 10,
-    elevation: 6
+     position: 'absolute',
+    top: 20,
+    left: 10,
+     backgroundColor: '#fff',
+     borderBottomLeftRadius: 12,
+     borderTopRightRadius: 12,
+     padding: 10,
+     elevation: 6,
+     minWidth: 180,
+     maxWidth: 260,
+     zIndex: 100,
   },
   passwordInput: {
     borderWidth: 1,

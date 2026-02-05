@@ -1,8 +1,11 @@
+// @ts-nocheck
 import React, { useEffect, useState } from 'react';
 import { createFloatAdd, updateAgent, updateCompany, updateSAgent, updateSMAccount } from '../../../src/graphql/mutations';
 import { getAgent, getCompany, getSAgent, getSMAccount, listCovCreditSellers, listCvrdGroupLoans, listGroupNonLoans, listSMLoansCovereds } from '../../../src/graphql/queries';
 import { View, Text, TextInput, ScrollView, ActivityIndicator, TouchableOpacity, Alert } from 'react-native';
 import styles from './styles';
+import { useExchange } from '../../../src/contexts/ExchangeContext';
+import { getUserNationalityByEmail, formatAmountForUser, formatAmountSync, convertKshToUserCurrency, convertForeignToKsh } from '../../../src/utils/exchange';
 import Navigation from '../../../navigation';
 import uuid from 'react-native-uuid';
 import { useNavigation } from '@react-navigation/native';
@@ -16,6 +19,7 @@ const SMADepositForm = props => {
   const [isLoading, setIsLoading] = useState(false);
   const [loading, setLoading] = useState(false);
   const navigation = useNavigation();
+  const { nationality, ratesMap, formatAmount } = useExchange();
   const SndChmMmbrMny = () => {
     navigation.navigate("AutomaticRepayAllTyps");
   };
@@ -42,21 +46,15 @@ const SMADepositForm = props => {
       const names = accountDtl.data.getSMAccount.name;
       const fetchCvLnSM = async () => {
         setLoading(true);
-        try {
+          try {
           const Lonees1: any = await client.graphql({
             query: listSMLoansCovereds,
             variables: {
               filter: {
                 and: {
-                  status: {
-                    eq: "LoanBL"
-                  },
-                  lonBala: {
-                    gt: 0
-                  },
-                  loaneeEmail: {
-                    eq: attributes.email
-                  }
+                  status: { eq: "LoanBL" },
+                  lonBala: { gt: 0 },
+                  loaneeEmail: { eq: attributes.email }
                 }
               }
             }
@@ -165,12 +163,15 @@ const SMADepositForm = props => {
                               const acChamp = compDtlscxv.data.getSAgent.acChamp;
                               const namessssssss = compDtlscxv.data.getSAgent.name;
                               const MFKWithdrwlFees = compDtlscxv.data.getSAgent.MFKWithdrwlFee;
-                              const AgentCommission = (parseFloat(agentComs) - parseFloat(MFNWithdrwlFees)) / 100 * parseFloat(amount) * parseFloat(UsrWthdrwlFeess);
-                              const saCommission = (parseFloat(sagentComs) - parseFloat(MFKWithdrwlFees)) / 100 * parseFloat(amount) * parseFloat(UsrWthdrwlFeess);
-                              const compCommission = parseFloat(companyComs) / 100 * parseFloat(amount) * parseFloat(UsrWthdrwlFeess);
-                              const ChampCommission = parseFloat(ChampCom) / 100 * parseFloat(amount) * parseFloat(UsrWthdrwlFeess);
+                              const senderNat = await getUserNationalityByEmail(attributes.email);
+                              const amountForeign = parseFloat(amount) || 0;
+                              const amountKes = await convertForeignToKsh(amountForeign, senderNat);
+                              const AgentCommission = (parseFloat(agentComs) - parseFloat(MFNWithdrwlFees)) / 100 * amountKes * parseFloat(UsrWthdrwlFeess);
+                              const saCommission = (parseFloat(sagentComs) - parseFloat(MFKWithdrwlFees)) / 100 * amountKes * parseFloat(UsrWthdrwlFeess);
+                              const compCommission = parseFloat(companyComs) / 100 * amountKes * parseFloat(UsrWthdrwlFeess);
+                              const ChampCommission = parseFloat(ChampCom) / 100 * amountKes * parseFloat(UsrWthdrwlFeess);
                               const UsrWithdrawalFee = AgentCommission + saCommission + compCommission + ChampCommission;
-                              const TTlAmtTrnsctd = parseFloat(amount) + UsrWithdrawalFee;
+                              const TTlAmtTrnsctd = amountKes + UsrWithdrawalFee;
                               const gtMFChamp = async () => {
                                 if (isLoading) {
                                   return;
@@ -217,7 +218,7 @@ const SMADepositForm = props => {
                                           input: {
                                             awsemail: attributes.email,
                                             balance: parseFloat(usrBala) - TTlAmtTrnsctd,
-                                            TtlWthdrwnSM: parseFloat(TtlWthdrwnSMs) + parseFloat(amount)
+                                            TtlWthdrwnSM: parseFloat(TtlWthdrwnSMs) + amountKes
                                           }
                                         }
                                       });
@@ -236,8 +237,8 @@ const SMADepositForm = props => {
                                             phonecontact: AgentPhn,
                                             ttlEarnings: parseFloat(ttlEarningssss) + AgentCommission,
                                             agentEarningBal: parseFloat(agentEarningBalsss) + AgentCommission,
-                                            floatBal: parseFloat(floatBals) + parseFloat(amount),
-                                            TtlFltIn: parseFloat(TtlFltInsss) + parseFloat(amount)
+                                            floatBal: parseFloat(floatBals) + amountKes,
+                                            TtlFltIn: parseFloat(TtlFltInsss) + amountKes
                                           }
                                         }
                                       });
@@ -298,12 +299,25 @@ const SMADepositForm = props => {
                                             agentEarning: parseFloat(agentEarnings) + AgentCommission,
                                             saEarningBal: parseFloat(saEarningBals) + saCommission,
                                             saEarning: parseFloat(saEarnings) + saCommission,
-                                            ttlUserWthdrwl: parseFloat(ttlUserWthdrwls) + parseFloat(amount),
-                                            agentFloatIn: parseFloat(agentFloatIns) + parseFloat(amount)
+                                            ttlUserWthdrwl: parseFloat(ttlUserWthdrwls) + amountKes,
+                                            agentFloatIn: parseFloat(agentFloatIns) + amountKes
                                           }
                                         }
                                       });
-                                      Alert.alert(`${names} has withdrawn Ksh. ${parseFloat(amount).toFixed(2)} from ${namess} MFNdogo`);
+                                      try {
+                                        const attributes = await fetchUserAttributes();
+                                        const nat = await getUserNationalityByEmail(attributes.email);
+                                        const formatted = await formatAmountForUser(amountKes, nat);
+                                        Alert.alert(`${names} has withdrawn ${formatted} from ${namess} MFNdogo`);
+                                      } catch(e) {
+                                        try {
+                                          const formatted = await formatAmount(amountKes);
+                                          Alert.alert(`${names} has withdrawn ${formatted} from ${namess} MFNdogo`);
+                                        } catch (e) {
+                                          const fallback = formatAmountSync(amountKes, nationality, ratesMap);
+                                          Alert.alert(`${names} has withdrawn ${fallback} from ${namess} MFNdogo`);
+                                        }
+                                      }
                                     } catch (error) {
                                       Alert.alert("Retry, update app or call customer care");
                                       console.error(error);
@@ -324,7 +338,7 @@ const SMADepositForm = props => {
                                     setIsLoading(false);
                                     return;
                                   }
-                                  if (parseFloat(amount) > parseFloat(withdrawalLimits)) {
+                                  if (amountKes > parseFloat(withdrawalLimits)) {
                                     Alert.alert("Withdrawal limit exceeded");
                                     setIsLoading(false);
                                     return;

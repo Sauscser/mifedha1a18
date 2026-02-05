@@ -10,6 +10,8 @@ import { onUpdateRideRequest } from '../../../src/graphql/subscriptions';
 import { Observable } from 'zen-observable-ts';
 import { updateRideRequest, updateSMAccount, updateTransportRegister, updateCompany } from '../../../src/graphql/mutations';
 import { getCurrentUser, fetchUserAttributes } from "aws-amplify/auth";
+import { useExchange } from '../../../src/contexts/ExchangeContext';
+import { formatAmountSync, getUserNationalityByEmail, convertForeignToKsh } from '../../../src/utils/exchange';
 import { Hub } from '@aws-amplify/core';
 import { generateClient } from "aws-amplify/api";
 const client = generateClient();
@@ -43,6 +45,7 @@ export default function RiderRideRequestScreen() {
   const [riderLocation, setRiderLocation] = useState<LocationWithAccuracy | null>(null);
   const [tripStarted, setTripStarted] = useState(false);
   const mapRef = useRef<MapView | null>(null);
+  const { nationality, ratesMap } = useExchange();
   const carouselRef = useRef<FlatList | null>(null);
   // Triggers carousel re-render whenever distance/cost changes
   const [rideMetricsTick, setRideMetricsTick] = useState(0);
@@ -592,7 +595,11 @@ export default function RiderRideRequestScreen() {
         }
       });
       const transporter = transporterRes?.data?.getTransportRegister;
-      if (passengerBalance < totalFare) {
+      // determine transporter nationality and convert fare to KES for ledger ops
+      let transporterNationality = transporter?.nationality || null;
+      if (!transporterNationality && transporter?.transportOwnerEmail) transporterNationality = await getUserNationalityByEmail(transporter.transportOwnerEmail);
+      const totalFareKes = transporterNationality ? await convertForeignToKsh(totalFare, transporterNationality) : totalFare;
+      if (passengerBalance < totalFareKes) {
         // Payment pending → mark overdue
         await client.graphql({
           query: updateRideRequest,
@@ -632,16 +639,16 @@ export default function RiderRideRequestScreen() {
       });
       const company = companyRes?.data?.getCompany;
       const companySharePct = Number(company?.transportCompanyShare ?? 0) / 100;
-      const companyShare = totalFare * companySharePct;
-      const transporterShare = totalFare - companyShare;
+      const companyShare = totalFareKes * companySharePct;
+      const transporterShare = totalFareKes - companyShare;
 
-      // Deduct passenger balance
+      // Deduct passenger balance (use KES)
       await client.graphql({
         query: updateSMAccount,
         variables: {
           input: {
             awsemail: passengerEmail,
-            balance: passengerBalance - totalFare
+            balance: passengerBalance - totalFareKes
           }
         }
       });
@@ -699,7 +706,7 @@ export default function RiderRideRequestScreen() {
       lastLocationRef.current = null;
       stopTracking();
       setTripStarted(false);
-      Alert.alert('Payment successful', `Charged KES ${totalFare.toFixed(2)} from ${passengerEmail}.`);
+      Alert.alert('Payment successful', `Charged ${formatAmountSync(totalFare, nationality ?? 'Kenya', ratesMap || {})} from ${passengerEmail}.`);
       if (userContact) fetchRides(userContact);
       return false; // Not overdue
     } catch (err) {
@@ -734,8 +741,12 @@ export default function RiderRideRequestScreen() {
       });
       const company = companyRes?.data?.getCompany;
       const companySharePct = Number(company?.transportCompanyShare ?? 0) / 100;
-      const companyShare = totalFare * companySharePct;
-      const transporterShare = totalFare - companyShare;
+      // manual clear: compute KES equivalents
+      let manualTransporterNationality = transporter?.nationality || null;
+      if (!manualTransporterNationality && transporter?.transportOwnerEmail) manualTransporterNationality = await getUserNationalityByEmail(transporter.transportOwnerEmail);
+      const totalFareKesManual = manualTransporterNationality ? await convertForeignToKsh(totalFare, manualTransporterNationality) : totalFare;
+      const companyShare = totalFareKesManual * companySharePct;
+      const transporterShare = totalFareKesManual - companyShare;
 
       // Deduct company share from transporter SMAccount
       const transporterEmail = transporter.transportOwnerEmail; // authenticated user
@@ -762,7 +773,7 @@ export default function RiderRideRequestScreen() {
         return true; // Overdue
       }
 
-      // Deduct company share
+      // Deduct company share (KES)
       await client.graphql({
         query: updateSMAccount,
         variables: {
@@ -773,7 +784,7 @@ export default function RiderRideRequestScreen() {
         }
       });
 
-      // Update transporter earnings
+      // Update transporter earnings (KES)
       const newEarnings = Number(transporter.Earnings ?? 0) + transporterShare;
       await client.graphql({
         query: updateTransportRegister,
@@ -1253,7 +1264,7 @@ export default function RiderRideRequestScreen() {
           const distance = cumulativeDistanceRef.current[item.id] ?? 0;
           const cost = cumulativeCostRef.current[item.id] ?? item.estimatedCost ?? 0;
           distanceText = `Distance: ${distance.toFixed(2)} km`;
-          costText = `KES ${cost.toFixed(2)}`;
+          costText = `${formatAmountSync(cost, nationality ?? 'Kenya', ratesMap || {})}`;
         } else if (isSelected && rideStatus !== 'Active') {
           // When selected and trip not started, show distance-to-pickup (if available) and approx pickup->destination cost
           if (riderLocation) {
@@ -1262,13 +1273,11 @@ export default function RiderRideRequestScreen() {
           }
           // Use server-estimated cost if available; otherwise compute from straight-line pickup->destination
           const est = item.estimatedCost ?? Math.round((item.riderRate || 0) * getDistanceKm(item.pickupLatitude, item.pickupLongitude, item.destinationLatitude, item.destinationLongitude));
-          costText = `Approx cost: KES ${est.toFixed(2)}`;
+          costText = `Approx cost: ${formatAmountSync(est, nationality ?? 'Kenya', ratesMap || {})}`;
         } else if (riderLocation && rideStatus === 'TransportApproved') {
           const distanceToPickup = getDistanceKm(riderLocation.latitude, riderLocation.longitude, item.pickupLatitude, item.pickupLongitude);
           distanceText = `Distance to pickup: ${distanceToPickup.toFixed(2)} km`;
-          costText = `Estimated cost: KES ${item.estimatedCost?.toFixed?.(2) ?? item.estimatedCost ?? '0.00'}`;
-        } else {
-          costText = `Estimated cost: KES ${item.estimatedCost?.toFixed?.(2) ?? item.estimatedCost ?? '0.00'}`;
+          costText = `Estimated cost: ${formatAmountSync(Number(item.estimatedCost ?? 0), nationality ?? 'Kenya', ratesMap || {})}`;
         }
         return <View key={item.id} style={{
           backgroundColor: '#fff',

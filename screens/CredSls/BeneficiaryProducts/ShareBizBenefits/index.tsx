@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import Communications from 'react-native-communications';
 import { createSMLoansCovered, createNonLoans, updateCompany, updateSMAccount, updateBizna, createBenefitShare2, updateLinkBeneficiary2 } from '../../../../src/graphql/mutations';
 import { getBizna, getCompany, getLinkBeneficiary2, getSMAccount } from '../../../../src/graphql/queries';
+import { useExchange } from '../../../../src/contexts/ExchangeContext';
+import { formatAmountSync } from '../../../../src/utils/exchange';
 import { getCurrentUser, fetchUserAttributes } from 'aws-amplify/auth';
 import { generateClient } from 'aws-amplify/api';
 import { View, Text, TextInput, ScrollView, StyleSheet, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
@@ -186,8 +188,11 @@ const SMASendNonLns = props => {
                       Alert.alert('Check your internet connection');
                       return;
                     }
-                    Alert.alert('Amount:Ksh. ' + parseFloat(amounts).toFixed(2) + ' Transaction: Ksh. ' + (parseFloat(UsrTransferFee) * parseFloat(amounts)).toFixed(2));
-                    Communications.textWithoutEncoding(beneficiaryPhones, 'Confirmed. ' + busNames + ' Benefactor has sent you Ksh. ' + amounts + ' as Benefits. Please confirm this transaction record is on your Mifedha app. Thank you. MiFedha');
+                    const { ratesMap } = useExchange();
+                    const formattedAmount = formatAmountSync(parseFloat(amounts), accountDtl.data.getSMAccount.nationality, ratesMap);
+                    const formattedTxFee = formatAmountSync((parseFloat(UsrTransferFee) * parseFloat(amounts)), accountDtl.data.getSMAccount.nationality, ratesMap);
+                    Alert.alert(`Amount: ${formattedAmount} Transaction: ${formattedTxFee}`);
+                    Communications.textWithoutEncoding(beneficiaryPhones, `Confirmed. ${busNames} Benefactor has sent you ${formattedAmount} as Benefits. Please confirm this transaction record is on your Mifedha app. Thank you. MiFedha`);
                     setIsLoading(false);
                   };
                   if (statuss !== 'AccountActive') {

@@ -40,7 +40,8 @@ const ViewSMWithdrwls = (props:SMAccount) => {
 
         <Text style={styles.prodInfo}><Text style={styles.label}>Transaction ID:</Text> {id}</Text>
         <Text style={styles.prodInfo}><Text style={styles.label}>MFNdogo Number:</Text> {agentPhonecontact}</Text>
-        <Text style={styles.prodInfo}><Text style={styles.label}>Amount:</Text> KES {amount.toFixed(2)}</Text>
+      {/* Replace KES with dynamic currency */}
+      <Text style={styles.prodInfo}><Text style={styles.label}>Amount:</Text> {formatAmountSync(amount)}</Text>
         <Text style={styles.prodInfo}><Text style={styles.label}>Transaction Time:</Text> {createdAt}</Text>
     
        </View>               

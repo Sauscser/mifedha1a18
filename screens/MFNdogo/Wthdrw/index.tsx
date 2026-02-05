@@ -3,14 +3,15 @@ import { createAgentWithdrawals, createBankAdmWithdrawals, createFloatAdd, creat
 import { getAgent, getBankAdmin, getCompany, getSAgent, getSMAccount } from '../../../src/graphql/queries';
 import { View, Text, TextInput, ScrollView, ActivityIndicator, TouchableOpacity, Alert } from 'react-native';
 import styles from './styles';
-import { getCurrentUser, fetchUserAttributes } from "aws-amplify/auth";
-import { generateClient } from "aws-amplify/api";
+import { getCurrentUser, fetchUserAttributes } from "aws-amplify/auth";import { useExchange } from '../../../src/contexts/ExchangeContext';
+import { formatAmountSync } from '../../../src/utils/exchange';import { generateClient } from "aws-amplify/api";
 const client = generateClient();
 const MFNWthdwl = props => {
   const [UsrPWd, setUsrPWd] = useState("");
   const [MFKPhn, setMFKPhn] = useState("");
   const [amount, setAmount] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const { nationality, ratesMap } = useExchange();
   const fetchAcDtls = async () => {
     if (isLoading) {
       return;
@@ -71,7 +72,7 @@ const MFNWthdwl = props => {
             }
             await UpdateMFN();
             setIsLoading(false);
-            Alert.alert(names + ", You have Withdrawn Ksh. " + amount);
+            Alert.alert(names + ", You have Withdrawn " + formatAmountSync(Number(amount), nationality, ratesMap));
           };
           const UpdateMFN = async () => {
             try {

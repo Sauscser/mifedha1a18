@@ -7,6 +7,8 @@ import { View, Text, ImageBackground, Pressable, TextInput, ScrollView, Keyboard
 import styles from './styles';
 import { getCurrentUser, fetchUserAttributes } from "aws-amplify/auth";
 import { generateClient } from "aws-amplify/api";
+import { useExchange } from '../../../../../../src/contexts/ExchangeContext';
+import { formatAmountSync } from '../../../../../../src/utils/exchange';
 const client = generateClient();
 const RepayNonCovLnsss = props => {
   const [SnderPW, setSnderPW] = useState("");
@@ -277,8 +279,11 @@ const RepayNonCovLnsss = props => {
                         return;
                       }
                     }
-                    Alert.alert("Cleared. Clearance charge: " + ClranceAmt.toFixed(2) + ". Transaction: " + (parseFloat(UsrTransferFee) * parseFloat(amounts)).toFixed(2));
-                    Communications.textWithoutEncoding(phonecontactz, 'Hi ' + namess + ', your loan of ID ' + route.params.id + 'has been repaid Ksh. ' + amounts + ' by ' + names + '. For clarification call the loanee: ' + attributes.phone_number + '. Thank you. MiFedha');
+                    const formattedClearing = formatAmountSync(Number(ClranceAmt || 0), accountDtl.data.getSMAccount.nationality, ratesMap);
+                    const formattedTxFee = formatAmountSync((parseFloat(UsrTransferFee) * parseFloat(amounts)), accountDtl.data.getSMAccount.nationality, ratesMap);
+                    Alert.alert(`Cleared. Clearance charge: ${formattedClearing}. Transaction: ${formattedTxFee}`);
+                    const formattedAmt = formatAmountSync(parseFloat(amounts), accountDtl.data.getSMAccount.nationality, ratesMap);
+                    Communications.textWithoutEncoding(phonecontactz, `Hi ${namess}, your loan of ID ${route.params.id} has been repaid ${formattedAmt} by ${names}. For clarification call the loanee: ${attributes.phone_number}. Thank you. MiFedha`);
                     setIsLoading(false);
                   };
                   const repyCovLn = async () => {
@@ -413,7 +418,7 @@ const RepayNonCovLnsss = props => {
                       }
                     }
                     Alert.alert("Partially paid. Clearance: " + ClranceAmt.toFixed(2) + ". Transaction: " + (parseFloat(UsrTransferFee) * parseFloat(amounts)).toFixed(2));
-                    Communications.textWithoutEncoding(phonecontactz, 'Hi ' + namess + ', your loan of ID ' + route.params.id + ' has been repaid Ksh. ' + amounts + ' by ' + names + '. For clarification call the loanee: ' + attributes.phone_number + '. Thank you. MiFedha');
+                    Communications.textWithoutEncoding(phonecontactz, 'Hi ' + namess + ', your loan of ID ' + route.params.id + ' has been repaid ' + formatAmountSync(Number(amounts), nationality || undefined, ratesMap) + ' by ' + names + '. For clarification call the loanee: ' + attributes.phone_number + '. Thank you. MiFedha');
                     setIsLoading(false);
                   };
                   if (userInfo.userId !== owner) {

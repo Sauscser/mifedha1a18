@@ -48,7 +48,7 @@ const ChmMbrShpInfo = (props:ChamaMmbrshpInfo) => {
                     </Text>  
                     <Text style = {styles.ownerContact}>                       
                        {/*loaner details */}  
-                     Loan Balance: (Ksh) {lonBala.toFixed(2)}                
+                     Loan Balance: {formatAmountSync(lonBala)}                
                     </Text>   
                                 
                

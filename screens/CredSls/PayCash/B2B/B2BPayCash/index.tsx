@@ -229,7 +229,8 @@ const SMASendNonLns = props => {
             }
           }
         });
-        Alert.alert("Amount: Ksh. " + parseFloat(amount).toFixed(0) + ". Transaction fee: Ksh. " + UsrTransferFeeAmt.toFixed(0));
+        const { nationality, ratesMap } = useExchange();
+        Alert.alert("Amount: " + formatAmountSync(parseFloat(amount), nationalityToCode(nationality), ratesMap) + ". Transaction fee: " + formatAmountSync(parseFloat(UsrTransferFeeAmt), nationalityToCode(nationality), ratesMap));
       }
       async function sendSMNonLn11() {
         await client.graphql({

@@ -7,6 +7,8 @@ import { View, Text, ImageBackground, Pressable, TextInput, ScrollView, Keyboard
 import styles from './styles';
 import { getCurrentUser, fetchUserAttributes } from "aws-amplify/auth";
 import { generateClient } from "aws-amplify/api";
+                    import { nationalityToCode } from '../../../../../../src/utils/nationalityToCode';
+
 const client = generateClient();
 const BLNonCovCredByr = props => {
   const route = useRoute();
@@ -173,7 +175,8 @@ const BLNonCovCredByr = props => {
                       }
                     }
                     Alert.alert(names + ", you have blacklisted " + namess);
-                    Communications.textWithoutEncoding(phonecontactz, 'Hi ' + namess + ', your loan of ID ' + route.params.id + 'has been blacklisted by ' + names + ' Business. The following is a breakdown of your repayable loan. Loan balance before blacklisting was Ksh. ' + lonBala + '. Default Penalty as you had agreed with your loaner is Ksh. ' + DefaultPenaltyCredSls + '. Clearance fee is Ksh. ' + ClrnceCosts + '. Total current loan repayable is Ksh. ' + LonBal + '. For clarification call the Business Owner: ' + attributes.phone_number + '. Thank you. MiFedha');
+                    // Use nationalityToCode for all currency formatting
+                    Communications.textWithoutEncoding(phonecontactz, 'Hi ' + namess + ', your loan of ID ' + route.params.id + 'has been blacklisted by ' + names + ' Business. The following is a breakdown of your repayable loan. Loan balance before blacklisting was ' + formatAmountSync(Number(lonBala), nationalityToCode(nationality), ratesMap) + '. Default Penalty as you had agreed with your loaner is ' + formatAmountSync(Number(DefaultPenaltyCredSls), nationalityToCode(nationality), ratesMap) + '. Clearance fee is ' + formatAmountSync(Number(ClrnceCosts), nationalityToCode(nationality), ratesMap) + '. Total current loan repayable is ' + formatAmountSync(Number(LonBal), nationalityToCode(nationality), ratesMap) + '. For clarification call the Business Owner: ' + attributes.phone_number + '. Thank you. MiFedha');
                     setIsLoading(false);
                   };
                 } catch (error) {

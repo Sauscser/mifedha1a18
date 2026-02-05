@@ -51,6 +51,7 @@ const CreateBiz = () => {
   const route = useRoute();
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const [isUrlValid, setIsUrlValid] = useState(false);
+  const { nationality, ratesMap } = useExchange();
   const updateForm = (key, value) => {
     setFormData(prev => ({
       ...prev,
@@ -294,7 +295,7 @@ const CreateBiz = () => {
 
         <InputField label="Item Name" value={formData.itemName} onChange={v => updateForm('itemName', v)} />
         <InputField label="Brand/Model/Type (Optional)" value={formData.brandName} onChange={v => updateForm('brandName', v)} />
-        <InputField label="Item Price (Ksh)" value={formData.itemPrice} onChange={v => updateForm('itemPrice', v)} keyboardType="numeric" />
+        <InputField label={`Item Price (${ratesMap?.[nationality]?.symbol || 'Ksh'})`} value={formData.itemPrice} onChange={v => updateForm('itemPrice', v)} keyboardType="numeric" />
         <InputField label="Unit of Measure (Optional)" value={formData.itemUnit} onChange={v => updateForm('itemUnit', v)} />
         <InputField label="Quantity per Unit (Optional)" value={formData.unitQuantity} onChange={v => updateForm('unitQuantity', v)} keyboardType="numeric" />
         <InputField label="Serial Number (Optional)" value={formData.ItemCode} onChange={v => updateForm('ItemCode', v)} />

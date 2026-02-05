@@ -5,6 +5,7 @@ import { getCurrentUser, fetchUserAttributes } from 'aws-amplify/auth';
 import LnerStts from "../../../../components/Ads/VwPrsnlLns";
 import styles from './styles';
 import { listGroups, listRafikiLnAds, listSMAccounts } from '../../../../src/graphql/queries';
+import { useExchange } from '../../../../src/contexts/ExchangeContext';
 const client = generateClient();
 const FetchSMNonCovLns = props => {
   const [LneePhn, setLneePhn] = useState(null);
@@ -23,6 +24,7 @@ const FetchSMNonCovLns = props => {
   const [Sign2Phn, setSign2Phn] = useState('');
   const [itemPrys, setitemPrys] = useState('0');
   const [itemTwn, setitemTwn] = useState('0');
+  const { nationality, ratesMap } = useExchange();
   const [lnPrsntg, setlnPrsntg] = useState('100');
   const [rpymntPrd, setrpymntPrd] = useState('0');
   const fetchLoanees = async () => {
@@ -74,7 +76,7 @@ const FetchSMNonCovLns = props => {
             </>} />
       </View>
 
-      <TextInput placeholder='Enter Minimum Amount in Ksh.' keyboardType='decimal-pad' value={itemPrys} onChangeText={setitemPrys} style={styles.sendLoanInput} editable={true} />
+      <TextInput placeholder={`Enter Minimum Amount in ${ratesMap?.[nationality]?.symbol || 'Ksh'}.`} keyboardType='decimal-pad' value={itemPrys} onChangeText={setitemPrys} style={styles.sendLoanInput} editable={true} />
     </View>;
 };
 export default FetchSMNonCovLns;

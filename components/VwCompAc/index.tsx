@@ -1,6 +1,9 @@
-import React from 'react';
+import React, { useContext } from 'react';
 import {View, Text,   ScrollView} from 'react-native';
 
+import { useExchange } from '../../src/contexts/ExchangeContext';
+import { formatAmountSync } from '../../src/utils/exchange';
+import { nationalityToCode } from '../../src/utils/nationalityToCode';
 
 import styles from './styles';
 
@@ -148,6 +151,7 @@ export interface SMAccount {
       recom: string,
 
    }} const SMCvLnStts = (props:SMAccount) => {
+      const { nationality, ratesMap } = useExchange();
       const {
          SMAc: {
             AdminId,
@@ -309,101 +313,34 @@ export interface SMAccount {
                         
                      
 
-                    <Text style = {styles.ownerName}>                       
-                       {/*loaner details */}   
-                       Total Company Earnings (Ksh): {companyEarning.toFixed(2)}                 
-                    </Text>
-
-                    <Text style = {styles.ownerName}>                       
-                       {/*loaner details */}   
-                       Ac Balance (Ksh): {companyEarningBal.toFixed(2)}                 
-                    </Text>
-
-                    <Text style = {styles.ownerContact}>                       
-                       {/*loaner details */}  
-                       Total Agent Earning (Ksh): {agentEarning.toFixed(2)}                
-                    </Text>                     
-                    <Text style ={styles.amountoffered}>                       
-                       {/* amount*/} 
-                      Total Agent Balance (Ksh): {agentEarningBal.toFixed(2)}
-                    </Text>   
-                    <Text style = {styles.repaymentPeriod}>                       
-                       {/* repaymentPeriod*/}
-                      Total MFKubwa Earning (Ksh): {saEarning.toFixed(2)}                  
-                    </Text> 
-                    <Text style = {styles.interest}>                       
-                       {/* interest*/}
-                       Total MFKubwa Balance : {saEarningBal.toFixed(2)}                    
-                    </Text> 
-
-                    <Text style = {styles.ownerContact}>                       
-                       {/*loaner details */}  
-                       Total Advocate Earning (Ksh): {AdvEarning.toFixed(2)}                
-                    </Text>                     
-                    <Text style ={styles.amountoffered}>                       
-                       {/* amount*/} 
-                      Total Advocate Balance (Ksh): {AdvEarningBal.toFixed(2)}
-                    </Text>   
-
-                     <Text style = {styles.ownerName}>                       
-                       {/*loaner details */}   
-                       Total Loans Recovered (Ksh): {totalLnsRecovered.toFixed(2)}                 
-                    </Text>
-
-                    <Text style = {styles.ownerName}>                       
-                       {/*loaner details */}   
-                       Total NonLoans From SM (Ksh): {ttlNonLonssRecSM.toFixed(2)}                 
-                    </Text>
-
-                    <Text style = {styles.ownerContact}>                       
-                       {/*loaner details */}  
-                       Total NonLoans to SM (Ksh): {ttlNonLonssSentSM.toFixed(2)}                
-                    </Text>                     
-                    <Text style ={styles.amountoffered}>                       
-                       {/* amount*/} 
-                      Total NonLoans From Chama (Ksh): {ttlNonLonssRecChm.toFixed(2)}
-                    </Text> 
-                    <Text style = {styles.repaymentPeriod}>                       
-                       {/* repaymentPeriod*/}
-                      Total NonLoans To Chama (Ksh): {ttlNonLonssSentChm.toFixed(2)}                  
-                    </Text> 
-                    <Text style = {styles.interest}>                       
-                       {/* interest*/}
-                       Total User Deposits Ksh : {ttlUsrDep.toFixed(2)}                
-                    </Text> 
-                    <Text style = {styles.interest}>                       
-                       {/* interest*/}
-                       Total User Withdrawals (Ksh) : {ttlUserWthdrwl.toFixed(2)}                
-                    </Text> 
-                    <Text style = {styles.ownerContact}>                       
-                       {/*loaner details */}  
-                     NonCov Transfer Earnings (Ksh): {ttlCompTrnsfrEarningsNonCov.toFixed(2)}                
-                    </Text>                     
-                    <Text style ={styles.amountoffered}>                       
-                       {/* amount*/} 
-                      NonCov BL Clearance Earnings (Ksh): {ttlCompBLClrncEarningsNonCov.toFixed(2)}
-                    </Text> 
-                    <Text style = {styles.ownerContact}>                       
-                       {/*loaner details */}  
-                     Transfer Cov Earnings (Ksh): {ttlCompTrnsfrEarningsCov.toFixed(2)}                
-                    </Text>                     
-                    <Text style ={styles.amountoffered}>                       
-                       {/* amount*/} 
-                      Cov BL Clearance Earnings (Ksh): {ttlCompBLClrncEarningsCov.toFixed(2)}
-                    </Text> 
-                    <Text style = {styles.repaymentPeriod}>                       
-                       {/* repaymentPeriod*/}
-                      Coverage Earnings (Ksh): {ttlCompCovEarnings.toFixed(2)}                  
-                    </Text> 
-                    <Text style = {styles.interest}>                       
-                       {/* interest*/}
-                       Total Float In (Ksh) : {agentFloatIn.toFixed(2)}                    
-                    </Text> 
-
-                    <Text style = {styles.ownerContact}>                       
-                       {/*loaner details */}  
-                       Float Out (Ksh): {agentFloatOut.toFixed(2)}                
-                    </Text>                     
+                    {/* Currency formatting context */}
+                    {(() => {
+                      const { nationality, formatAmount } = useExchange();
+                      return <>
+                        <Text style={styles.ownerName}>Total Company Earnings: {formatAmountSync(companyEarning, nationality)}</Text>
+                        <Text style={styles.ownerName}>Ac Balance: {formatAmountSync(companyEarningBal, nationality)}</Text>
+                        <Text style={styles.ownerContact}>Total Agent Earning: {formatAmountSync(agentEarning, nationality)}</Text>
+                        <Text style={styles.amountoffered}>Total Agent Balance: {formatAmountSync(agentEarningBal, nationality)}</Text>
+                        <Text style={styles.repaymentPeriod}>Total MFKubwa Earning: {formatAmountSync(saEarning, nationality)}</Text>
+                        <Text style={styles.interest}>Total MFKubwa Balance: {formatAmountSync(saEarningBal, nationality)}</Text>
+                        <Text style={styles.ownerContact}>Total Advocate Earning: {formatAmountSync(AdvEarning, nationality)}</Text>
+                        <Text style={styles.amountoffered}>Total Advocate Balance: {formatAmountSync(AdvEarningBal, nationality)}</Text>
+                        <Text style={styles.ownerName}>Total Loans Recovered: {formatAmountSync(totalLnsRecovered, nationality)}</Text>
+                        <Text style={styles.ownerName}>Total NonLoans From SM: {formatAmountSync(ttlNonLonssRecSM, nationality)}</Text>
+                        <Text style={styles.ownerContact}>Total NonLoans to SM: {formatAmountSync(ttlNonLonssSentSM, nationality)}</Text>
+                        <Text style={styles.amountoffered}>Total NonLoans From Chama: {formatAmountSync(ttlNonLonssRecChm, nationality)}</Text>
+                        <Text style={styles.repaymentPeriod}>Total NonLoans To Chama: {formatAmountSync(ttlNonLonssSentChm, nationality)}</Text>
+                        <Text style={styles.interest}>Total User Deposits: {formatAmountSync(ttlUsrDep, nationality)}</Text>
+                        <Text style={styles.interest}>Total User Withdrawals: {formatAmountSync(ttlUserWthdrwl, nationality)}</Text>
+                        <Text style={styles.ownerContact}>NonCov Transfer Earnings: {formatAmountSync(ttlCompTrnsfrEarningsNonCov, nationality)}</Text>
+                        <Text style={styles.amountoffered}>NonCov BL Clearance Earnings: {formatAmountSync(ttlCompBLClrncEarningsNonCov, nationality)}</Text>
+                        <Text style={styles.ownerContact}>Transfer Cov Earnings: {formatAmountSync(ttlCompTrnsfrEarningsCov, nationality)}</Text>
+                        <Text style={styles.amountoffered}>Cov BL Clearance Earnings: {formatAmountSync(ttlCompBLClrncEarningsCov, nationality)}</Text>
+                        <Text style={styles.repaymentPeriod}>Coverage Earnings: {formatAmountSync(ttlCompCovEarnings, nationality)}</Text>
+                        <Text style={styles.interest}>Total Float In: {formatAmountSync(agentFloatIn, nationality)}</Text>
+                        <Text style={styles.ownerContact}>Float Out: {formatAmountSync(agentFloatOut, nationality)}</Text>
+                      </>;
+                    })()}
                     
 
 
@@ -601,19 +538,19 @@ export interface SMAccount {
                      </View>
                     <Text style = {styles.interest}>                       
                        {/* interest*/}
-                     Total SM  Loans (Ksh): {ttlSMLnsInAmtCov.toFixed(2)}                    
+                     Total SM Loans: {formatAmountSync(ttlSMLnsInAmtCov, nationalityToCode(nationality), ratesMap)}                    
                     </Text> 
                     <Text style = {styles.interest}>                       
                        {/* interest*/}
-                      Total Chama Loans (Ksh): {ttlChmLnsInAmtCov.toFixed(2)}                    
+                      Total Chama Loans: {formatAmountSync(ttlChmLnsInAmtCov, nationalityToCode(nationality), ratesMap)}                    
                     </Text> 
                     <Text style = {styles.interest}>                       
                        {/* interest*/}
-                      Total CredSales Loans (Ksh): {ttlSellerLnsInAmtCov}                    
+                      Total CredSales Loans: {formatAmountSync(ttlSellerLnsInAmtCov, nationalityToCode(nationality), ratesMap)}                    
                     </Text> 
                     <Text style = {styles.interest}>                       
                        {/* interest*/}
-                     Inactive SM Loans (Ksh): {ttlSMLnsInActvAmtCov.toFixed(2)}                    
+                     Inactive SM Loans: {formatAmountSync(ttlSMLnsInActvAmtCov, nationalityToCode(nationality), ratesMap)}                    
                     </Text>                     
                     <Text style = {styles.interest}>                       
                        {/* interest*/}
@@ -626,7 +563,7 @@ export interface SMAccount {
 
                     <Text style = {styles.interest}>                       
                        {/* interest*/}
-                     Total SM Cleared Loans (Ksh): {ttlSMLnsInClrdAmtCov.toFixed(2)}                    
+                     Total SM Cleared Loans: {formatAmountSync(ttlSMLnsInClrdAmtCov, nationalityToCode(nationality), ratesMap)}                    
                     </Text> 
                     <Text style = {styles.interest}>                       
                        {/* interest*/}
@@ -719,7 +656,7 @@ export interface SMAccount {
                      </View>
                     <Text style = {styles.interest}>                       
                        {/* interest*/}
-                     Total SM  Loans (Ksh): {ttlSMLnsInAmtNonCov.toFixed(2)}                    
+                     Total SM Loans (Non-covered): {formatAmountSync(ttlSMLnsInAmtNonCov, nationalityToCode(nationality), ratesMap)}                    
                     </Text> 
                     <Text style = {styles.interest}>                       
                        {/* interest*/}

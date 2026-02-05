@@ -8,6 +8,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { View, ActivityIndicator } from 'react-native';
 import useColorScheme from './hooks/useColorScheme';
 import RootNav from './navigation/RootNav';
+import { ExchangeProvider } from './src/contexts/ExchangeContext';
 import { Amplify } from 'aws-amplify';
 import awsconfig from './src/aws-exports';
 import { Authenticator, useAuthenticator } from '@aws-amplify/ui-react-native';
@@ -34,7 +35,9 @@ export default function App() {
   return (
     <Authenticator.Provider>
       <Authenticator>
-        <AuthenticatedApp />
+        <ExchangeProvider>
+          <AuthenticatedApp />
+        </ExchangeProvider>
       </Authenticator>
     </Authenticator.Provider>
   );

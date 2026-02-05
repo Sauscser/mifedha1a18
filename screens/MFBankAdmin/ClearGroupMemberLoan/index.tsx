@@ -13,6 +13,8 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import { generateClient } from 'aws-amplify/api';
 import { getCurrentUser, fetchUserAttributes } from 'aws-amplify/auth';
+import { useExchange } from '../../../src/contexts/ExchangeContext';
+import { formatAmountSync } from '../../../src/utils/exchange';
 import { getUrl } from '@aws-amplify/storage';
 import ImageViewer from 'react-native-image-zoom-viewer';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -47,6 +49,7 @@ const clip = (x: number, min = 0, max = 100) => Math.max(min, Math.min(max, x));
 const AdminClearLoans = () => {
   const navigation = useNavigation();
   const client = generateClient();
+  const { nationality, ratesMap } = useExchange();
 
   // Groups
   const [adminGroups, setAdminGroups] = useState<any[]>([]);
@@ -517,11 +520,11 @@ if (!minutes && selectedLoan?.loanMinutes) {
 
     <h2>Loan Summary</h2>
     <p><strong>Loanee:</strong> ${selectedLoan.loaneeName} (${selectedLoan.loaneeEmail})</p>
-    <p><strong>Amount:</strong> KES ${Number(selectedLoan.amount).toLocaleString()}</p>
+    <p><strong>Amount:</strong> ${formatAmountSync(Number(selectedLoan.amount || 0), nationality, ratesMap)}</p>
     <p><strong>Status:</strong> ${selectedLoan.status}</p>
     <p><strong>Interest:</strong> ${selectedLoan.repaymentAmt}%</p>
     <p><strong>Repayment Period:</strong> ${selectedLoan.repaymentPeriod} days</p>
-    <p><strong>Installment:</strong> KES ${Number(selectedLoan.installmentAmount).toLocaleString()}</p>
+    <p><strong>Installment:</strong> ${formatAmountSync(Number(selectedLoan.installmentAmount || 0), nationality, ratesMap)}</p>
     <p><strong>Frequency:</strong> ${selectedLoan.paymentFrequency} days</p>
     <p><strong>Default Penalty:</strong> ${selectedLoan.defaultPenalty}</p>
     <p><strong>Description:</strong> ${selectedLoan.description || "-"}</p>
@@ -535,24 +538,24 @@ if (!minutes && selectedLoan?.loanMinutes) {
 
     <h2>Credit Score Breakdown</h2>
     <p><strong>Blended Score:</strong> ${creditInfo?.creditScore || 0}%</p>
-    <p>Group Balance: KES ${creditInfo?.grpBal}</p>
-    <p>Balance: KES ${creditInfo?.balance}</p>
-    <p>Benefits Amount: KES ${creditInfo?.benefitsAmount}</p>
-    <p>P2P Chama Benefits: KES ${creditInfo?.p2pchmBenefits}</p>
-    <p>Total Deposits (SM): KES ${creditInfo?.ttlDpstSM}</p>
+    <p>Group Balance: ${formatAmountSync(Number(creditInfo?.grpBal || 0), nationality, ratesMap)}</p>
+    <p>Balance: ${formatAmountSync(Number(creditInfo?.balance || 0), nationality, ratesMap)}</p>
+    <p>Benefits Amount: ${formatAmountSync(Number(creditInfo?.benefitsAmount || 0), nationality, ratesMap)}</p>
+    <p>P2P Chama Benefits: ${formatAmountSync(Number(creditInfo?.p2pchmBenefits || 0), nationality, ratesMap)}</p>
+    <p>Total Deposits (SM): ${formatAmountSync(Number(creditInfo?.ttlDpstSM || 0), nationality, ratesMap)}</p>
     <p>Max Times Borrowed Late: ${creditInfo?.MaxTymsBL}</p>
-    <p>Loans Issued (Group): KES ${creditInfo?.amountGiven_group}</p>
-    <p>Loans Issued (Global): KES ${creditInfo?.amountGiven_global}</p>
-    <p>Outstanding Balance (Group): KES ${creditInfo?.lonBala_group}</p>
-    <p>Outstanding Balance (Global): KES ${creditInfo?.lonBala_global}</p>
-    <p>Amount Repaid (Group): KES ${creditInfo?.amountRepaid_group}</p>
-    <p>Amount Repaid (Global): KES ${creditInfo?.amountRepaid_global}</p>
-    <p>Non-Loan Support (Group): KES ${creditInfo?.amountSent_group}</p>
-    <p>Non-Loan Support (Global): KES ${creditInfo?.amountSent_global}</p>
-    <p>Contributions (Group): KES ${creditInfo?.contriAmount_group}</p>
-    <p>Contributions (Global): KES ${creditInfo?.contriAmount_global}</p>
-    <p>Group liquidity: ${creditInfo?.L_group}</p>
-    <p>Global Liquidity: ${creditInfo?.L_global}</p>
+    <p>Loans Issued (Group): ${formatAmountSync(Number(creditInfo?.amountGiven_group || 0), nationality, ratesMap)}</p>
+    <p>Loans Issued (Global): ${formatAmountSync(Number(creditInfo?.amountGiven_global || 0), nationality, ratesMap)}</p>
+    <p>Outstanding Balance (Group): ${formatAmountSync(Number(creditInfo?.lonBala_group || 0), nationality, ratesMap)}</p>
+    <p>Outstanding Balance (Global): ${formatAmountSync(Number(creditInfo?.lonBala_global || 0), nationality, ratesMap)}</p>
+    <p>Amount Repaid (Group): ${formatAmountSync(Number(creditInfo?.amountRepaid_group || 0), nationality, ratesMap)}</p>
+    <p>Amount Repaid (Global): ${formatAmountSync(Number(creditInfo?.amountRepaid_global || 0), nationality, ratesMap)}</p>
+    <p>Non-Loan Support (Group): ${formatAmountSync(Number(creditInfo?.amountSent_group || 0), nationality, ratesMap)}</p>
+    <p>Non-Loan Support (Global): ${formatAmountSync(Number(creditInfo?.amountSent_global || 0), nationality, ratesMap)}</p>
+    <p>Contributions (Group): ${formatAmountSync(Number(creditInfo?.contriAmount_group || 0), nationality, ratesMap)}</p>
+    <p>Contributions (Global): ${formatAmountSync(Number(creditInfo?.contriAmount_global || 0), nationality, ratesMap)}</p>
+    <p>Group liquidity: ${formatAmountSync(Number(creditInfo?.L_group || 0), nationality, ratesMap)}</p>
+    <p>Global Liquidity: ${formatAmountSync(Number(creditInfo?.L_global || 0), nationality, ratesMap)}</p>
     <p>Group Exposure Ratio: ${creditInfo?.E_group}</p>
     <p>Global Exposure ratio: ${creditInfo?.E_global}</p>
     <p>Group repayment strength: ${creditInfo?.R_group}</p>
@@ -697,7 +700,7 @@ ${minutes ? `
         return (
           <View key={loan.id} style={styles.card}>
             <Text style={{ fontWeight: '700', fontSize: 16, marginBottom: 4 }}>Loanee: {loan.loaneeName}</Text>
-            <Text style={styles.amount}>KES {Number(loan.amount).toLocaleString()}</Text>
+            <Text style={styles.amount}>{formatAmountSync(Number(loan.amount || 0), nationality, ratesMap)}</Text>
             <Text style={styles.purpose}>{loan.description || 'No description'}</Text>
 
             <View style={styles.row}>
@@ -710,7 +713,7 @@ ${minutes ? `
             </View>
             <View style={styles.row}>
               <Text style={styles.detail}>Installment:</Text>
-              <Text style={styles.value}>KES {Number(loan.installmentAmount).toLocaleString()}</Text>
+              <Text style={styles.value}>{formatAmountSync(Number(loan.installmentAmount || 0), nationality, ratesMap)}</Text>
             </View>
             <View style={styles.row}>
               <Text style={styles.detail}>Installment Frequency:</Text>
@@ -913,24 +916,24 @@ ${minutes ? `
                   </View>
 
                   <Text style={{ fontWeight: '700', marginTop: 16, marginBottom: 6 }}>SMAccount Overview</Text>
-                  <Text>Balance: KES {Number(memberCreditInfo?.balance || 0).toLocaleString()}</Text>
-                  <Text>Benefits Amount: KES {Number(memberCreditInfo?.benefitsAmount || 0).toLocaleString()}</Text>
-                  <Text>P2P Chama Benefits: KES {Number(memberCreditInfo?.p2pchmBenefits || 0).toLocaleString()}</Text>
-                  <Text>Total Deposits (SM): KES {Number(memberCreditInfo?.ttlDpstSM || 0).toLocaleString()}</Text>
+                  <Text>Balance: {formatAmountSync(Number(memberCreditInfo?.balance || 0), nationality, ratesMap)}</Text>
+                  <Text>Benefits Amount: {formatAmountSync(Number(memberCreditInfo?.benefitsAmount || 0), nationality, ratesMap)}</Text>
+                  <Text>P2P Chama Benefits: {formatAmountSync(Number(memberCreditInfo?.p2pchmBenefits || 0), nationality, ratesMap)}</Text>
+                  <Text>Total Deposits (SM): {formatAmountSync(Number(memberCreditInfo?.ttlDpstSM || 0), nationality, ratesMap)}</Text>
                   <Text>Max Times Borrowed Late: {memberCreditInfo?.MaxTymsBL || 0}</Text>
 
                   {creditTab === 'group' && (
                     <>
                       <Text style={{ fontWeight: '700', marginTop: 16 }}>Group Overview</Text>
-                      <Text>Group balance: KES {Number(memberCreditInfo?.grpBal || 0).toLocaleString()}</Text>
-                      <Text>Loans issued: KES {Number(memberCreditInfo?.amountGiven_group || 0).toLocaleString()}</Text>
-                      <Text>Outstanding loans: KES {Number(memberCreditInfo?.lonBala_group || 0).toLocaleString()}</Text>
-                      <Text>Repaid: KES {Number(memberCreditInfo?.amountRepaid_group || 0).toLocaleString()}</Text>
-                      <Text>Non-loan receipts: KES {Number(memberCreditInfo?.amountSent_group || 0).toLocaleString()}</Text>
-                      <Text>Contributions: KES {Number(memberCreditInfo?.contriAmount_group || 0).toLocaleString()}</Text>
+                      <Text>Group balance: {formatAmountSync(Number(memberCreditInfo?.grpBal || 0), nationality, ratesMap)}</Text>
+                      <Text>Loans issued: {formatAmountSync(Number(memberCreditInfo?.amountGiven_group || 0), nationality, ratesMap)}</Text>
+                      <Text>Outstanding loans: {formatAmountSync(Number(memberCreditInfo?.lonBala_group || 0), nationality, ratesMap)}</Text>
+                      <Text>Repaid: {formatAmountSync(Number(memberCreditInfo?.amountRepaid_group || 0), nationality, ratesMap)}</Text>
+                      <Text>Non-loan receipts: {formatAmountSync(Number(memberCreditInfo?.amountSent_group || 0), nationality, ratesMap)}</Text>
+                      <Text>Contributions: {formatAmountSync(Number(memberCreditInfo?.contriAmount_group || 0), nationality, ratesMap)}</Text>
 
-                      <Text style={{ fontWeight: '700', marginTop: 16 }}>Score Components</Text>
-                      <Text>Liquidity: KES {Number(memberCreditInfo?.L_group || 0).toLocaleString()}</Text>
+                      <Text style={{ fontWeight: '700', marginTop: 16 }}>Score Components</Text> 
+                      <Text>Liquidity: {formatAmountSync(Number(memberCreditInfo?.L_group || 0), nationality, ratesMap)}</Text>
                       <Text>Exposure ratio: {memberCreditInfo?.E_group?.toFixed?.(2)}</Text>
                       <Text>Repayment strength: {Math.round((memberCreditInfo?.R_group || 0) * 100)}%</Text>
                       <Text>Community support: {memberCreditInfo?.S_group?.toFixed?.(2)}</Text>
@@ -941,14 +944,14 @@ ${minutes ? `
                   {creditTab === 'global' && (
                     <>
                       <Text style={{ fontWeight: '700', marginTop: 16 }}>Global Overview</Text>
-                      <Text>Total loans issued: KES {Number(memberCreditInfo?.amountGiven_global || 0).toLocaleString()}</Text>
-                      <Text>Total outstanding: KES {Number(memberCreditInfo?.lonBala_global || 0).toLocaleString()}</Text>
-                      <Text>Total repaid: KES {Number(memberCreditInfo?.amountRepaid_global || 0).toLocaleString()}</Text>
-                      <Text>Non-loan receipts: KES {Number(memberCreditInfo?.amountSent_global || 0).toLocaleString()}</Text>
-                      <Text>Contributions: KES {Number(memberCreditInfo?.contriAmount_global || 0).toLocaleString()}</Text>
+                      <Text>Total loans issued: {formatAmountSync(Number(memberCreditInfo?.amountGiven_global || 0), nationality, ratesMap)}</Text>
+                      <Text>Total outstanding: {formatAmountSync(Number(memberCreditInfo?.lonBala_global || 0), nationality, ratesMap)}</Text>
+                      <Text>Total repaid: {formatAmountSync(Number(memberCreditInfo?.amountRepaid_global || 0), nationality, ratesMap)}</Text>
+                      <Text>Non-loan receipts: {formatAmountSync(Number(memberCreditInfo?.amountSent_global || 0), nationality, ratesMap)}</Text>
+                      <Text>Contributions: {formatAmountSync(Number(memberCreditInfo?.contriAmount_global || 0), nationality, ratesMap)}</Text>
 
                       <Text style={{ fontWeight: '700', marginTop: 16 }}>Score Components</Text>
-                      <Text>Liquidity: KES {Number(memberCreditInfo?.L_global || 0).toLocaleString()}</Text>
+                      <Text>Liquidity: {formatAmountSync(Number(memberCreditInfo?.L_global || 0), nationality, ratesMap)}</Text>
                       <Text>Exposure ratio: {memberCreditInfo?.E_global?.toFixed?.(2)}</Text>
                       <Text>Repayment strength: {Math.round((memberCreditInfo?.R_global || 0) * 100)}%</Text>
                       <Text>Community support: {memberCreditInfo?.S_global?.toFixed?.(2)}</Text>

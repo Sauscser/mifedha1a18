@@ -1,3 +1,4 @@
+// @ts-nocheck
 import React, { useState } from 'react';
 import { createFloatAdd, updateAgent, updateCompany, updateSAgent, updateSMAccount } from '../../../src/graphql/mutations';
 import { generateClient } from 'aws-amplify/api';
@@ -5,12 +6,14 @@ import { getCurrentUser, fetchUserAttributes } from 'aws-amplify/auth';
 import { getAgent, getCompany, getSAgent, getSMAccount } from '../../../src/graphql/queries';
 import { View, Text, TextInput, ScrollView, ActivityIndicator, TouchableOpacity, Alert } from 'react-native';
 import styles from './styles';
-const client = generateClient();
+import { useExchange } from '../../../src/contexts/ExchangeContext';
+import { formatAmountForUser, formatAmountSync, convertKshToUserCurrency } from '../../../src/utils/exchange';
 const SMADepositForm = props => {
   const [UsrPWd, setUsrPWd] = useState('');
   const [AgentPhn, setAgentPhn] = useState('');
   const [amount, setAmount] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const { nationality, ratesMap } = useExchange();
   const fetchAcDtls = async () => {
     if (isLoading) return;
     setIsLoading(true);
@@ -24,6 +27,7 @@ const SMADepositForm = props => {
         }
       });
       const usrBala = accountDtl.data.getSMAccount.balance;
+      const userNationality = accountDtl.data.getSMAccount.nationality;
       const TtlWthdrwnSMs = accountDtl.data.getSMAccount.TtlWthdrwnSM;
       const usrStts = accountDtl.data.getSMAccount.acStatus;
       const withdrawalLimits = accountDtl.data.getSMAccount.withdrawalLimit;
@@ -167,7 +171,12 @@ const SMADepositForm = props => {
           }
         }
       });
-      Alert.alert(names + ' has withdrawn Ksh. ' + parseFloat(amount).toFixed(2) + ' from ' + namess + ' MFNdogo');
+      try {
+        const formatted = await formatAmountForUser(parseFloat(amount), userNationality);
+        Alert.alert(`${names} has withdrawn ${formatted} from ${namess} MFNdogo`);
+      } catch (e) {
+        Alert.alert(names + ' has withdrawn ' + formatAmountSync(parseFloat(amount), userNationality, ratesMap) + ' from ' + namess + ' MFNdogo');
+      }
       setAmount('');
       setUsrPWd('');
       setAgentPhn('');

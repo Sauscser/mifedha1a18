@@ -198,7 +198,8 @@ const SMASendChmNonLns = props => {
                       Alert.alert("Check your internet connection");
                       return;
                     }
-                    Alert.alert("Ksh. " + parseFloat(amounts).toFixed(2) + " sent to " + grpNames + " Transaction fee " + UsrTransferFeeAmt);
+                    const { nationality, ratesMap } = useExchange();
+                    Alert.alert(formatAmountSync(parseFloat(amounts), nationalityToCode(nationality), ratesMap) + " sent to " + grpNames + " Transaction fee " + formatAmountSync(parseFloat(UsrTransferFeeAmt), nationalityToCode(nationality), ratesMap));
                     setIsLoading(false);
                   };
 
@@ -310,7 +311,8 @@ const SMASendChmNonLns = props => {
                       Alert.alert("Check your internet connection");
                       return;
                     }
-                    Alert.alert("Insufficient transaction fees? No worries! Ksh. " + parseFloat(amounts).toFixed(0) + " sent!");
+                    const { nationality, ratesMap } = useExchange();
+                    Alert.alert("Insufficient transaction fees? No worries! " + formatAmountSync(parseFloat(amounts), nationalityToCode(nationality), ratesMap) + " sent!");
                     setIsLoading(false);
                   };
 

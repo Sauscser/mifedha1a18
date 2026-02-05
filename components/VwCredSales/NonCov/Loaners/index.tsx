@@ -1,6 +1,9 @@
 import React from 'react';
 import {View, Text,    ScrollView} from 'react-native';
 import styles from './styles';
+import { useExchange } from '../../../../src/contexts/ExchangeContext';
+import { formatAmountSync } from '../../../../src/utils/exchange';
+import { nationalityToCode } from '../../../../src/utils/nationalityToCode';
 
 
 export interface ChmCvLnSttusRec {
@@ -46,6 +49,7 @@ const CredSlrCvLnStts = (props:ChmCvLnSttusRec) => {
      createdAt,
      updatedAt,
   }} = props ;
+  const { nationality, ratesMap } = useExchange();
    return (
        <View style = {styles.container}>              
            <View style = {{alignItems:"center"}}>
@@ -64,19 +68,19 @@ const CredSlrCvLnStts = (props:ChmCvLnSttusRec) => {
                    
                    <Text style = {styles.ownerContact}>                       
                        {/*loaner details */}  
-                       Cash Price (Ksh): {amountSold.toFixed(2)}                
+                       Cash Price: {formatAmountSync(amountSold, nationalityToCode(nationality), ratesMap)}                
                     </Text>                     
                     <Text style ={styles.amountoffered}>                       
                        {/* amount*/} 
-                       Credit Sale Price(Ksh): {amountexpectedBack.toFixed(2)}
+                       Credit Sale Price: {formatAmountSync(amountexpectedBack, nationalityToCode(nationality), ratesMap)}
                     </Text>   
                    <Text style = {styles.repaymentPeriod}>                       
                       {/* repaymentPeriod*/}
-                      Amount Repaid(Ksh): {amountRepaid.toFixed(2)}                  
+                       Amount Repaid: {formatAmountSync(amountRepaid, nationalityToCode(nationality), ratesMap)}                   
                    </Text> 
                    <Text style = {styles.interest}>                       
                       {/* interest*/}
-                      Loan Balance(Ksh): {lonBala.toFixed(2)}                    
+                      Loan Balance: {formatAmountSync(Number(lonBala), nationalityToCode(nationality), ratesMap)}                    
                    </Text> 
                    <Text style = {styles.interest}>                       
                       {/* interest*/}

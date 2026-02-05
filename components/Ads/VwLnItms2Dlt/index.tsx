@@ -9,6 +9,9 @@ import {
 } from 'react-native';
 import { generateClient } from 'aws-amplify/api';
 import { remove, getUrl } from 'aws-amplify/storage';
+import { useExchange } from '../../../src/contexts/ExchangeContext';
+import { formatAmountSync } from '../../../src/utils/exchange';
+import { nationalityToCode } from '../../../src/utils/nationalityToCode';
 import { deleteSokoAd } from '../../../src/graphql/mutations';
 import Checkbox from 'expo-checkbox';
 // or any checkbox lib you're using
@@ -68,7 +71,7 @@ const NonLnRec: React.FC<Props> = ({ SMAc, selectMode, isSelected, toggleSelect,
         <Text style={styles.name}>{SMAc.sokoname}</Text>
       </View>
 
-      <Text style={styles.detail}>Price: Ksh {SMAc.sokoprice}</Text>
+      {(() => { const { nationality, ratesMap } = useExchange(); return <Text style={styles.detail}>Price: {formatAmountSync(Number(SMAc.sokoprice), nationalityToCode(nationality), ratesMap)}</Text> })()}
       <Text style={styles.detail}>Seller: {SMAc.sokokntct}</Text>
 
       {SMAc?.itemPhoto && (

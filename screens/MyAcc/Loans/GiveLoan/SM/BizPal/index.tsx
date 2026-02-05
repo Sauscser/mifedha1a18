@@ -7,6 +7,8 @@ import { View, Text, ImageBackground, Pressable, TextInput, ScrollView, Keyboard
 import styles from './styles';
 import { parse } from 'expo-linking';
 import { getCurrentUser, fetchUserAttributes } from "aws-amplify/auth";
+import { useExchange } from '../../../../../../src/contexts/ExchangeContext';
+import { formatAmountSync } from '../../../../../../src/utils/exchange';
 import { generateClient } from "aws-amplify/api";
 const client = generateClient();
 const SMASendLns = props => {
@@ -17,6 +19,7 @@ const SMASendLns = props => {
   const [AdvRegNo, setAdvRegNo] = useState("");
   const [Desc, setDesc] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const { nationality, ratesMap } = useExchange();
   const [RecAccCode, setRecAccCode] = useState("");
   const [PwnBrkr, setPwnBrkr] = useState('');
   const route = useRoute();
@@ -445,7 +448,7 @@ const SMASendLns = props => {
                                     } catch (error) {
                                       console.log(error);
                                     }
-                                    Communications.textWithoutEncoding(phonecontact, 'Hi ' + namess + ', you have been loaned Ksh. ' + parseFloat(amount).toFixed(2) + ' by ' + busName + 'Company. For clarification call the loaner Company: ' + loanerEmail + '. The following is a break down of your repayable loan: ' + ' Amount debited into your main account is Ksh. ' + parseFloat(amount).toFixed(2) + '. Amount you had committed to repay is Ksh. ' + amtrpayable2.toFixed(2) + '. Transaction fee is Ksh. ' + lnTrnsfrFee.toFixed(2) + '. Total Repayable is Ksh ' + TotalAmtExp2.toFixed(2) + '. Thank you. MiFedha.');
+                                    Communications.textWithoutEncoding(phonecontact, 'Hi ' + namess + ', you have been loaned ' + formatAmountSync(parseFloat(amount), nationality, ratesMap) + ' by ' + busName + ' Company. For clarification call the loaner Company: ' + loanerEmail + '. The following is a break down of your repayable loan: ' + ' Amount debited into your main account is ' + formatAmountSync(parseFloat(amount), nationality, ratesMap) + '. Amount you had committed to repay is ' + formatAmountSync(amtrpayable2, nationality, ratesMap) + '. Transaction fee is ' + formatAmountSync(lnTrnsfrFee, nationality, ratesMap) + '. Total Repayable is ' + formatAmountSync(TotalAmtExp2, nationality, ratesMap) + '. Thank you. MiFedha.');
                                     setIsLoading(false);
                                   };
                                   const fetchAdv = async () => {
@@ -655,7 +658,7 @@ const SMASendLns = props => {
                                         } catch (error) {
                                           console.log(error);
                                         }
-                                        Communications.textWithoutEncoding(phonecontact, 'Hi ' + namess + ', you have been loaned Ksh. ' + parseFloat(amount).toFixed(2) + ' by ' + busName + '. For clarification call the loaner: ' + attributes.phone_number + '. The following is a break down of your repayable loan: ' + ' Amount debited into your main account is Ksh. ' + parseFloat(amount).toFixed(2) + '. Amount you had committed to repay is Ksh. ' + amtrpayable.toFixed(2) + '. Transaction fee is Ksh. ' + lnTrnsfrFee.toFixed(2) + '. Advocacy fee is Ksh. ' + ttlCovFeeAmount.toFixed(2) + '. Total Repayable is Ksh ' + TotalAmtExp.toFixed(2) + '. Thank you. MiFedha.');
+                                        Communications.textWithoutEncoding(phonecontact, 'Hi ' + namess + ', you have been loaned ' + formatAmountSync(parseFloat(amount), nationality, ratesMap) + ' by ' + busName + '. For clarification call the loaner: ' + attributes.phone_number + '. The following is a break down of your repayable loan: ' + ' Amount debited into your main account is ' + formatAmountSync(parseFloat(amount), nationality, ratesMap) + '. Amount you had committed to repay is ' + formatAmountSync(amtrpayable, nationality, ratesMap) + '. Transaction fee is ' + formatAmountSync(lnTrnsfrFee, nationality, ratesMap) + '. Advocacy fee is ' + formatAmountSync(ttlCovFeeAmount, nationality, ratesMap) + '. Total Repayable is ' + formatAmountSync(TotalAmtExp, nationality, ratesMap) + '. Thank you. MiFedha.');
                                         setIsLoading(false);
                                       };
                                     } catch (e) {

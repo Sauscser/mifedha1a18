@@ -3,6 +3,7 @@ import { createFloatAdd, updateAgent, updateCompany, updateSAgent, updateSMAccou
 import { getAgent, getCompany, getSAgent, getSMAccount, listCovCreditSellers, listCvrdGroupLoans, listGroupNonLoans, listSMLoansCovereds, listSMLoansNonCovereds } from '../../../src/graphql/queries';
 import { View, Text, TextInput, ScrollView, ActivityIndicator, TouchableOpacity, Alert } from 'react-native';
 import styles from './styles';
+import { useExchange } from '../../../src/contexts/ExchangeContext';
 import Navigation from '../../../navigation';
 import uuid from 'react-native-uuid';
 import { useNavigation } from '@react-navigation/native';
@@ -322,7 +323,13 @@ const SMADepositForm = props => {
                                     }
                                     setIsLoading(false);
                                     await onUpdtMFChamp();
-                                    Alert.alert(names + " has withdrawn Ksh. " + parseFloat(amount).toFixed(2) + " from " + namess + " MFNdogo");
+                                    try {
+                                      const { formatAmount } = useExchange();
+                                      const formatted = await formatAmount(parseFloat(amount));
+                                      Alert.alert(`${names} has withdrawn ${formatted} from ${namess} MFNdogo`);
+                                    } catch (e) {
+                                      Alert.alert(`${names} has withdrawn ${parseFloat(amount).toFixed(2)} from ${namess} MFNdogo`);
+                                    }
                                   };
                                   const onUpdtMFChamp = async () => {
                                     if (isLoading) {

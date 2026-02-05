@@ -7,6 +7,8 @@ import { View, Text, ImageBackground, Pressable, TextInput, ScrollView, Keyboard
 import styles from './styles';
 import { getCurrentUser, fetchUserAttributes } from "aws-amplify/auth";
 import { generateClient } from "aws-amplify/api";
+import { useExchange } from '../../../src/contexts/ExchangeContext';
+import { formatAmountSync, convertForeignToKsh, getUserNationalityByEmail } from '../../../src/utils/exchange';
 const client = generateClient();
 const SMASendNonLns = props => {
   const [SenderNatId, setSenderNatId] = useState('');
@@ -16,6 +18,7 @@ const SMASendNonLns = props => {
   const [amounts, setAmount] = useState("");
   const [Desc, setDesc] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const { ratesMap } = useExchange();
   const fetchSenderUsrDtls = async () => {
     if (isLoading) {
       return;
@@ -73,6 +76,18 @@ const SMASendNonLns = props => {
               const TtlWthdrwnSMs = RecAccountDtl.data.getSMAccount.TtlWthdrwnSM;
               const MaxAcBals = RecAccountDtl.data.getSMAccount.MaxAcBal;
               const phonecontact = RecAccountDtl.data.getSMAccount.phonecontact;
+              // determine seller nationality (business) and convert amounts to KES for backend
+              let sellerNationality = null;
+              try {
+                const biz = accountDtl.data.getBizna;
+                if (biz?.email) sellerNationality = await getUserNationalityByEmail(biz.email);
+              } catch (e) {}
+              const foreignAmount = parseFloat(amounts) || 0;
+              const transferFeeForeign = parseFloat(UsrTransferFee || 0) * foreignAmount;
+              const totalForeign = foreignAmount + transferFeeForeign;
+              const amountKes = await convertForeignToKsh(foreignAmount, sellerNationality);
+              const feeKes = await convertForeignToKsh(transferFeeForeign, sellerNationality);
+              const totalKes = Number(amountKes || 0) + Number(feeKes || 0);
               const sendSMNonLn = async () => {
                 if (isLoading) {
                   return;
@@ -85,7 +100,7 @@ const SMASendNonLns = props => {
                       input: {
                         recPhn: RecNatId,
                         senderPhn: SenderNatId,
-                        amount: parseFloat(amounts).toFixed(2),
+                        amount: amountKes.toFixed(2),
                         description: Desc,
                         RecName: namess,
                         SenderName: busNames,
@@ -115,7 +130,7 @@ const SMASendNonLns = props => {
                     variables: {
                       input: {
                         BusKntct: SenderNatId,
-                        netEarnings: (parseFloat(netEarningss) - TotalTransacted).toFixed(2)
+                        netEarnings: (parseFloat(netEarningss) - totalKes).toFixed(2)
                       }
                     }
                   });
@@ -140,8 +155,8 @@ const SMASendNonLns = props => {
                     variables: {
                       input: {
                         awsemail: RecNatId,
-                        ttlNonLonsRecSM: (parseFloat(ttlNonLonsRecSMs) + parseFloat(amounts)).toFixed(2),
-                        balance: (parseFloat(RecUsrBal) + parseFloat(amounts)).toFixed(2)
+                        ttlNonLonsRecSM: (parseFloat(ttlNonLonsRecSMs) + Number(amountKes)).toFixed(2),
+                        balance: (parseFloat(RecUsrBal) + Number(amountKes)).toFixed(2)
                       }
                     }
                   });
@@ -166,10 +181,10 @@ const SMASendNonLns = props => {
                     variables: {
                       input: {
                         AdminId: "BaruchHabaB'ShemAdonai2",
-                        companyEarningBal: parseFloat(UsrTransferFee) * parseFloat(amounts) + parseFloat(companyEarningBals),
-                        companyEarning: parseFloat(UsrTransferFee) * parseFloat(amounts) + parseFloat(companyEarnings),
-                        ttlNonLonssRecSM: parseFloat(amounts) + parseFloat(ttlNonLonssRecSMs),
-                        ttlNonLonssSentSM: parseFloat(amounts) + parseFloat(ttlNonLonssSentSMs)
+                        companyEarningBal: feeKes + parseFloat(companyEarningBals),
+                        companyEarning: feeKes + parseFloat(companyEarnings),
+                        ttlNonLonssRecSM: Number(amountKes) + parseFloat(ttlNonLonssRecSMs),
+                        ttlNonLonssSentSM: Number(amountKes) + parseFloat(ttlNonLonssSentSMs)
                       }
                     }
                   });
@@ -180,8 +195,12 @@ const SMASendNonLns = props => {
                     return;
                   }
                 }
-                Alert.alert("Amount:Ksh. " + parseFloat(amounts).toFixed(2) + " Transaction: Ksh. " + (parseFloat(UsrTransferFee) * parseFloat(amounts)).toFixed(2));
-                Communications.textWithoutEncoding(phonecontact, 'Confirmed. ' + busNames + ' Business entity has sent you Ksh. ' + amounts + ' to your MiFedha Main account ' + 'Please confirm this transaction record is on your Mifedha app. Thank you. MiFedha');
+                const RecNat = RecAccountDtl.data.getSMAccount.nationality;
+                const formattedAmount = formatAmountSync(Number(amountKes), RecNat, ratesMap);
+                const bizNat = accountDtl.data.getBizna?.nationality || null;
+                const formattedTxFee = formatAmountSync(Number(feeKes), bizNat, ratesMap);
+                Alert.alert(`Amount: ${formattedAmount} Transaction: ${formattedTxFee}`);
+                Communications.textWithoutEncoding(phonecontact, `Confirmed. ${busNames} Business entity has sent you ${formattedAmount} to your MiFedha Main account. Please confirm this transaction record is on your Mifedha app. Thank you. MiFedha`);
                 setIsLoading(false);
               };
               if (usrAcActvSttss !== "AccountActive") {

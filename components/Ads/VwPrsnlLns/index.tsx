@@ -1,7 +1,8 @@
 import { useNavigation } from '@react-navigation/native';
 import React from 'react';
 import {View, Text, TouchableOpacity} from 'react-native';
-
+import { useExchange } from '../../../src/contexts/ExchangeContext';
+import { formatAmountSync } from '../../../src/utils/exchange';
 
 import styles from './styles';
 
@@ -36,6 +37,7 @@ const ViewSMDeposts = (props:SMAccount) => {
                  
    }} = props ;
    const navigation = useNavigation();
+   const { nationality, ratesMap } = useExchange();
    const SndChmMmbrMny = () => {
       navigation.navigate ("DtldPalLnInfo", {id})
    }
@@ -49,7 +51,7 @@ const ViewSMDeposts = (props:SMAccount) => {
 
       <Text style={styles.prodInfo}><Text style={styles.label}>Loaner Name: </Text> {rafikiName}</Text>
       <Text style={styles.prodInfo}><Text style={styles.label}>Loaner Contact: </Text> {rafikicntct}</Text>
-      <Text style={styles.prodInfo}><Text style={styles.label}>Loan Amount:</Text> KES {rafikiamnt.toLocaleString()}</Text>
+      <Text style={styles.prodInfo}><Text style={styles.label}>Loan Amount:</Text> {formatAmountSync(Number(rafikiamnt || 0), nationality, ratesMap)}</Text> 
          
       </TouchableOpacity>
       </View>

@@ -77,11 +77,21 @@ const CreateAcForm = () => {
   NZ: "New Zealand", NI: "Nicaragua", NE: "Niger", NG: "Nigeria", NO: "Norway", OM: "Oman", PK: "Pakistan", PA: "Panama",
   PG: "Papua New Guinea", PY: "Paraguay", PE: "Peru", PH: "Philippines", PL: "Poland", PT: "Portugal", QA: "Qatar",
   RO: "Romania", RU: "Russia", RW: "Rwanda", SA: "Saudi Arabia", SN: "Senegal", RS: "Serbia", SG: "Singapore",
-  SK: "Slovakia", SI: "Slovenia", ES: "Spain", LK: "Sri Lanka", SD: "Sudan", SR: "Suriname", SZ: "Swaziland",
+  SK: "Slovakia", SI: "Slovenia", ES: "Spain", LK: "Sri Lanka", SD: "Sudan", SR: "Suriname", SZ: "Eswatini",
   SE: "Sweden", CH: "Switzerland", SY: "Syria", TW: "Taiwan", TJ: "Tajikistan", TZ: "Tanzania", TH: "Thailand",
   TL: "Timor-Leste", TG: "Togo", TO: "Tonga", TT: "Trinidad and Tobago", TN: "Tunisia", TR: "Turkey", TM: "Turkmenistan",
   UG: "Uganda", UA: "Ukraine", AE: "United Arab Emirates", GB: "United Kingdom", US: "United States", UY: "Uruguay",
-  UZ: "Uzbekistan", VU: "Vanuatu", VE: "Venezuela", VN: "Vietnam", YE: "Yemen", ZA: "South Africa",ZM: "Zambia", ZW: "Zimbabwe",
+  UZ: "Uzbekistan", VU: "Vanuatu", VE: "Venezuela", VN: "Vietnam", YE: "Yemen", ZA: "South Africa", ZM: "Zambia", ZW: "Zimbabwe",
+  // Additional countries and territories
+  AX: "Åland Islands", BQ: "Bonaire", CW: "Curaçao", PS: "Palestine", SS: "South Sudan", XK: "Kosovo",
+  GG: "Guernsey", IM: "Isle of Man", JE: "Jersey", SJ: "Svalbard and Jan Mayen", BV: "Bouvet Island",
+  GS: "South Georgia and South Sandwich Islands", PN: "Pitcairn Islands", TK: "Tokelau", WF: "Wallis and Futuna",
+  EH: "Western Sahara", GI: "Gibraltar", PM: "Saint Pierre and Miquelon", RE: "Réunion", YT: "Mayotte",
+  GP: "Guadeloupe", BL: "Saint Barthélemy", MF: "Saint Martin", GF: "French Guiana", PF: "French Polynesia",
+  NC: "New Caledonia", SX: "Sint Maarten", TC: "Turks and Caicos Islands", VG: "British Virgin Islands",
+  VI: "U.S. Virgin Islands", GW: "Guinea-Bissau", KN: "Saint Kitts and Nevis", LC: "Saint Lucia",
+  VC: "Saint Vincent and the Grenadines", DM: "Dominica", GD: "Grenada", FK: "Falkland Islands",
+  GL: "Greenland", IO: "British Indian Ocean Territory", CC: "Cocos (Keeling) Islands", CX: "Christmas Island",
 };
 
 const officialDocumentByCountry: Record<string, string> = {
@@ -263,6 +273,48 @@ const officialDocumentByCountry: Record<string, string> = {
   ZA: "National ID Card",
   ZM: "Passport Number",
   ZW: "Passport Number",
+  // Additional territories
+  AX: "Passport Number",        // Åland Islands
+  BQ: "Passport Number",        // Bonaire
+  CW: "Passport Number",        // Curaçao
+  PS: "Passport Number",        // Palestine
+  SS: "Passport Number",        // South Sudan
+  XK: "Passport Number",        // Kosovo
+  GG: "Passport Number",        // Guernsey
+  IM: "Passport Number",        // Isle of Man
+  JE: "Passport Number",        // Jersey
+  SJ: "Passport Number",        // Svalbard and Jan Mayen
+  BV: "Passport Number",        // Bouvet Island
+  GS: "Passport Number",        // South Georgia
+  PN: "Passport Number",        // Pitcairn Islands
+  TK: "Passport Number",        // Tokelau
+  WF: "Passport Number",        // Wallis and Futuna
+  EH: "Passport Number",        // Western Sahara
+  GI: "Passport Number",        // Gibraltar
+  PM: "Passport Number",        // Saint Pierre and Miquelon
+  RE: "Passport Number",        // Réunion
+  YT: "Passport Number",        // Mayotte
+  GP: "Passport Number",        // Guadeloupe
+  BL: "Passport Number",        // Saint Barthélemy
+  MF: "Passport Number",        // Saint Martin
+  GF: "Passport Number",        // French Guiana
+  PF: "Passport Number",        // French Polynesia
+  NC: "Passport Number",        // New Caledonia
+  SX: "Passport Number",        // Sint Maarten
+  TC: "Passport Number",        // Turks and Caicos Islands
+  VG: "Passport Number",        // British Virgin Islands
+  VI: "Passport Number",        // U.S. Virgin Islands
+  GW: "National ID Card",       // Guinea-Bissau
+  KN: "Passport Number",        // Saint Kitts and Nevis
+  LC: "Passport Number",        // Saint Lucia
+  VC: "Passport Number",        // Saint Vincent and the Grenadines
+  DM: "Passport Number",        // Dominica
+  GD: "Passport Number",        // Grenada
+  FK: "Passport Number",        // Falkland Islands
+  GL: "Passport Number",        // Greenland
+  IO: "Passport Number",        // British Indian Ocean Territory
+  CC: "Passport Number",        // Cocos (Keeling) Islands
+  CX: "Passport Number",        // Christmas Island
 };
 
 

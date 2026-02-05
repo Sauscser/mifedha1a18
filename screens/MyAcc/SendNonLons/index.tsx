@@ -5,6 +5,8 @@ import { getCompany, getSMAccount, listCovCreditSellers, listCvrdGroupLoans, lis
 import { useNavigation } from '@react-navigation/native';
 import { View, Text, ImageBackground, Pressable, TextInput, ScrollView, KeyboardAvoidingView, Platform, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
 import styles from './styles';
+import { getUserNationalityByEmail, formatAmountForUser, formatAmountSync, convertForeignToKsh } from '../../../src/utils/exchange';
+import { useExchange } from '../../../src/contexts/ExchangeContext';
 import { getCurrentUser, fetchUserAttributes } from "aws-amplify/auth";
 import { generateClient } from "aws-amplify/api";
 const client = generateClient();
@@ -16,6 +18,7 @@ const SMASendNonLns = props => {
   const [Desc, setDesc] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const navigation = useNavigation();
+  const { nationality, ratesMap } = useExchange();
   const SndChmMmbrMny = () => {
     navigation.navigate("AutomaticRepayAllTyps");
   };
@@ -117,10 +120,13 @@ const SMASendNonLns = props => {
                         }
                       });
                       const UsrTransferFee = CompDtls.data.getCompany.userTransferFee;
-                      const UsrTransferFeeAmt = UsrTransferFee * parseFloat(amounts);
-                      const UsrTransferFee2 = parseFloat(SenderUsrBal) - parseFloat(amounts);
-                      const TotalTransacted = parseFloat(amounts) + parseFloat(UsrTransferFee) * parseFloat(amounts);
-                      const TotalTransacted2 = parseFloat(amounts) + UsrTransferFee2;
+                      const senderNat = await getUserNationalityByEmail(attributes.email);
+                      const amountForeign = parseFloat(amounts) || 0;
+                      const amountKes = await convertForeignToKsh(amountForeign, senderNat);
+                      const UsrTransferFeeAmt = parseFloat(UsrTransferFee) * amountKes;
+                      const UsrTransferFee2 = parseFloat(SenderUsrBal) - amountKes;
+                      const TotalTransacted = amountKes + parseFloat(UsrTransferFee) * amountKes;
+                      const TotalTransacted2 = amountKes + UsrTransferFee2;
                       const CompPhoneContact = CompDtls.data.getCompany.phoneContact;
                       const companyEarningBals = CompDtls.data.getCompany.companyEarningBal;
                       const companyEarnings = CompDtls.data.getCompany.companyEarning;
@@ -158,7 +164,7 @@ const SMASendNonLns = props => {
                                   input: {
                                     recPhn: RecNatId,
                                     senderPhn: attributes.email,
-                                    amount: parseFloat(amounts).toFixed(0),
+                                    amount: amountKes.toFixed(0),
                                     description: Desc,
                                     RecName: namess,
                                     SenderName: names,
@@ -187,7 +193,7 @@ const SMASendNonLns = props => {
                                 variables: {
                                   input: {
                                     awsemail: attributes.email,
-                                    ttlNonLonsSentSM: (parseFloat(ttlNonLonsSentSMs) + parseFloat(amounts)).toFixed(0),
+                                    ttlNonLonsSentSM: (parseFloat(ttlNonLonsSentSMs) + amountKes).toFixed(0),
                                     balance: (parseFloat(SenderUsrBal) - TotalTransacted).toFixed(0)
                                   }
                                 }
@@ -213,8 +219,8 @@ const SMASendNonLns = props => {
                                 variables: {
                                   input: {
                                     awsemail: RecNatId,
-                                    ttlNonLonsRecSM: (parseFloat(ttlNonLonsRecSMs) + parseFloat(amounts)).toFixed(0),
-                                    balance: (parseFloat(RecUsrBal) + parseFloat(amounts)).toFixed(0)
+                                    ttlNonLonsRecSM: (parseFloat(ttlNonLonsRecSMs) + amountKes).toFixed(0),
+                                    balance: (parseFloat(RecUsrBal) + amountKes).toFixed(0)
                                   }
                                 }
                               });
@@ -239,10 +245,10 @@ const SMASendNonLns = props => {
                                 variables: {
                                   input: {
                                     AdminId: "BaruchHabaB'ShemAdonai2",
-                                    companyEarningBal: parseFloat(UsrTransferFee) * parseFloat(amounts) + parseFloat(companyEarningBals),
-                                    companyEarning: parseFloat(UsrTransferFee) * parseFloat(amounts) + parseFloat(companyEarnings),
-                                    ttlNonLonssRecSM: parseFloat(amounts) + parseFloat(ttlNonLonssRecSMs),
-                                    ttlNonLonssSentSM: parseFloat(amounts) + parseFloat(ttlNonLonssSentSMs)
+                                    companyEarningBal: UsrTransferFeeAmt + parseFloat(companyEarningBals),
+                                    companyEarning: UsrTransferFeeAmt + parseFloat(companyEarnings),
+                                    ttlNonLonssRecSM: amountKes + parseFloat(ttlNonLonssRecSMs),
+                                    ttlNonLonssSentSM: amountKes + parseFloat(ttlNonLonssSentSMs)
                                   }
                                 }
                               });
@@ -253,8 +259,19 @@ const SMASendNonLns = props => {
                                 return;
                               }
                             }
-                            Alert.alert("Amount:Ksh. " + parseFloat(amounts).toFixed(0) + ". Transaction fee: Ksh. " + UsrTransferFeeAmt.toFixed(0));
-                            Communications.textWithoutEncoding(phonecontact, 'Hi ' + namess + names + ', has sent you a non loan of Ksh. ' + amounts + '. For clarification call the: ' + attributes.phone_number + '. Thank you. MiFedha');
+                            try {
+                              const attributes2 = await fetchUserAttributes();
+                              const nat = await getUserNationalityByEmail(attributes2.email);
+                              const formattedAmount = await formatAmountForUser(amountKes, nat);
+                              const formattedFee = await formatAmountForUser(UsrTransferFeeAmt, nat);
+                              Alert.alert(`Amount: ${formattedAmount}. Transaction fee: ${formattedFee}`);
+                              Communications.textWithoutEncoding(phonecontact, 'Hi ' + namess + names + ', has sent you a non loan of ' + formattedAmount + '. For clarification call the: ' + attributes2.phone_number + '. Thank you. MiFedha');
+                            } catch (e) {
+                              const formattedFallback = formatAmountSync(amountKes, nationality, ratesMap);
+                              const formattedFeeFallback = formatAmountSync(UsrTransferFeeAmt, nationality, ratesMap);
+                              Alert.alert(`Amount: ${formattedFallback}. Transaction fee: ${formattedFeeFallback}`);
+                              Communications.textWithoutEncoding(phonecontact, 'Hi ' + namess + names + ', has sent you a non loan of ' + formattedFallback + '. For clarification call the: ' + attributes.phone_number + '. Thank you. MiFedha');
+                            }
                             setIsLoading(false);
                           };
                           if (userInfo.userId !== owner) {

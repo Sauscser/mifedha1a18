@@ -9,6 +9,8 @@ const MyLoanAccount = props => {
 
   // Navigation functions for each button
   const SignIn2GrntLnReq = () => navigation.navigate('SignIn2GrntLnReq');
+  const UpdateExRates = () => navigation.navigate('UpdateExRates2');
+
   const PalVw2GrantLnReq2 = () => navigation.navigate('PalVw2GrantLnReq2');
   const VwP2PMyLoaners = () => navigation.navigate('VwP2PMyLoaners');
   const VwP2PMyLoanees = () => navigation.navigate('VwP2PMyLoanees');
@@ -34,7 +36,24 @@ const MyLoanAccount = props => {
       <View style={styles.adminImage}>
         {/* Main Container */}
         <View style={styles.clientsView}>
-          <Text style={styles.salesText}>Loans</Text>
+          <Text style={styles.salesText}></Text>
+
+            <Text style={styles.salesPressableText}></Text>
+          <View style={styles.viewForClientsPressables}>
+            <LinearGradient colors={['#FF8C00', '#00BFFF']} start={{
+              x: 0,
+              y: 0
+            }} end={{
+              x: 1,
+              y: 1
+            }} style={styles.gradientPressable}>
+              <Pressable onPress={UpdateExRates}>
+                <Text style={styles.clientsPressableText}>View Exchange Rates</Text>
+              </Pressable>
+            </LinearGradient>
+
+           
+          </View>
           
           {/* Loan Requests Section */}
           <Text style={styles.salesPressableText}>Loan Requests</Text>

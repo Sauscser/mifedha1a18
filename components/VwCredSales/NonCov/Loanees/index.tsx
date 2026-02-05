@@ -67,20 +67,20 @@ const CredByrCvLnStts = (props:ChmCvLnSttusRec) => {
                    
                    <Text style = {styles.ownerContact}>                       
                        {/*loaner details */}  
-                       Cash Price (Ksh): {amountSold.toFixed(2)}                
+                       Cash Price: {formatAmountSync(amountSold, nationalityToCode(nationality), ratesMap)}                
                     </Text>                     
                     <Text style ={styles.amountoffered}>                       
                        {/* amount*/} 
-                       Credit Sale Price(Ksh): {amountexpectedBack.toFixed(2)}
+                       Credit Sale Price: {formatAmountSync(amountexpectedBack, nationalityToCode(nationality), ratesMap)}
                     </Text>   
                    <Text style = {styles.repaymentPeriod}>                       
                       {/* repaymentPeriod*/}
-                      Amount Repaid(Ksh): {amountRepaid.toFixed(2)}                  
+                      Amount Repaid: {formatAmountSync(amountRepaid, nationalityToCode(nationality), ratesMap)}                  
                    </Text> 
                    <Text style = {styles.interest}>                       
                       {/* interest*/}
-                      Loan Balance(Ksh): {lonBala.toFixed(2)}                    
-                   </Text> 
+                      Loan Balance: {formatAmountSync(lonBala, nationalityToCode(nationality), ratesMap)}                    
+                   </Text>
                    <Text style = {styles.interest}>                       
                       {/* interest*/}
                       Repayment Period in days: {repaymentPeriod}                    

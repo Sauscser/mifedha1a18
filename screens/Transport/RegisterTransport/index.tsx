@@ -9,7 +9,9 @@ import { createSokoAd, createTransportRegister } from '../../../src/graphql/muta
 import { getSMAccount, getBizna, listPersonels } from '../../../src/graphql/queries';
 import { Route, useRoute } from '@react-navigation/native';
 import { getCurrentUser, fetchUserAttributes } from "aws-amplify/auth";
-import { generateClient } from "aws-amplify/api";
+import { useExchange } from '../../../src/contexts/ExchangeContext';
+import { formatAmountSync } from '../../../src/utils/exchange';
+import { generateClient } from "aws-amplify/api"; 
 const client = generateClient();
 const MAX_IMAGE_SIZE_MB = 5;
 const CreateBiz = () => {
@@ -36,6 +38,7 @@ const CreateBiz = () => {
     longitude: number;
   } | null>(null);
   const route = useRoute();
+  const { nationality, ratesMap } = useExchange();
   const updateForm = (key: string, value: string) => setFormData(prev => ({
     ...prev,
     [key]: value
@@ -247,7 +250,8 @@ const CreateBiz = () => {
         <Text style={styles.title}>Register Transport</Text>
   <InputField label="Transport Business Name" value={formData.itemName} onChange={v => updateForm('itemName', v)} />
         <InputField label="Means of Transport e.g. motorbike, pickup, freight services, tuktuk" value={formData.brandName} onChange={v => updateForm('brandName', v)} />
-        <InputField label="Cost per kilometer in Kenya Shillings" value={formData.itemPrice} onChange={v => updateForm('itemPrice', v)} keyboardType="numeric" />
+        <InputField label="Cost per kilometer" value={formData.itemPrice} onChange={v => updateForm('itemPrice', v)} keyboardType="numeric" />
+        {formData.itemPrice ? <Text style={styles.helperText}>Equivalent: {formatAmountSync(parseFloat(formData.itemPrice || '0'), nationality, ratesMap)}</Text> : null}
         <InputField label="More Transport Description" value={formData.itemDesc} onChange={v => updateForm('itemDesc', v)} multiline height={100} />
         <InputField label="Transport Number Plate" value={formData.numberPlate} onChange={v => updateForm('numberPlate', v)} />
         <InputField label="Image URL (Optional)" value={formData.ImageUrl} onChange={v => updateForm('ImageUrl', v)} />
@@ -355,6 +359,11 @@ const styles = StyleSheet.create({
   passwordInput: {
     flex: 1,
     padding: 12
+  },
+  helperText: {
+    color: '#fff',
+    fontSize: 13,
+    marginTop: 6
   }
 });
 export default CreateBiz;

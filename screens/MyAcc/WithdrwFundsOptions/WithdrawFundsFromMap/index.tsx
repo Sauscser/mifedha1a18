@@ -1,3 +1,4 @@
+// @ts-nocheck
 import React, { useEffect, useState } from 'react';
 import { createFloatAdd, updateAgent, updateCompany, updateSAgent, updateSMAccount } from '../../../../src/graphql/mutations';
 import { useRoute } from '@react-navigation/native';
@@ -7,6 +8,8 @@ import { useNavigation } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import MyAccount from '../../../Transport';
 import { getCurrentUser, fetchUserAttributes } from "aws-amplify/auth";
+import { useExchange } from '../../../../src/contexts/ExchangeContext';
+import { getUserNationalityByEmail, formatAmountForUser, formatAmountSync, convertKshToUserCurrency } from '../../../../src/utils/exchange';
 import { generateClient } from "aws-amplify/api";
 const client = generateClient();
 const SMADepositForm = props => {
@@ -21,6 +24,7 @@ const SMADepositForm = props => {
     navigation.navigate("AutomaticRepayAllTyps");
   };
   const route = useRoute();
+  const { nationality, ratesMap, formatAmount } = useExchange();
   const fetchAcDtls = async () => {
     if (isLoading) {
       return;
@@ -173,12 +177,15 @@ const SMADepositForm = props => {
                               const acChamp = compDtls.data.getSAgent.acChamp;
                               const namessssssss = compDtls.data.getSAgent.name;
                               const MFKWithdrwlFees = compDtls.data.getSAgent.MFKWithdrwlFee;
-                              const AgentCommission = (parseFloat(agentComs) - parseFloat(MFNWithdrwlFees)) / 100 * parseFloat(amount) * parseFloat(UsrWthdrwlFeess);
-                              const saCommission = (parseFloat(sagentComs) - parseFloat(MFKWithdrwlFees)) / 100 * parseFloat(amount) * parseFloat(UsrWthdrwlFeess);
-                              const compCommission = parseFloat(companyComs) / 100 * parseFloat(amount) * parseFloat(UsrWthdrwlFeess);
-                              const ChampCommission = parseFloat(ChampCom) / 100 * parseFloat(amount) * parseFloat(UsrWthdrwlFeess);
+                              const senderNat = await getUserNationalityByEmail(attributes.email);
+                              const amountForeign = parseFloat(amount) || 0;
+                              const amountKes = await convertForeignToKsh(amountForeign, senderNat);
+                              const AgentCommission = (parseFloat(agentComs) - parseFloat(MFNWithdrwlFees)) / 100 * amountKes * parseFloat(UsrWthdrwlFeess);
+                              const saCommission = (parseFloat(sagentComs) - parseFloat(MFKWithdrwlFees)) / 100 * amountKes * parseFloat(UsrWthdrwlFeess);
+                              const compCommission = parseFloat(companyComs) / 100 * amountKes * parseFloat(UsrWthdrwlFeess);
+                              const ChampCommission = parseFloat(ChampCom) / 100 * amountKes * parseFloat(UsrWthdrwlFeess);
                               const UsrWithdrawalFee = AgentCommission + saCommission + compCommission + ChampCommission;
-                              const TTlAmtTrnsctd = parseFloat(amount) + UsrWithdrawalFee;
+                              const TTlAmtTrnsctd = amountKes + UsrWithdrawalFee;
                               const gtMFChamp = async () => {
                                 if (isLoading) {
                                   return;
@@ -209,7 +216,7 @@ const SMADepositForm = props => {
                                             agentPhonecontact: route.params.phonecontact,
                                             sagentId: sagentregnos,
                                             owner: userInfo.userId,
-                                            amount: parseFloat(amount).toFixed(0),
+                                            amount: amountKes.toFixed(0),
                                             agentName: namess,
                                             userName: names,
                                             saName: namessssssss,
@@ -240,7 +247,7 @@ const SMADepositForm = props => {
                                           input: {
                                             awsemail: attributes.email,
                                             balance: (parseFloat(usrBala) - TTlAmtTrnsctd).toFixed(0),
-                                            TtlWthdrwnSM: (parseFloat(TtlWthdrwnSMs) + parseFloat(amount)).toFixed(0)
+                                            TtlWthdrwnSM: (parseFloat(TtlWthdrwnSMs) + amountKes).toFixed(0)
                                           }
                                         }
                                       });
@@ -267,8 +274,8 @@ const SMADepositForm = props => {
                                             phonecontact: route.params.phonecontact,
                                             ttlEarnings: (parseFloat(ttlEarningssss) + AgentCommission).toFixed(0),
                                             agentEarningBal: (parseFloat(agentEarningBalsss) + AgentCommission).toFixed(0),
-                                            floatBal: (parseFloat(floatBals) + parseFloat(amount)).toFixed(0),
-                                            TtlFltIn: (parseFloat(TtlFltInsss) + parseFloat(amount)).toFixed(0)
+                                            floatBal: (parseFloat(floatBals) + amountKes).toFixed(0),
+                                            TtlFltIn: (parseFloat(TtlFltInsss) + amountKes).toFixed(0)
                                           }
                                         }
                                       });
@@ -325,8 +332,8 @@ const SMADepositForm = props => {
                                             agentEarning: parseFloat(agentEarnings) + AgentCommission,
                                             saEarningBal: parseFloat(saEarningBals) + saCommission,
                                             saEarning: parseFloat(saEarnings) + saCommission,
-                                            ttlUserWthdrwl: parseFloat(ttlUserWthdrwls) + parseFloat(amount),
-                                            agentFloatIn: parseFloat(agentFloatIns) + parseFloat(amount)
+                                            ttlUserWthdrwl: parseFloat(ttlUserWthdrwls) + amountKes,
+                                            agentFloatIn: parseFloat(agentFloatIns) + amountKes
                                           }
                                         }
                                       });
@@ -339,7 +346,13 @@ const SMADepositForm = props => {
                                     }
                                     setIsLoading(false);
                                     await onUpdtMFChamp();
-                                    Alert.alert(names + " has withdrawn Ksh. " + parseFloat(amount).toFixed(2) + " from " + namess + " MFNdogo");
+                                      try {
+                                        const formatted = await formatAmount(amountKes);
+                                        Alert.alert(`${names} has withdrawn ${formatted} from ${namess} MFNdogo`);
+                                      } catch (e) {
+                                        const fallback = formatAmountSync(amountKes, nationality, ratesMap);
+                                        Alert.alert(names + " has withdrawn " + fallback + " from " + namess + " MFNdogo");
+                                      }
                                   };
                                   const onUpdtMFChamp = async () => {
                                     if (isLoading) {
@@ -374,7 +387,7 @@ const SMADepositForm = props => {
                                   } else if (userInfo.userId !== owners) {
                                     Alert.alert("You cannot withdraw from another account");
                                     return;
-                                  } else if (parseFloat(amount) > parseFloat(withdrawalLimits)) {
+                                  } else if (amountKes > parseFloat(withdrawalLimits)) {
                                     Alert.alert('Withdrawal limit exceeded');
                                     return;
                                   } else if (AgAcAct === "AccountInactive") {

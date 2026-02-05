@@ -10,6 +10,8 @@ import { createRideRequest, sendNotification } from '../../../src/graphql/mutati
 import GooglePlacesAutocompleteNew from './GooglePlacesAutoCompleteNew';
 import messaging from '@react-native-firebase/messaging';
 import { getCurrentUser, fetchUserAttributes } from "aws-amplify/auth";
+import { useExchange } from '../../../src/contexts/ExchangeContext';
+import { formatAmountSync, getUserNationalityByEmail, convertForeignToKsh } from '../../../src/utils/exchange';
 import { generateClient } from "aws-amplify/api";
 const client = generateClient();
 const SCREEN_WIDTH = Dimensions.get('window').width;
@@ -41,6 +43,7 @@ export default function RideRequestMapScreen({
     } | null,
     radiusKm: String(DEFAULT_RADIUS_KM)
   });
+  const { nationality, ratesMap } = useExchange();
 
   // On mount, check for pending rides for this passenger
   useEffect(() => {
@@ -393,7 +396,8 @@ export default function RideRequestMapScreen({
 
   // ---------- Confirm ride ----------
   const confirmAndRequestRide = (rider: any) => {
-    Alert.alert('Confirm Ride', `Request ride from ${rider.transportName || 'Rider'}?\nEstimated cost: KES ${Math.round(rider._estimatedCost || 0)}\nDistance: ${(rider._tripDistanceKm || 0).toFixed(2)} km`, [{
+    const est = formatAmountSync(Math.round(rider._estimatedCost || 0), nationality, ratesMap);
+    Alert.alert('Confirm Ride', `Request ride from ${rider.transportName || 'Rider'}?\nEstimated cost: ${est}\nDistance: ${(rider._tripDistanceKm || 0).toFixed(2)} km`, [{
       text: 'Cancel',
       style: 'cancel'
     }, {
@@ -476,6 +480,12 @@ export default function RideRequestMapScreen({
 
     const selectedRider = transporter || rider;
 
+    // Convert estimated cost (which is in rider currency) to KES for storage
+    let sellerNationality = selectedRider?.nationality || null;
+    if (!sellerNationality && selectedRider?.transportOwnerEmail) sellerNationality = await getUserNationalityByEmail(selectedRider.transportOwnerEmail);
+    const estimatedCostRaw = Number(rider._estimatedCost || 0);
+    const estimatedCostKes = sellerNationality ? await convertForeignToKsh(estimatedCostRaw, sellerNationality) : estimatedCostRaw;
+
     const input = {
       passengerEmail: attributes.email,
       passengerName: passengerInfo.name,
@@ -485,7 +495,7 @@ export default function RideRequestMapScreen({
       destinationLatitude: filters.destination!.latitude,
       destinationLongitude: filters.destination!.longitude,
       distance: rider._tripDistanceKm || 0,
-      estimatedCost: rider._estimatedCost || 0,
+      estimatedCost: estimatedCostKes,
       selectedRiderID: selectedRider.id,
       riderName: selectedRider.transportName || selectedRider.transportName,
       riderContact: selectedRider.transportkntct || selectedRider.transportkntct,
@@ -515,7 +525,7 @@ export default function RideRequestMapScreen({
           variables: {
             riderEmail,
             title: "MiFedha: New Ride Request",
-            body: `Passenger ${ride.passengerName} requested a ride. Estimated cost: KES ${ride.estimatedCost}`
+            body: `Passenger ${ride.passengerName} requested a ride. Estimated cost: ${formatAmountSync(ride.estimatedCost, nationality, ratesMap)}`
           }
         });
       }
@@ -558,7 +568,7 @@ export default function RideRequestMapScreen({
         {filteredRiders.map((rider, idx) => (
           <Marker key={rider.id} coordinate={{ latitude: rider.latitude, longitude: rider.longitude }} onPress={() => focusOnRider(rider, idx)}>
             <View style={[styles.markerContainer, selectedRiderId === rider.id && styles.selectedMarker]}>
-              <Text style={styles.markerText}>{selectedRiderId === rider.id ? ` ${rider.numberPlate || rider.transportName?.slice(0,6)}` : `KES ${Math.round(rider._estimatedCost || 0)}`}</Text>
+              <Text style={styles.markerText}>{selectedRiderId === rider.id ? ` ${rider.numberPlate || rider.transportName?.slice(0,6)}` : formatAmountSync(Math.round(rider._estimatedCost || 0), nationality, ratesMap)}</Text>
             </View>
           </Marker>
         ))}
@@ -672,10 +682,10 @@ export default function RideRequestMapScreen({
           <View style={{ flex: 1, paddingLeft: 10 }}>
             <Text style={{ fontWeight: '700' }}>{item.transportName || 'Rider'}</Text>
             <Text style={{ fontSize: 12 }}>
-              {item.transportType} • KES {item.transportRate}/km
+              {item.transportType} • {formatAmountSync(item.transportRate, nationality, ratesMap)}/km
             </Text>
             <Text style={{ fontSize: 12 }}>
-              Est: KES {Math.round(item._estimatedCost || 0)} || {selectedRiderId === item.id && selectedRouteDistanceKm != null ? selectedRouteDistanceKm.toFixed(2) : (item._tripDistanceKm || 0).toFixed(2)} km
+              Est: {formatAmountSync(Math.round(item._estimatedCost || 0), nationality, ratesMap)} || {selectedRiderId === item.id && selectedRouteDistanceKm != null ? selectedRouteDistanceKm.toFixed(2) : (item._tripDistanceKm || 0).toFixed(2)} km
             </Text>
             {/* New button for TransportDetails */}
             <TouchableOpacity

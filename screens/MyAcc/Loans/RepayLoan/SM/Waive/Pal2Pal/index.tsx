@@ -325,7 +325,7 @@ const RepayCovLnsss = props => {
                       }
                     }
                     Alert.alert("Cleared. ");
-                    Communications.textWithoutEncoding(phonecontactz, 'Hi ' + namess + ', your loan of ID ' + route.params.loanID + 'has been repaid Ksh. ' + amounts + ' by ' + names + '. For clarification call the loanee: ' + attributes.phone_number + '. Thank you. MiFedha');
+                    Communications.textWithoutEncoding(phonecontactz, 'Hi ' + namess + ', your loan of ID ' + route.params.loanID + ' has been repaid ' + formatAmountSync(Number(amounts), nationality, ratesMap) + ' by ' + names + '. For clarification call the loanee: ' + attributes.phone_number + '. Thank you. MiFedha');
                     setIsLoading(false);
                   };
                   const repyCovLn = async () => {
@@ -463,7 +463,7 @@ const RepayCovLnsss = props => {
                       }
                     }
                     Alert.alert("Partially paid. ");
-                    Communications.textWithoutEncoding(phonecontactz, 'Hi ' + namess + ', your loan of ID ' + route.params.loanID + ' has been repaid Ksh. ' + amounts + ' by ' + names + '. For clarification call the loanee: ' + attributes.phone_number + '. Thank you. MiFedha');
+                    Communications.textWithoutEncoding(phonecontactz, 'Hi ' + namess + ', your loan of ID ' + route.params.loanID + ' has been repaid ' + formatAmountSync(Number(amounts), nationality, ratesMap) + ' by ' + names + '. For clarification call the loanee: ' + attributes.phone_number + '. Thank you. MiFedha');
                     setIsLoading(false);
                   };
                   if (userInfo.userId !== owner) {

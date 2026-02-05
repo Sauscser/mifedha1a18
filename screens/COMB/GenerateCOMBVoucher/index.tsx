@@ -1,10 +1,13 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { View, Text, FlatList, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, Pressable, Animated, Easing } from 'react-native';
 import { useRoute } from '@react-navigation/native';
-import { listSokoAds, listMarketConsumptions, listAveragePrices, getCombContract } from '../../../src/graphql/queries';
+import { listSokoAds, listMarketConsumptions, listAveragePrices, getCombContract, getBizna, getSMAccount } from '../../../src/graphql/queries';
 import { createCombContractVoucher, createMessages, sendNotification, updateCombContract } from '../../../src/graphql/mutations';
 import { generateClient } from 'aws-amplify/api';
 import { getCurrentUser, fetchUserAttributes } from 'aws-amplify/auth';
+import { useExchange } from '../../../src/contexts/ExchangeContext';
+import { formatAmountSync } from '../../../src/utils/exchange';
+import { nationalityToCode } from '../../../src/utils/nationalityToCode';
 const client = generateClient();
 
 /* -------------------- Types -------------------- */
@@ -57,8 +60,16 @@ const ItemCard = ({
   getPriceAlertCached,
   handleAddToVoucher,
   parent,
-  voucherItems
+  voucherItems,
+  sellerNationality,
+  funderNationality
 }: any) => {
+  // Local exchange context so ItemCard doesn't rely on outer-scope `nationality` variable
+  const { nationality: userNationality, ratesMap } = useExchange();
+  const sellerNat = sellerNationality || userNationality;
+  const funderNat = funderNationality || userNationality;
+  const sellerCode = nationalityToCode(sellerNat);
+  const funderCode = nationalityToCode(funderNat);
   const [alert, setAlert] = useState<PriceAlert | null>(null);
   const [loadingAlert, setLoadingAlert] = useState(false);
   const qty = quantities[item.id] || 1;
@@ -80,7 +91,10 @@ const ItemCard = ({
       fontWeight: 'bold'
     }}>{item.sokoname} ({item.itemBrand})</Text>
       <Text>Unit: {item.itemUnit}</Text>
-      <Text>Item Price: {priceNum}</Text>
+      <View style={{ marginVertical: 4, backgroundColor: '#f5f5f5', padding: 6, borderRadius: 4 }}>
+        <Text>🏪 Seller Currency ({sellerNat}): {formatAmountSync(priceNum, sellerCode, ratesMap || undefined)}</Text>
+        <Text>💳 Funder Currency ({funderNat}): {formatAmountSync(priceNum, funderCode, ratesMap || undefined)}</Text>
+      </View>
 
       {loadingAlert ? <ActivityIndicator style={{
       marginVertical: 6
@@ -131,15 +145,25 @@ const VoucherCartCard = ({
   item,
   quantity,
   onUpdateQuantity,
-  onRemove
-}: any) => {
+  onRemove,
+  sellerNationality,
+  funderNationality
+}: { item: SokoItem; quantity: number; onUpdateQuantity: (id: string, qty: number) => void; onRemove: (id: string) => void; sellerNationality?: string | null; funderNationality?: string | null }) => {
   const priceNum = Number(item.sokoprice) || 0;
+  const { nationality: userNationality, ratesMap } = useExchange();
+  const sellerNat = sellerNationality || userNationality;
+  const funderNat = funderNationality || userNationality;
+  const sellerCode = nationalityToCode(sellerNat);
+  const funderCode = nationalityToCode(funderNat);
   return <View style={styles.voucherCard}>
       <Text style={{
       fontWeight: 'bold'
     }}>{item.sokoname}</Text>
       <Text>{item.itemBrand}</Text>
-      <Text>Total: KES {(priceNum * quantity).toFixed(2)}</Text>
+      <View style={{ marginVertical: 4 }}>
+        <Text style={{ fontSize: 12 }}>🏪 Seller: {formatAmountSync(priceNum * quantity, sellerCode, ratesMap || undefined)}</Text>
+        <Text style={{ fontSize: 12 }}>💳 Funder: {formatAmountSync(priceNum * quantity, funderCode, ratesMap || undefined)}</Text>
+      </View>
       <View style={{
       flexDirection: 'row',
       marginTop: 6,
@@ -190,6 +214,8 @@ const SellerConsumablesVoucherScreen = () => {
   const [updating, setUpdating] = useState(false);
   const [parent, setParent] = useState<any>(null);
   const [priceAlerts, setPriceAlerts] = useState<Record<string, PriceAlert>>({});
+  const [sellerNationality, setSellerNationality] = useState<string | null>(null);
+  const [funderNationality, setFunderNationality] = useState<string | null>(null);
   const bottomAnim = useRef(new Animated.Value(0)).current;
   useEffect(() => {
     Animated.timing(bottomAnim, {
@@ -204,6 +230,8 @@ const SellerConsumablesVoucherScreen = () => {
     outputRange: [0, 240]
   });
   const bottomPadding = Object.keys(voucherItems).length ? 250 : 20;
+  const { nationality, ratesMap } = useExchange();
+  const natMainCode = nationalityToCode(sellerNationality || nationality);
 
   /* ---------------- Fetch Items ---------------- */
   useEffect(() => {
@@ -228,9 +256,26 @@ const SellerConsumablesVoucherScreen = () => {
       }
     };
     fetchItems();
+    // fetch seller nationality
+    const fetchSellerNat = async () => {
+      try {
+        const bizRes: any = await client.graphql({ query: getBizna, variables: { BusKntct: sellerID } });
+        const email = bizRes?.data?.getBizna?.email;
+        if (email) {
+          const smRes: any = await client.graphql({ query: getSMAccount, variables: { awsemail: email } });
+          setSellerNationality(smRes?.data?.getSMAccount?.nationality || null);
+        } else {
+          const smRes: any = await client.graphql({ query: getSMAccount, variables: { awsemail: sellerID } });
+          setSellerNationality(smRes?.data?.getSMAccount?.nationality || null);
+        }
+      } catch (err) {
+        console.warn('Could not fetch seller nationality', err);
+      }
+    };
+    fetchSellerNat();
   }, [sellerID]);
 
-  /* ---------------- Fetch Parent Contract ---------------- */
+  /* ---------------- Fetch Parent Contract & Funder Nationality ---------------- */
   const fetchParent = useCallback(async () => {
     try {
       const res: any = await client.graphql({
@@ -239,7 +284,29 @@ const SellerConsumablesVoucherScreen = () => {
           id: combContractID
         }
       });
-      setParent(res?.data?.getCombContract);
+      const parentData = res?.data?.getCombContract;
+      setParent(parentData);
+      
+      // Fetch funder nationality
+      if (parentData) {
+        try {
+          if (parentData.funderType === 'funderTypeBiz') {
+            const bizRes: any = await client.graphql({ query: getBizna, variables: { BusKntct: parentData.funderAccount } });
+            const email = bizRes?.data?.getBizna?.email;
+            if (email) {
+              const smRes: any = await client.graphql({ query: getSMAccount, variables: { awsemail: email } });
+              setFunderNationality(smRes?.data?.getSMAccount?.nationality || null);
+            } else {
+              setFunderNationality(null);
+            }
+          } else if (parentData.funderType === 'funderTypePal') {
+            const smRes: any = await client.graphql({ query: getSMAccount, variables: { awsemail: parentData.funderAccount } });
+            setFunderNationality(smRes?.data?.getSMAccount?.nationality || null);
+          }
+        } catch (err) {
+          console.warn('Could not fetch funder nationality', err);
+        }
+      }
     } catch (err) {
       handleError('Could not fetch parent contract.', err);
     }
@@ -490,7 +557,9 @@ const SellerConsumablesVoucherScreen = () => {
       {/* Items List */}
       {loading ? <ActivityIndicator /> : <FlatList data={filteredItems} keyExtractor={i => i.id} renderItem={({
       item
-    }) => <ItemCard item={item} quantities={quantities} setQuantities={setQuantities} getPriceAlertCached={getPriceAlertCached} handleAddToVoucher={handleAddToVoucher} parent={parent} voucherItems={voucherItems} />} contentContainerStyle={{
+    }) => (
+      <ItemCard item={item} quantities={quantities} setQuantities={setQuantities} getPriceAlertCached={getPriceAlertCached} handleAddToVoucher={handleAddToVoucher} parent={parent} voucherItems={voucherItems} sellerNationality={sellerNationality} funderNationality={funderNationality} />
+    )} contentContainerStyle={{
       paddingBottom: bottomPadding
     }} />}
 
@@ -520,21 +589,22 @@ const SellerConsumablesVoucherScreen = () => {
           paddingHorizontal: 10
         }} renderItem={({
           item: v
-        }) => <VoucherCartCard item={v.item} quantity={v.quantity} onUpdateQuantity={(id, qty) => setVoucherItems(p => ({
+        }) => (
+          <VoucherCartCard item={v.item} quantity={v.quantity} sellerNationality={sellerNationality} funderNationality={funderNationality} onUpdateQuantity={(id: string, qty: number) => setVoucherItems(p => ({
           ...p,
           [id]: {
             ...p[id],
             quantity: qty
           }
-        }))} onRemove={id => {
+        }))} onRemove={(id: string) => {
           const copy = {
             ...voucherItems
           };
           delete copy[id];
           setVoucherItems(copy);
-        }} />} />
+        }} />)} />
 
-            {/* Funds Progress */}
+            {/* Funds Progress & Multi-Currency Display */}
             {isActiveCap && <>
                 <View style={{
             backgroundColor: '#eee',
@@ -551,9 +621,16 @@ const SellerConsumablesVoucherScreen = () => {
                 </View>
                 <Text style={{
             textAlign: 'center',
-            marginTop: 4
+            marginTop: 4,
+            fontWeight: 'bold'
           }}>
-                  Remaining Funds: KES {getRemainingFunds()?.toFixed(2)}
+                  Remaining Funds:
+                </Text>
+                <Text style={{ textAlign: 'center', fontSize: 12 }}>
+                  🏪 Seller: {formatAmountSync(Number(getRemainingFunds() || 0), nationalityToCode(sellerNationality || nationality), ratesMap || undefined)}
+                </Text>
+                <Text style={{ textAlign: 'center', fontSize: 12 }}>
+                  💳 Funder: {formatAmountSync(Number(getRemainingFunds() || 0), nationalityToCode(funderNationality || nationality), ratesMap || undefined)}
                 </Text>
               </>}
 

@@ -44,7 +44,7 @@ const ViewSMDeposts = ({ SMAc }: SMAccount) => {
          <Text style={styles.prodInfo}> 
                          {sellerName} to {buyerName}
                          || Aerial Distance: {distance} Kilometer ||
-                         Order Total Cost: Ksh. {orderCost} || TransportCost:
+                         {(() => { const { nationality, ratesMap } = useExchange(); return <>Order Total Cost: {formatAmountSync(orderCost, nationalityToCode(nationality), ratesMap)} || TransportCost:</> })()}
                           Ksh. {deliveryCost}
                          || Contact: {buyerContact} || {transportRequest} || {engagementStatus}
                        </Text>

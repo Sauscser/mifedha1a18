@@ -44,6 +44,7 @@ const PaystackPayment = () => {
         navigation.goBack();
         return;
       }
+      const { nationality, ratesMap } = useExchange();
       const response = await fetch('https://api.paystack.co/transaction/initialize', {
         method: 'POST',
         headers: {
@@ -53,7 +54,7 @@ const PaystackPayment = () => {
         body: JSON.stringify({
           email: userEmail,
           amount: Math.round(amountz * 100),
-          currency: 'KES',
+          currency: nationality ? (ratesMap?.[nationality]?.cur || 'KES') : 'KES',
           reference: `MiFedha_${Date.now()}`
         })
       });

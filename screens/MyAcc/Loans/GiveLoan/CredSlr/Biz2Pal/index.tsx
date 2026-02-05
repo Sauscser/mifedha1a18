@@ -8,6 +8,9 @@ import styles from './styles';
 import { parse } from 'expo-linking';
 import { getCurrentUser, fetchUserAttributes } from "aws-amplify/auth";
 import { generateClient } from "aws-amplify/api";
+import { useExchange } from '../../../../../../src/contexts/ExchangeContext';
+import { formatAmountSync } from '../../../../../../src/utils/exchange';
+import { nationalityToCode } from '../../../../../../src/utils/nationalityToCode';
 const client = generateClient();
 const CovCredSls = props => {
   const [SenderNatId, setSenderNatId] = useState('');
@@ -25,6 +28,7 @@ const CovCredSls = props => {
   const [DfltPnlty, setDfltPnlty] = useState("");
   const route = useRoute();
   const navigation = useNavigation();
+  const { nationality, ratesMap } = useExchange();
   const SndChmMmbrMny = () => {
     navigation.navigate("AutomaticRepayAllTyps");
   };
@@ -398,8 +402,8 @@ const CovCredSls = props => {
                                         return;
                                       }
                                     }
-                                    Alert.alert("Success. TransactionFee:" + (parseFloat(userLoanTransferFees) * parseFloat(amount)).toFixed(2));
-                                    Communications.textWithoutEncoding(phonecontactz, 'MiFedha. Hi ' + namess + ', you have been loaned goods worth Ksh. ' + parseFloat(amount).toFixed(2) + ' by ' + busNames + ' Business. For clarification call the business owner: ' + attributes.phone_number + '. The following is a break down of your repayable loan: ' + ' Cash price of the goods is Ksh. ' + parseFloat(amount).toFixed(2) + '. Amount you had committed to repay is Ksh. ' + amtrpayable2.toFixed(2) + '. Transaction fee is Ksh. ' + lnTrnsfrFee.toFixed(2) + '. Total Repayable is Ksh ' + TotalAmtExp2.toFixed(2) + '. Thank you.');
+                                    Alert.alert("Success. TransactionFee: " + formatAmountSync((parseFloat(userLoanTransferFees) * parseFloat(amount)), nationalityToCode(nationality), ratesMap));
+                                    Communications.textWithoutEncoding(phonecontactz, 'MiFedha. Hi ' + namess + ', you have been loaned goods worth ' + formatAmountSync(parseFloat(amount), nationalityToCode(nationality), ratesMap) + ' by ' + busNames + ' Business. For clarification call the business owner: ' + attributes.phone_number + '. The following is a break down of your repayable loan: ' + ' Cash price of the goods is ' + formatAmountSync(parseFloat(amount), nationalityToCode(nationality), ratesMap) + '. Amount you had committed to repay is ' + formatAmountSync(amtrpayable2, nationalityToCode(nationality), ratesMap) + '. Transaction fee is ' + formatAmountSync(lnTrnsfrFee, nationalityToCode(nationality), ratesMap) + '. Total Repayable is ' + formatAmountSync(TotalAmtExp2, nationalityToCode(nationality), ratesMap) + '. Thank you.');
                                     setIsLoading(false);
                                   };
                                   const fetchAdv = async () => {

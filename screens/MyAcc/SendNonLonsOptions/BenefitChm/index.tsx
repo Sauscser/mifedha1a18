@@ -8,12 +8,15 @@ import { View, Text, ImageBackground, Pressable, TextInput, ScrollView, StyleShe
 import { getChamaControlTable, getChamaMembers, getCompany, getGroup, getMiFedhaBankAdmin, getSMAccount, listCovCreditSellers, listCvrdGroupLoans, listSMLoansCovereds } from '../../../../src/graphql/queries';
 import { getCurrentUser, fetchUserAttributes } from "aws-amplify/auth";
 import { generateClient } from "aws-amplify/api";
+import { useExchange } from '../../../../src/contexts/ExchangeContext';
+import { formatAmountSync } from '../../../../src/utils/exchange';
 const client = generateClient();
 const SMASendNonLns = props => {
   const [SenderNatId, setSenderNatId] = useState('');
   const [RecNatId, setRecNatId] = useState('');
   const [SnderPW, setSnderPW] = useState("");
   const [amounts, setAmount] = useState("");
+  const { ratesMap, nationality } = useExchange();
   const [Desc, setDesc] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
@@ -247,21 +250,27 @@ const SMASendNonLns = props => {
                                               }
                                             }
                                           });
+
+                                          const formattedMsgAmount = formatAmountSync(Number(amounts), nationality, ratesMap);
+                                          const textMsg = `${names} has sent you ${formattedMsgAmount}. The money has been deposited in your main account`;
+                                          
                                           await client.graphql({
                                             query: createMessages,
                                             variables: {
                                               input: {
                                                 senderEmail: RecNatId,
-                                                messageBody: `${names} has sent you Ksh. ${amounts}. The money has been deposited in your main account`
+                                                messageBody: textMsg
                                               }
                                             }
                                           });
+
+                                          
                                           await client.graphql({
                                             query: sendNotification,
                                             variables: {
                                               riderEmail: RecNatId,
                                               title: 'MiFedha: Cash',
-                                              body: `${names} has sent you Ksh. ${amounts}. The money has been deposited in your main account`
+                                              body: textMsg
                                             }
                                           });
                                         } catch (error) {
@@ -448,8 +457,8 @@ const SMASendNonLns = props => {
                                             return;
                                           }
                                         }
-                                        Alert.alert("Amount:Ksh. " + parseFloat(amounts).toFixed(0) + ". Transaction fee: Ksh. " + UsrTransferFeeAmt.toFixed(0));
-                                        Communications.textWithoutEncoding(phonecontact, 'Hi ' + ReceiverName + ", " + names + ' has sent you a non loan of Ksh. ' + amounts + '. For clarification call the sender ' + attributes.phone_number + '. Thank you. MiFedha');
+                                        Alert.alert("Amount: " + formatAmountSync(parseFloat(amounts), nationality, ratesMap) + ". Transaction fee: " + formatAmountSync(UsrTransferFeeAmt, nationality, ratesMap));
+                                        Communications.textWithoutEncoding(phonecontact, 'Hi ' + ReceiverName + ", " + names + ' has sent you a non loan of ' + formatAmountSync(parseFloat(amounts), nationality, ratesMap) + '. For clarification call the sender ' + attributes.phone_number + '. Thank you. MiFedha');
                                         setIsLoading(false);
                                       };
                                       const sendSMNonLn1 = async () => {
@@ -473,12 +482,14 @@ const SMASendNonLns = props => {
                                               }
                                             }
                                           });
+                                          const formattedMsgAmount = formatAmountSync(Number(amounts), nationality, ratesMap);
+                                          const textMsg = `${names} has sent you ${formattedMsgAmount}. The money has been deposited in your main account`;
                                           await client.graphql({
                                             query: createMessages,
                                             variables: {
                                               input: {
                                                 senderEmail: RecNatId,
-                                                messageBody: `${names} has sent you Ksh. ${amounts}. The money has been deposited in your main account`
+                                                messageBody: textMsg
                                               }
                                             }
                                           });
@@ -487,7 +498,7 @@ const SMASendNonLns = props => {
                                             variables: {
                                               riderEmail: RecNatId,
                                               title: 'MiFedha: Cash',
-                                              body: `${names} has sent you Ksh. ${amounts}. The money has been deposited in your main account`
+                                              body: textMsg
                                             }
                                           });
                                         } catch (error) {
@@ -689,8 +700,8 @@ const SMASendNonLns = props => {
                                             return;
                                           }
                                         }
-                                        Alert.alert("Amount:Ksh. " + parseFloat(amounts).toFixed(0) + ". Transaction fee: Ksh. " + UsrTransferFeeAmt.toFixed(0));
-                                        Communications.textWithoutEncoding(phonecontact, 'Hi ' + ReceiverName + ", " + names + ' has sent you a non loan of Ksh. ' + amounts + '. For clarification call the sender ' + attributes.phone_number + '. Thank you. MiFedha');
+                                        Alert.alert("Amount: " + formatAmountSync(parseFloat(amounts), nationality, ratesMap) + ". Transaction fee: " + formatAmountSync(UsrTransferFeeAmt, nationality, ratesMap));
+                                        Communications.textWithoutEncoding(phonecontact, 'Hi ' + ReceiverName + ", " + names + ' has sent you a non loan of ' + formatAmountSync(parseFloat(amounts), nationality, ratesMap) + '. For clarification call the sender ' + attributes.phone_number + '. Thank you. MiFedha');
                                         setIsLoading(false);
                                       };
                                       if (userInfo.userId !== owner) {

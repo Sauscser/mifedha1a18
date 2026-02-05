@@ -67,8 +67,8 @@ const CredSlrCvLnStts = (props:ChmCvLnSttusRec) => {
 
                     <Text style = {styles.interest}>                       
                        {/* interest*/}
-                       Loan Balance(Ksh): {lonBala.toFixed(2)}                    
-                    </Text> 
+                       Loan Balance: {formatAmountSync(lonBala, nationalityToCode(nationality), ratesMap)}                    
+                    </Text>
                     
         
                 

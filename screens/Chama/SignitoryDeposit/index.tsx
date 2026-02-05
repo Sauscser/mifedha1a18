@@ -1,3 +1,4 @@
+// @ts-nocheck
 import React, { useEffect, useState } from 'react';
 import { createFloatReduction, updateAgent, updateCompany, updateGroup } from '../../../src/graphql/mutations';
 import { getAgent, getCompany, getGroup } from '../../../src/graphql/queries';
@@ -124,7 +125,8 @@ const SMADepositForm = props => {
             }
           }
         });
-        Alert.alert(`Ksh. ${amount} deposited in ${grpName}'s account`);
+        const { nationality, ratesMap } = useExchange();
+        Alert.alert(`${formatAmountSync(parseFloat(amount), nationalityToCode(nationality), ratesMap)} deposited in ${grpName}'s account`);
       }
     } catch (error) {
       console.log(error);

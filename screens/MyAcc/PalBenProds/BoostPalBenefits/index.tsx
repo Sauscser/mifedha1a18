@@ -204,7 +204,12 @@ const SMASendNonLns = props => {
                             }
                           });
                           if (resp?.data?.updateCompany) {
-                            Alert.alert("Boost Amount:Ksh. " + parseFloat(amounts).toFixed(0) + ". Transaction fee: Ksh. " + UsrTransferFeeAmt.toFixed(0));
+                            // Dynamic currency formatting
+                            const { formatAmountSync } = require('../../../../src/utils/exchange');
+                            const { nationalityToCode } = require('../../../../src/utils/nationalityToCode');
+                            Alert.alert(
+                              `Boost Amount: ${formatAmountSync(Number(amounts), nationalityToCode(SenderNatId))}. Transaction fee: ${formatAmountSync(Number(UsrTransferFeeAmt), nationalityToCode(SenderNatId))}`
+                            );
                           } else {
                             Alert.alert("Retry or update app or call customer care");
                             return;
@@ -336,15 +341,15 @@ const SMASendNonLns = props => {
           </View>
 
 
-          <View style={styles.sendAmtView}>
-            <TextInput keyboardType={"decimal-pad"} value={amounts} onChangeText={setAmount} style={styles.sendAmtInput} editable={true}></TextInput>
+          <View style={styles.sendAmtViewDesc}>
+            <TextInput keyboardType={"decimal-pad"} value={amounts} onChangeText={setAmount} style={styles.sendAmtInputDesc} editable={true}></TextInput>
               
             <Text style={styles.sendAmtText}>Amount Sent</Text>
           </View>
 
 
-          <View style={styles.sendAmtView}>
-            <TextInput value={SnderPW} onChangeText={setSnderPW} secureTextEntry={true} style={styles.sendAmtInput} editable={true}></TextInput>
+          <View style={styles.sendAmtViewDesc}>
+            <TextInput value={SnderPW} onChangeText={setSnderPW} secureTextEntry={true} style={styles.sendAmtInputDesc} editable={true}></TextInput>
             <Text style={styles.sendAmtText}>Sender PassWord</Text>
           </View>
 

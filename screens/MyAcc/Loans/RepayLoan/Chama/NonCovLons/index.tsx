@@ -499,7 +499,7 @@ const RepayNonCovChmLnsss = props => {
                         Alert.alert('Call ' + CompPhoneContact + ' to have your send Amount limit adjusted');
                         return;
                       } else if (parseFloat(amounts) > lonBalas) {
-                        Alert.alert("Your Loan Balance is lesser: Ksh. " + lonBalas);
+                        Alert.alert("Your Loan Balance is lesser: " + formatAmountSync(Number(lonBalas), nationality || undefined, ratesMap));
                       } else if (parseFloat(amounts) === parseFloat(lonBalas) && parseFloat(MaxTymsBLss) === parseFloat(maxBLss)) {
                         updtSendrAcLonOvr1();
                       } else if (parseFloat(amounts) === parseFloat(lonBalas) && parseFloat(MaxTymsBLss) > parseFloat(maxBLss)) {

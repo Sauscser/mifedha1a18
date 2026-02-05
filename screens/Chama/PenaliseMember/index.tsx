@@ -112,7 +112,8 @@ const BLChmCovLoanee = props => {
                   }
                 }
                 Alert.alert("You have Penalised " + memberName + " for late payment ");
-                Communications.textWithoutEncoding(memberContact, 'MiFedha. Hi ' + memberName + ', you have been penalised for late subscription by ' + grpName + ' group. The following is a breakdown of your subscription arrears and penalties: ' + '. subscription you have done up to date are Ksh. ' + subscribedAmt.toFixed(2) + ' instead of Ksh. ' + Amt2HvBnSub.toFixed(2) + '. For clarification call the group Admin: ' + attributes.phone_number + '. Thank you.');
+                const { nationality, ratesMap } = useExchange();
+                Communications.textWithoutEncoding(memberContact, 'MiFedha. Hi ' + memberName + ', you have been penalised for late subscription by ' + grpName + ' group. The following is a breakdown of your subscription arrears and penalties: ' + '. subscription you have done up to date are ' + formatAmountSync(parseFloat(subscribedAmt), nationalityToCode(nationality), ratesMap) + ' instead of ' + formatAmountSync(parseFloat(Amt2HvBnSub), nationalityToCode(nationality), ratesMap) + '. For clarification call the group Admin: ' + attributes.phone_number + '. Thank you.');
                 setIsLoading(false);
               };
               if (parseFloat(subscriptionFrequency) > tmDif) {

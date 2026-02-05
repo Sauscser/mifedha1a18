@@ -195,7 +195,14 @@ const SMADepositForm = props => {
             }
           }
         });
-        Alert.alert(`${names} has withdrawn Ksh. ${parseFloat(amount).toFixed(2)} from ${namess} MFNdogo`);
+        try {
+          const { formatAmount } = useExchange();
+          const formatted = await formatAmount(parseFloat(amount));
+          Alert.alert(`${names} has withdrawn ${formatted} from ${namess} MFNdogo`);
+        } catch (e) {
+          const { nationality, ratesMap } = useExchange();
+          Alert.alert(`${names} has withdrawn ${formatAmountSync(parseFloat(amount), nationalityToCode(nationality), ratesMap)} from ${namess} MFNdogo`);
+        }
       }
     } catch (error) {
       console.log(error);

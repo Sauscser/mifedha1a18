@@ -34,6 +34,9 @@ const RegKFKubwa = props => {
   const UpdateMFAdminPWss = () => {
     navigation.navigate('UpdateMFAdminPWs');
   };
+  const UpdateExRatesBtn = () => {
+    navigation.navigate('UpdateExRates');
+  };
   const BLUsrsss = () => {
     navigation.navigate('BLUsrss');
   };
@@ -145,6 +148,12 @@ const RegKFKubwa = props => {
               <Pressable onPress={UpdateMFAdminPWss} style={styles.earningsAcPressables}>
                 <Text style={styles.earningsAcPressableText}>UpdatePW</Text>
               </Pressable>
+
+              <Pressable onPress={UpdateExRatesBtn} style={styles.earningsAcPressables}>
+                <Text style={styles.earningsAcPressableText}>UpdateExRates</Text>
+              </Pressable>
+
+            
 
               <Pressable onPress={RegPwnBrkrss} style={styles.earningsAcPressables}>
                 <Text style={styles.earningsAcPressableText}>RegLner</Text>
