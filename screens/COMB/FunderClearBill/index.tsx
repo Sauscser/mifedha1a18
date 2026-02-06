@@ -3,8 +3,8 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, FlatList, ActivityIndicator, Alert, Pressable, StyleSheet } from 'react-native';
 import { generateClient } from 'aws-amplify/api';
 import { getCurrentUser, fetchUserAttributes } from 'aws-amplify/auth';
-import { listCombContractVouchers, getSMAccount, getBizna, getCompany } from '../../../src/graphql/queries';
-import { updateCombContractVoucher, updateSMAccount, updateBizna, createNonLoans, updateCompany, createMessages, sendNotification } from '../../../src/graphql/mutations';
+import { listCombContractVouchers, getSMAccount, getBizna, getCompany, getCombContract } from '../../../src/graphql/queries';
+import { updateCombContractVoucher, updateSMAccount, updateBizna, createNonLoans, updateCompany, createMessages, sendNotification, updateCombContract } from '../../../src/graphql/mutations';
 import { useExchange } from '../../../src/contexts/ExchangeContext';
 import { formatAmountSync, convertKshToUserCurrency } from '../../../src/utils/exchange';
 import { nationalityToCode } from '../../../src/utils/nationalityToCode';
@@ -100,12 +100,16 @@ const VoucherCard = ({
 /* -------------------- Main Screen -------------------- */
 const FunderClearApprovedVoucherScreen = () => {
   const [vouchers, setVouchers] = useState<any[]>([]);
+  const [parentMap, setParentMap] = useState<Record<string, any>>({});
+  const [selectedVoucherId, setSelectedVoucherId] = useState<string | null>(null);
+  const [consumerNationality, setConsumerNationality] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [nextToken, setNextToken] = useState<string | null>(null);
   const [loadingMap, setLoadingMap] = useState<Record<string, {
     clearing: boolean;
     declining: boolean;
   }>>({});
+  const { nationality, ratesMap } = useExchange();
 
   /* ---------------- Fetch Approved Vouchers ---------------- */
   const fetchVouchers = async (token?: string) => {
@@ -115,23 +119,54 @@ const FunderClearApprovedVoucherScreen = () => {
       const user = await getCurrentUser();
       const attributes = await fetchUserAttributes();
       const email = attributes.email;
+      console.log('🔍 Fetching vouchers for funder email:', email);
+      
+      // Fetch ALL vouchers for this funder (no server-side accStatus filter)
       const res: any = await client.graphql({
         query: listCombContractVouchers,
         variables: {
           filter: {
             funderEmail: {
               eq: email
-            },
-            accStatus: {
-              eq: 'Approved'
             }
           },
-          limit: 20,
+          limit: 50,
           nextToken: token
         }
       });
       const data = res?.data?.listCombContractVouchers;
-      const items = data?.items || [];
+      let items = data?.items || [];
+      
+      // Log what we got
+      console.log(`📋 Fetched ${items.length} total vouchers for funder ${email}`);
+      console.log('📦 Raw vouchers:', items.map((v: any) => ({ id: v.id, sellerName: v.sellerName, accStatus: v.accStatus })));
+      
+      // Filter for 'Approved' status on the client side
+      items = items.filter((v: any) => v.accStatus === 'Approved');
+      console.log(`✅ Filtered to ${items.length} approved vouchers`);
+      
+      // Fetch consumer nationality once (funder's perspective)
+      let fetchedConsumerNat: string | null = null;
+      try {
+        if (items.length > 0) {
+          const firstItem = items[0];
+          if (firstItem.consumerType === 'consumerTypeBiz') {
+            const bizRes: any = await client.graphql({ query: getBizna, variables: { BusKntct: firstItem.consumerAccount } });
+            const bizEmail = bizRes?.data?.getBizna?.email;
+            if (bizEmail) {
+              const smRes: any = await client.graphql({ query: getSMAccount, variables: { awsemail: bizEmail } });
+              fetchedConsumerNat = smRes?.data?.getSMAccount?.nationality || null;
+            }
+          } else {
+            const smRes: any = await client.graphql({ query: getSMAccount, variables: { awsemail: firstItem.consumerAccount } });
+            fetchedConsumerNat = smRes?.data?.getSMAccount?.nationality || null;
+          }
+        }
+        setConsumerNationality(fetchedConsumerNat);
+        console.log('✅ Consumer nationality:', fetchedConsumerNat);
+      } catch (e) {
+        console.warn('⚠️ Could not fetch consumer nationality:', e);
+      }
       
       // Collect all unique seller and funder accounts
       const sellerAccounts = Array.from(new Set(items.map(i => i.sellerAccount))).map(account => {
@@ -188,6 +223,23 @@ const FunderClearApprovedVoucherScreen = () => {
         return Array.from(map.values());
       });
       setNextToken(data?.nextToken || null);
+      
+      // Fetch parent comb contracts for these vouchers
+      try {
+        const combIds = Array.from(new Set(enriched.map((e: any) => e.combContractID).filter(Boolean)));
+        await Promise.all(combIds.map(async id => {
+          if (!id || parentMap[id]) return;
+          try {
+            const pRes: any = await client.graphql({ query: getCombContract, variables: { id } });
+            const p = pRes?.data?.getCombContract;
+            if (p) setParentMap(prev => ({ ...prev, [id]: p }));
+          } catch (e) {
+            console.warn('Could not fetch parent contract', id, e);
+          }
+        }));
+      } catch (e) {
+        console.warn('Error fetching parent contracts', e);
+      }
     } catch (e) {
       Alert.alert('Error', 'Failed to load vouchers');
     } finally {
@@ -219,6 +271,7 @@ const FunderClearApprovedVoucherScreen = () => {
         declining: true
       }
     }));
+    const returnAmount = Number(voucher.itemPrice || 0) * Number(voucher.numberOfItems || 0);
     try {
       await client.graphql({
         query: updateCombContractVoucher,
@@ -229,6 +282,23 @@ const FunderClearApprovedVoucherScreen = () => {
           }
         }
       });
+      
+      // Return funds to consumer's parent contract consumptionCapping
+      try {
+        const parentId = voucher.combContractID;
+        if (parentId) {
+          const parent = parentMap[parentId] || (await (async () => { const r: any = await client.graphql({ query: getCombContract, variables: { id: parentId } }); return r?.data?.getCombContract; })());
+          if (parent) {
+            const newCap = (Number(parent.consumptionCapping || 0) + returnAmount).toFixed(2);
+            await client.graphql({ query: updateCombContract, variables: { input: { id: parentId, consumptionCapping: newCap } } });
+            setParentMap(prev => ({ ...prev, [parentId]: { ...parent, consumptionCapping: newCap } }));
+            console.log('✅ Returned funds to parent contract:', parentId, 'New cap:', newCap);
+          }
+        }
+      } catch (e) {
+        console.warn('Failed to return funds on funder decline', e);
+      }
+      
       setVouchers(prev => prev.filter(v => v.id !== voucher.id));
       const message = `COMB voucher for ${voucher.itemName} was declined by the funder.`;
       for (const email of [voucher.consumerEmail, voucher.sellerEmail]) {
@@ -251,6 +321,7 @@ const FunderClearApprovedVoucherScreen = () => {
           }
         });
       }
+      Alert.alert('Success', 'Voucher declined and funds returned to consumer');
     } catch (e: any) {
       Alert.alert('Error', 'Decline failed');
     } finally {
@@ -492,9 +563,25 @@ const FunderClearApprovedVoucherScreen = () => {
       textAlign: 'center'
     }}>No approved vouchers found.</Text> : <FlatList data={vouchers} keyExtractor={item => item.id} renderItem={({
       item
-    }) => <VoucherCard voucher={item} loadingMap={loadingMap} onClear={v => confirmAction(v, 'Settle Bill')} onDecline={v => confirmAction(v, 'Decline')} />} onEndReached={() => {
+    }) => <Pressable onPress={() => setSelectedVoucherId(item.id)}><VoucherCard voucher={item} loadingMap={loadingMap} onClear={v => confirmAction(v, 'Settle Bill')} onDecline={v => confirmAction(v, 'Decline')} /></Pressable>} onEndReached={() => {
       if (nextToken && !loading) fetchVouchers(nextToken);
-    }} onEndReachedThreshold={0.5} />}
+    }} onEndReachedThreshold={0.5} contentContainerStyle={{
+      paddingBottom: 150
+    }} />}
+      {/* Bottom Funds Bar */}
+      {(vouchers.length > 0) && (() => {
+        const activeVoucher = selectedVoucherId ? vouchers.find(v => v.id === selectedVoucherId) : vouchers[0];
+        const parent = activeVoucher ? parentMap[activeVoucher.combContractID] : null;
+        const remaining = parent ? Number(parent.consumptionCapping || 0) : null;
+        const sellerNat = activeVoucher?.sellerNationality || nationality;
+        const funderNat = activeVoucher?.funderNationality || nationality;
+        return parent ? <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0, backgroundColor: '#fff', borderTopWidth: 1, borderColor: '#ddd', padding: 8 }}>
+              <Text style={{ fontWeight: 'bold', textAlign: 'center' }}>Remaining Funds (Consumer)</Text>
+              <Text style={{ textAlign: 'center', fontSize: 12 }}>🛒 Consumer: {formatAmountSync(Number(remaining || 0), nationalityToCode(consumerNationality || nationality), ratesMap || undefined)}</Text>
+              <Text style={{ textAlign: 'center', fontSize: 12 }}>🏪 Seller: {formatAmountSync(Number(remaining || 0), nationalityToCode(sellerNat), ratesMap || undefined)}</Text>
+              <Text style={{ textAlign: 'center', fontSize: 12 }}>💳 Funder: {formatAmountSync(Number(remaining || 0), nationalityToCode(funderNat), ratesMap || undefined)}</Text>
+            </View> : null;
+      })()}
     </View>;
 };
 const styles = StyleSheet.create({

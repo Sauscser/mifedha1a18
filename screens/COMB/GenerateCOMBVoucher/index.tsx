@@ -99,12 +99,30 @@ const ItemCard = ({
       {loadingAlert ? <ActivityIndicator style={{
       marginVertical: 6
     }} /> : alert && parent ? <>
-          <Text>Seller Avg: {alert.avgItemPrice.toFixed(2)}</Text>
-          <Text>Status: {alert.consumptionMarginStatus}</Text>
+          <Text>Seller Avg: {formatAmountSync(alert.avgItemPrice, sellerCode, ratesMap || undefined)}</Text>
+          <Text style={{
+            color: Math.abs(alert.itemDeviation) > (parent.marketConsumptionPrice ?? 0) ? '#f44336' : '#4caf50'
+          }}>
+            Seller Deviation: {alert.itemDeviation.toFixed(2)}% | Policy Margin: {parent.marketConsumptionPrice}%
+          </Text>
+
+          <Text>Market Avg (All Sellers): {formatAmountSync(alert.avgCategoryPrice, sellerCode, ratesMap || undefined)}</Text>
+          <Text style={{
+            color: Math.abs(alert.categoryDeviation) > (parent.marketConsumptionFrequency ?? 0) ? '#f44336' : '#4caf50'
+          }}>
+            MiFedha Market Deviation: {alert.categoryDeviation.toFixed(2)}% | Policy Frequency: {parent.marketConsumptionFrequency}%
+          </Text>
+
+          <Text style={{
+            color: Math.abs(alert.generalPriceDev) > (parent.marketConsumptionTotal ?? 0) ? '#f44336' : '#4caf50'
+          }}>
+            Reference Price Deviation: {alert.generalPriceDev.toFixed(2)}% | Policy Total: {parent.marketConsumptionTotal}%
+          </Text>
+
           <Text>Flag: {alert.priceFlag}</Text>
         </> : <TouchableOpacity onPress={runDeviationCheck} style={[styles.qtyBtn, {
       marginVertical: 6
-    }]}>
+    }]}> 
           <Text>Check Deviations</Text>
         </TouchableOpacity>}
 
@@ -147,8 +165,10 @@ const VoucherCartCard = ({
   onUpdateQuantity,
   onRemove,
   sellerNationality,
-  funderNationality
-}: { item: SokoItem; quantity: number; onUpdateQuantity: (id: string, qty: number) => void; onRemove: (id: string) => void; sellerNationality?: string | null; funderNationality?: string | null }) => {
+  funderNationality,
+  alert,
+  parent
+}: { item: SokoItem; quantity: number; onUpdateQuantity: (id: string, qty: number) => void; onRemove: (id: string) => void; sellerNationality?: string | null; funderNationality?: string | null; alert?: PriceAlert | null; parent?: any }) => {
   const priceNum = Number(item.sokoprice) || 0;
   const { nationality: userNationality, ratesMap } = useExchange();
   const sellerNat = sellerNationality || userNationality;
@@ -164,6 +184,29 @@ const VoucherCartCard = ({
         <Text style={{ fontSize: 12 }}>🏪 Seller: {formatAmountSync(priceNum * quantity, sellerCode, ratesMap || undefined)}</Text>
         <Text style={{ fontSize: 12 }}>💳 Funder: {formatAmountSync(priceNum * quantity, funderCode, ratesMap || undefined)}</Text>
       </View>
+      {alert && parent && (
+        <View style={{ marginTop: 6 }}>
+          <Text>Seller Avg: {formatAmountSync(alert.avgItemPrice, sellerCode, ratesMap || undefined)}</Text>
+          <Text style={{
+            color: Math.abs(alert.itemDeviation) > (parent.marketConsumptionPrice ?? 0) ? '#f44336' : '#4caf50'
+          }}>
+            Seller Deviation: {alert.itemDeviation.toFixed(2)}% | Policy Margin: {parent.marketConsumptionPrice}%
+          </Text>
+
+          <Text>Market Avg (All Sellers): {formatAmountSync(alert.avgCategoryPrice, sellerCode, ratesMap || undefined)}</Text>
+          <Text style={{
+            color: Math.abs(alert.categoryDeviation) > (parent.marketConsumptionFrequency ?? 0) ? '#f44336' : '#4caf50'
+          }}>
+            MiFedha Market Deviation: {alert.categoryDeviation.toFixed(2)}% | Policy Frequency: {parent.marketConsumptionFrequency}%
+          </Text>
+
+          <Text style={{
+            color: Math.abs(alert.generalPriceDev) > (parent.marketConsumptionTotal ?? 0) ? '#f44336' : '#4caf50'
+          }}>
+            Reference Price Deviation: {alert.generalPriceDev.toFixed(2)}% | Policy Total: {parent.marketConsumptionTotal}%
+          </Text>
+        </View>
+      )}
       <View style={{
       flexDirection: 'row',
       marginTop: 6,
@@ -216,6 +259,7 @@ const SellerConsumablesVoucherScreen = () => {
   const [priceAlerts, setPriceAlerts] = useState<Record<string, PriceAlert>>({});
   const [sellerNationality, setSellerNationality] = useState<string | null>(null);
   const [funderNationality, setFunderNationality] = useState<string | null>(null);
+  const [consumerNationality, setConsumerNationality] = useState<string | null>(null);
   const bottomAnim = useRef(new Animated.Value(0)).current;
   useEffect(() => {
     Animated.timing(bottomAnim, {
@@ -314,6 +358,23 @@ const SellerConsumablesVoucherScreen = () => {
   useEffect(() => {
     fetchParent();
   }, [fetchParent]);
+
+  // Fetch logged-in consumer nationality via fetchUserAttributes -> SMAccount
+  useEffect(() => {
+    const fetchConsumerNat = async () => {
+      try {
+        const attrs = await fetchUserAttributes();
+        const email = attrs.email;
+        if (email) {
+          const smRes: any = await client.graphql({ query: getSMAccount, variables: { awsemail: email } });
+          setConsumerNationality(smRes?.data?.getSMAccount?.nationality || null);
+        }
+      } catch (e) {
+        console.warn('Could not fetch consumer nationality (logged-in):', e);
+      }
+    };
+    fetchConsumerNat();
+  }, []);
 
   /* ---------------- Filtering ---------------- */
   const filteredItems = useMemo(() => {
@@ -590,7 +651,7 @@ const SellerConsumablesVoucherScreen = () => {
         }} renderItem={({
           item: v
         }) => (
-          <VoucherCartCard item={v.item} quantity={v.quantity} sellerNationality={sellerNationality} funderNationality={funderNationality} onUpdateQuantity={(id: string, qty: number) => setVoucherItems(p => ({
+          <VoucherCartCard item={v.item} quantity={v.quantity} sellerNationality={sellerNationality} funderNationality={funderNationality} alert={priceAlerts[v.item.id]} parent={parent} onUpdateQuantity={(id: string, qty: number) => setVoucherItems(p => ({
           ...p,
           [id]: {
             ...p[id],
@@ -628,6 +689,9 @@ const SellerConsumablesVoucherScreen = () => {
                 </Text>
                 <Text style={{ textAlign: 'center', fontSize: 12 }}>
                   🏪 Seller: {formatAmountSync(Number(getRemainingFunds() || 0), nationalityToCode(sellerNationality || nationality), ratesMap || undefined)}
+                </Text>
+                <Text style={{ textAlign: 'center', fontSize: 12 }}>
+                  🛒 Consumer: {formatAmountSync(Number(getRemainingFunds() || 0), nationalityToCode(consumerNationality || nationality), ratesMap || undefined)}
                 </Text>
                 <Text style={{ textAlign: 'center', fontSize: 12 }}>
                   💳 Funder: {formatAmountSync(Number(getRemainingFunds() || 0), nationalityToCode(funderNationality || nationality), ratesMap || undefined)}

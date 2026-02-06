@@ -4,6 +4,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import RNPrint from 'react-native-print';
 import { LinearGradient } from 'expo-linear-gradient';
 import { listAuditors, listCombContractVouchers, getBizna, getSMAccount } from '../../../src/graphql/queries';
+import { updateCombContractVoucher } from '../../../src/graphql/mutations';
 import { generateClient } from 'aws-amplify/api';
 import { getCurrentUser, fetchUserAttributes } from 'aws-amplify/auth';
 import { useExchange } from '../../../src/contexts/ExchangeContext';
@@ -361,6 +362,32 @@ const AuditorVoucherScreen = () => {
       await RNPrint.print({
         html
       });
+
+      // Update each exported voucher to 'Completed' status
+      try {
+        await Promise.all(vouchersToExport.map(v =>
+          client.graphql({
+            query: updateCombContractVoucher,
+            variables: {
+              input: {
+                id: v.id,
+                accStatus: 'Completed'
+              }
+            }
+          })
+        ));
+        
+        // Clear selections and reload list for fresh vouchers
+        setSelectedVouchers({});
+        setVouchers([]); // Clear current list
+        setNextToken(null); // Reset pagination
+        await fetchVouchers(); // Reload fresh vouchers
+        
+        Alert.alert('Success', 'Vouchers exported and updated. Loading fresh vouchers...');
+      } catch (updateError) {
+        console.error('Failed to update vouchers:', updateError);
+        Alert.alert('Warning', 'PDF exported but failed to update voucher statuses. Please try refreshing.');
+      }
     } catch (error: any) {
       console.error(error);
       Alert.alert('Error', error.message || 'Failed to generate PDF');

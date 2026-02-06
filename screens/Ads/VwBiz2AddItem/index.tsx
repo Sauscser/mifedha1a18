@@ -9,37 +9,17 @@ const client = generateClient();
 const FetchSMCovLns = props => {
   const [loading, setLoading] = useState(false);
   const [Loanees, setLoanees] = useState([]);
+
+
   useEffect(() => {
     fetchUsrDtls();
   }, []);
+
+
   const fetchUsrDtls = async () => {
     if (loading) return;
     setLoading(true);
-    try {
-      const userInfo = await getCurrentUser();
-      const attrs = await fetchUserAttributes();
-      const {
-        data
-      } = (await client.graphql({
-        query: getSMAccount,
-        variables: {
-          awsemail: attrs.email
-        }
-      })) as any;
-      const account = data.getSMAccount;
-      if (!account) {
-        Alert.alert("Error", "SMAccount not found.");
-        return;
-      }
-      await fetchLoanees(attrs);
-    } catch (e) {
-      console.error(e);
-      Alert.alert("Error", "Could not fetch user account data.");
-    } finally {
-      setLoading(false);
-    }
-  };
-  const fetchLoanees = async (attrs: any) => {
+    const attrs = await fetchUserAttributes();
     try {
       const res: any = await client.graphql({
         query: listPersonels,
@@ -60,8 +40,11 @@ const FetchSMCovLns = props => {
     } catch (e) {
       console.error(e);
       Alert.alert("Error", "Failed to fetch businesses.");
+    } finally {
+      setLoading(false);
     }
   };
+  
   return <View style={styles.root}>
       <FlatList style={{
       width: "100%"

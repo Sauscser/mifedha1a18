@@ -3,8 +3,8 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { View, Text, FlatList, TextInput, StyleSheet, ActivityIndicator, Alert, Pressable } from 'react-native';
 import { generateClient } from 'aws-amplify/api';
 import { getCurrentUser, fetchUserAttributes } from 'aws-amplify/auth';
-import { listCombContractVouchers, getSMAccount, getBizna, getCompany } from '../../../src/graphql/queries';
-import { createMessages, updateCombContractVoucher, sendNotification, updateSMAccount, updateBizna, createNonLoans, updateCompany } from '../../../src/graphql/mutations';
+import { listCombContractVouchers, getSMAccount, getBizna, getCompany, getCombContract } from '../../../src/graphql/queries';
+import { createMessages, updateCombContractVoucher, sendNotification, updateSMAccount, updateBizna, createNonLoans, updateCompany, updateCombContract } from '../../../src/graphql/mutations';
 import { useExchange } from '../../../src/contexts/ExchangeContext';
 import { formatAmountSync, convertKshToUserCurrency } from '../../../src/utils/exchange';
 import { nationalityToCode } from '../../../src/utils/nationalityToCode';
@@ -102,6 +102,8 @@ const VoucherCard = ({
 /* -------------------- Main Screen -------------------- */
 const ConsumerApproveVoucherScreen = () => {
   const [vouchers, setVouchers] = useState<any[]>([]);
+  const [parentMap, setParentMap] = useState<Record<string, any>>({});
+  const [selectedVoucherId, setSelectedVoucherId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [nextToken, setNextToken] = useState<string | null>(null);
@@ -110,6 +112,7 @@ const ConsumerApproveVoucherScreen = () => {
     funderAccount: '',
     consumerAccount: ''
   });
+  const [consumerNationality, setConsumerNationality] = useState<string | null>(null);
   const { nationality, ratesMap } = useExchange();
 
   /* ---------------- Fetch vouchers ---------------- */
@@ -119,76 +122,151 @@ const ConsumerApproveVoucherScreen = () => {
     try {
       const user = await getCurrentUser();
       const attrs = await fetchUserAttributes();
-      const email = attrs.email;
+      const consumerEmail = attrs.email;
+      console.log('🔍 Fetching vouchers for consumer email:', consumerEmail);
+      
+      // Fetch consumer's nationality once
+      let consumerNationality: string | null = null;
+      try {
+        const consumerRes: any = await client.graphql({
+          query: getSMAccount,
+          variables: { awsemail: consumerEmail }
+        });
+        consumerNationality = consumerRes?.data?.getSMAccount?.nationality || null;
+        console.log('✅ Consumer nationality:', consumerNationality);
+        setConsumerNationality(consumerNationality);
+      } catch (e) {
+        console.warn('⚠️ Could not fetch consumer nationality:', e);
+      }
+      
       const res: any = await client.graphql({
         query: listCombContractVouchers,
         variables: {
           filter: {
             consumerEmail: {
-              eq: email
-            },
-            accStatus: {
-              eq: 'Pending'
+              eq: consumerEmail
             }
           },
-          limit: 20,
+          limit: 50,
           nextToken: token
         }
       });
-      const newItems = res?.data?.listCombContractVouchers?.items || [];
+      let newItems = res?.data?.listCombContractVouchers?.items || [];
+      // Filter for Pending status on the client side
+      newItems = newItems.filter((v: any) => v.accStatus === 'Pending');
+      console.log(`📋 Fetched ${newItems.length} pending vouchers for consumer ${consumerEmail}`);
+      console.log('📦 Raw vouchers:', newItems.map((v: any) => ({ id: v.id, sellerName: v.sellerName, accStatus: v.accStatus, consumerEmail: v.consumerEmail })));
       
-      // Fetch nationalities for seller, funder, and consumer
+      // If no items, log and return early
+      if (newItems.length === 0) {
+        console.log('⚠️ No pending vouchers found. Checking if vouchers exist with different statuses...');
+        // Try to debug by fetching ALL vouchers for this consumer
+        try {
+          const debugRes: any = await client.graphql({
+            query: listCombContractVouchers,
+            variables: {
+              filter: {
+                consumerEmail: {
+                  eq: consumerEmail
+                }
+              },
+              limit: 50
+            }
+          });
+          const allVouchers = debugRes?.data?.listCombContractVouchers?.items || [];
+          console.log(`🔎 Total vouchers for this consumer (all statuses): ${allVouchers.length}`);
+          console.log('📊 Voucher statuses:', allVouchers.map((v: any) => ({ id: v.id, accStatus: v.accStatus })));
+        } catch (debugErr) {
+          console.error('❌ Debug query failed:', debugErr);
+        }
+      }
+      
+      // Fetch nationalities for seller and funder
       const nationalities = new Map<string, string | null>();
       
       const fetchNationality = async (account: string, type: string, key: string) => {
         try {
-          if (type === 'typeBiz') {
-            const bizRes: any = await client.graphql({ query: getBizna, variables: { BusKntct: account } });
-            const email = bizRes?.data?.getBizna?.email;
-            if (email) {
-              const smRes: any = await client.graphql({ query: getSMAccount, variables: { awsemail: email } });
+          // Check if account is business or individual
+          const isBusiness = type && type.includes('Biz');
+          
+          if (isBusiness) {
+            // Business: get email from getBizna, then fetch SMAccount
+            const bizRes: any = await client.graphql({
+              query: getBizna,
+              variables: { BusKntct: account }
+            });
+            const bizEmail = bizRes?.data?.getBizna?.email;
+            if (bizEmail) {
+              const smRes: any = await client.graphql({
+                query: getSMAccount,
+                variables: { awsemail: bizEmail }
+              });
               nationalities.set(key, smRes?.data?.getSMAccount?.nationality || null);
+              console.log(`✅ ${key} (business): ${bizEmail} -> ${smRes?.data?.getSMAccount?.nationality}`);
             } else {
               nationalities.set(key, null);
+              console.warn(`⚠️ ${key} (business): No email found`);
             }
           } else {
-            // Pal: account is email
-            const smRes: any = await client.graphql({ query: getSMAccount, variables: { awsemail: account } });
+            // Individual: account is email, fetch SMAccount directly
+            const smRes: any = await client.graphql({
+              query: getSMAccount,
+              variables: { awsemail: account }
+            });
             nationalities.set(key, smRes?.data?.getSMAccount?.nationality || null);
+            console.log(`✅ ${key} (individual): ${smRes?.data?.getSMAccount?.nationality}`);
           }
         } catch (e) {
-          console.warn(`Could not fetch nationality for ${key}:`, e);
+          console.warn(`❌ Could not fetch nationality for ${key}:`, e);
           nationalities.set(key, null);
         }
       };
       
-      // Collect all accounts to fetch
+      // Collect all unique accounts to fetch
       const uniqueSellerAccounts = Array.from(new Set((newItems as any[]).map((i: any) => i.sellerAccount)));
       const uniqueFunderAccounts = Array.from(new Set((newItems as any[]).map((i: any) => i.funderAccount)));
-      const uniqueConsumerAccounts = Array.from(new Set((newItems as any[]).map((i: any) => i.consumerAccount)));
       
-      // Fetch all nationalities in parallel
-      await Promise.all([
-        ...uniqueSellerAccounts.map((account, idx) => {
-          const item = (newItems as any[]).find((i: any) => i.sellerAccount === account);
-          return fetchNationality(account, item.sellerType, `seller_${account}`);
-        }),
-        ...uniqueFunderAccounts.map((account, idx) => {
-          const item = (newItems as any[]).find((i: any) => i.funderAccount === account);
-          return fetchNationality(account, item.funderType, `funder_${account}`);
-        }),
-        ...uniqueConsumerAccounts.map((account, idx) => {
-          const item = (newItems as any[]).find((i: any) => i.consumerAccount === account);
-          return fetchNationality(account, item.consumerType, `consumer_${account}`);
-        })
-      ]);
+      console.log('🏪 Unique sellers:', uniqueSellerAccounts);
+      console.log('💳 Unique funders:', uniqueFunderAccounts);
+      
+      // Fetch all seller and funder nationalities in parallel
+      if (uniqueSellerAccounts.length > 0 || uniqueFunderAccounts.length > 0) {
+        await Promise.all([
+          ...uniqueSellerAccounts.map((account) => {
+            const item = (newItems as any[]).find((i: any) => i.sellerAccount === account);
+            return fetchNationality(account, item?.sellerType, `seller_${account}`);
+          }),
+          ...uniqueFunderAccounts.map((account) => {
+            const item = (newItems as any[]).find((i: any) => i.funderAccount === account);
+            return fetchNationality(account, item?.funderType, `funder_${account}`);
+          })
+        ]);
+      }
       
       const enriched = (newItems as any[]).map((i: any) => ({
         ...i,
         sellerNationality: nationalities.get(`seller_${i.sellerAccount}`) || null,
         funderNationality: nationalities.get(`funder_${i.funderAccount}`) || null,
-        consumerNationality: nationalities.get(`consumer_${i.consumerAccount}`) || null
+        consumerNationality: consumerNationality
       }));
+      
+      console.log('✨ Enriched vouchers:', enriched.length);
+      // Fetch parent comb contracts for these vouchers
+      try {
+        const combIds = Array.from(new Set(enriched.map((e: any) => e.combContractID).filter(Boolean)));
+        await Promise.all(combIds.map(async id => {
+          if (!id || parentMap[id]) return;
+          try {
+            const pRes: any = await client.graphql({ query: getCombContract, variables: { id } });
+            const p = pRes?.data?.getCombContract;
+            if (p) setParentMap(prev => ({ ...prev, [id]: p }));
+          } catch (e) {
+            console.warn('Could not fetch parent contract', id, e);
+          }
+        }));
+      } catch (e) {
+        console.warn('Error fetching parent contracts', e);
+      }
       
       setVouchers(prev => {
         const merged = [...prev, ...enriched];
@@ -197,8 +275,8 @@ const ConsumerApproveVoucherScreen = () => {
       });
       setNextToken(res?.data?.listCombContractVouchers?.nextToken || null);
     } catch (err) {
-      console.error(err);
-      Alert.alert('Error', 'Could not load vouchers.');
+      console.error('❌ Error loading vouchers:', err);
+      Alert.alert('Error', 'Could not load vouchers. ' + (err instanceof Error ? err.message : 'Unknown error'));
     } finally {
       setLoading(false);
     }
@@ -229,6 +307,7 @@ const ConsumerApproveVoucherScreen = () => {
     setUpdatingId(voucher.id);
     setVouchers(prev => prev.filter(v => v.id !== voucher.id));
     const now = Date.now();
+    const returnAmount = Number(voucher.itemPrice || 0) * Number(voucher.numberOfItems || 0);
     try {
       // 1️⃣ Check expiry
       const expiry = Number(voucher.voucherLastUpdate) + Number(voucher.updateFrequency) * 24 * 60 * 60 * 1000;
@@ -242,6 +321,20 @@ const ConsumerApproveVoucherScreen = () => {
             }
           }
         });
+        // return funds to parent contract consumptionCapping
+        try {
+          const parentId = voucher.combContractID;
+          if (parentId) {
+            const parent = parentMap[parentId] || (await (async () => { const r: any = await client.graphql({ query: getCombContract, variables: { id: parentId } }); return r?.data?.getCombContract; })());
+            if (parent) {
+              const newCap = (Number(parent.consumptionCapping || 0) + returnAmount).toFixed(2);
+              await client.graphql({ query: updateCombContract, variables: { input: { id: parentId, consumptionCapping: newCap } } });
+              setParentMap(prev => ({ ...prev, [parentId]: { ...parent, consumptionCapping: newCap } }));
+            }
+          }
+        } catch (e) {
+          console.warn('Failed to return funds on expiry-decline', e);
+        }
         if (voucher.sellerEmail) {
           await client.graphql({
             query: createMessages,
@@ -276,6 +369,22 @@ const ConsumerApproveVoucherScreen = () => {
             }
           }
         });
+        // if consumer declined, release funds back to contract
+        if (status === 'Declined') {
+          try {
+            const parentId = voucher.combContractID;
+            if (parentId) {
+              const parent = parentMap[parentId] || (await (async () => { const r: any = await client.graphql({ query: getCombContract, variables: { id: parentId } }); return r?.data?.getCombContract; })());
+              if (parent) {
+                const newCap = (Number(parent.consumptionCapping || 0) + returnAmount).toFixed(2);
+                await client.graphql({ query: updateCombContract, variables: { input: { id: parentId, consumptionCapping: newCap } } });
+                setParentMap(prev => ({ ...prev, [parentId]: { ...parent, consumptionCapping: newCap } }));
+              }
+            }
+          } catch (e) {
+            console.warn('Failed to return funds on decline', e);
+          }
+        }
         if (voucher.sellerEmail) {
           const msg = `${voucher.consumerName} has approved a COMB contract voucher from ${voucher.sellerName}. Proceed to COMB to clear the bill.`;
           await client.graphql({
@@ -642,13 +751,27 @@ const ConsumerApproveVoucherScreen = () => {
           <Text>No pending vouchers found.</Text>
         </View> : <FlatList data={filteredVouchers} keyExtractor={item => item.id} renderItem={({
       item
-    }) => <VoucherCard voucher={item} updatingId={updatingId} onApprove={(v: any) => confirmAction(v, 'Approved')} onDecline={(v: any) => confirmAction(v, 'Declined')} />} onEndReached={() => {
+    }) => <Pressable onPress={() => setSelectedVoucherId(item.id)}><VoucherCard voucher={item} updatingId={updatingId} onApprove={(v: any) => confirmAction(v, 'Approved')} onDecline={(v: any) => confirmAction(v, 'Declined')} /></Pressable>} onEndReached={() => {
       if (nextToken && !loading) fetchVouchers(nextToken);
     }} onEndReachedThreshold={0.5} ListFooterComponent={loading ? <ActivityIndicator style={{
       marginVertical: 10
     }} /> : null} contentContainerStyle={{
-      paddingBottom: 60
+      paddingBottom: 150
     }} />}
+      {/* Bottom Funds Bar */}
+      {(vouchers.length > 0) && (() => {
+        const activeVoucher = selectedVoucherId ? vouchers.find(v => v.id === selectedVoucherId) : vouchers[0];
+        const parent = activeVoucher ? parentMap[activeVoucher.combContractID] : null;
+        const remaining = parent ? Number(parent.consumptionCapping || 0) : null;
+        const sellerNat = activeVoucher?.sellerNationality || nationality;
+        const funderNat = activeVoucher?.funderNationality || nationality;
+        return parent ? <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0, backgroundColor: '#fff', borderTopWidth: 1, borderColor: '#ddd', padding: 8 }}>
+              <Text style={{ fontWeight: 'bold', textAlign: 'center' }}>Remaining Funds</Text>
+              <Text style={{ textAlign: 'center', fontSize: 12 }}>🛒 Consumer: {formatAmountSync(Number(remaining || 0), nationalityToCode(consumerNationality || nationality), ratesMap || undefined)}</Text>
+              <Text style={{ textAlign: 'center', fontSize: 12 }}>🏪 Seller: {formatAmountSync(Number(remaining || 0), nationalityToCode(sellerNat), ratesMap || undefined)}</Text>
+              <Text style={{ textAlign: 'center', fontSize: 12 }}>💳 Funder: {formatAmountSync(Number(remaining || 0), nationalityToCode(funderNat), ratesMap || undefined)}</Text>
+            </View> : null;
+      })()}
     </View>;
 };
 const styles = StyleSheet.create({
