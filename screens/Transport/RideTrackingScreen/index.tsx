@@ -9,6 +9,7 @@ import { getCurrentUser, fetchUserAttributes } from "aws-amplify/auth";
 import { generateClient } from "aws-amplify/api";
 import { useExchange } from '../../../src/contexts/ExchangeContext';
 import { formatAmountSync } from '../../../src/utils/exchange';
+import { nationalityToCode } from '../../../src/utils/nationalityToCode';
 
 const client = generateClient();
 const SCREEN_WIDTH = Dimensions.get('window').width;
@@ -34,6 +35,8 @@ export default function RideTrackingScreen({ navigation }: any) {
 
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const { nationality, ratesMap } = useExchange();
+  const safeNationality = typeof nationality === 'string' ? nationality : (nationality && typeof nationality === 'object' && 'nationality' in nationality ? (nationality as any).nationality : null);
+  const natCode = nationalityToCode(safeNationality) || safeNationality || undefined;
 
   useEffect(() => {
     let sub: any = null;
@@ -305,10 +308,10 @@ export default function RideTrackingScreen({ navigation }: any) {
               {/* Route distance (pickup -> destination) */}
               <Text>Route distance: {(selectedIdx === index && routeDistanceKm != null) ? routeDistanceKm.toFixed(2) : (item.distance || 0).toFixed(2)} km</Text>
               {/* Estimated / live cost */}
-              <Text>Est. Cost: {formatAmountSync(estCostNum, nationality, ratesMap)}</Text>
+              <Text>Est. Cost: {formatAmountSync(estCostNum, natCode, ratesMap)}</Text>
               {/* Distance to pickup or live trip metrics for selected ride */}
               {selectedIdx === index && item.riderLatitude && item.riderLongitude && item.rideStatus !== 'Active' ? <Text>Distance to pickup: {getDistanceKm(item.riderLatitude, item.riderLongitude, item.pickupLatitude, item.pickupLongitude).toFixed(2)} km</Text> : null}
-              {selectedIdx === index && item.rideStatus === 'Active' ? <Text>Live distance: {(item.distance || 0).toFixed(2)} km • Cost: {formatAmountSync(item.estimatedCost || 0, nationality, ratesMap)}</Text> : null}
+              {selectedIdx === index && item.rideStatus === 'Active' ? <Text>Live distance: {(item.distance || 0).toFixed(2)} km • Cost: {formatAmountSync(item.estimatedCost || 0, natCode, ratesMap)}</Text> : null}
               <Text>Requested: {item.createdAt ? new Date(item.createdAt).toLocaleString() : ''}</Text>
               {/* Action buttons depending on status */}
               <View style={{ flexDirection: 'row', marginTop: 8 }}>

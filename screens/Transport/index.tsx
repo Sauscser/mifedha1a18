@@ -73,7 +73,14 @@ const MyAccount = (props: any) => {
   };
 
   const nav: any = navigation;
-  nav.navigate("Homes", { screen: "RegisterTransport" });
+  React.useEffect(() => {
+    // defer navigation to effect so it doesn't run during render
+    try {
+      navigation.navigate('Homes', { screen: 'RegisterTransport' });
+    } catch (err) {
+      // ignore if navigation not ready
+    }
+  }, []);
 
   return <SafeAreaView>
       <ScrollView>

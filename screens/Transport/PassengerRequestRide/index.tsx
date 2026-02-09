@@ -12,6 +12,7 @@ import messaging from '@react-native-firebase/messaging';
 import { getCurrentUser, fetchUserAttributes } from "aws-amplify/auth";
 import { useExchange } from '../../../src/contexts/ExchangeContext';
 import { formatAmountSync, getUserNationalityByEmail, convertForeignToKsh } from '../../../src/utils/exchange';
+import { nationalityToCode } from '../../../src/utils/nationalityToCode';
 import { generateClient } from "aws-amplify/api";
 const client = generateClient();
 const SCREEN_WIDTH = Dimensions.get('window').width;
@@ -44,6 +45,9 @@ export default function RideRequestMapScreen({
     radiusKm: String(DEFAULT_RADIUS_KM)
   });
   const { nationality, ratesMap } = useExchange();
+  // normalize nationality to code used in ratesMap
+  const safeNationality = typeof nationality === 'string' ? nationality : (nationality && typeof nationality === 'object' && 'nationality' in nationality ? (nationality as any).nationality : null);
+  const natCode = nationalityToCode(safeNationality) || safeNationality || undefined;
 
   // On mount, check for pending rides for this passenger
   useEffect(() => {
@@ -51,6 +55,7 @@ export default function RideRequestMapScreen({
       try {
         const user = await getCurrentUser();
         const attributes = await fetchUserAttributes();
+        console.log('PassengerRequestRide: fetched attributes', attributes);
         const pendingRes: any = await client.graphql({
           query: listRideRequests,
           variables: {
@@ -62,7 +67,23 @@ export default function RideRequestMapScreen({
           }
         });
         const pending = pendingRes?.data?.listRideRequests?.items || [];
-        if (pending.length > 0) {
+        console.log('PassengerRequestRide: pending rides count', pending.length);
+
+        // Fallback: if server returned no items, try a broad query and filter client-side
+        let fallbackMatches: any[] = [];
+        if (pending.length === 0) {
+          try {
+            const broadRes: any = await client.graphql({ query: listRideRequests, variables: { limit: 50 } });
+            const allItems = broadRes?.data?.listRideRequests?.items || [];
+            fallbackMatches = allItems.filter((it: any) => it?.passengerEmail === attributes.email && it?.rideStatus !== 'Completed');
+            console.log('PassengerRequestRide: fallback matches count', fallbackMatches.length);
+          } catch (e) {
+            console.warn('PassengerRequestRide: fallback query failed', e);
+          }
+        }
+
+        const effectivePending = pending.length > 0 ? pending : fallbackMatches;
+        if (effectivePending.length > 0) {
           Alert.alert(
             'Pending Rides',
             'You have pending ride requests. Do you want to go to your pending rides?',
@@ -70,8 +91,8 @@ export default function RideRequestMapScreen({
               {
                 text: 'Go to Pending Rides',
                 onPress: () => {
-                  setPendingRides(pending);
-                  navigation.replace('RideTrackingScreen', { pendingRides: pending });
+                  setPendingRides(effectivePending);
+                  navigation.replace('RideTrackingScreen', { pendingRides: effectivePending });
                 },
                 style: 'default'
               },
@@ -87,35 +108,48 @@ export default function RideRequestMapScreen({
           setPendingCheckDone(true);
         }
       } catch (err) {
+        console.error('PassengerRequestRide: pending check error', err);
         setPendingCheckDone(true);
       }
     })();
   }, []);
 
   // Fetch all riders on mount (after pending check)
+  const [loadingAllRiders, setLoadingAllRiders] = useState(false);
+
+  const fetchRiders = async () => {
+    if (!pendingCheckDone) return;
+    setLoadingAllRiders(true);
+    try {
+      console.log('PassengerRequestRide: fetchRiders starting');
+      const res: any = await client.graphql({
+        query: listTransportRegisters,
+        variables: {
+          filter: { dutyStatus: { eq: "TransportOnduty" }, engagementStatus: { eq: "TransportNotEngaged" } },
+          limit: 1000
+        }
+      });
+      console.log('PassengerRequestRide: fetchRiders raw response', res && typeof res === 'object' ? Object.keys(res).slice(0,10) : res);
+      const items = res?.data?.listTransportRegisters?.items || [];
+      console.log('PassengerRequestRide: fetchRiders items count', items.length);
+      // Parse lat/lng as numbers
+      const riders = items.map((item: any) => ({
+        ...item,
+        latitude: parseFloat(item.latitude),
+        longitude: parseFloat(item.longitude)
+      })).filter((r: any) => !isNaN(r.latitude) && !isNaN(r.longitude));
+      console.log('PassengerRequestRide: parsed riders count', riders.length);
+      setAllRiders(riders);
+    } catch (err) {
+      console.error('PassengerRequestRide: Error fetching riders:', err);
+    } finally {
+      setLoadingAllRiders(false);
+    }
+  };
+
   useEffect(() => {
     if (!pendingCheckDone) return;
-    (async () => {
-      try {
-        const res: any = await client.graphql({
-          query: listTransportRegisters,
-          variables: {
-            filter: { dutyStatus: { eq: "TransportOnduty" }, engagementStatus: { eq: "TransportNotEngaged" } },
-            limit: 1000
-          }
-        });
-        const items = res?.data?.listTransportRegisters?.items || [];
-        // Parse lat/lng as numbers
-        const riders = items.map((item: any) => ({
-          ...item,
-          latitude: parseFloat(item.latitude),
-          longitude: parseFloat(item.longitude)
-        })).filter((r: any) => !isNaN(r.latitude) && !isNaN(r.longitude));
-        setAllRiders(riders);
-      } catch (err) {
-        console.error('Error fetching riders:', err);
-      }
-    })();
+    fetchRiders();
   }, [pendingCheckDone]);
 
   // Loading state for filtering
@@ -124,18 +158,20 @@ export default function RideRequestMapScreen({
   useEffect(() => {
     const fetchEstimates = async () => {
       setFilteringLoading(true);
-      if (!filters.pickup || !filters.radiusKm || !filters.destination) {
-        // Only filter by radius if no destination
+      // If destination is NOT set, do a simple radius-only filter around pickup.
+      if (!filters.destination) {
+        if (!filters.pickup) {
+          setFilteredRiders([]);
+          setFilteringLoading(false);
+          return;
+        }
         const radius = Math.max(0.05, parseFloat(filters.radiusKm) || 0.05); // in km
         const filtered = allRiders
           .map(rider => {
-            let dist = Infinity;
-            if (filters.pickup) {
-              dist = getDistance(
-                { latitude: filters.pickup.latitude, longitude: filters.pickup.longitude },
-                { latitude: rider.latitude, longitude: rider.longitude }
-              ) / 1000;
-            }
+            const dist = getDistance(
+              { latitude: filters.pickup!.latitude, longitude: filters.pickup!.longitude },
+              { latitude: rider.latitude, longitude: rider.longitude }
+            ) / 1000;
             return {
               ...rider,
               _distanceKm: dist
@@ -396,7 +432,7 @@ export default function RideRequestMapScreen({
 
   // ---------- Confirm ride ----------
   const confirmAndRequestRide = (rider: any) => {
-    const est = formatAmountSync(Math.round(rider._estimatedCost || 0), nationality, ratesMap);
+    const est = formatAmountSync(Math.round(rider._estimatedCost || 0), natCode, ratesMap);
     Alert.alert('Confirm Ride', `Request ride from ${rider.transportName || 'Rider'}?\nEstimated cost: ${est}\nDistance: ${(rider._tripDistanceKm || 0).toFixed(2)} km`, [{
       text: 'Cancel',
       style: 'cancel'
@@ -483,8 +519,10 @@ export default function RideRequestMapScreen({
     // Convert estimated cost (which is in rider currency) to KES for storage
     let sellerNationality = selectedRider?.nationality || null;
     if (!sellerNationality && selectedRider?.transportOwnerEmail) sellerNationality = await getUserNationalityByEmail(selectedRider.transportOwnerEmail);
+    // normalize seller nationality to the code used in ratesMap
+    const sellerNatCode = nationalityToCode(sellerNationality) || sellerNationality || undefined;
     const estimatedCostRaw = Number(rider._estimatedCost || 0);
-    const estimatedCostKes = sellerNationality ? await convertForeignToKsh(estimatedCostRaw, sellerNationality) : estimatedCostRaw;
+    const estimatedCostKes = sellerNatCode ? await convertForeignToKsh(estimatedCostRaw, sellerNatCode) : estimatedCostRaw;
 
     const input = {
       passengerEmail: attributes.email,
@@ -525,19 +563,13 @@ export default function RideRequestMapScreen({
           variables: {
             riderEmail,
             title: "MiFedha: New Ride Request",
-            body: `Passenger ${ride.passengerName} requested a ride. Estimated cost: ${formatAmountSync(ride.estimatedCost, nationality, ratesMap)}`
+            body: `Passenger ${ride.passengerName} requested a ride. Estimated cost: ${formatAmountSync(ride.estimatedCost, natCode, ratesMap)}`
           }
         });
       }
       navigation.navigate('RideTrackingScreen', { rideId: ride.id });
     }
   };
-  if (!pendingCheckDone || !userLocation) {
-    return <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" />
-        <Text>Loading…</Text>
-      </View>;
-  }
   // Keep map fitted to current polylines when they change
   useEffect(() => {
     if (!mapRef.current) return;
@@ -551,6 +583,13 @@ export default function RideRequestMapScreen({
       } catch (e) {}
     }
   }, [polylineCoords, dropPolylineCoords]);
+
+  if (!pendingCheckDone || !userLocation) {
+    return <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" />
+        <Text>Loading…</Text>
+      </View>;
+  }
 
   return <View style={{
     flex: 1
@@ -568,7 +607,7 @@ export default function RideRequestMapScreen({
         {filteredRiders.map((rider, idx) => (
           <Marker key={rider.id} coordinate={{ latitude: rider.latitude, longitude: rider.longitude }} onPress={() => focusOnRider(rider, idx)}>
             <View style={[styles.markerContainer, selectedRiderId === rider.id && styles.selectedMarker]}>
-              <Text style={styles.markerText}>{selectedRiderId === rider.id ? ` ${rider.numberPlate || rider.transportName?.slice(0,6)}` : formatAmountSync(Math.round(rider._estimatedCost || 0), nationality, ratesMap)}</Text>
+              <Text style={styles.markerText}>{selectedRiderId === rider.id ? ` ${rider.numberPlate || rider.transportName?.slice(0,6)}` : formatAmountSync(Math.round(rider._estimatedCost || 0), natCode, ratesMap)}</Text>
             </View>
           </Marker>
         ))}
@@ -630,6 +669,9 @@ export default function RideRequestMapScreen({
           {filteringLoading && (
             <ActivityIndicator size="small" color="#e58d29" style={{ marginLeft: 8, marginTop: 6 }} />
           )}
+          <TouchableOpacity onPress={fetchRiders} style={styles.refreshBtn}>
+            {loadingAllRiders ? <ActivityIndicator size="small" color="#1f8ef1" style={{ marginLeft: 8, marginTop: 6 }} /> : <Text style={styles.refreshTxt}>Refresh</Text>}
+          </TouchableOpacity>
         </View>
       </View>
 
@@ -685,7 +727,7 @@ export default function RideRequestMapScreen({
               {item.transportType} • {formatAmountSync(item.transportRate, nationality, ratesMap)}/km
             </Text>
             <Text style={{ fontSize: 12 }}>
-              Est: {formatAmountSync(Math.round(item._estimatedCost || 0), nationality, ratesMap)} || {selectedRiderId === item.id && selectedRouteDistanceKm != null ? selectedRouteDistanceKm.toFixed(2) : (item._tripDistanceKm || 0).toFixed(2)} km
+              Est: {formatAmountSync(Math.round(item._estimatedCost || 0), natCode, ratesMap)} || {selectedRiderId === item.id && selectedRouteDistanceKm != null ? selectedRouteDistanceKm.toFixed(2) : (item._tripDistanceKm || 0).toFixed(2)} km
             </Text>
             {/* New button for TransportDetails */}
             <TouchableOpacity
@@ -802,5 +844,17 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 6,
     marginLeft: 8
+  }
+  ,
+  refreshBtn: {
+    marginLeft: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 6,
+    justifyContent: 'center'
+  },
+  refreshTxt: {
+    color: '#1f8ef1',
+    fontWeight: '700'
   }
 });
