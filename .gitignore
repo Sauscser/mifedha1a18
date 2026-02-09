@@ -40,6 +40,14 @@ yarn-error.*
 # /ios
 # /android
 
+# Keep native project folders but ignore build outputs and local config
+android/app/build/
+android/.gradle/
+android/.cxx/
+android/**/build/
+android/local.properties
+android/*.keystore
+
 #amplify-do-not-edit-begin
 amplify/\#current-cloud-backend
 amplify/.config/local-*
