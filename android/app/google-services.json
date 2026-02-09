@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "121702530896",
+    "project_id": "mifedha-bd808",
+    "storage_bucket": "mifedha-bd808.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:121702530896:android:6d4b14abfc26d4bcaa3655",
+        "android_client_info": {
+          "package_name": "com.MiFedhaLimited.MiFedha"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAKZVLjETY8FwFlCllZ7Qko0WIZFuJlRrw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
