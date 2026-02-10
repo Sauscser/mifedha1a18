@@ -1559,6 +1559,7 @@ export const createSokoAd = /* GraphQL */ `
       itemBrand
       bizName
       bizContact
+      Nationality
       updatedAt
       __typename
     }
@@ -1591,6 +1592,7 @@ export const updateSokoAd = /* GraphQL */ `
       itemBrand
       bizName
       bizContact
+      Nationality
       updatedAt
       __typename
     }
@@ -1623,6 +1625,7 @@ export const deleteSokoAd = /* GraphQL */ `
       itemBrand
       bizName
       bizContact
+      Nationality
       updatedAt
       __typename
     }
@@ -2699,6 +2702,7 @@ export const createBizna = /* GraphQL */ `
       Admin48
       Admin49
       Admin50
+      Nationality
       updatedAt
       __typename
     }
@@ -2812,6 +2816,7 @@ export const updateBizna = /* GraphQL */ `
       Admin48
       Admin49
       Admin50
+      Nationality
       updatedAt
       __typename
     }
@@ -2925,6 +2930,7 @@ export const deleteBizna = /* GraphQL */ `
       Admin48
       Admin49
       Admin50
+      Nationality
       updatedAt
       __typename
     }
@@ -6365,6 +6371,7 @@ export const createAveragePrices = /* GraphQL */ `
       itemSpecs
       itemPrice
       createdAt
+      Nationality
       updatedAt
       __typename
     }
@@ -6382,6 +6389,7 @@ export const updateAveragePrices = /* GraphQL */ `
       itemSpecs
       itemPrice
       createdAt
+      Nationality
       updatedAt
       __typename
     }
@@ -6399,6 +6407,7 @@ export const deleteAveragePrices = /* GraphQL */ `
       itemSpecs
       itemPrice
       createdAt
+      Nationality
       updatedAt
       __typename
     }
@@ -6768,6 +6777,7 @@ export const createMarketConsumption = /* GraphQL */ `
       itemBrand
       itemSpecifications
       createdAt
+      Nationality
       updatedAt
       __typename
     }
@@ -6789,6 +6799,7 @@ export const updateMarketConsumption = /* GraphQL */ `
       itemBrand
       itemSpecifications
       createdAt
+      Nationality
       updatedAt
       __typename
     }
@@ -6810,6 +6821,7 @@ export const deleteMarketConsumption = /* GraphQL */ `
       itemBrand
       itemSpecifications
       createdAt
+      Nationality
       updatedAt
       __typename
     }
