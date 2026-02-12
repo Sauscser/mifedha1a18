@@ -1546,6 +1546,7 @@ export const onCreateSokoAd = /* GraphQL */ `
       itemBrand
       bizName
       bizContact
+      Nationality
       updatedAt
       __typename
     }
@@ -1578,6 +1579,7 @@ export const onUpdateSokoAd = /* GraphQL */ `
       itemBrand
       bizName
       bizContact
+      Nationality
       updatedAt
       __typename
     }
@@ -1610,6 +1612,7 @@ export const onDeleteSokoAd = /* GraphQL */ `
       itemBrand
       bizName
       bizContact
+      Nationality
       updatedAt
       __typename
     }
@@ -2683,6 +2686,7 @@ export const onCreateBizna = /* GraphQL */ `
       Admin48
       Admin49
       Admin50
+      Nationality
       updatedAt
       __typename
     }
@@ -2793,6 +2797,7 @@ export const onUpdateBizna = /* GraphQL */ `
       Admin48
       Admin49
       Admin50
+      Nationality
       updatedAt
       __typename
     }
@@ -2903,6 +2908,7 @@ export const onDeleteBizna = /* GraphQL */ `
       Admin48
       Admin49
       Admin50
+      Nationality
       updatedAt
       __typename
     }
@@ -6318,6 +6324,7 @@ export const onCreateAveragePrices = /* GraphQL */ `
       itemSpecs
       itemPrice
       createdAt
+      Nationality
       updatedAt
       __typename
     }
@@ -6334,6 +6341,7 @@ export const onUpdateAveragePrices = /* GraphQL */ `
       itemSpecs
       itemPrice
       createdAt
+      Nationality
       updatedAt
       __typename
     }
@@ -6350,6 +6358,7 @@ export const onDeleteAveragePrices = /* GraphQL */ `
       itemSpecs
       itemPrice
       createdAt
+      Nationality
       updatedAt
       __typename
     }
@@ -6718,6 +6727,7 @@ export const onCreateMarketConsumption = /* GraphQL */ `
       itemBrand
       itemSpecifications
       createdAt
+      Nationality
       updatedAt
       __typename
     }
@@ -6738,6 +6748,7 @@ export const onUpdateMarketConsumption = /* GraphQL */ `
       itemBrand
       itemSpecifications
       createdAt
+      Nationality
       updatedAt
       __typename
     }
@@ -6758,6 +6769,7 @@ export const onDeleteMarketConsumption = /* GraphQL */ `
       itemBrand
       itemSpecifications
       createdAt
+      Nationality
       updatedAt
       __typename
     }

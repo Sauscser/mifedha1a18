@@ -943,6 +943,7 @@ type SokoAd
   itemBrand: String 
   bizName: String! 
   bizContact: String!
+  Nationality: String!
 
 }
 
@@ -1688,6 +1689,7 @@ type Bizna
             Admin48:String!
             Admin49:String!
             Admin50:String!
+            Nationality: String!
 }
 
 
@@ -3496,6 +3498,7 @@ type averagePrices @model
   itemSpecs: String!
   itemPrice: Float!
   createdAt: String!
+  Nationality: String!
 }
 
 type combContractVoucher
@@ -3635,6 +3638,7 @@ type MarketConsumption @model
   itemBrand: String!
   itemSpecifications: String!
   createdAt: String!
+  Nationality: String!
 }
 
 

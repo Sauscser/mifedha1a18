@@ -12,6 +12,7 @@ import { updateRideRequest, updateSMAccount, updateTransportRegister, updateComp
 import { getCurrentUser, fetchUserAttributes } from "aws-amplify/auth";
 import { useExchange } from '../../../src/contexts/ExchangeContext';
 import { formatAmountSync, getUserNationalityByEmail, convertForeignToKsh } from '../../../src/utils/exchange';
+import { nationalityToCode } from '../../../src/utils/nationalityToCode';
 import { Hub } from '@aws-amplify/core';
 import { generateClient } from "aws-amplify/api";
 const client = generateClient();
@@ -46,6 +47,8 @@ export default function RiderRideRequestScreen() {
   const [tripStarted, setTripStarted] = useState(false);
   const mapRef = useRef<MapView | null>(null);
   const { nationality, ratesMap } = useExchange();
+  const safeNationality = typeof nationality === 'string' ? nationality : (nationality && typeof nationality === 'object' && 'nationality' in nationality ? (nationality as any).nationality : null);
+  const natCode = nationalityToCode(safeNationality) || safeNationality || undefined;
   const carouselRef = useRef<FlatList | null>(null);
   // Triggers carousel re-render whenever distance/cost changes
   const [rideMetricsTick, setRideMetricsTick] = useState(0);
@@ -598,7 +601,8 @@ export default function RiderRideRequestScreen() {
       // determine transporter nationality and convert fare to KES for ledger ops
       let transporterNationality = transporter?.nationality || null;
       if (!transporterNationality && transporter?.transportOwnerEmail) transporterNationality = await getUserNationalityByEmail(transporter.transportOwnerEmail);
-      const totalFareKes = transporterNationality ? await convertForeignToKsh(totalFare, transporterNationality) : totalFare;
+      const transporterNatCode = nationalityToCode(transporterNationality) || transporterNationality || undefined;
+      const totalFareKes = transporterNatCode ? await convertForeignToKsh(totalFare, transporterNatCode) : totalFare;
       if (passengerBalance < totalFareKes) {
         // Payment pending → mark overdue
         await client.graphql({
@@ -706,7 +710,7 @@ export default function RiderRideRequestScreen() {
       lastLocationRef.current = null;
       stopTracking();
       setTripStarted(false);
-      Alert.alert('Payment successful', `Charged ${formatAmountSync(totalFare, nationality ?? 'Kenya', ratesMap || {})} from ${passengerEmail}.`);
+      Alert.alert('Payment successful', `Charged ${formatAmountSync(totalFare, natCode, ratesMap || {})} from ${passengerEmail}.`);
       if (userContact) fetchRides(userContact);
       return false; // Not overdue
     } catch (err) {
@@ -744,7 +748,8 @@ export default function RiderRideRequestScreen() {
       // manual clear: compute KES equivalents
       let manualTransporterNationality = transporter?.nationality || null;
       if (!manualTransporterNationality && transporter?.transportOwnerEmail) manualTransporterNationality = await getUserNationalityByEmail(transporter.transportOwnerEmail);
-      const totalFareKesManual = manualTransporterNationality ? await convertForeignToKsh(totalFare, manualTransporterNationality) : totalFare;
+      const manualTransporterNatCode = nationalityToCode(manualTransporterNationality) || manualTransporterNationality || undefined;
+      const totalFareKesManual = manualTransporterNatCode ? await convertForeignToKsh(totalFare, manualTransporterNatCode) : totalFare;
       const companyShare = totalFareKesManual * companySharePct;
       const transporterShare = totalFareKesManual - companyShare;
 
@@ -1069,53 +1074,36 @@ export default function RiderRideRequestScreen() {
   //part 3
 
   const rideMarkers = useMemo(() => {
-    return rides.map(ride => {
-      const showRide = selectedRideId === ride.id;
-      return <React.Fragment key={ride.id}>
-        {!tripStarted && showRide && <Marker coordinate={{
-          latitude: ride.pickupLatitude,
-          longitude: ride.pickupLongitude
-        }}>
-            <View style={{
-            backgroundColor: '#e58d29',
-            padding: 6,
-            borderRadius: 6
-          }}>
-              <Text style={{
-              color: '#fff',
-              fontWeight: '700',
-              fontSize: 12
-            }}>📍 Pickup</Text>
-            </View>
-          </Marker>}
-        {tripStarted && showRide && <Marker coordinate={{
-          latitude: ride.destinationLatitude,
-          longitude: ride.destinationLongitude
-        }}>
-            <View style={{
-            backgroundColor: '#e58d29',
-            padding: 6,
-            borderRadius: 6
-          }}>
-              <Text style={{
-              color: '#fff',
-              fontWeight: '700'
-            }}>🎯 Drop</Text>
-            </View>
-          </Marker>}
-        {riderLocation && showRide && <Marker coordinate={riderLocation}>
-            <View style={{
-            backgroundColor: 'blue',
-            padding: 6,
-            borderRadius: 6
-          }}>
-              <Text style={{
-              color: 'white',
-              fontWeight: '700'
-            }}>{` ${transportMap.current[ride.selectedRiderID]?.numberPlate || 'Rider'}`}</Text>
-            </View>
-          </Marker>}
-      </React.Fragment>;
+    return rides.map((ride, idx) => {
+      const isSelected = selectedRideId === ride.id;
+      // Marker for pickup (always shown)
+      const pickupMarker = <Marker key={ride.id + '-pickup'} coordinate={{ latitude: ride.pickupLatitude, longitude: ride.pickupLongitude }} onPress={() => focusOnRide(ride, idx)}>
+        <View style={{ backgroundColor: isSelected ? '#e58d29' : '#1f8ef1', padding: 6, borderRadius: 6 }}>
+          <Text style={{ color: '#fff', fontWeight: '700', fontSize: 12 }}>{isSelected ? '📍 Pickup' : '📍'}</Text>
+        </View>
+      </Marker>;
+
+      // Marker for drop (only if destination present)
+      const dropMarker = (ride.destinationLatitude && ride.destinationLongitude) ? <Marker key={ride.id + '-drop'} coordinate={{ latitude: ride.destinationLatitude, longitude: ride.destinationLongitude }} onPress={() => focusOnRide(ride, idx)}>
+        <View style={{ backgroundColor: isSelected ? '#e58d29' : '#9b59b6', padding: 6, borderRadius: 6 }}>
+          <Text style={{ color: '#fff', fontWeight: '700' }}>{isSelected ? '🎯 Drop' : '🎯'}</Text>
+        </View>
+      </Marker> : null;
+
+      // Marker for rider live location when available
+      const riderMarker = (ride.riderLatitude && ride.riderLongitude) ? <Marker key={ride.id + '-rider'} coordinate={{ latitude: ride.riderLatitude, longitude: ride.riderLongitude }} onPress={() => focusOnRide(ride, idx)}>
+        <View style={{ backgroundColor: isSelected ? '#e58d29' : 'blue', padding: 6, borderRadius: 6 }}>
+          <Text style={{ color: '#fff', fontWeight: '700' }}>{` ${transportMap.current[ride.selectedRiderID]?.numberPlate || 'Rider'}`}</Text>
+        </View>
+      </Marker> : null;
+
+      return (
+        <React.Fragment key={ride.id}>
+          {pickupMarker}
+          {dropMarker}
+          {riderMarker}
+        </React.Fragment>
+      );
     });
   }, [rides, selectedRideId, riderLocation, tripStarted]);
   const activeRide = useMemo(() => rides.find(r => r.id === selectedRideId), [rides, selectedRideId]);
@@ -1264,7 +1252,7 @@ export default function RiderRideRequestScreen() {
           const distance = cumulativeDistanceRef.current[item.id] ?? 0;
           const cost = cumulativeCostRef.current[item.id] ?? item.estimatedCost ?? 0;
           distanceText = `Distance: ${distance.toFixed(2)} km`;
-          costText = `${formatAmountSync(cost, nationality ?? 'Kenya', ratesMap || {})}`;
+          costText = `${formatAmountSync(cost, natCode, ratesMap || {})}`;
         } else if (isSelected && rideStatus !== 'Active') {
           // When selected and trip not started, show distance-to-pickup (if available) and approx pickup->destination cost
           if (riderLocation) {
@@ -1273,11 +1261,11 @@ export default function RiderRideRequestScreen() {
           }
           // Use server-estimated cost if available; otherwise compute from straight-line pickup->destination
           const est = item.estimatedCost ?? Math.round((item.riderRate || 0) * getDistanceKm(item.pickupLatitude, item.pickupLongitude, item.destinationLatitude, item.destinationLongitude));
-          costText = `Approx cost: ${formatAmountSync(est, nationality ?? 'Kenya', ratesMap || {})}`;
+          costText = `Approx cost: ${formatAmountSync(est, natCode, ratesMap || {})}`;
         } else if (riderLocation && rideStatus === 'TransportApproved') {
           const distanceToPickup = getDistanceKm(riderLocation.latitude, riderLocation.longitude, item.pickupLatitude, item.pickupLongitude);
           distanceText = `Distance to pickup: ${distanceToPickup.toFixed(2)} km`;
-          costText = `Estimated cost: ${formatAmountSync(Number(item.estimatedCost ?? 0), nationality ?? 'Kenya', ratesMap || {})}`;
+          costText = `Estimated cost: ${formatAmountSync(Number(item.estimatedCost ?? 0), natCode, ratesMap || {})}`;
         }
         return <View key={item.id} style={{
           backgroundColor: '#fff',
@@ -1292,7 +1280,9 @@ export default function RiderRideRequestScreen() {
           },
           shadowOpacity: 0.1,
           shadowRadius: 6,
-          elevation: 3
+          elevation: 3,
+          borderColor: isSelected ? '#1f8ef1' : 'transparent',
+          borderWidth: isSelected ? 2 : 0
         }}>
                 <TouchableOpacity onPress={() => focusOnRide(item, index)} activeOpacity={0.9}>
                   <Text style={{

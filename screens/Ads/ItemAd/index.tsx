@@ -277,7 +277,8 @@ const CreateBiz = () => {
             businessType: business.businessType,
             itemUnit: itemUnit,
             unitQuantity: parseFloat(unitQuantity),
-            owner: user.userId
+            owner: user.userId,
+            Nationality: businessOwnerNationality
           }
         }
       });
@@ -293,7 +294,10 @@ const CreateBiz = () => {
             },
             itemSpecs: {
               eq: itemSpecifications
-            }
+            },
+            Nationality:{
+              eq: businessOwnerNationality
+            },
           }
         }
       });
@@ -305,7 +309,8 @@ const CreateBiz = () => {
               itemName,
               itemBrand: brandName,
               itemSpecs: itemSpecifications,
-              itemPrice: parseFloat(itemPrice).toFixed(2)
+              itemPrice: parseFloat(itemPrice).toFixed(2),
+              Nationality: businessOwnerNationality
             }
           }
         });

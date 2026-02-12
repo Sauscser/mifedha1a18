@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 // removed NavigationContainer import (single app-level container in RootNav)
 import { createNativeStackNavigator } from '@react-navigation/native-stack'
 
@@ -649,9 +649,23 @@ export const HomeStackScreenNames = [
 ];
 
 const Stack = createNativeStackNavigator();
-const HomeNavigator = props => {
+const HomeNavigator = ({ navigation }: any) => {
+  useEffect(() => {
+    const unsubscribe = navigation?.addListener?.('tabPress', (e: any) => {
+      // When Home tab is pressed, ensure the nested Home stack shows the root screen
+      try {
+        navigation.navigate('Home', { screen: 'Homeie' });
+      } catch (err) {
+        // fallback: navigate directly to 'Homeie'
+        navigation.navigate('Homeie');
+      }
+    });
+    return unsubscribe;
+  }, [navigation]);
+
   return (
     <Stack.Navigator
+      id="HomeStackNavigator"
       screenOptions={{
         headerShown: false,
       }}>

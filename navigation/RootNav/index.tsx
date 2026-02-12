@@ -28,7 +28,8 @@ const Stack = createNativeStackNavigator();
 const RedirectToHome = ({ navigation, route }: any) => {
   React.useEffect(() => {
     // forward to nested Home stack: Stack 'DrawerRoot' -> Drawer 'Homes' -> BottomTab 'Home' -> target screen
-    navigation.navigate('DrawerRoot', { screen: 'Homes', params: { screen: 'Home', params: { screen: route.name, params: route.params } } });
+    // use replace so the redirect placeholder is not left on the stack
+    navigation.replace('DrawerRoot', { screen: 'Homes', params: { screen: 'Home', params: { screen: route.name, params: route.params } } });
   }, [navigation, route]);
   return null;
 };

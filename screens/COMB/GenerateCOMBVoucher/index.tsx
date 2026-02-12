@@ -86,7 +86,8 @@ const ItemCard = ({
       setLoadingAlert(false);
     }
   };
-  return <View style={styles.card}>
+  return (
+    <View style={styles.card}>
       <Text style={{
       fontWeight: 'bold'
     }}>{item.sokoname} ({item.itemBrand})</Text>
@@ -155,7 +156,8 @@ const ItemCard = ({
         }}>Add to Voucher</Text>
         </TouchableOpacity>
       </View>
-    </View>;
+    </View>
+  );
 };
 
 /* -------------------- Voucher Cart Card -------------------- */
@@ -175,7 +177,8 @@ const VoucherCartCard = ({
   const funderNat = funderNationality || userNationality;
   const sellerCode = nationalityToCode(sellerNat);
   const funderCode = nationalityToCode(funderNat);
-  return <View style={styles.voucherCard}>
+  return (
+    <View style={styles.voucherCard}>
       <Text style={{
       fontWeight: 'bold'
     }}>{item.sokoname}</Text>
@@ -230,7 +233,8 @@ const VoucherCartCard = ({
         }}>Delete</Text>
         </TouchableOpacity>
       </View>
-    </View>;
+    </View>
+  );
 };
 
 /* -------------------- Main Screen -------------------- */
@@ -277,7 +281,7 @@ const SellerConsumablesVoucherScreen = () => {
   const { nationality, ratesMap } = useExchange();
   const natMainCode = nationalityToCode(sellerNationality || nationality);
 
-  /* ---------------- Fetch Items ---------------- */
+  /* -------- Fetch Items -------- */
   useEffect(() => {
     const fetchItems = async () => {
       setLoading(true);
@@ -288,7 +292,12 @@ const SellerConsumablesVoucherScreen = () => {
             filter: {
               sokokntct: {
                 eq: sellerID
-              }
+              },
+              ...(sellerNationality ? {
+                Nationality: {
+                  eq: sellerNationality,
+                }
+              } : {})
             }
           }
         });
@@ -300,7 +309,10 @@ const SellerConsumablesVoucherScreen = () => {
       }
     };
     fetchItems();
-    // fetch seller nationality
+  }, [sellerID, sellerNationality]);
+
+  /* -------- Fetch Seller Nationality -------- */
+  useEffect(() => {
     const fetchSellerNat = async () => {
       try {
         const bizRes: any = await client.graphql({ query: getBizna, variables: { BusKntct: sellerID } });
@@ -318,6 +330,8 @@ const SellerConsumablesVoucherScreen = () => {
     };
     fetchSellerNat();
   }, [sellerID]);
+
+  /* -------- Render -------- */
 
   /* ---------------- Fetch Parent Contract & Funder Nationality ---------------- */
   const fetchParent = useCallback(async () => {
@@ -398,6 +412,9 @@ const SellerConsumablesVoucherScreen = () => {
           marketItemID: {
             eq: item.id
           },
+          Nationality: {
+            eq: sellerNationality,
+          },
           ...createdAtFilter
         }
       }
@@ -417,6 +434,9 @@ const SellerConsumablesVoucherScreen = () => {
           itemBrand: {
             eq: item.itemBrand
           },
+          Nationality: {
+            eq: sellerNationality,
+          },
           itemSpecifications: {
             eq: itemSpecs
           },
@@ -435,6 +455,9 @@ const SellerConsumablesVoucherScreen = () => {
         filter: {
           itemName: {
             eq: item.sokoname
+          },
+          Nationality: {
+            eq: sellerNationality,
           },
           itemBrand: {
             eq: item.itemBrand
@@ -591,8 +614,9 @@ const SellerConsumablesVoucherScreen = () => {
     }
   }, [voucherItems, updating, parent, cap, isActiveCap, combContractID, fetchParent, getPriceAlertCached]);
 
-  /* ---------------- Render -------------------- */
-  return <View style={{
+  /* -------- Render -------- */
+  return (
+    <View style={{
     flex: 1,
     padding: 10
   }}>
@@ -715,10 +739,11 @@ const SellerConsumablesVoucherScreen = () => {
             </Pressable>
           </>}
       </Animated.View>
-    </View>;
+    </View>
+  );
 };
 
-/* -------------------- Styles -------------------- */
+/* -------- Styles -------- */
 const styles = StyleSheet.create({
   input: {
     flex: 1,

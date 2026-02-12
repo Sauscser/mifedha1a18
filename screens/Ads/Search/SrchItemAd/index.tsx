@@ -427,7 +427,9 @@ export default function SalesItemMapScreen({
               soldAt: Date.now(),
               sokoname: item.sokoname,
               itemBrand: item.itemBrand,
-              itemSpecifications: item.itemSpecifications
+              itemSpecifications: item.itemSpecifications,
+              Nationality: item.Nationality
+              
             }
           }
         });
@@ -675,7 +677,8 @@ export default function SalesItemMapScreen({
               soldAt: Date.now(),
               sokoname: item.sokoname,
               itemBrand: item.itemBrand,
-              itemSpecifications: item.itemSpecifications
+              itemSpecifications: item.itemSpecifications,
+              Nationality: item.Nationality
             }
           }
         });

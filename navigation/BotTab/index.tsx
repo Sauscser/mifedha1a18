@@ -32,6 +32,21 @@ const HomeTabNavigator = () => {
             <Fontisto name="home" size={25} color={'skyblue'} />
           ),
         }}
+        listeners={({ navigation }) => ({
+          tabPress: e => {
+            // Always navigate the nested Home stack to its root screen 'Homeie'.
+            // Avoid calling navigation.emit here because some navigation objects
+            // (when coming from drawer/deep links) may not expose emit.
+            try {
+              navigation.navigate('Home', { screen: 'Homeie' });
+            } catch (err) {
+              // fallback: attempt to jump to Home
+              try {
+                navigation.jumpTo && navigation.jumpTo('Home');
+              } catch (e) {}
+            }
+          },
+        })}
       />
 
       {/* MFNdogo (Location) */}

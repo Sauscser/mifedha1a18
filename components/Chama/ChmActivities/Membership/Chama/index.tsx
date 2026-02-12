@@ -3,6 +3,7 @@ import { useNavigation, useRoute } from '@react-navigation/core';
 
 import { View, Text, ScrollView, Pressable, Alert } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { generateClient } from 'aws-amplify/api';
   
 import Communications from 'react-native-communications';
 import {
@@ -20,7 +21,6 @@ import {
   
 } from '../../../../../src/graphql/mutations';
 
-import {API, Auth, graphqlOperation} from 'aws-amplify';
 import {
   
   getChamaControlTable,
@@ -37,7 +37,6 @@ import {
 
 
 
-import {EQUITYTABLEID} from '@env';
 import styles from './styles';
 
 
@@ -112,6 +111,7 @@ const ChmMbrShpInfo = (props: ChamaMmbrshpInfo) => {
   const subFreq = tmDif / subscriptionFrequency;
   const Amt2HvBnSub = subFreq * subscriptionAmt;
   const ttlArrears = (ttlLateSubs + Amt2HvBnSub).toFixed(0);
+  const client = generateClient();
 
   const navigation = useNavigation();
    const [SenderNatId, setSenderNatId] = useState('');
@@ -136,13 +136,15 @@ const ChmMbrShpInfo = (props: ChamaMmbrshpInfo) => {
             }
             setIsLoading(true);
             try{
-              const approval =  await API.graphql(
-                  graphqlOperation(updateChamaMembers,{
-                    input:{
+              const approval =  await client.graphql ({
+                query: updateChamaMembers,
+                variables: {
+                  input: {
+             
                       ChamaNMember:ChamaNMember,
                       transportApproved:"ChamaTransportApprovedYes"
                     }
-                  })
+                  }}
                 )
         if (approval?.data?.updateChamaMembers) 
         {
@@ -164,13 +166,15 @@ const ChmMbrShpInfo = (props: ChamaMmbrshpInfo) => {
                     }
                     setIsLoading(true);
                     try{
-                      const disapprove =  await API.graphql(
-                          graphqlOperation(updateChamaMembers,{
-                            input:{
+                      const disapprove =  await client.graphql({
+                        query: updateChamaMembers,
+                        variables: {
+                          input: {
+                    
                               ChamaNMember:ChamaNMember,
                               transportApproved:"ChamaTransportApprovedNo"
                             }
-                          })
+                          }}
                         )
                 if (disapprove?.data?.updateChamaMembers) 
         {

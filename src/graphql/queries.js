@@ -1115,6 +1115,7 @@ export const getSokoAd = /* GraphQL */ `
       itemBrand
       bizName
       bizContact
+      Nationality
       updatedAt
       __typename
     }
@@ -1149,6 +1150,7 @@ export const listSokoAds = /* GraphQL */ `
         itemBrand
         bizName
         bizContact
+        Nationality
         updatedAt
         __typename
       }
@@ -1970,6 +1972,7 @@ export const getBizna = /* GraphQL */ `
       Admin48
       Admin49
       Admin50
+      Nationality
       updatedAt
       __typename
     }
@@ -2093,6 +2096,7 @@ export const listBiznas = /* GraphQL */ `
         Admin48
         Admin49
         Admin50
+        Nationality
         updatedAt
         __typename
       }
@@ -4542,6 +4546,7 @@ export const getAveragePrices = /* GraphQL */ `
       itemSpecs
       itemPrice
       createdAt
+      Nationality
       updatedAt
       __typename
     }
@@ -4561,6 +4566,7 @@ export const listAveragePrices = /* GraphQL */ `
         itemSpecs
         itemPrice
         createdAt
+        Nationality
         updatedAt
         __typename
       }
@@ -4822,6 +4828,7 @@ export const getMarketConsumption = /* GraphQL */ `
       itemBrand
       itemSpecifications
       createdAt
+      Nationality
       updatedAt
       __typename
     }
@@ -4849,6 +4856,7 @@ export const listMarketConsumptions = /* GraphQL */ `
         itemBrand
         itemSpecifications
         createdAt
+        Nationality
         updatedAt
         __typename
       }
@@ -6323,6 +6331,7 @@ export const DakaByName = /* GraphQL */ `
         itemBrand
         bizName
         bizContact
+        Nationality
         updatedAt
         __typename
       }
@@ -7279,6 +7288,7 @@ export const BiznaVwws = /* GraphQL */ `
         Admin48
         Admin49
         Admin50
+        Nationality
         updatedAt
         __typename
       }
@@ -9122,6 +9132,7 @@ export const byMarketItem2 = /* GraphQL */ `
         itemBrand
         itemSpecifications
         createdAt
+        Nationality
         updatedAt
         __typename
       }
