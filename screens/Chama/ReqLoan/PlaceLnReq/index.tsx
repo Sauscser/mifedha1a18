@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
-import RNPrint from 'react-native-print';
+import { printAsync } from '../../../../src/utils/print';
 import {
   createMessages,
   createReqLoanChama,
@@ -207,7 +207,7 @@ const CreateBiz = () => {
         </body>
         </html>
       `;
-      await RNPrint.print({ html });
+      await printAsync({ html });
     } catch (err) {
       console.error(err);
       Alert.alert('PDF Error', 'Failed to export minutes PDF');

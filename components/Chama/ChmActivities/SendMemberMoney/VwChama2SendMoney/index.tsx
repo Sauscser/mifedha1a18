@@ -53,4 +53,4 @@ const ChmRemitInfo = (props:ChamaRemitInfo) => {
     );
 }; 
 
-export default ChmRemitInfo
+export default ChmRemitInfo;

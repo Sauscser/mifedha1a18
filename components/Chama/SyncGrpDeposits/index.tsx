@@ -1,12 +1,17 @@
 import { useNavigation } from '@react-navigation/native';
-import React, { useState } from 'react';
 import { View, Text, ScrollView, Pressable, Alert, ActivityIndicator } from 'react-native';
-import { generateClient } from 'aws-amplify/api';
 
 import styles from './styles';
 import { createChamaDepositSync, createChamaDividendsSync, createChamaLoanSync, updateGroup } from '../../../src/graphql/mutations';
 import { getGroup } from '../../../src/graphql/queries';
-import { TouchableOpacity } from 'react-native-gesture-handler';
+import React, {useEffect, useState} from 'react';
+import { formatAmountSync } from '../../../src/utils/exchange';
+import { nationalityToCode } from '../../../src/utils/nationalityToCode';
+import {useExchange} from '../../../src/contexts/ExchangeContext';
+import { generateClient } from 'aws-amplify/api';  
+import { getSMAccount } from '../../../src/graphql/queries';
+import {fetchUserAttributes} from 'aws-amplify/auth';
+
 
 export interface SMAccount {
   SMAc: {
@@ -18,13 +23,35 @@ export interface SMAccount {
   }
 }
 
-const client = generateClient();
-
 const SMCvLnStts = (props: SMAccount & { onSyncComplete: () => void }) => {
   const {
     SMAc: { grpContact, grpName, signitoryContact, signitoryName, DepositSync },
     onSyncComplete,
   } = props;
+
+  const client = generateClient();
+  const [Uzer, setUzer] = useState<string>(null);
+  const [userNationality, setUserNationality] = useState<string>(null);
+  const userCode = nationalityToCode(userNationality);
+  const {ratesMap} = useExchange();
+
+  useEffect(() => {
+    const fetchUserData = async () => {
+      const user = await fetchUserAttributes();
+      setUzer(user.email);
+      try {
+        const userData = await client.graphql({
+          query: getSMAccount,
+          variables: { awsemail: user.email },
+        });
+        setUserNationality(userData.data.getSMAccount.nationality);
+        console.log('User Data:', userData);
+      } catch (error) {
+        console.error('Error fetching user data:', error);
+      }
+    };
+    fetchUserData();
+  }, [Uzer]);
 
   const navigation = useNavigation();
   const [isLoading, setIsLoading] = useState(false);
@@ -89,7 +116,7 @@ const SMCvLnStts = (props: SMAccount & { onSyncComplete: () => void }) => {
         <Text style={styles.prodInfo}><Text style={styles.label}>Group Account:</Text> {grpContact}</Text>
         <Text style={styles.prodInfo}><Text style={styles.label}>Group Admin Contact:</Text> {signitoryContact}</Text>
         <Text style={styles.prodInfo}><Text style={styles.label}>Group Admin Name:</Text> {signitoryName}</Text>
-        <Text style={styles.prodInfo}><Text style={styles.label}>Sync Amount:</Text> KES {DepositSync.toFixed(2)}</Text>
+        <Text style={styles.prodInfo}><Text style={styles.label}>Sync Amount:</Text> {formatAmountSync(Math.floor(DepositSync), userCode, ratesMap)}</Text>
       </View>
 
       <View style={styles.buttonRow}>

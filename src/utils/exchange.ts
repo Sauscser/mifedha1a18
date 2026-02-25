@@ -1,6 +1,28 @@
 import { generateClient } from 'aws-amplify/api';
-import { getSMAccount, getExRates } from '../graphql/queries';
+import { getSMAccount, getExRates, listExRates } from '../graphql/queries';
 const client = generateClient();
+
+const countryToCurrency: Record<string, string> = {
+  KE: 'KES', UG: 'UGX', TZ: 'TZS', RW: 'RWF', NG: 'NGN', ZA: 'ZAR',
+  US: 'USD', GB: 'GBP', EU: 'EUR', IN: 'INR', CN: 'CNY', JP: 'JPY',
+  CA: 'CAD', AU: 'AUD', CH: 'CHF'
+};
+
+const normalizeKey = (value: string) => value.trim().toLowerCase().replace(/\s+/g, '');
+
+const unique = (items: (string | undefined | null)[]) => {
+  const set = new Set<string>();
+  items.filter(Boolean).forEach((item) => set.add(String(item)));
+  return Array.from(set);
+};
+
+const buildLookupCandidates = (raw: string) => {
+  const key = raw.trim();
+  const upper = key.toUpperCase();
+  const compactUpper = key.replace(/\s+/g, '').toUpperCase();
+  const isoFromCountry = upper.length === 2 ? countryToCurrency[upper] : undefined;
+  return unique([key, upper, compactUpper, isoFromCountry]);
+};
 
 /**
  * EXCHANGE RATE SEMANTICS:
@@ -33,16 +55,37 @@ export async function getUserNationalityByEmail(email: string): Promise<string |
 
 export async function getExRatesForNationality(nationality: string): Promise<{ sellingPrice: number; buyingPrice: number; symbol?: string } | null> {
   try {
-    const res: any = await client.graphql({
-      query: getExRates,
-      variables: { cur: nationality }
+    const candidates = buildLookupCandidates(nationality);
+
+    for (const candidate of candidates) {
+      const res: any = await client.graphql({
+        query: getExRates,
+        variables: { cur: candidate }
+      });
+      const rates = res?.data?.getExRates;
+      if (rates) {
+        return {
+          sellingPrice: parseFloat(rates.sellingPrice || '1'),
+          buyingPrice: parseFloat(rates.buyingPrice || '1'),
+          symbol: rates.symbol || 'Ksh'
+        };
+      }
+    }
+
+    const listRes: any = await client.graphql({ query: listExRates });
+    const items = listRes?.data?.listExRates?.items || [];
+    const normalizedCandidates = candidates.map(normalizeKey);
+    const found = items.find((item: any) => {
+      const curNorm = normalizeKey(String(item?.cur || ''));
+      const symbolNorm = normalizeKey(String(item?.symbol || ''));
+      return normalizedCandidates.includes(curNorm) || normalizedCandidates.includes(symbolNorm);
     });
-    const rates = res?.data?.getExRates;
-    if (!rates) return null;
+
+    if (!found) return null;
     return {
-      sellingPrice: parseFloat(rates.sellingPrice || '1'),
-      buyingPrice: parseFloat(rates.buyingPrice || '1'),
-      symbol: rates.symbol || 'Ksh'
+      sellingPrice: parseFloat(found.sellingPrice || '1'),
+      buyingPrice: parseFloat(found.buyingPrice || '1'),
+      symbol: found.symbol || 'Ksh'
     };
   } catch (e) {
     console.warn('getExRatesForNationality error', e);

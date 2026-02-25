@@ -123,4 +123,4 @@ const SMCvLnStts = (props:SMCvLnSttus) => {
     );
 }; 
 
-export default SMCvLnStts
+export default SMCvLnStts;

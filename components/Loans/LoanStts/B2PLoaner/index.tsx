@@ -1,7 +1,14 @@
 import { useNavigation } from '@react-navigation/native';
-import React from 'react';
 import {View, Text,    ScrollView, Pressable} from 'react-native';
 import styles from './styles';
+
+import { generateClient } from 'aws-amplify/api';
+import { getCurrentUser, fetchUserAttributes } from 'aws-amplify/auth';
+import React, {useState, useEffect} from 'react';
+import { nationalityToCode } from '../../../../src/utils/nationalityToCode';
+import {useExchange} from '../../../../src/contexts/ExchangeContext';
+import { formatAmountSync } from '../../../../src/utils/exchange';
+import { getSMAccount } from '../../../../src/graphql/queries';
 
 
 export interface SMCvLnSttus {
@@ -52,17 +59,41 @@ const SMCvLnStts = (props:SMCvLnSttus) => {
    }} = props ;
 
    const navigation = useNavigation();
+   const [Uzer, setUzer] = useState<string>(null);
+   const [userNationality, setUserNationality] = useState<string>(null);
+   const client = generateClient();
+   const userCode = nationalityToCode(userNationality);
+   const {ratesMap} = useExchange();
+
    const SndChmMmbrMny = () => {
       navigation.navigate ("VwB2PMyLoanersDtld", {loanID})
    }
 
    const VwRpayments = () => {
-      navigation.navigate ("VwB2PLRSent", {loanID})
+      navigation.navigate ("VwB2PSentRepayments", {loanID})
    }
 
    const Repay = () => {
-      navigation.navigate ("RpyBiz2Pal", {loanID})
+      navigation.navigate ("RepayB2PLoan", {loanID})
    }
+
+   useEffect(() => {
+     const fetchUserData = async () => {
+       const user = await fetchUserAttributes();
+       setUzer(user.email);
+try {
+const userData = await client.graphql({
+query: getSMAccount,
+variables: { awsemail: user.email },
+});
+setUserNationality(userData.data.getSMAccount.nationality);
+console.log('User Data:', userData);
+} catch (error) {
+console.error('Error fetching user data:', error);
+}
+};
+fetchUserData();
+}, [Uzer]); 
 
    const today = new Date();
               let hours = (today.getHours() < 10 ? '0' : '') + today.getHours();
@@ -70,23 +101,23 @@ const SMCvLnStts = (props:SMCvLnSttus) => {
               let seconds = (today.getSeconds() < 10 ? '0' : '') + today.getSeconds();
               let years = (today.getFullYear() < 10 ? '0' : '') + today.getFullYear();
               let months = (today.getMonth() < 10 ? '0' : '') + today.getMonth();
-              let months2 = parseFloat(months)
+              let months2 = parseFloat(months);
               let days = (today.getDate() < 10 ? '0' : '') + today.getDate();
               
               const now:any = years+ "-"+ "0"+months2 +"-"+ days+"T"+hours + ':' + minutes + ':' + seconds;
 
               const curYrs = parseFloat(years)*365;
               const curMnths = (months2)*30.4375;
-              const daysUpToDate = curYrs + curMnths + parseFloat(days)
+              const daysUpToDate = curYrs + curMnths + parseFloat(days);
 
-              const dayselapsed = (crtnDate - daysUpToDate) *(-1)
+              const dayselapsed = (crtnDate - daysUpToDate) *(-1);
 
               const netLnBal = amountexpected - amountrepaid
       
               const netLnBal2 = (netLnBal) * 
-              ((Math.pow(1 + (interest)/36500, dayselapsed)))
+              ((Math.pow(1 + (interest)/36500, dayselapsed)));
 
-              const LonBal1 = netLnBal2 + (clearanceAmt) +  (DefaultPenaltySM2)
+              const LonBal1 = netLnBal2 + (clearanceAmt) +  (DefaultPenaltySM2);
    
     return (
        <View style = {styles.pageContainer}>  
@@ -94,7 +125,7 @@ const SMCvLnStts = (props:SMCvLnSttus) => {
                 <Text style={styles.prodInfo}><Text style={styles.label}>Loaner Name:</Text> {loanername}</Text>
                 <Text style={styles.prodInfo}><Text style={styles.label}>Loan Id:</Text> {loanID}</Text>
                 <Text style={styles.prodInfo}><Text style={styles.label}>Loaner Contact:</Text> {loanerPhn}</Text>
-                <Text style={styles.prodInfo}><Text style={styles.label}>Loan Balance with penalties:</Text> KES {LonBal1.toFixed(2)}</Text>
+                <Text style={styles.prodInfo}><Text style={styles.label}>Loan Balance with penalties:</Text> {formatAmountSync(Math.floor(LonBal1), userCode, ratesMap)}</Text>
            
                    
                     </Pressable>

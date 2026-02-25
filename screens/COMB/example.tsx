@@ -3,7 +3,7 @@ import {
   View, Text, FlatList, TextInput, TouchableOpacity,
   StyleSheet, ActivityIndicator, Alert, Pressable, Animated, Easing
 } from 'react-native';
-import { API, graphqlOperation } from 'aws-amplify';
+import { generateClient } from 'aws-amplify/api';
 import { useRoute } from '@react-navigation/native';
 
 import {
@@ -318,7 +318,7 @@ const SellerConsumablesVoucherScreen = () => {
   const [updating, setUpdating] = useState(false);
   const [parent, setParent] = useState<any>(null);
   const [priceAlerts, setPriceAlerts] = useState<Record<string, PriceAlert>>({});
-
+  const client= generateClient();
   const bottomAnim = useRef(new Animated.Value(0)).current;
 
   // Animate bottom container
@@ -343,9 +343,10 @@ const SellerConsumablesVoucherScreen = () => {
     const fetchItems = async () => {
       setLoading(true);
       try {
-        const res: any = await API.graphql(
-          graphqlOperation(listSokoAds, { filter: { sokokntct: { eq: sellerID } } })
-        );
+        const res: any = await client.graphql({
+          query:listSokoAds,
+          variables: { filter: { sokokntct: { eq: sellerID } } }
+        }) 
         setAllItems(res?.data?.listSokoAds?.items || []);
       } catch (err) {
         handleError('Could not load items.', err);
@@ -359,9 +360,13 @@ const SellerConsumablesVoucherScreen = () => {
   /* ---------------- Fetch Parent Contract ---------------- */
   const fetchParent = useCallback(async () => {
     try {
-      const res: any = await API.graphql(
-        graphqlOperation(getCombContract, { id: combContractID })
-      );
+      const res: any = await client.graphql({
+query: getCombContract,
+variables: { id: combContractID }
+})
+
+
+
       setParent(res?.data?.getCombContract);
     } catch (err) {
       handleError('Could not fetch parent contract.', err);
@@ -390,13 +395,13 @@ const SellerConsumablesVoucherScreen = () => {
   const itemSpecs = item.itemSpecifications || '';
 
   /* -------- Seller Deviation (own history) -------- */
-  const sellerRes: any = await API.graphql(
-    graphqlOperation(listMarketConsumptions, {
-      filter: {
-        marketItemID: { eq: item.id }
-      },
-    })
-  );
+  const sellerRes: any = await client.graphql({
+query: listMarketConsumptions,
+variables: {
+filter: {
+marketItemID: { eq: item.id }
+},
+}})
   const sellerItems = sellerRes?.data?.listMarketConsumptions?.items || [];
   const sellerAvg = sellerItems.length
     ? sellerItems.reduce((sum: number, i: any) => sum + Number(i.price || 0), 0) / sellerItems.length
@@ -404,15 +409,17 @@ const SellerConsumablesVoucherScreen = () => {
   const sellerDeviation = sellerAvg > 0 ? ((priceNum - sellerAvg) / sellerAvg) * 100 : 0;
 
   /* -------- MiFedha Market Deviation (all sellers) -------- */
-  const marketRes: any = await API.graphql(
-    graphqlOperation(listMarketConsumptions, {
-      filter: {
-        sokoname: { eq: item.sokoname },
-        itemBrand: { eq: item.itemBrand },
-        itemSpecifications: { eq: itemSpecs },
-      },
-    })
-  );
+  const marketRes: any = await client.graphql({
+    query: listMarketConsumptions,
+variables: {
+filter: {
+sokoname: { eq: item.sokoname },
+itemBrand: { eq: item.itemBrand },
+itemSpecifications: { eq: itemSpecs },
+},
+}})
+
+ 
   const marketItems = marketRes?.data?.listMarketConsumptions?.items || [];
   const marketAvg = marketItems.length
     ? marketItems.reduce((sum: number, i: any) => sum + Number(i.price || 0), 0) / marketItems.length
@@ -426,9 +433,11 @@ const SellerConsumablesVoucherScreen = () => {
   };
   if (itemSpecs) avgFilter.itemSpecs = { eq: itemSpecs };
 
-  const avgRes: any = await API.graphql(
-    graphqlOperation(listAveragePrices, { filter: avgFilter })
-  );
+  const avgRes: any = await client.graphql({
+query: listAveragePrices,
+variables: { filter: avgFilter }
+})
+
   const avgItems = avgRes?.data?.listAveragePrices?.items || [];
   const referencePrice = avgItems.length
     ? avgItems.reduce((sum: number, i: any) => sum + Number(i.itemPrice || 0), 0) / avgItems.length
@@ -520,9 +529,11 @@ const SellerConsumablesVoucherScreen = () => {
 
       for (const v of Object.values(voucherItems)) {
         const alert = await getPriceAlertCached(v.item);
-        await API.graphql(
-          graphqlOperation(createCombContractVoucher, {
-            input: {
+        await client.graphql({
+          query: createCombContractVoucher,
+variables: {
+input: {
+        
               combContractID,
               marketItemID: v.item.id,
               itemName: v.item.sokoname,
@@ -570,7 +581,7 @@ const SellerConsumablesVoucherScreen = () => {
               repaymentPeriod: parent.repaymentPeriod,
               voucherLastUpdate: Date.now(),
             },
-          })
+          }}
         );
       }
 
@@ -578,9 +589,12 @@ const SellerConsumablesVoucherScreen = () => {
       
 
       // Backend truth update
-      await API.graphql(
-        graphqlOperation(updateCombContract, {
-          input: {
+      await 
+      client.graphql({
+query: updateCombContract,
+variables: {
+input: {
+      
             id: combContractID,
             accStatus: 'Completed',
             marketConsumptionStatus: 'Approved',
@@ -589,25 +603,31 @@ const SellerConsumablesVoucherScreen = () => {
               ? (Number(parent.consumptionCapping) - totalVoucherAmount).toFixed(2)
               : 0,
           },
-        })
+        }}
       );
 
-      const Message = await API.graphql(
-        graphqlOperation(createMessages, {
-          input: {
+      const Message = await client.graphql({
+query: createMessages,
+variables: {
+input: {
+      
+      
             senderEmail: parent.consumerEmail,
             messageBody: `A COMB voucher has been generated by ${parent.sellerName}. Please go to COMB to approve or decline as per your funders specifications.`,
           },
-        })
+        }}
       );
 
       if (Message?.data?.createMessages) {
-        await API.graphql(
-          graphqlOperation(sendNotification, {
+        await client.graphql({
+          query: createMessages,
+variables: {
+input: {
+        
             riderEmail: parent.consumerEmail,
             title: 'MiFedha: COMB Contract',
             body: `A COMB voucher has been generated by ${parent.sellerName}. Please go to COMB to approve or decline as per your funders specifications.`,
-          })
+          }}}
         );
       }
 

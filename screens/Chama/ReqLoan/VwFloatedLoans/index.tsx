@@ -11,7 +11,7 @@ import {
   Image
 } from 'react-native';
 import { useRoute, useNavigation } from '@react-navigation/native';
-import RNPrint from 'react-native-print';
+import { printAsync } from '../../../../src/utils/print';
 import ImageViewer from 'react-native-image-zoom-viewer';
 import { LinearGradient } from 'expo-linear-gradient';
 
@@ -128,7 +128,7 @@ const FloatedLoansList = () => {
             ${i.decision ? `<em>Decision: ${i.decision}</em>` : ''}</div>
           `).join('')}
         </body></html>`;
-      await RNPrint.print({ html });
+      await printAsync({ html });
     } catch (err) {
       console.error(err);
       Alert.alert('Error', 'Failed to export minutes PDF');

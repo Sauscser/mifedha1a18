@@ -8,6 +8,7 @@ import styles from './styles';
 import { getCurrentUser, fetchUserAttributes } from "aws-amplify/auth";
 import { getUserNationalityByEmail, formatAmountForUser, formatAmountSync, convertForeignToKsh } from '../../../../src/utils/exchange';
 import { generateClient } from "aws-amplify/api";
+import { useExchange } from '../../../../src/contexts/ExchangeContext';
 const client = generateClient();
 const SMASendNonLns = props => {
   const [SenderNatId, setSenderNatId] = useState('');
@@ -16,7 +17,19 @@ const SMASendNonLns = props => {
   const [amounts, setAmount] = useState("");
   const [Desc, setDesc] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const { ratesMap, nationality } = useExchange();
+  const currencySymbol = (nationality && ratesMap?.[nationality]?.symbol) || 'KSh';
   const navigation = useNavigation();
+
+  const parseAmountInput = (value: string): number | null => {
+    const trimmed = value.trim();
+    if (!trimmed) return null;
+    const normalized = trimmed.replace(/,/g, '');
+    const parsed = Number(normalized);
+    return Number.isFinite(parsed) ? parsed : null;
+  };
+
+  const formatUserInputAmount = (value: number) => `${currencySymbol} ${value.toFixed(2)}`;
   const SndChmMmbrMny = () => {
     navigation.navigate("AutomaticRepayAllTyps");
   };
@@ -134,7 +147,12 @@ const SMASendNonLns = props => {
                           });
                           const UsrTransferFee = CompDtls.data.getCompany.userTransferFee;
                           const senderNat = await getUserNationalityByEmail(attributes.email);
-                          const amountForeign = parseFloat(amounts) || 0;
+                          const amountForeign = parseAmountInput(amounts) ?? 0;
+                          if (amountForeign <= 0) {
+                            Alert.alert('Enter a valid amount');
+                            setIsLoading(false);
+                            return;
+                          }
                           const amountKes = await convertForeignToKsh(amountForeign, senderNat);
                           const UsrTransferFeeAmt = UsrTransferFee * amountKes;
                           const UsrTransferFee2 = parseFloat(SenderUsrBal) - amountKes;
@@ -273,8 +291,8 @@ const SMASendNonLns = props => {
                                         variables: {
                                           input: {
                                             awsemail: senderbeneficiary,
-                                            balance: (parseFloat(UsrTransferFee) * parseFloat(amounts) * 0.3 + parseFloat(SenderBeneficiarySenderUsrBal)).toFixed(0),
-                                            beneficiaryAmt: (parseFloat(UsrTransferFee) * parseFloat(amounts) * 0.3 + parseFloat(senderbeneficiaryAmt)).toFixed(0)
+                                            balance: (parseFloat(UsrTransferFee) * amountKes * 0.3 + parseFloat(SenderBeneficiarySenderUsrBal)).toFixed(0),
+                                            beneficiaryAmt: (parseFloat(UsrTransferFee) * amountKes * 0.3 + parseFloat(senderbeneficiaryAmt)).toFixed(0)
                                           }
                                         }
                                       });
@@ -299,8 +317,8 @@ const SMASendNonLns = props => {
                                         variables: {
                                           input: {
                                             awsemail: receiverbeneficiary,
-                                            balance: (parseFloat(UsrTransferFee) * parseFloat(amounts) * 0.3 + parseFloat(RecBeneficiaryUsrBal)).toFixed(0),
-                                            beneficiaryAmt: (parseFloat(UsrTransferFee) * parseFloat(amounts) * 0.3 + parseFloat(receiverbeneficiaryAmt)).toFixed(0)
+                                            balance: (parseFloat(UsrTransferFee) * amountKes * 0.3 + parseFloat(RecBeneficiaryUsrBal)).toFixed(0),
+                                            beneficiaryAmt: (parseFloat(UsrTransferFee) * amountKes * 0.3 + parseFloat(receiverbeneficiaryAmt)).toFixed(0)
                                           }
                                         }
                                       });
@@ -325,10 +343,10 @@ const SMASendNonLns = props => {
                                         variables: {
                                           input: {
                                             AdminId: "BaruchHabaB'ShemAdonai2",
-                                            companyEarningBal: parseFloat(UsrTransferFee) * parseFloat(amounts) + parseFloat(companyEarningBals),
-                                            companyEarning: parseFloat(UsrTransferFee) * parseFloat(amounts) + parseFloat(companyEarnings),
-                                            ttlNonLonssRecSM: parseFloat(amounts) + parseFloat(ttlNonLonssRecSMs),
-                                            ttlNonLonssSentSM: parseFloat(amounts) + parseFloat(ttlNonLonssSentSMs)
+                                            companyEarningBal: parseFloat(UsrTransferFee) * amountKes + parseFloat(companyEarningBals),
+                                            companyEarning: parseFloat(UsrTransferFee) * amountKes + parseFloat(companyEarnings),
+                                            ttlNonLonssRecSM: amountKes + parseFloat(ttlNonLonssRecSMs),
+                                            ttlNonLonssSentSM: amountKes + parseFloat(ttlNonLonssSentSMs)
                                           }
                                         }
                                       });
@@ -339,8 +357,8 @@ const SMASendNonLns = props => {
                                         return;
                                       }
                                     }
-                                    Alert.alert("Amount: " + formatAmountSync(parseFloat(amounts), nationality, ratesMap) + ". Transaction fee: " + formatAmountSync(UsrTransferFeeAmt, nationality, ratesMap));
-                                    Communications.textWithoutEncoding(phonecontact, 'Hi ' + namess + ', ' + names + ' has sent you a non loan of ' + formatAmountSync(parseFloat(amounts), nationality, ratesMap) + '. For clarification call the sender ' + attributes.phone_number + '. Thank you. MiFedha');
+                                    Alert.alert("Amount: " + formatUserInputAmount(amountForeign) + ". Transaction fee: " + formatAmountSync(UsrTransferFeeAmt, senderNat || nationality, ratesMap));
+                                    Communications.textWithoutEncoding(phonecontact, 'Hi ' + namess + ', ' + names + ' has sent you a non loan of ' + formatUserInputAmount(amountForeign) + '. For clarification call the sender ' + attributes.phone_number + '. Thank you. MiFedha');
                                     setIsLoading(false);
                                   };
                                   if (userInfo.userId !== owner) {
@@ -356,13 +374,13 @@ const SMASendNonLns = props => {
                                     Alert.alert('Receiver ID be verified through deposit at MFNdogo');
                                   } else if (UsrTransferFee2 < 0) {
                                     Alert.alert('Requested amount is more than you have in your account');
-                                  } else if (parseFloat(RecUsrBal) + parseFloat(amounts) > parseFloat(MaxAcBals)) {
+                                  } else if (parseFloat(RecUsrBal) + amountKes > parseFloat(MaxAcBals)) {
                                     Alert.alert('Receiver Call customer care to have wallet capacity adjusted');
                                   } else if (usrPW !== SnderPW) {
                                     Alert.alert('Wrong password');
                                   } else if (userInfo.userId !== SenderSub) {
                                     Alert.alert('Please send from your own  account');
-                                  } else if (parseFloat(loanLimits) < parseFloat(amounts)) {
+                                  } else if (parseFloat(loanLimits) < amountKes) {
                                     Alert.alert('Call ' + CompPhoneContact + ' to have your send Amount limit adjusted');
                                   } else if (Lonees1.data.listSMLoansCovereds.items.length > 0 || Lonees3.data.listCovCreditSellers.items.length > 0 || Lonees5.data.listCvrdGroupLoans.items.length > 0) {
                                     SndChmMmbrMny();
@@ -456,46 +474,6 @@ const SMASendNonLns = props => {
     setDesc("");
     setSnderPW("");
   };
-  useEffect(() => {
-    const SnderNatIds = SenderNatId;
-    if (!SnderNatIds && SnderNatIds !== "") {
-      setSenderNatId("");
-      return;
-    }
-    setSenderNatId(SnderNatIds);
-  }, [SenderNatId]);
-  useEffect(() => {
-    const amt = amounts;
-    if (!amt && amt !== "") {
-      setAmount("");
-      return;
-    }
-    setAmount(amt);
-  }, [amounts]);
-  useEffect(() => {
-    const RecNatIds = RecNatId;
-    if (!RecNatIds && RecNatIds !== "") {
-      setRecNatId("");
-      return;
-    }
-    setRecNatId(RecNatIds);
-  }, [RecNatId]);
-  useEffect(() => {
-    const descr = Desc;
-    if (!descr && descr !== "") {
-      setDesc("");
-      return;
-    }
-    setDesc(descr);
-  }, [Desc]);
-  useEffect(() => {
-    const SnderPWss = SnderPW;
-    if (!SnderPWss && SnderPWss !== "") {
-      setSnderPW("");
-      return;
-    }
-    setSnderPW(SnderPWss);
-  }, [SnderPW]);
   return <View>
       <View style={styles.image}>
         <ScrollView>
@@ -512,7 +490,7 @@ const SMASendNonLns = props => {
           </View>
 
           <View style={styles.sendAmtView}>
-            <TextInput keyboardType={"decimal-pad"} value={amounts} onChangeText={setAmount} style={styles.sendAmtInput} editable={true}></TextInput>
+            <TextInput keyboardType={"decimal-pad"} placeholder={`${currencySymbol} Amount`} value={amounts} onChangeText={setAmount} style={styles.sendAmtInput} editable={true}></TextInput>
               
             <Text style={styles.sendAmtText}>Amount Sent</Text>
           </View>

@@ -36,7 +36,7 @@ const ChmInfo = (props:ChmaInfo) => {
 
    const SndChmMmbrMny = () => {
       navigation.navigate("TakeOverBizna", {BusKntct})
-   }
+   };
 
     return (
 
@@ -55,4 +55,4 @@ const ChmInfo = (props:ChmaInfo) => {
     );
 }; 
 
-export default ChmInfo
+export default ChmInfo;

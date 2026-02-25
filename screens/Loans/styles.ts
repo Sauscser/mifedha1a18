@@ -1,17 +1,23 @@
-import { StyleSheet } from 'react-native';
+import { StyleSheet, Dimensions, Platform } from 'react-native';
+const { height } = Dimensions.get('window');
+const isCompact = height < 700;
+const spacing = isCompact ? 8 : 12;
+const buttonPadding = isCompact ? 8 : 12;
+const titleSize = isCompact ? 16 : 18;
+const bodySize = isCompact ? 13 : 16;
 const styles = StyleSheet.create({
   // Background and container for the entire page
   adminImage: {
     flex: 1,
     backgroundColor: '#f9f9f9',
-    paddingTop: 20
+    paddingTop: isCompact ? 8 : 16
   },
   // View for each section with shadows and rounded corners
   clientsView: {
-    marginBottom: 20,
-    padding: 15,
+    marginBottom: spacing,
+    padding: spacing,
     backgroundColor: 'white',
-    borderRadius: 10,
+    borderRadius: isCompact ? 8 : 10,
     elevation: 5,
     shadowColor: 'black',
     shadowOpacity: 0.1,
@@ -26,11 +32,11 @@ const styles = StyleSheet.create({
   },
   // Section title text
   salesText: {
-    fontSize: 20,
+    fontSize: titleSize + 2,
     fontWeight: 'bold',
     color: '#FF8C00',
     // Orange
-    marginBottom: 15,
+    marginBottom: spacing,
     textTransform: 'uppercase',
     textAlign: 'center' // Center the title text
   },
@@ -43,19 +49,19 @@ const styles = StyleSheet.create({
   },
   // Categories view (each category like "Grant Loan Requests")
   viewForClientsCategories: {
-    marginBottom: 20,
-    paddingHorizontal: 10,
+    marginBottom: spacing,
+    paddingHorizontal: spacing,
     alignItems: 'center',
     // Center categories horizontally
     justifyContent: 'center' // Center categories vertically
   },
   // Text for category titles (e.g., "Grant Loan Requests")
   salesPressableText: {
-    fontSize: 18,
+    fontSize: titleSize,
     fontWeight: '600',
     color: '#1E90FF',
     // Sky Blue
-    marginBottom: 8,
+    marginBottom: isCompact ? 6 : 8,
     textAlign: 'center' // Center the category title text
   },
   // Container for all pressable buttons in a category
@@ -69,9 +75,9 @@ const styles = StyleSheet.create({
   },
   // Base style for each button (Pressable)
   ClientsPressables: {
-    paddingVertical: 12,
-    borderRadius: 8,
-    marginBottom: 12,
+    paddingVertical: buttonPadding,
+    borderRadius: isCompact ? 6 : 8,
+    marginBottom: isCompact ? 8 : 12,
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#FF8C00',
@@ -88,28 +94,28 @@ const styles = StyleSheet.create({
   },
   // Text inside the pressable buttons
   clientsPressableText: {
-    fontSize: 16,
+    fontSize: bodySize,
     color: 'white',
     fontWeight: '600',
     textAlign: 'center'
   },
   // Linear gradient style for each button for the professional look
   clientsPressableGradient: {
-    borderRadius: 8,
-    paddingVertical: 12,
+    borderRadius: isCompact ? 6 : 8,
+    paddingVertical: buttonPadding,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 12,
-    width: '80%' // Make the buttons take up more space for a cleaner look
+    marginBottom: isCompact ? 8 : 12,
+    width: isCompact ? '92%' : '85%' // Make the buttons take up more space for a cleaner look
   },
   // Gradient style for the buttons (orange to sky blue)
   gradientPressable: {
-    borderRadius: 8,
-    paddingVertical: 12,
-    width: '80%',
+    borderRadius: isCompact ? 6 : 8,
+    paddingVertical: buttonPadding,
+    width: isCompact ? '92%' : '85%',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 12
+    marginBottom: isCompact ? 8 : 12
   }
 });
 export default styles;

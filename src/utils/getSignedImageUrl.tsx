@@ -1,5 +1,5 @@
 import { generateClient } from 'aws-amplify/api';
-import { getCurrentUser, fetchUserAttributes } from '@aws-amplify/auth';
+import { getCurrentUser, fetchUserAttributes } from 'aws-amplify/auth';
 import { uploadData, getUrl } from '@aws-amplify/storage';
 // utils/getSignedImageUrl.ts
 import { Storage } from 'aws-amplify';

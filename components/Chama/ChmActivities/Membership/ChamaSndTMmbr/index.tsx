@@ -41,4 +41,4 @@ const ChmMbrShpInfo = (props:ChamaMmbrshpInfo) => {
     );
 }; 
 
-export default ChmMbrShpInfo
+export default ChmMbrShpInfo;

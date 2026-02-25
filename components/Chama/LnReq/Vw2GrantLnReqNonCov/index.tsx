@@ -31,7 +31,7 @@ const SMCvLnStts = (props:SMAccount) => {
         id
    }} = props ;
 
-   const[isLoading, setIsLoading] = useState(false);
+   const [isLoading, setIsLoading] = useState(false);
    const navigation = useNavigation();
    
 
@@ -87,4 +87,4 @@ const SMCvLnStts = (props:SMAccount) => {
     );
 }; 
 
-export default SMCvLnStts
+export default SMCvLnStts;

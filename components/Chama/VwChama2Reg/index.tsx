@@ -65,4 +65,4 @@ style = {styles.loanFriendButton}
     );
 }; 
 
-export default SMCvLnStts
+export default SMCvLnStts;

@@ -665,6 +665,7 @@ const HomeNavigator = ({ navigation }: any) => {
 
   return (
     <Stack.Navigator
+      id="HomeStackNavigator"
       screenOptions={{
         headerShown: false,
       }}>

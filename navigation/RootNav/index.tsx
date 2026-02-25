@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createDrawerNavigator } from '@react-navigation/drawer';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -26,7 +26,7 @@ export type RootNavProps = {
 const Stack = createNativeStackNavigator();
 
 const RedirectToHome = ({ navigation, route }: any) => {
-  React.useEffect(() => {
+  useEffect(() => {
     // forward to nested Home stack: Stack 'DrawerRoot' -> Drawer 'Homes' -> BottomTab 'Home' -> target screen
     // use replace so the redirect placeholder is not left on the stack
     navigation.replace('DrawerRoot', { screen: 'Homes', params: { screen: 'Home', params: { screen: route.name, params: route.params } } });

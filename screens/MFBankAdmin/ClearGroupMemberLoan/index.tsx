@@ -18,7 +18,7 @@ import { formatAmountSync } from '../../../src/utils/exchange';
 import { getUrl } from '@aws-amplify/storage';
 import ImageViewer from 'react-native-image-zoom-viewer';
 import { LinearGradient } from 'expo-linear-gradient';
-import RNPrint from 'react-native-print';
+import { printAsync } from '../../../src/utils/print';
 
 import {
   listGroups,
@@ -453,7 +453,7 @@ return fullMinutes;
         </body>
         </html>
       `;
-      await RNPrint.print({ html });
+      await printAsync({ html });
     } catch (err) {
       console.error(err);
       Alert.alert('PDF Error', 'Failed to export minutes PDF');
@@ -613,7 +613,7 @@ ${minutes ? `
 
 
       `;
-      await RNPrint.print({ html });
+      await printAsync({ html });
     } catch (err) {
       console.error(err);
       Alert.alert('PDF Error', 'Failed to export loan report PDF');

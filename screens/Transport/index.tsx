@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useNavigation } from '@react-navigation/native';
 import { View, Text, ImageBackground, Pressable, FlatList, SafeAreaView, ScrollView, Dimensions } from 'react-native';
 import styles from './styles';
@@ -73,7 +73,7 @@ const MyAccount = (props: any) => {
   };
 
   const nav: any = navigation;
-  React.useEffect(() => {
+  useEffect(() => {
     // defer navigation to effect so it doesn't run during render
     try {
       navigation.navigate('Homes', { screen: 'RegisterTransport' });

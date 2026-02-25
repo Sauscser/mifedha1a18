@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet, ActivityIndicator, Alert, Modal, Image } from 'react-native';
 import { useRoute } from '@react-navigation/native';
-import RNPrint from 'react-native-print';
+import { printAsync } from '../../../../src/utils/print';
 import { listReqLoanChamas, listChamaMembers, listChamaLnApprovals, listChamaMinutes, listMinuteItemsByMinutes, listAttendanceByMinutes } from '../../../../src/graphql/queries';
 import { createChamaLnApproval, updateReqLoanChama } from '../../../../src/graphql/mutations';
 import { generateClient } from 'aws-amplify/api';
@@ -194,7 +194,7 @@ const FloatedLoansList = () => {
         </body>
         </html>
       `;
-      await RNPrint.print({ html });
+      await printAsync({ html });
     } catch (err) {
       console.error(err);
       Alert.alert("PDF Error", "Failed to export minutes PDF");

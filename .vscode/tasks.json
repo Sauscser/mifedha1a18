@@ -1,0 +1,31 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Build Android APK (release)",
+			"type": "shell",
+			"command": "gradlew",
+			"args": [
+				"assembleRelease"
+			],
+			"isBackground": false,
+			"problemMatcher": [
+				"$gradle"
+			],
+			"group": "build"
+		},
+		{
+			"label": "Build Android APK (release) (gradlew.bat)",
+			"type": "shell",
+			"command": "./android/gradlew.bat",
+			"args": [
+				"assembleRelease"
+			],
+			"isBackground": false,
+			"problemMatcher": [
+				"$gradle"
+			],
+			"group": "build"
+		}
+	]
+}

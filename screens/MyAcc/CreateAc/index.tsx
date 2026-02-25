@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { createSMAccount, updateCompany } from '../../../src/graphql/mutations';
 import { getCompany, listSMAccounts } from '../../../src/graphql/queries';
 import { getCurrentUser, fetchUserAttributes, updateUserAttribute, updateUserAttributes } from 'aws-amplify/auth';
@@ -396,83 +396,78 @@ const officialDocumentByCountry: Record<string, string> = {
     feedback: string;
   } | null>(null);
 
-
   /* ================= COUNTRY + DOCUMENT DERIVATION ================= */
 
-const phoneUtil = PhoneNumberUtil.getInstance();
+  const phoneUtil = PhoneNumberUtil.getInstance();
 
-const [countryCode, setCountryCode] = useState<string | any>(null);
+  const [countryCode, setCountryCode] = useState<string | any>(null);
 
+  const officialDocument =
+    (countryCode ? officialDocumentByCountry[countryCode] : "") || "Passport Number";
 
-const officialDocument =
-  (countryCode ? officialDocumentByCountry[countryCode] : "") || "Passport Number";
-
-const isPassport = officialDocument.includes("Passport");
+  const isPassport = officialDocument.includes("Passport");
 
 const nationality =
   (countryCode ? countryNamesByCode[countryCode] : "") || "Unknown Country";
 
-
- React.useEffect(() => {
-  const deriveCountry = async () => {
-    try {
-      const userInfo = await getCurrentUser();
-      const attributes = await fetchUserAttributes();
-      const phone = attributes.phone_number;
-
-      if (!phone) {
-        setCountryCode(null);
-        return;
-      }
-
-      // Normalize phone string (remove spaces)
-      const normalized = phone.replace(/\s+/g, "");
-      
-      // Ensure phone starts with + for proper E.164 parsing
-      const phoneWithPlus = normalized.startsWith('+') ? normalized : '+' + normalized;
-
-      // Parse directly - works well for E.164 format
-      let number;
-      let region;
-      
+  useEffect(() => {
+    const deriveCountry = async () => {
       try {
-        number = phoneUtil.parse(phoneWithPlus);
-        region = phoneUtil.getRegionCodeForNumber(number) || null;
-        console.log('Initial parse result. Region:', region);
-      } catch (e) {
-        console.log('Parse failed, skipping region derivation:', e);
-        region = null;
+        const userInfo = await getCurrentUser();
+        const attributes = await fetchUserAttributes();
+        const phone = attributes.phone_number;
+
+        if (!phone) {
+          setCountryCode(null);
+          return;
+        }
+
+        // Normalize phone string (remove spaces)
+        const normalized = phone.replace(/\s+/g, "");
+        
+        // Ensure phone starts with + for proper E.164 parsing
+        const phoneWithPlus = normalized.startsWith('+') ? normalized : '+' + normalized;
+
+        // Parse directly - works well for E.164 format
+        let number;
+        let region;
+        
+        try {
+          number = phoneUtil.parse(phoneWithPlus);
+          region = phoneUtil.getRegionCodeForNumber(number) || null;
+          console.log('Initial parse result. Region:', region);
+        } catch (e) {
+          console.log('Parse failed, skipping region derivation:', e);
+          region = null;
+        }
+
+        // Only set countryCode — nationality and officialDocument
+        // will be derived automatically from your existing state logic
+        setCountryCode(region);
+      } catch (err) {
+        console.log("Country derivation failed:", err);
+        setCountryCode(null);
       }
+    };
 
-      // Only set countryCode — nationality and officialDocument
-      // will be derived automatically from your existing state logic
-      setCountryCode(region);
-    } catch (err) {
-      console.log("Country derivation failed:", err);
-      setCountryCode(null);
-    }
-  };
+    deriveCountry();
+  }, []);
 
-  deriveCountry();
-}, []);
+  useEffect(() => {
+    const validatePhoneOnLoad = async () => {
+      try {
+        const userInfo = await getCurrentUser();
+        const attributes = await fetchUserAttributes();
+        const phone = attributes.phone_number;
 
-/* ================= PHONE VALIDATION DIALOG ================= */
+        if (!phone) {
+          // No phone in Cognito; skip automatic validation - we'll collect phone via the form
+          return;
+        }
 
-React.useEffect(() => {
-  const validatePhoneOnLoad = async () => {
-    try {
-      const userInfo = await getCurrentUser();
-      const attributes = await fetchUserAttributes();
-      const phone = attributes.phone_number;
-
-      if (!phone) {
-        // No phone in Cognito; skip automatic validation - we'll collect phone via the form
-        return;
-      }
-
-      const normalized = (phone || '').replace(/\s+/g, "");
-      
-      // Ensure phone starts with + for proper E.164 parsing
+        const normalized = (phone || '').replace(/\s+/g, "");
+        
+        // Ensure phone starts with + for proper E.164 parsing
       const phoneWithPlus = normalized.startsWith('+') ? normalized : '+' + normalized;
 
       // Parse and validate
@@ -1304,7 +1299,7 @@ if (pword.length < 8) {
   };
 
   const CountrySelectModal = () => {
-    const [search, setSearch] = React.useState('');
+    const [search, setSearch] = useState('');
     const s = (search || '').toLowerCase().trim();
     const filtered = (countries as any[])
       .filter((c: any) => {

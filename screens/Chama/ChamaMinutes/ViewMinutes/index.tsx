@@ -9,7 +9,7 @@ import {
   TouchableOpacity,
   Alert,
 } from "react-native";
-import RNPrint from "react-native-print";
+import { printAsync } from "../../../../src/utils/print";
 import { generateClient } from "aws-amplify/api";
 import { getCurrentUser, fetchUserAttributes } from "aws-amplify/auth";
 import { getUrl } from "aws-amplify/storage";
@@ -259,7 +259,7 @@ const ViewMinutesScreen = ({ route }) => {
           </body>
         </html>
       `;
-      await RNPrint.print({ html });
+      await printAsync({ html });
     } catch (err) {
       Alert.alert("PDF Error", "Unable to export minutes");
     }

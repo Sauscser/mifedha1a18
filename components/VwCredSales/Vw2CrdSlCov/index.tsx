@@ -56,4 +56,4 @@ const CredSlrCvLnStts = (props:ChmCvLnSttusRec) => {
     );
 }; 
 
-export default CredSlrCvLnStts
+export default CredSlrCvLnStts;

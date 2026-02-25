@@ -1,11 +1,14 @@
 import { useNavigation } from '@react-navigation/native';
-import React, { useState } from 'react';
 import {View, Text,   ScrollView, Pressable} from 'react-native';
 
 
 import styles from './styles';
-import { TouchableOpacity } from 'react-native-gesture-handler';
-
+import React, {useEffect, useState} from 'react';
+import { formatAmountSync } from '../../../../src/utils/exchange';
+import { nationalityToCode } from '../../../../src/utils/nationalityToCode';
+import {useExchange} from '../../../../src/contexts/ExchangeContext';
+import { generateClient } from 'aws-amplify/api';  
+import { getSMAccount } from '../../../../src/graphql/queries';
 
 export interface SMAccount {
     SMAc: {
@@ -23,7 +26,7 @@ const SMCvLnStts = (props:SMAccount) => {
         groupContact
    }} = props ;
 
-   const[isLoading, setIsLoading] = useState(false);
+   const [isLoading, setIsLoading] = useState(false);
    const navigation = useNavigation();
    
 
@@ -51,4 +54,4 @@ const SMCvLnStts = (props:SMAccount) => {
     );
 }; 
 
-export default SMCvLnStts
+export default SMCvLnStts;
