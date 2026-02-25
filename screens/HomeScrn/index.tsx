@@ -9,6 +9,7 @@ import { createNotification, updateNotification } from '../../src/graphql/mutati
 import { getUrl } from 'aws-amplify/storage';
 import { LinearGradient } from 'expo-linear-gradient';
 import { FontAwesome, MaterialCommunityIcons } from '@expo/vector-icons';
+
 const {
   height,
   width
@@ -288,9 +289,9 @@ const HomeScreen = () => {
           {/* ================= QUICK EXCHANGE RATES BUTTON ================= */}
           <View style={styles.quickRatesButtonContainer}>
             <LinearGradient colors={['#72ebd8', '#34a4a1']} style={styles.quickRatesButton}>
-              <TouchableOpacity style={styles.quickRatesButton} onPress={() => navigateTo('UpdateExRates2')}>
-                <MaterialCommunityIcons name="currency-usd" size={16} color="#ffffff" style={styles.quickRatesIcon} />
-                <Text style={styles.quickRatesButtonText}>Exchange Rates</Text>
+              <TouchableOpacity style={styles.quickRatesButton} onPress={() => navigateTo('UpdateExRates')}>
+                <FontAwesome name="exchange" size={16} color="#ffffff" style={styles.quickRatesIcon} />
+                <Text style={styles.quickRatesButtonText}>View Rates</Text>
               </TouchableOpacity>
             </LinearGradient>
           </View>
