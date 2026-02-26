@@ -1,13 +1,13 @@
 import React, { useEffect, useState } from 'react';
-import Communications from 'react-native-communications';
-import { createSMLoansCovered, createNonLoans, updateCompany, updateSMAccount, updateSMLoansCovered, createLoanRepayments } from '../../../../../../../src/graphql/mutations';
+import { createSMLoansCovered, createNonLoans, updateCompany, updateSMAccount, updateSMLoansCovered, createLoanRepayments, createMessages, sendNotification } from '../../../../../../../src/graphql/mutations';
 import { getCompany, getSMAccount, getSMLoansCovered } from '../../../../../../../src/graphql/queries';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { View, Text, ImageBackground, Pressable, TextInput, ScrollView, KeyboardAvoidingView, Platform, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
 import styles from './styles';
 import { getCurrentUser, fetchUserAttributes } from "aws-amplify/auth";
 import { useExchange } from '../../../../../../../src/contexts/ExchangeContext';
-import { getUserNationalityByEmail, formatAmountForUser, formatAmountSync } from '../../../../../../../src/utils/exchange';
+import { convertForeignToKsh, getUserNationalityByEmail, formatAmountForUser, formatAmountSync } from '../../../../../../../src/utils/exchange';
+import { nationalityToCode } from '../../../../../../../src/utils/nationalityToCode';
 import { generateClient } from "aws-amplify/api";
 const client = generateClient();
 const RepayCovLnsss = props => {
@@ -21,7 +21,20 @@ const RepayCovLnsss = props => {
     if (isLoading) {
       return;
     }
-    setIsLoading(false);
+    setIsLoading(true);
+    const amountForeign = parseFloat(amounts);
+    if (!Number.isFinite(amountForeign) || amountForeign <= 0) {
+      Alert.alert("Enter a valid repayment amount");
+      setIsLoading(false);
+      return;
+    }
+    const currencyKey = nationalityToCode(nationality);
+    const amountKes = await convertForeignToKsh(amountForeign, currencyKey);
+    if (!Number.isFinite(amountKes) || amountKes <= 0) {
+      Alert.alert("Unable to convert amount. Please try again.");
+      setIsLoading(false);
+      return;
+    }
     const userInfo = await getCurrentUser();
     const attributes = await fetchUserAttributes();
     try {
@@ -89,7 +102,7 @@ const RepayCovLnsss = props => {
           const netLnBal = parseFloat(amountExpectedBackWthClrncs) - parseFloat(clearanceAmts) - parseFloat(DefaultPenaltySM2s);
           const netLnBal2 = netLnBalz * Math.pow(1 + parseFloat(interest) / 36500, tmDif2);
           const LonBal1 = (netLnBal2 + parseFloat(clearanceAmts) + parseFloat(DefaultPenaltySM2s)).toFixed(0);
-          const LoanBalz = parseFloat(LonBal1) - parseFloat(amounts);
+          const LoanBalz = parseFloat(LonBal1) - amountKes;
           const fetchCompDtls = async () => {
             if (isLoading) {
               return;
@@ -111,7 +124,7 @@ const RepayCovLnsss = props => {
               const companyEarnings = CompDtls.data.getCompany.companyEarning;
               const ttlNonLonssRecSMs = CompDtls.data.getCompany.ttlNonLonssRecSM;
               const ttlNonLonssSentSMs = CompDtls.data.getCompany.ttlNonLonssSentSM;
-              const TotalTransacted = parseFloat(amounts) + parseFloat(UsrTransferFee) * parseFloat(amounts);
+              const TotalTransacted = amountKes + parseFloat(UsrTransferFee) * amountKes;
               const maxBLss = CompDtls.data.getCompany.maxBLs;
               const fetchRecUsrDtls = async () => {
                 if (isLoading) {
@@ -150,7 +163,7 @@ const RepayCovLnsss = props => {
                             awsemail: attributes.email,
                             balance: (parseFloat(SenderUsrBal) - TotalTransacted).toFixed(0),
                             TtlClrdLonsTmsLneeCov: 1 + parseFloat(TtlClrdLonsTmsLneeCovs),
-                            TtlClrdLonsAmtLneeCov: (parseFloat(TtlClrdLonsAmtLneeCovs) + parseFloat(amounts)).toFixed(0),
+                            TtlClrdLonsAmtLneeCov: (parseFloat(TtlClrdLonsAmtLneeCovs) + amountKes).toFixed(0),
                             MaxTymsBL: 0
                           }
                         }
@@ -177,9 +190,9 @@ const RepayCovLnsss = props => {
                             awsemail: attributes.email,
                             balance: (parseFloat(SenderUsrBal) - TotalTransacted).toFixed(0),
                             TtlClrdLonsTmsLneeCov: 1 + parseFloat(TtlClrdLonsTmsLneeCovs),
-                            TtlClrdLonsAmtLneeCov: (parseFloat(TtlClrdLonsAmtLneeCovs) + parseFloat(amounts)).toFixed(0),
+                            TtlClrdLonsAmtLneeCov: (parseFloat(TtlClrdLonsAmtLneeCovs) + amountKes).toFixed(0),
                             TtlBLLonsTmsLneeCov: parseFloat(TtlBLLonsTmsLneeCovs) - 1,
-                            TtlBLLonsAmtLneeCov: (parseFloat(TtlBLLonsAmtLneeCovs) - parseFloat(amounts)).toFixed(0),
+                            TtlBLLonsAmtLneeCov: (parseFloat(TtlBLLonsAmtLneeCovs) - amountKes).toFixed(0),
                             MaxTymsBL: parseFloat(MaxTymsBLs) - 1
                           }
                         }
@@ -204,7 +217,7 @@ const RepayCovLnsss = props => {
                         variables: {
                           input: {
                             loanID: route.params.loanID,
-                            amountrepaid: (parseFloat(amounts) + parseFloat(amountrepaids)).toFixed(0),
+                            amountrepaid: (amountKes + parseFloat(amountrepaids)).toFixed(0),
                             lonBala: LoanBalz.toFixed(0),
                             amountExpectedBackWthClrnc: LoanBalz.toFixed(0),
                             status: "LoanCleared",
@@ -240,7 +253,7 @@ const RepayCovLnsss = props => {
                             loanId1: route.params.loanID,
                             loanId2: "route.params.id",
                             loanId3: "route.params.id",
-                            amount: parseFloat(amounts).toFixed(0),
+                            amount: amountKes.toFixed(0),
                             description: Desc,
                             status: "SMLonRepayment",
                             owner: userInfo.userId
@@ -267,11 +280,11 @@ const RepayCovLnsss = props => {
                         variables: {
                           input: {
                             awsemail: loanerEmail,
-                            balance: (parseFloat(RecUsrBal) + (parseFloat(amounts) - clearanceAmts)).toFixed(0),
+                            balance: (parseFloat(RecUsrBal) + (amountKes - clearanceAmts)).toFixed(0),
                             MaxTymsIHvBL: parseFloat(MaxTymsIHvBLs) - 1,
                             TymsMyLnClrd: parseFloat(TymsMyLnClrds) + 1,
                             TtlClrdLonsTmsLnrCov: parseFloat(TtlClrdLonsTmsLnrCovssss) + 1,
-                            TtlClrdLonsAmtLnrCov: (parseFloat(TtlClrdLonsAmtLnrCovssss) + parseFloat(amounts)).toFixed(0)
+                            TtlClrdLonsAmtLnrCov: (parseFloat(TtlClrdLonsAmtLnrCovssss) + amountKes).toFixed(0)
                           }
                         }
                       });
@@ -296,10 +309,10 @@ const RepayCovLnsss = props => {
                         variables: {
                           input: {
                             AdminId: "BaruchHabaB'ShemAdonai2",
-                            companyEarningBal: UsrTransferFee * parseFloat(amounts) + parseFloat(companyEarningBals) + clearanceAmts,
-                            companyEarning: UsrTransferFee * parseFloat(amounts) + parseFloat(companyEarnings) + clearanceAmts,
-                            totalLnsRecovered: parseFloat(totalLnsRecovereds) + parseFloat(amounts),
-                            ttlSMLnsInClrdAmtCov: parseFloat(ttlSMLnsInClrdAmtCovs) + parseFloat(amounts),
+                            companyEarningBal: UsrTransferFee * amountKes + parseFloat(companyEarningBals) + clearanceAmts,
+                            companyEarning: UsrTransferFee * amountKes + parseFloat(companyEarnings) + clearanceAmts,
+                            totalLnsRecovered: parseFloat(totalLnsRecovereds) + amountKes,
+                            ttlSMLnsInClrdAmtCov: parseFloat(ttlSMLnsInClrdAmtCovs) + amountKes,
                             ttlSMLnsInClrdTymsCov: parseFloat(ttlSMLnsInClrdTymsCovs) + 1
                           }
                         }
@@ -310,14 +323,42 @@ const RepayCovLnsss = props => {
                         return;
                       }
                     }
-                    Alert.alert("Cleared. ClearanceFee: " + ClranceAmt.toFixed(2) + ". Transaction: " + (parseFloat(UsrTransferFee) * parseFloat(amounts)).toFixed(2));
+                    Alert.alert("Cleared. ClearanceFee: " + ClranceAmt.toFixed(2) + ". Transaction: " + (parseFloat(UsrTransferFee) * amountKes).toFixed(2));
                     try {
                       const loanerNat = await getUserNationalityByEmail(loanerEmail);
-                      const formattedAmt = await formatAmountForUser(parseFloat(amounts), loanerNat);
-                      Communications.textWithoutEncoding(phonecontactz, 'Hi ' + namess + ', your loan of ID ' + route.params.loanID + ' has been repaid ' + formattedAmt + ' by ' + names + '. For clarification call the loanee: ' + attributes.phone_number + '. Thank you. MiFedha');
+                      const formattedAmt = await formatAmountForUser(amountKes, loanerNat);
+                      const repayMessage1 = 'Hi ' + namess + ', your loan of ID ' + route.params.loanID + ' has been repaid ' + formattedAmt + ' by ' + names + '. For clarification call the loanee: ' + attributes.phone_number + '. Thank you. MiFedha';
+                      try {
+                        const msgRes = await client.graphql({
+                          query: createMessages,
+                          variables: { input: { senderEmail: phonecontactz, messageBody: repayMessage1 }}
+                        });
+                        if (msgRes?.data?.createMessages) {
+                          await client.graphql({
+                            query: sendNotification,
+                            variables: { riderEmail: phonecontactz, title: 'MiFedha: Loan Repaid', body: repayMessage1 }
+                          });
+                        }
+                      } catch (notifErr) {
+                        console.log('Notification error:', notifErr);
+                      }
                     } catch (e) {
-                      const formattedFallback = formatAmountSync(parseFloat(amounts), nationality, ratesMap);
-                      Communications.textWithoutEncoding(phonecontactz, 'Hi ' + namess + ', your loan of ID ' + route.params.loanID + ' has been repaid ' + formattedFallback + ' by ' + names + '. For clarification call the loanee: ' + attributes.phone_number + '. Thank you. MiFedha');
+                      const formattedFallback = formatAmountSync(amountKes, nationality, ratesMap);
+                      const repayMessage2 = 'Hi ' + namess + ', your loan of ID ' + route.params.loanID + ' has been repaid ' + formattedFallback + ' by ' + names + '. For clarification call the loanee: ' + attributes.phone_number + '. Thank you. MiFedha';
+                      try {
+                        const msgRes = await client.graphql({
+                          query: createMessages,
+                          variables: { input: { senderEmail: phonecontactz, messageBody: repayMessage2 }}
+                        });
+                        if (msgRes?.data?.createMessages) {
+                          await client.graphql({
+                            query: sendNotification,
+                            variables: { riderEmail: phonecontactz, title: 'MiFedha: Loan Repaid', body: repayMessage2 }
+                          });
+                        }
+                      } catch (notifErr) {
+                        console.log('Notification error:', notifErr);
+                      }
                     }
                     setIsLoading(false);
                   };
@@ -332,7 +373,7 @@ const RepayCovLnsss = props => {
                         variables: {
                           input: {
                             loanID: route.params.loanID,
-                            amountrepaid: (parseFloat(amounts) + parseFloat(amountrepaids)).toFixed(0),
+                            amountrepaid: (amountKes + parseFloat(amountrepaids)).toFixed(0),
                             lonBala: LoanBalz.toFixed(0),
                             DefaultPenaltySM2: 0,
                             amountExpectedBackWthClrnc: LoanBalz.toFixed(0),
@@ -367,7 +408,7 @@ const RepayCovLnsss = props => {
                             loanId1: route.params.loanID,
                             loanId2: "route.params.id",
                             loanId3: "route.params.id",
-                            amount: parseFloat(amounts).toFixed(0),
+                            amount: amountKes.toFixed(0),
                             description: Desc,
                             status: "SMLonRepayment",
                             owner: userInfo.userId
@@ -394,7 +435,7 @@ const RepayCovLnsss = props => {
                         variables: {
                           input: {
                             awsemail: attributes.email,
-                            TtlClrdLonsAmtLneeCov: (parseFloat(TtlClrdLonsAmtLneeCovs) + parseFloat(amounts)).toFixed(0),
+                            TtlClrdLonsAmtLneeCov: (parseFloat(TtlClrdLonsAmtLneeCovs) + amountKes).toFixed(0),
                             balance: (parseFloat(SenderUsrBal) - TotalTransacted).toFixed(0)
                           }
                         }
@@ -420,8 +461,8 @@ const RepayCovLnsss = props => {
                         variables: {
                           input: {
                             awsemail: loanerEmail,
-                            TtlClrdLonsAmtLnrCov: (parseFloat(TtlClrdLonsAmtLnrCovssss) + parseFloat(amounts)).toFixed(0),
-                            balance: (parseFloat(RecUsrBal) + parseFloat(amounts) - clearanceAmts).toFixed(0)
+                            TtlClrdLonsAmtLnrCov: (parseFloat(TtlClrdLonsAmtLnrCovssss) + amountKes).toFixed(0),
+                            balance: (parseFloat(RecUsrBal) + amountKes - clearanceAmts).toFixed(0)
                           }
                         }
                       });
@@ -446,10 +487,10 @@ const RepayCovLnsss = props => {
                         variables: {
                           input: {
                             AdminId: "BaruchHabaB'ShemAdonai2",
-                            ttlSMLnsInClrdAmtCov: parseFloat(ttlSMLnsInClrdAmtCovs) + parseFloat(amounts),
-                            companyEarningBal: UsrTransferFee * parseFloat(amounts) + parseFloat(companyEarningBals) + clearanceAmts,
-                            companyEarning: UsrTransferFee * parseFloat(amounts) + parseFloat(companyEarnings) + clearanceAmts,
-                            totalLnsRecovered: parseFloat(totalLnsRecovereds) + parseFloat(amounts)
+                            ttlSMLnsInClrdAmtCov: parseFloat(ttlSMLnsInClrdAmtCovs) + amountKes,
+                            companyEarningBal: UsrTransferFee * amountKes + parseFloat(companyEarningBals) + clearanceAmts,
+                            companyEarning: UsrTransferFee * amountKes + parseFloat(companyEarnings) + clearanceAmts,
+                            totalLnsRecovered: parseFloat(totalLnsRecovereds) + amountKes
                           }
                         }
                       });
@@ -459,14 +500,42 @@ const RepayCovLnsss = props => {
                         return;
                       }
                     }
-                    Alert.alert("Partially paid. Clearance: " + ClranceAmt.toFixed(2) + ". Transaction: " + (parseFloat(UsrTransferFee) * parseFloat(amounts)).toFixed(2));
+                    Alert.alert("Partially paid. Clearance: " + ClranceAmt.toFixed(2) + ". Transaction: " + (parseFloat(UsrTransferFee) * amountKes).toFixed(2));
                     try {
                       const loanerNat = await getUserNationalityByEmail(loanerEmail);
-                      const formattedAmt = await formatAmountForUser(parseFloat(amounts), loanerNat);
-                      Communications.textWithoutEncoding(phonecontactz, 'Hi ' + namess + ', your loan of ID ' + route.params.loanID + ' has been repaid ' + formattedAmt + ' by ' + names + '. For clarification call the loanee: ' + attributes.phone_number + '. Thank you. MiFedha');
+                      const formattedAmt = await formatAmountForUser(amountKes, loanerNat);
+                      const repayMessage3 = 'Hi ' + namess + ', your loan of ID ' + route.params.loanID + ' has been repaid ' + formattedAmt + ' by ' + names + '. For clarification call the loanee: ' + attributes.phone_number + '. Thank you. MiFedha';
+                      try {
+                        const msgRes = await client.graphql({
+                          query: createMessages,
+                          variables: { input: { senderEmail: phonecontactz, messageBody: repayMessage3 }}
+                        });
+                        if (msgRes?.data?.createMessages) {
+                          await client.graphql({
+                            query: sendNotification,
+                            variables: { riderEmail: phonecontactz, title: 'MiFedha: Loan Partially Repaid', body: repayMessage3 }
+                          });
+                        }
+                      } catch (notifErr) {
+                        console.log('Notification error:', notifErr);
+                      }
                     } catch (e) {
-                      const formattedFallback = formatAmountSync(parseFloat(amounts), nationality, ratesMap);
-                      Communications.textWithoutEncoding(phonecontactz, 'Hi ' + namess + ', your loan of ID ' + route.params.loanID + ' has been repaid ' + formattedFallback + ' by ' + names + '. For clarification call the loanee: ' + attributes.phone_number + '. Thank you. MiFedha');
+                      const formattedFallback = formatAmountSync(amountKes, nationality, ratesMap);
+                      const repayMessage4 = 'Hi ' + namess + ', your loan of ID ' + route.params.loanID + ' has been repaid ' + formattedFallback + ' by ' + names + '. For clarification call the loanee: ' + attributes.phone_number + '. Thank you. MiFedha';
+                      try {
+                        const msgRes = await client.graphql({
+                          query: createMessages,
+                          variables: { input: { senderEmail: phonecontactz, messageBody: repayMessage4 }}
+                        });
+                        if (msgRes?.data?.createMessages) {
+                          await client.graphql({
+                            query: sendNotification,
+                            variables: { riderEmail: phonecontactz, title: 'MiFedha: Loan Partially Repaid', body: repayMessage4 }
+                          });
+                        }
+                      } catch (notifErr) {
+                        console.log('Notification error:', notifErr);
+                      }
                     }
                     setIsLoading(false);
                   };
@@ -484,20 +553,20 @@ const RepayCovLnsss = props => {
                   } else if (parseFloat(SenderUsrBal) < TotalTransacted) {
                     Alert.alert('Requested amount is more than you have in your account');
                     return;
-                  } else if (ClranceAmt > parseFloat(amounts)) {
+                  } else if (ClranceAmt > amountKes) {
                     Alert.alert("Clear default penalty + clearance fee: " + ClranceAmt.toFixed(2));
                     return;
                   } else if (usrPW !== SnderPW) {
                     Alert.alert('Wrong password');
                     return;
-                  } else if (parseFloat(nonLonLimits) < parseFloat(amounts)) {
+                  } else if (parseFloat(nonLonLimits) < amountKes) {
                     Alert.alert('Call ' + CompPhoneContact + ' to have your send Amount limit adjusted');
                     return;
-                  } else if (parseFloat(amounts) > parseFloat(LonBal1)) {
+                  } else if (amountKes > parseFloat(LonBal1)) {
                     Alert.alert("Your Loan Balance is lesser: " + LonBal1);
-                  } else if (parseFloat(amounts) === parseFloat(LonBal1) && parseFloat(MaxTymsBLs) === parseFloat(maxBLss)) {
+                  } else if (amountKes === parseFloat(LonBal1) && parseFloat(MaxTymsBLs) === parseFloat(maxBLss)) {
                     updtSendrAcLonOvr1();
-                  } else if (parseFloat(amounts) === parseFloat(LonBal1) && parseFloat(MaxTymsBLs) > parseFloat(maxBLss)) {
+                  } else if (amountKes === parseFloat(LonBal1) && parseFloat(MaxTymsBLs) > parseFloat(maxBLss)) {
                     updtSendrAcLonOvr2();
                   } else {
                     repyCovLn();

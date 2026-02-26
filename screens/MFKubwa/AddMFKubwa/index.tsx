@@ -7,6 +7,7 @@ import { View, Text, TextInput, ScrollView, ActivityIndicator, TouchableOpacity,
 import styles from './styles';
 import { updateBankAdmin } from '../../../src/graphql/mutations';
 import { getCurrentUser, fetchUserAttributes } from "aws-amplify/auth";
+import { convertForeignToKsh } from '../../../src/utils/exchange';
 import { generateClient } from "aws-amplify/api";
 const client = generateClient();
 const UpdtMFNPW = props => {
@@ -41,6 +42,27 @@ const UpdtMFNPW = props => {
       const MFKubwaNetCosts = MFNDtls.data.getSMAccount.MFKubwaNetCost;
       const namezs = MFNDtls.data.getSMAccount.name;
       const phonecontact = MFNDtls.data.getSMAccount.phonecontact;
+      const adminNationality = MFNDtls.data.getSMAccount.nationality;
+      const costInput = Number(NewAdmnPW);
+      const paidInput = Number(SigntryPW);
+      const mfnOfferedInput = Number(MFNS);
+      if (!Number.isFinite(costInput) || costInput <= 0) {
+        Alert.alert("Invalid cost", "Enter a valid account cost");
+        setIsLoading(false);
+        return;
+      }
+      if (!Number.isFinite(paidInput) || paidInput < 0) {
+        Alert.alert("Invalid payment", "Enter a valid amount paid");
+        setIsLoading(false);
+        return;
+      }
+      if (!Number.isFinite(mfnOfferedInput) || mfnOfferedInput < 0) {
+        Alert.alert("Invalid MFNs", "Enter a valid number of MFNs");
+        setIsLoading(false);
+        return;
+      }
+      const costKsh = await convertForeignToKsh(costInput, adminNationality || undefined);
+      const paidKsh = await convertForeignToKsh(paidInput, adminNationality || undefined);
       const fetchBankAdminDtls = async () => {
         if (isLoading) {
           return;
@@ -65,8 +87,8 @@ const UpdtMFNPW = props => {
                 variables: {
                   input: {
                     awsemail: AdminID,
-                    MFKubwaCost: parseFloat(NewAdmnPW) + parseFloat(MFKubwaCosts),
-                    MFKubwaNetCost: parseFloat(SigntryPW) + parseFloat(MFKubwaNetCosts),
+                    MFKubwaCost: costKsh + parseFloat(MFKubwaCosts),
+                    MFKubwaNetCost: paidKsh + parseFloat(MFKubwaNetCosts),
                     TtlClrdLonsAmtSllrCov: parseFloat(TtlClrdLonsAmtSllrCovs) + 1
                   }
                 }
@@ -74,7 +96,7 @@ const UpdtMFNPW = props => {
             } catch (error) {
               if (error) {
                 console.log(error);
-                Alert.alert("Addition unsuccessful; Retry");
+                Alert.alert("Update failed", "Addition unsuccessful; retry");
                 return;
               }
             }
@@ -92,9 +114,9 @@ const UpdtMFNPW = props => {
                 variables: {
                   input: {
                     offerStatus: OfferStatus,
-                    acCost: parseFloat(NewAdmnPW),
-                    amtPaid: parseFloat(SigntryPW),
-                    mfnOffered: parseFloat(MFNS),
+                    acCost: costKsh,
+                    amtPaid: paidKsh,
+                    mfnOffered: mfnOfferedInput,
                     /* group account number */
                     acChamp: MFChamp,
                     mfnReg: 0,
@@ -107,7 +129,7 @@ const UpdtMFNPW = props => {
             } catch (error) {
               console.log(error);
               if (error) {
-                Alert.alert("Registration unsuccessful; Retry");
+                Alert.alert("Registration failed", "Registration unsuccessful; retry");
                 return;
               }
             }

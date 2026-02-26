@@ -1,0 +1,395 @@
+{
+  "found": {
+    "DissolveBiz": {
+      "alerts": [
+        "Dissolution unsuccessful; Retry",
+        "Wrong Admin password",
+        "You do not own this business",
+        "Business account has funds; please share it",
+        "Enter details correctly"
+      ],
+      "labels": [
+        "+2547xxxxxxxx",
+        "Fill Details Below",
+        "Business Phone",
+        "Business PassWord",
+        "Click to dissolve Business"
+      ],
+      "buttons": [],
+      "file": "screens/CredSls/DissolveBiz/index.tsx"
+    },
+    "ElimCredCvLnee": {
+      "alerts": [
+        "Please Main Account",
+        "Please first sign up"
+      ],
+      "labels": [],
+      "buttons": [],
+      "file": "screens/CredSls/ElimCredCvLnee/index.tsx"
+    },
+    "giveBizna": {
+      "alerts": [
+        "Error! Update app or call customer care",
+        "Wrong Business Password",
+        "This is not your Business!",
+        "Check your Details"
+      ],
+      "labels": [
+        "+2547xxxxxxxx",
+        "Fill Business Details Below",
+        "Business Phone",
+        "New Owner Email",
+        "Business Pass Word",
+        "Click to Hand Over"
+      ],
+      "buttons": [],
+      "file": "screens/CredSls/giveBizna/index.tsx"
+    },
+    "RmvPersonnel": {
+      "alerts": [
+        "Removal unsuccessful; Retry",
+        "Worker Removed",
+        "Wrong Administrator password",
+        "Not authorised to deregister worker",
+        "Unsuccessful, retry"
+      ],
+      "labels": [
+        "+2547xxxxxxxx",
+        "Fill Details Below",
+        "Business Phone",
+        "Personnel Work ID",
+        "Business AC PW",
+        "Click to DeRegister"
+      ],
+      "buttons": [],
+      "file": "screens/CredSls/RmvPersonnel/index.tsx"
+    },
+    "SgnIn2TransferBiz": {
+      "alerts": [
+        "You dont own this Business",
+        "Wrong Admin password",
+        "Business does not exist; otherwise check internet connection"
+      ],
+      "labels": [
+        "+2547xxxxxxxx",
+        "Fill Details Below",
+        "Business Phone",
+        "Business PassWord",
+        "Click to View"
+      ],
+      "buttons": [],
+      "file": "screens/CredSls/SgnIn2TransferBiz/index.tsx"
+    },
+    "SgnIn2VwBizna": {
+      "alerts": [
+        "You dont own this Business",
+        "Wrong Business password",
+        "Business does not exist; otherwise check internet connection"
+      ],
+      "labels": [
+        "+2547xxxxxxxx",
+        "Fill Details Below",
+        "Business Phone",
+        "Business PassWord",
+        "Click to View"
+      ],
+      "buttons": [],
+      "file": "screens/CredSls/SgnIn2VwBizna/index.tsx"
+    },
+    "SgnIn2VwCashSales": {
+      "alerts": [
+        "Wrong User credentials",
+        "You do not work here",
+        "This is not your Account",
+        "Retry or update app or call customer care",
+        "Please first create main account",
+        "Error: Retry"
+      ],
+      "labels": [
+        "+2547xxxxxxxx",
+        "Fill Details Below",
+        "Business Phone",
+        "Sales Officer User PW",
+        "Click to View"
+      ],
+      "buttons": [],
+      "file": "screens/CredSls/SgnIn2VwCashSales/index.tsx"
+    },
+    "SgnIn2VwCovCrdSlsLnees": {
+      "alerts": [
+        "Wrong User credentials",
+        "You do not work here",
+        "This is not your Account",
+        "Retry or update app or call customer care",
+        "Please first create main account"
+      ],
+      "labels": [
+        "+2547xxxxxxxx",
+        "Fill Details Below",
+        "Business Phone",
+        "Sales Officer User PW",
+        "Click to View"
+      ],
+      "buttons": [],
+      "file": "screens/CredSls/SgnIn2VwCovCrdSlsLnees/index.tsx"
+    },
+    "SgnIn2VwRevenueShare": {
+      "alerts": [
+        "You dont own this Business",
+        "Wrong Admin password",
+        "Business does not exist; otherwise check internet connection"
+      ],
+      "labels": [
+        "+2547xxxxxxxx",
+        "Fill Details Below",
+        "Business Phone",
+        "Business PassWord",
+        "Click to View"
+      ],
+      "buttons": [],
+      "file": "screens/CredSls/SgnIn2VwRevenueShare/index.tsx"
+    },
+    "SlsLnReq/SI2ReqLoans/Biz2Biz": {
+      "alerts": [
+        "Wrong User credentials",
+        "You do not work here",
+        "This is not your Account",
+        "Retry or update app or call customer care",
+        "Please first create main account"
+      ],
+      "labels": [
+        "+2547xxxxxxxx",
+        "Fill Details Below",
+        "Business Phone",
+        "Sales Officer User PW",
+        "Click to View"
+      ],
+      "buttons": [],
+      "file": "screens/CredSls/SlsLnReq/SI2ReqLoans/Biz2Biz/index.tsx"
+    },
+    "SlsLnReq/SI2ReqLoans/Biz2Pal": {
+      "alerts": [
+        "Wrong User credentials",
+        "You do not work here",
+        "This is not your Account",
+        "Retry or update app or call customer care",
+        "Please first create main account"
+      ],
+      "labels": [
+        "+2547xxxxxxxx",
+        "Fill Details Below",
+        "Business Phone",
+        "Sales Officer User PW",
+        "Click to View"
+      ],
+      "buttons": [],
+      "file": "screens/CredSls/SlsLnReq/SI2ReqLoans/Biz2Pal/index.tsx"
+    },
+    "SlsLnReq/Vw2DelLnReqs": {
+      "alerts": [
+        "Please first create main account",
+        "Retry or update app or call customer care"
+      ],
+      "labels": [
+        "Swipe to View My Loan Requests",
+        "(Select to Delete)"
+      ],
+      "buttons": [],
+      "file": "screens/CredSls/SlsLnReq/Vw2DelLnReqs/index.tsx"
+    },
+    "SlsLnReq/Vw2Grant/Biz2Biz": {
+      "alerts": [],
+      "labels": [
+        "Swipe down to refresh",
+        "(Select Loan Request to Grant)"
+      ],
+      "buttons": [],
+      "file": "screens/CredSls/SlsLnReq/Vw2Grant/Biz2Biz/index.tsx"
+    },
+    "SlsLnReq/Vw2Grant/Biz2Pal": {
+      "alerts": [],
+      "labels": [
+        "Swipe down to refresh",
+        "(Select Loan Request to Grant)"
+      ],
+      "buttons": [],
+      "file": "screens/CredSls/SlsLnReq/Vw2Grant/Biz2Pal/index.tsx"
+    },
+    "SlsLnReq/Vw2Grant/Pal2Biz": {
+      "alerts": [
+        "Please create main account on main page"
+      ],
+      "labels": [
+        "Swipe down to refresh",
+        "(Select Loan Request to Grant)"
+      ],
+      "buttons": [],
+      "file": "screens/CredSls/SlsLnReq/Vw2Grant/Pal2Biz/index.tsx"
+    },
+    "SlsLnReq/Vw2Grant/Pal2Pal": {
+      "alerts": [
+        "Please create main account on main page"
+      ],
+      "labels": [
+        "Swipe down to refresh",
+        "(Select Loan Request to Grant)"
+      ],
+      "buttons": [],
+      "file": "screens/CredSls/SlsLnReq/Vw2Grant/Pal2Pal/index.tsx"
+    },
+    "SlsLnReq/Vw2GrantLnReqCov2": {
+      "alerts": [],
+      "labels": [
+        "Swipe down to refresh",
+        "(Select Loan Request to Grant)"
+      ],
+      "buttons": [],
+      "file": "screens/CredSls/SlsLnReq/Vw2GrantLnReqCov2/index.tsx"
+    },
+    "SnIn2VwCrdSlLP": {
+      "alerts": [
+        "Wrong User credentials",
+        "You do not work here",
+        "This is not your Account",
+        "Retry or update app or call customer care",
+        "Please first create main account"
+      ],
+      "labels": [
+        "+2547xxxxxxxx",
+        "Fill Details Below",
+        "Business Phone",
+        "Sales Officer User PW",
+        "Click to View"
+      ],
+      "buttons": [],
+      "file": "screens/CredSls/SnIn2VwCrdSlLP/index.tsx"
+    },
+    "TakeOverBizna": {
+      "alerts": [
+        "Error; update app or call customer care",
+        "Bizna not yet transfered to you",
+        "Error! update app or call customer care"
+      ],
+      "labels": [
+        "+2547xxxxxxxx",
+        "Fill Details Below",
+        "Business Phone",
+        "User PassWord",
+        "Click to Receive"
+      ],
+      "buttons": [],
+      "file": "screens/CredSls/TakeOverBizna/index.tsx"
+    },
+    "UpdateBizAc": {
+      "alerts": [],
+      "labels": [
+        "Update Biz Account"
+      ],
+      "buttons": [
+        "Add Admin",
+        "Change PassWord",
+        "Stop Operations",
+        "Allow Operations",
+        "Dissolve Business"
+      ],
+      "file": "screens/CredSls/UpdateBizAc/index.tsx"
+    },
+    "ViewBiznaShareRec": {
+      "alerts": [
+        "Account Balance is very little",
+        "Please first create main account",
+        "No revenue share",
+        "User does not exist does not exist; otherwise check internet connection"
+      ],
+      "labels": [
+        "(Please swipe down to load)",
+        "Money received from business"
+      ],
+      "buttons": [],
+      "file": "screens/CredSls/ViewBiznaShareRec/index.tsx"
+    },
+    "ViewBiznaShareRecBiz": {
+      "alerts": [
+        "Retry or update app or call customer care",
+        "This is not your Business"
+      ],
+      "labels": [
+        "Company/Biz Phone Number...",
+        "Swipe down to load or refresh."
+      ],
+      "buttons": [],
+      "file": "screens/CredSls/ViewBiznaShareRecBiz/index.tsx"
+    },
+    "ViewBiznaShareSent": {
+      "alerts": [
+        "Retry or update app",
+        "Retry or update app or call customer care",
+        "This is not your Business"
+      ],
+      "labels": [
+        "Company/Biz Phone Number...",
+        "Swipe down to load or refresh."
+      ],
+      "buttons": [],
+      "file": "screens/CredSls/ViewBiznaShareSent/index.tsx"
+    },
+    "VwBusAc": {
+      "alerts": [],
+      "labels": [
+        "My Business",
+        "(Please swipe down to load)"
+      ],
+      "buttons": [],
+      "file": "screens/CredSls/VwBusAc/index.tsx"
+    },
+    "VwBusAc2TakeUp": {
+      "alerts": [],
+      "labels": [
+        "Businesses to Take Over",
+        "(Select if okay with blacklisting Status)"
+      ],
+      "buttons": [],
+      "file": "screens/CredSls/VwBusAc2TakeUp/index.tsx"
+    },
+    "VwCashPayRec": {
+      "alerts": [
+        "Check your internet connection",
+        "Retry or update app or call customer care",
+        "Account Balance is very little",
+        "User does not exist does not exist; otherwise check internet connection"
+      ],
+      "labels": [
+        "Received Cash Payments",
+        "(Please swipe down to load)"
+      ],
+      "buttons": [],
+      "file": "screens/CredSls/VwCashPayRec/index.tsx"
+    },
+    "VwCashPaySent": {
+      "alerts": [
+        "Check your internet connection",
+        "Retry or update app or call customer care",
+        "Account Balance is very little",
+        "User does not exist does not exist; otherwise update app",
+        "Please first create a main account"
+      ],
+      "labels": [
+        "Sent Cash Payments",
+        "(Please swipe down to load)"
+      ],
+      "buttons": [],
+      "file": "screens/CredSls/VwCashPaySent/index.tsx"
+    }
+  },
+  "missing": [
+    "BiznaReqPage2",
+    "ElimCrdCvLnr",
+    "PersonelVw2GrntLR",
+    "SignIn2GrntCrdSls",
+    "Vw2DelLnReq2",
+    "ViewBiznaShareSentPal",
+    "ViewRPymnts",
+    "Vw2GrntCrdSls",
+    "VwLoanStts"
+  ]
+}

@@ -7,6 +7,11 @@ import styles from './styles';
 import { parse } from 'expo-linking';
 import { getCurrentUser, fetchUserAttributes } from "aws-amplify/auth";
 import { generateClient } from "aws-amplify/api";
+
+import { useExchange } from '../../../../../src/contexts/ExchangeContext';
+import { convertForeignToKsh, formatAmountSync } from '../../../../../src/utils/exchange';
+import { nationalityToCode } from '../../../../../src/utils/nationalityToCode';
+
 const client = generateClient();
 const ChmNonCovLns = props => {
   const [ChmPhn, setChmPhn] = useState('');
@@ -23,11 +28,49 @@ const ChmNonCovLns = props => {
   const [RecAccCode, setRecAccCode] = useState("");
   const [DfltPnlty, setDfltPnlty] = useState('');
   const [MmbrId, setMmbrId] = useState('');
+  const [userNationality, setUserNationality] = useState<string>(null);
   const ChmNMmbrPhns = MmbrId + ChmPhn;
   const route = useRoute();
+  
+  const { ratesMap } = useExchange();
+  const userCurrencyKey = nationalityToCode(userNationality);
+
+  // Parse amount input
+  const parseAmountInput = (value: string): number => {
+    if (!value || value.trim() === '') return 0;
+    const num = parseFloat(value);
+    return isNaN(num) ? 0 : num;
+  };
+
+  // Handle money input with 2-decimal enforcement
+  const handleMoneyInput = (setter: (value: string) => void) => (value: string) => {
+    if (/^\d*(\.\d{0,2})?$/.test(value) || value === '') {
+      setter(value);
+    }
+  };
+
+  // Format to exactly 2 decimals on blur
+  const formatMoneyOnBlur = (value: string, setter: (value: string) => void) => {
+    const num = parseAmountInput(value);
+    if (num > 0) {
+      setter(num.toFixed(2));
+    }
+  };
+
   const fetchUser = async () => {
     const userInfo = await getCurrentUser();
     setownr(userInfo.userId);
+    
+    try {
+      const attributes = await fetchUserAttributes();
+      const userData = await client.graphql({
+        query: getSMAccount,
+        variables: { awsemail: attributes.email },
+      });
+      setUserNationality(userData.data.getSMAccount.nationality);
+    } catch (error) {
+      console.error('Error fetching user data:', error);
+    }
   };
   useEffect(() => {
     fetchUser();
@@ -150,8 +193,27 @@ const ChmNonCovLns = props => {
                       const MaxAcBals = RecAccountDtl.data.getSMAccount.MaxAcBal;
                       const DefaultPenaltySMs = RecAccountDtl.data.getSMAccount.DefaultPenaltySM;
                       const TtlWthdrwnSMs = RecAccountDtl.data.getSMAccount.TtlWthdrwnSM;
-                      const DefaultPenaltyRate = parseFloat(DfltPnlty) / parseFloat(AmtExp) * 100;
+                      // Convert DfltPnlty to KES
+                      const dfltPnltyForeign = parseAmountInput(DfltPnlty);
+                      const dfltPnltyInKES = convertForeignToKsh(dfltPnltyForeign, userCurrencyKey, ratesMap);
+                      
+                      const DefaultPenaltyRate = dfltPnltyInKES / parseFloat(AmtExp) * 100;
                       const RecomDfltPnltyRate = parseFloat(AmtExp) * 20 / 100;
+                      
+                      // Confirmation prompt
+                      const confirmLoan = (): Promise<boolean> => {
+                        return new Promise((resolve) => {
+                          Alert.alert(
+                            'Confirm Loan Approval',
+                            `Loan Amount: ${formatAmountSync(parseFloat(amount), userCurrencyKey, ratesMap)}\nExpected Back: ${formatAmountSync(parseFloat(AmtExp), userCurrencyKey, ratesMap)}\nDefault Penalty: ${formatAmountSync(dfltPnltyInKES, userCurrencyKey, ratesMap)}\n\nApprove this loan?`,
+                            [
+                              { text: 'Cancel', style: 'cancel', onPress: () => resolve(false) },
+                              { text: 'Approve', onPress: () => resolve(true) }
+                            ]
+                          );
+                        });
+                      };
+
                       const sendSMLn = async () => {
                         if (isLoading) {
                           return;
@@ -177,7 +239,7 @@ const ChmNonCovLns = props => {
                                 loanerName: grpNames,
                                 memberId: ChmNMmbrPhns,
                                 lonBala: TotalAmtExp.toFixed(0),
-                                DefaultPenaltyChm: DfltPnlty,
+                                DefaultPenaltyChm: dfltPnltyInKES.toFixed(0),
                                 DefaultPenaltyChm2: 0,
                                 status: "LoanActive",
                                 owner: ownr
@@ -344,7 +406,7 @@ const ChmNonCovLns = props => {
                         Alert.alert('Loanee call customer care to have wallet capacity adjusted');
                         return;
                       } else if (DefaultPenaltyRate > 20) {
-                        Alert.alert('Please enter Default Penalty less than ' + RecomDfltPnltyRate);
+                        Alert.alert('Please enter Default Penalty less than ' + formatAmountSync(Math.floor(RecomDfltPnltyRate), userCurrencyKey, ratesMap));
                         return;
                       } else if (groupContacts === memberContacts) {
                         Alert.alert('You cannot Loan Yourself');
@@ -355,7 +417,10 @@ const ChmNonCovLns = props => {
                       } else if (signitoryPWs !== SnderPW) {
                         Alert.alert('Wrong password');
                       } else {
-                        sendSMLn();
+                        const confirmed = await confirmLoan();
+                        if (confirmed) {
+                          sendSMLn();
+                        }
                       }
                     } catch (e) {
                       console.log(e);
@@ -529,7 +594,7 @@ const ChmNonCovLns = props => {
          </View>
 
          <View style={styles.sendAmtView}>
-           <TextInput keyboardType={"decimal-pad"} placeholder="Default Penalty" value={DfltPnlty} onChangeText={setDfltPnlty} style={styles.sendAmtInput} editable={true}></TextInput>
+           <TextInput keyboardType="decimal-pad" placeholder="Default Penalty" value={DfltPnlty} onChangeText={handleMoneyInput(setDfltPnlty)} onBlur={() => formatMoneyOnBlur(DfltPnlty, setDfltPnlty)} style={styles.sendAmtInput} editable={true} />
            
          </View>
 

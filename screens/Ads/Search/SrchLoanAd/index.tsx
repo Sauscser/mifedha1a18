@@ -6,6 +6,8 @@ import LnerStts from "../../../../components/Ads/VwPrsnlLns";
 import styles from './styles';
 import { listGroups, listRafikiLnAds, listSMAccounts } from '../../../../src/graphql/queries';
 import { useExchange } from '../../../../src/contexts/ExchangeContext';
+import { convertForeignToKsh } from '../../../../src/utils/exchange';
+import { nationalityToCode } from '../../../../src/utils/nationalityToCode';
 const client = generateClient();
 const FetchSMNonCovLns = props => {
   const [LneePhn, setLneePhn] = useState(null);
@@ -29,13 +31,17 @@ const FetchSMNonCovLns = props => {
   const [rpymntPrd, setrpymntPrd] = useState('0');
   const fetchLoanees = async () => {
     setLoading(true);
+    const minAmountForeign = parseFloat(itemPrys);
+    const minAmountKes = Number.isFinite(minAmountForeign)
+      ? await convertForeignToKsh(minAmountForeign, nationalityToCode(nationality))
+      : 0;
     try {
       const Lonees: any = await client.graphql({
         query: listRafikiLnAds,
         variables: {
           filter: {
             rafikiamnt: {
-              gt: parseFloat(itemPrys)
+              gt: Number.isFinite(minAmountKes) ? minAmountKes : 0
             }
           }
         }

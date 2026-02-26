@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, FlatList, useWindowDimensions, Platform } from 'react-native';
+import { View, FlatList, useWindowDimensions, Platform, Alert } from 'react-native';
 import MapView, { PROVIDER_GOOGLE, Marker } from 'react-native-maps';
 import { listAgents } from '../../../src/graphql/queries';
 import * as Location from 'expo-location';
@@ -75,6 +75,7 @@ const GenralShpMpViewThree = props => {
         status
       } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
+        Alert.alert('Location permission required', 'Permission to access location was denied');
         setErrorMsg('Permission to access location was denied');
         return;
       }

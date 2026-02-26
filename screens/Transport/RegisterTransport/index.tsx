@@ -267,9 +267,9 @@ const CreateBiz = () => {
       const userCode = nationalityToCode(businessOwnerNationality);
       const rateInDisplayCurrency = userCode
         ? formatAmountSync(parseFloat(itemPrice), userCode, ratesMap)
-        : `Ksh ${parseFloat(itemPrice).toFixed(2)}`;
+        : formatAmountSync(parseFloat(itemPrice), undefined, ratesMap);
       
-      Alert.alert('Success', `Transport successfully registered.\n\nCost per km: ${rateInDisplayCurrency}\n\n(Stored in backend as: Ksh ${parseFloat(itemPrice).toFixed(2)})`);
+      Alert.alert('Success', `Transport successfully registered.\n\nCost per km: ${rateInDisplayCurrency}\n\n(Stored in backend as: KES ${parseFloat(itemPrice).toFixed(2)})`);
       clearForm();
     } catch (err) {
       console.error('Transport registration failed:', err);
@@ -287,7 +287,7 @@ const CreateBiz = () => {
         <InputField label="Means of Transport e.g. motorbike, pickup, freight services, tuktuk" value={formData.brandName} onChange={v => updateForm('brandName', v)} />
         {businessOwnerNationality ? (
           <>
-            <InputField label={`Cost per kilometer (${ratesMap?.[nationalityToCode(businessOwnerNationality)]?.symbol || 'Ksh'})`} value={formData.itemPrice} onChange={v => updateForm('itemPrice', v)} keyboardType="numeric" />
+            <InputField label={`Cost per kilometer (${ratesMap?.[nationalityToCode(businessOwnerNationality)]?.symbol || ratesMap?.[nationality]?.symbol || 'KES'})`} value={formData.itemPrice} onChange={v => updateForm('itemPrice', v)} keyboardType="numeric" />
             {formData.itemPrice ? <Text style={styles.helperText}>Equivalent: {formatAmountSync(parseFloat(formData.itemPrice || '0'), nationalityToCode(businessOwnerNationality), ratesMap)}</Text> : null}
           </>
         ) : (

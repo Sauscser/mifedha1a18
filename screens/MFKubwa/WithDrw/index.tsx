@@ -4,6 +4,8 @@ import { getAgent, getBankAdmin, getCompany, getSAgent, getSMAccount } from '../
 import { View, Text, TextInput, ScrollView, ActivityIndicator, TouchableOpacity, Alert } from 'react-native';
 import styles from './styles';
 import { getCurrentUser, fetchUserAttributes } from "aws-amplify/auth";
+import { useExchange } from '../../../src/contexts/ExchangeContext';
+import { convertForeignToKsh, formatAmountSync } from '../../../src/utils/exchange';
 import { generateClient } from "aws-amplify/api";
 const client = generateClient();
 const AdminWthdwl = props => {
@@ -11,6 +13,7 @@ const AdminWthdwl = props => {
   const [MFKPhn, setMFKPhn] = useState("");
   const [amount, setAmount] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const { nationality, ratesMap } = useExchange();
   const fetchAcDtls = async () => {
     if (isLoading) {
       return;
@@ -28,6 +31,7 @@ const AdminWthdwl = props => {
       const usrBala = accountDtl.data.getSMAccount.balance;
       const usrStts = accountDtl.data.getSMAccount.acStatus;
       const owners = accountDtl.data.getSMAccount.owner;
+      const userNationality = accountDtl.data.getSMAccount.nationality;
       const names = accountDtl.data.getSMAccount.name;
       const fetchMFKDtls = async () => {
         if (isLoading) {
@@ -47,6 +51,13 @@ const AdminWthdwl = props => {
           const statussssss = MFKDtl.data.getSAgent.status;
           const bankNames = MFKDtl.data.getSAgent.bankName;
           const bkAcNos = MFKDtl.data.getSAgent.bkAcNo;
+          const amountForeign = Number(amount);
+          if (!Number.isFinite(amountForeign) || amountForeign <= 0) {
+            Alert.alert("Invalid amount", "Enter a valid withdrawal amount");
+            setIsLoading(false);
+            return;
+          }
+          const amountKsh = await convertForeignToKsh(amountForeign, userNationality || undefined);
           const CrtMFKWthdrwls = async () => {
             try {
               await client.graphql({
@@ -56,7 +67,7 @@ const AdminWthdwl = props => {
                     bankAdmnId: "BnkkAdmNatId",
                     saId: MFKPhn,
                     owner: userInfo.userId,
-                    amount: amount,
+                    amount: String(Math.round(amountKsh)),
                     bankName: bankNames,
                     bkAcNo: bkAcNos,
                     status: 'AccountActive'
@@ -65,13 +76,13 @@ const AdminWthdwl = props => {
               });
             } catch (error) {
               if (error) {
-                Alert.alert("Withdrawal unsuccessful; Retry");
+                Alert.alert("Withdrawal failed", "Please retry or contact support");
                 return;
               }
             }
             await UpdateMFK();
             setIsLoading(false);
-            Alert.alert(names + ", You have Withdrawn Ksh. " + amount);
+            Alert.alert("Withdrawal successful", names + ", You have withdrawn " + formatAmountSync(amountKsh, nationality, ratesMap));
           };
           const UpdateMFK = async () => {
             try {
@@ -80,20 +91,20 @@ const AdminWthdwl = props => {
                 variables: {
                   input: {
                     saPhoneContact: MFKPhn,
-                    saBalance: parseFloat(saBalances) - parseFloat(amount)
+                    saBalance: parseFloat(saBalances) - amountKsh
                   }
                 }
               });
             } catch (error) {
               console.log(error);
               if (error) {
-                Alert.alert("Please check your internet connection");
+                Alert.alert("Update failed", "Please check your internet connection");
                 return;
               }
             }
             setIsLoading(false);
           };
-          if (parseFloat(amount) > parseFloat(saBalances)) {
+          if (amountKsh > parseFloat(saBalances)) {
             Alert.alert("Insufficient MFKubwa Balance");
             return;
           } else if (statussssss !== "AccountActive") {
@@ -112,7 +123,7 @@ const AdminWthdwl = props => {
         } catch (e) {
           console.log(e);
           if (e) {
-            Alert.alert("Check your internet connection");
+            Alert.alert("Error", "Check your internet connection");
             return;
           }
         }
@@ -122,7 +133,7 @@ const AdminWthdwl = props => {
     } catch (e) {
       console.log(e);
       if (e) {
-        Alert.alert("Check your internet connection");
+        Alert.alert("Error", "Check your internet connection");
         return;
       }
     }

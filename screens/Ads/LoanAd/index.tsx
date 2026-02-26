@@ -6,6 +6,9 @@ import { getCurrentUser } from 'aws-amplify/auth';
 import { useNavigation } from '@react-navigation/native';
 import { View, Text, TextInput, ScrollView, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
 import styles from './styles';
+import { useExchange } from '../../../src/contexts/ExchangeContext';
+import { convertForeignToKsh, formatAmountSync } from '../../../src/utils/exchange';
+import { nationalityToCode } from '../../../src/utils/nationalityToCode';
 const client = generateClient();
 const CreateBiz = () => {
   const [ChmPhn, setChmPhn] = useState('');
@@ -22,10 +25,24 @@ const CreateBiz = () => {
   const [itemTwn, setitemTwn] = useState('');
   const [lnPrsntg, setlnPrsntg] = useState('');
   const [rpymntPrd, setrpymntPrd] = useState('');
+  const { nationality, ratesMap } = useExchange();
   const gtUzr = async () => {
     if (isLoading) return;
     setIsLoading(true);
     const userInfo = await getCurrentUser();
+    const amountForeign = parseFloat(itemPrys);
+    if (!Number.isFinite(amountForeign) || amountForeign <= 0) {
+      Alert.alert('Enter a valid amount');
+      setIsLoading(false);
+      return;
+    }
+    const currencyKey = nationalityToCode(nationality);
+    const amountKes = await convertForeignToKsh(amountForeign, currencyKey);
+    if (!Number.isFinite(amountKes) || amountKes <= 0) {
+      Alert.alert('Unable to convert amount. Please try again.');
+      setIsLoading(false);
+      return;
+    }
     try {
       const compDtls: any = await client.graphql({
         query: getSMAccount,
@@ -47,7 +64,7 @@ const CreateBiz = () => {
                 rafikiName: namez,
                 rafikicntct: awsEmail,
                 rafikiEmail: UsrEmail,
-                rafikiamnt: parseFloat(itemPrys),
+                rafikiamnt: Number(amountKes.toFixed(2)),
                 rafikidesc: ChmDesc,
                 AdvEmail: ChmNm,
                 advLicNo: ChmRegNo,
@@ -58,7 +75,7 @@ const CreateBiz = () => {
               }
             }
           });
-          Alert.alert('Advert successfully Published');
+          Alert.alert('Advert successfully Published', `Amount: ${formatAmountSync(amountKes, currencyKey, ratesMap)}`);
         } catch (error) {
           console.log(error);
           Alert.alert('Error! Access denied');

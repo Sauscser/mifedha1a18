@@ -33,6 +33,10 @@ import { generateClient } from 'aws-amplify/api';
 import { getCurrentUser, fetchUserAttributes } from 'aws-amplify/auth';
 import { getUrl } from 'aws-amplify/storage';
 
+import { useExchange } from '../../../../src/contexts/ExchangeContext';
+import { convertForeignToKsh, formatAmountSync } from '../../../../src/utils/exchange';
+import { nationalityToCode } from '../../../../src/utils/nationalityToCode';
+
 const client = generateClient();
 
 /* =========================
@@ -57,6 +61,7 @@ const CreateBiz = () => {
   const [ChmNm, setChmNm] = useState('');
   const [ChmDesc, setChmDesc] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [userNationality, setUserNationality] = useState<string>(null);
   const navigation = useNavigation();
   const route = useRoute<any>();
   const grpContacts = route.params?.groupContact;
@@ -68,11 +73,43 @@ const CreateBiz = () => {
   const [selectedMinutes, setSelectedMinutes] = useState<any | null>(null);
   const [loadingMinutes, setLoadingMinutes] = useState(false);
 
+  const { ratesMap } = useExchange();
+  const userCurrencyKey = nationalityToCode(userNationality);
+
+  // Parse amount input
+  const parseAmountInput = (value: string): number => {
+    if (!value || value.trim() === '') return 0;
+    const num = parseFloat(value);
+    return isNaN(num) ? 0 : num;
+  };
+
+  // Handle money input with 2-decimal enforcement
+  const handleMoneyInput = (setter: (value: string) => void) => (value: string) => {
+    if (/^\d*(\.\d{0,2})?$/.test(value) || value === '') {
+      setter(value);
+    }
+  };
+
+  // Format to exactly 2 decimals on blur
+  const formatMoneyOnBlur = (value: string, setter: (value: string) => void) => {
+    const num = parseAmountInput(value);
+    if (num > 0) {
+      setter(num.toFixed(2));
+    }
+  };
+
   
 
   useEffect(() => {
     const prefetch = async () => {
       try {
+        const attributes = await fetchUserAttributes();
+        const userData = await client.graphql({
+          query: getSMAccount,
+          variables: { awsemail: attributes.email },
+        });
+        setUserNationality(userData.data.getSMAccount.nationality);
+
         const appRes: any = await client.graphql({
           query: getChamaAdminLnApply,
           variables: { id }
@@ -297,9 +334,33 @@ const CreateBiz = () => {
       const Signatory3Email = grpDtls.Signatory3Email;
       const SignatoryEmail = grpDtls.SignatoryEmail;
 
+      // Convert amounts to KES (lnPrsntg is interest rate %, not amount)
+      const loanAmountForeign = parseAmountInput(itemPrys);
+      const installmentAmtForeign = parseAmountInput(InstAmt);
+
+      const loanAmountInKES = convertForeignToKsh(loanAmountForeign, userCurrencyKey, ratesMap);
+      const installmentAmtInKES = convertForeignToKsh(installmentAmtForeign, userCurrencyKey, ratesMap);
+
+      // Confirmation prompt
+      const confirmed = await new Promise<boolean>((resolve) => {
+        Alert.alert(
+          'Confirm Loan Request',
+          `Loan Amount: ${formatAmountSync(loanAmountInKES, userCurrencyKey, ratesMap)}\nInterest Rate: ${lnPrsntg}% per year\nInstallment: ${formatAmountSync(installmentAmtInKES, userCurrencyKey, ratesMap)}\n\nSubmit request?`,
+          [
+            { text: 'Cancel', style: 'cancel', onPress: () => resolve(false) },
+            { text: 'Submit', onPress: () => resolve(true) }
+          ]
+        );
+      });
+
+      if (!confirmed) {
+        setIsLoading(false);
+        return;
+      }
+
       // validate installment amount
-      const ExpInstmnt = parseFloat(itemPrys) / parseFloat(rpymntPrd);
-      if (ExpInstmnt > parseFloat(InstAmt)) {
+      const ExpInstmnt = loanAmountInKES / parseFloat(rpymntPrd);
+      if (ExpInstmnt > installmentAmtInKES) {
         Alert.alert("Enter Installment greater than " + (ExpInstmnt + 1).toFixed(0));
         return;
       }
@@ -333,8 +394,8 @@ const CreateBiz = () => {
             confirm1: "NO",
             confirm2: "NO",
             loaneePhone: phonecontacts,
-            amount: parseFloat(itemPrys).toFixed(2),
-            repaymentAmt: parseFloat(lnPrsntg).toFixed(2),
+            amount: loanAmountInKES.toFixed(0),
+            repaymentAmt: lnPrsntg,
             repaymentPeriod: rpymntPrd,
             loaneeMemberId: MembaId,
             status: "AwaitingResponse",
@@ -347,7 +408,7 @@ const CreateBiz = () => {
             loanerPhone: signitoryContact,
             description: ChmNm ? ChmNm : "No description",
             defaultPenalty: ChmDesc,
-            installmentAmount: InstAmt,
+            installmentAmount: installmentAmtInKES.toFixed(0),
             paymentFrequency: InstFreq,
             signatory2: signitory2Sub,
             signatory3: Signatory3Email,
@@ -494,7 +555,8 @@ const CreateBiz = () => {
               placeholderTextColor="#333"
               keyboardType="decimal-pad"
               value={InstAmt}
-              onChangeText={setInstAmt}
+              onChangeText={handleMoneyInput(setInstAmt)}
+              onBlur={() => formatMoneyOnBlur(InstAmt, setInstAmt)}
               style={styles.input}
             />
           </View>
@@ -505,7 +567,8 @@ const CreateBiz = () => {
               placeholderTextColor="#333"
               keyboardType="decimal-pad"
               value={itemPrys}
-              onChangeText={setitemPrys}
+              onChangeText={handleMoneyInput(setitemPrys)}
+              onBlur={() => formatMoneyOnBlur(itemPrys, setitemPrys)}
               style={styles.input}
             />
             <Text style={styles.helperText}>Principal Amount</Text>
@@ -517,7 +580,8 @@ const CreateBiz = () => {
               placeholderTextColor="#333"
               keyboardType="decimal-pad"
               value={lnPrsntg}
-              onChangeText={setlnPrsntg}
+              onChangeText={handleMoneyInput(setlnPrsntg)}
+              onBlur={() => formatMoneyOnBlur(lnPrsntg, setlnPrsntg)}
               style={styles.input}
             />
             <Text style={styles.helperText}>Interest % per year</Text>

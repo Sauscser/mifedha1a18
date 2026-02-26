@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import Communications from 'react-native-communications';
-import { createSMLoansCovered, createNonLoans, updateCompany, updateSMAccount, updateBizna, createBenefitShare2, updateLinkBeneficiary2 } from '../../../../src/graphql/mutations';
+import { createBenefitShare2, createMessages, createNonLoans, createSMLoansCovered, sendNotification, updateBizna, updateCompany, updateLinkBeneficiary2, updateSMAccount } from '../../../../src/graphql/mutations';
 import { getBizna, getCompany, getLinkBeneficiary2, getSMAccount } from '../../../../src/graphql/queries';
 import { View, Text, TextInput, ScrollView, StyleSheet, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
@@ -9,7 +8,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { getCurrentUser, fetchUserAttributes } from "aws-amplify/auth";
 import { generateClient } from "aws-amplify/api";
 import { useExchange } from '../../../../src/contexts/ExchangeContext';
-import { formatAmountSync } from '../../../../src/utils/exchange';
+import { convertForeignToKsh, formatAmountSync } from '../../../../src/utils/exchange';
 const client = generateClient();
 const SMASendNonLns = props => {
   const [SenderNatId, setSenderNatId] = useState('');
@@ -29,6 +28,12 @@ const SMASendNonLns = props => {
     setIsLoading(true);
     const userInfo = await getCurrentUser();
     const attributes = await fetchUserAttributes();
+    const amountForeign = parseFloat(amounts);
+    if (!Number.isFinite(amountForeign) || amountForeign <= 0) {
+      Alert.alert("Enter a valid amount");
+      setIsLoading(false);
+      return;
+    }
     try {
       const accountDtlzx: any = await client.graphql({
         query: getLinkBeneficiary2,
@@ -64,6 +69,13 @@ const SMASendNonLns = props => {
           const busNames = accountDtl.data.getSMAccount.name;
           const SenderSub = accountDtl.data.getSMAccount.owner;
           const statuss = accountDtl.data.getSMAccount.acStatus;
+          const senderNationality = accountDtl.data.getSMAccount.nationality;
+          const amountKes = await convertForeignToKsh(amountForeign, senderNationality);
+          if (!Number.isFinite(amountKes) || amountKes <= 0) {
+            Alert.alert("Unable to convert amount. Please try again.");
+            setIsLoading(false);
+            return;
+          }
           const fetchCompDtls = async () => {
             try {
               const CompDtls: any = await client.graphql({
@@ -73,7 +85,7 @@ const SMASendNonLns = props => {
                 }
               });
               const UsrTransferFee = CompDtls.data.getCompany.biznaTransferFee;
-              const TotalTransacted = parseFloat(amounts) + parseFloat(UsrTransferFee) * parseFloat(amounts);
+              const TotalTransacted = amountKes + parseFloat(UsrTransferFee) * amountKes;
               const CompPhoneContact = CompDtls.data.getCompany.phoneContact;
               const companyEarningBals = CompDtls.data.getCompany.companyEarningBal;
               const companyEarnings = CompDtls.data.getCompany.companyEarning;
@@ -99,7 +111,7 @@ const SMASendNonLns = props => {
                             /*contributorName*/
                             benefitsID: busNames,
                             benefactorAc: benefactorAcs,
-                            amount: parseFloat(amounts).toFixed(2),
+                            amount: amountKes.toFixed(2),
                             /*contributorAc*/
                             benefactorPhone: benefactorPhones,
                             beneficiaryAc: beneficiaryAcs,
@@ -153,7 +165,7 @@ const SMASendNonLns = props => {
                         variables: {
                           input: {
                             BusKntct: benefactorPhones,
-                            netEarnings: (parseFloat(netEarnings) + parseFloat(amounts)).toFixed(2)
+                            netEarnings: (parseFloat(netEarnings) + amountKes).toFixed(2)
                           }
                         }
                       });
@@ -173,7 +185,7 @@ const SMASendNonLns = props => {
                         variables: {
                           input: {
                             beneficiaryID: route.params.beneficiaryID,
-                            benefitsAmount: (parseFloat(benefitsAmounts) + parseFloat(amounts)).toFixed(2)
+                            benefitsAmount: (parseFloat(benefitsAmounts) + amountKes).toFixed(2)
                           }
                         }
                       });
@@ -193,10 +205,10 @@ const SMASendNonLns = props => {
                         variables: {
                           input: {
                             AdminId: "BaruchHabaB'ShemAdonai2",
-                            companyEarningBal: parseFloat(UsrTransferFee) * parseFloat(amounts) + parseFloat(companyEarningBals),
-                            companyEarning: parseFloat(UsrTransferFee) * parseFloat(amounts) + parseFloat(companyEarnings),
-                            ttlNonLonssRecSM: parseFloat(amounts) + parseFloat(ttlNonLonssRecSMs),
-                            ttlNonLonssSentSM: parseFloat(amounts) + parseFloat(ttlNonLonssSentSMs)
+                            companyEarningBal: parseFloat(UsrTransferFee) * amountKes + parseFloat(companyEarningBals),
+                            companyEarning: parseFloat(UsrTransferFee) * amountKes + parseFloat(companyEarnings),
+                            ttlNonLonssRecSM: amountKes + parseFloat(ttlNonLonssRecSMs),
+                            ttlNonLonssSentSM: amountKes + parseFloat(ttlNonLonssSentSMs)
                           }
                         }
                       });
@@ -207,10 +219,36 @@ const SMASendNonLns = props => {
                         return;
                       }
                     }
-                    const formattedAmount = formatAmountSync(parseFloat(amounts), accountDtl.data.getSMAccount.nationality, ratesMap);
-                    const formattedTxFee = formatAmountSync((parseFloat(UsrTransferFee) * parseFloat(amounts)), accountDtl.data.getSMAccount.nationality, ratesMap);
+                    const formattedAmount = formatAmountSync(amountKes, accountDtl.data.getSMAccount.nationality, ratesMap);
+                    const formattedTxFee = formatAmountSync((parseFloat(UsrTransferFee) * amountKes), accountDtl.data.getSMAccount.nationality, ratesMap);
                     Alert.alert(`Benefits ${formattedAmount} sent. Transaction: ${formattedTxFee}`);
-                    Communications.textWithoutEncoding(beneficiaryPhones, `Confirmed. ${busNames} Benefactor has sent you ${formattedAmount} as Benefits. Please confirm this transaction record is on your Mifedha app. Thank you. MiFedha`);
+                    
+                    // Send Firebase notification
+                    const benefitMessage = `Confirmed. ${busNames} Benefactor has sent you ${formattedAmount} as Benefits. Please confirm this transaction record is on your Mifedha app. Thank you. MiFedha`;
+                    try {
+                      const msgRes: any = await client.graphql({
+                        query: createMessages,
+                        variables: {
+                          input: {
+                            senderEmail: beneficiaryPhones,
+                            messageBody: benefitMessage
+                          }
+                        }
+                      });
+                      if (msgRes?.data?.createMessages) {
+                        await client.graphql({
+                          query: sendNotification,
+                          variables: {
+                            riderEmail: beneficiaryPhones,
+                            title: 'MiFedha: Benefit Share',
+                            body: benefitMessage
+                          }
+                        });
+                      }
+                    } catch (notifError) {
+                      console.log('Notification error:', notifError);
+                    }
+                    
                     setIsLoading(false);
                   };
                   if (statuss !== "AccountActive") {

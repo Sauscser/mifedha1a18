@@ -1,6 +1,5 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { useRoute } from '@react-navigation/core';
-import { useNavigation } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { KeyboardAvoidingView, Platform, Alert, ScrollView, TextInput, TouchableOpacity, View, Text, ActivityIndicator } from 'react-native';
@@ -9,8 +8,13 @@ import { createCvrdGroupLoans, updateChamaMembers, updateGroup, updateSMAccount,
 import { getReqLoanChama, getSMAccount, getChamaMembers, getGroup, getCompany, getChamaControlTable, getMiFedhaBankAdmin, getAdvocate } from '../../../../../src/graphql/queries';
 import { generateClient } from 'aws-amplify/api';
 import { getCurrentUser, fetchUserAttributes } from 'aws-amplify/auth';
+import { useExchange } from '../../../../../src/contexts/ExchangeContext';
+import { formatAmountSync } from '../../../../../src/utils/exchange';
+import { nationalityToCode } from '../../../../../src/utils/nationalityToCode';
 const client = generateClient();
+
 const ChmCovLns = () => {
+  const { ratesMap } = useExchange();
   const [state, setState] = useState({
     ChmPhn: '',
     RecNatId: '',
@@ -24,18 +28,22 @@ const ChmCovLns = () => {
     MmbrId: '',
     isLoading: false
   });
-  const route = useRoute();
+  const route = useRoute<any>();
+  const [userNationality, setUserNationality] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
+  const userCurrencyKey = nationalityToCode(userNationality) || userNationality || 'KE';
+  const formatMoney = (amount: number) => formatAmountSync(amount || 0, userCurrencyKey, ratesMap);
   const setField = (field, value) => setState(prev => ({
     ...prev,
     [field]: value
   }));
-  const fetchGraphQL = async (query, variables) => {
+  const fetchGraphQL = async (query: any, variables: Record<string, unknown>) => {
     try {
-      const result = await client.graphql({
+      const result: any = await client.graphql({
         query,
         variables
       });
+
       return result.data;
     } catch (e) {
       console.log(e);
@@ -79,6 +87,7 @@ const ChmCovLns = () => {
       } = await fetchGraphQL(getSMAccount, {
         awsemail: attributes.email
       });
+      setUserNationality(senderAccount?.nationality || null);
       if (state.SnderPW !== senderAccount.pw) {
         Alert.alert('Wrong password');
         setField('isLoading', false);
@@ -134,10 +143,13 @@ const ChmCovLns = () => {
         setField('isLoading', false);
         return;
       }
-      const ttlCovFeeAmount = parseFloat(company.CoverageFee) * parseFloat(amount);
-      const transFee = parseFloat(company.userLoanTransferFee) * parseFloat(amount);
-      const totalAmount = parseFloat(amount) + ttlCovFeeAmount + transFee;
-      const grpSync = parseFloat(amount) + transFee;
+      const amountKes = parseFloat(amount) || 0;
+      const repaymentAmountKes = parseFloat(repaymentAmt) || 0;
+      const installmentAmountKes = parseFloat(installmentAmount) || 0;
+      const ttlCovFeeAmount = (parseFloat(company.CoverageFee) || 0) * amountKes;
+      const transFee = (parseFloat(company.userLoanTransferFee) || 0) * amountKes;
+      const totalAmount = amountKes + ttlCovFeeAmount + transFee;
+      const grpSync = amountKes + transFee;
       const grpSyncAdvocate = totalAmount;
       const createLoan = async (advRegNu = 'None', loanAmount = totalAmount, grpSyncAmount = grpSync) => {
         await client.graphql({
@@ -150,7 +162,7 @@ const ChmCovLns = () => {
               loanerLoanee: chamaPhone + loaneePhone,
               loanerLoaneeAdv: chamaPhone + loaneePhone + advRegNu,
               repaymentPeriod,
-              amountGiven: parseFloat(amount).toFixed(0),
+              amountGiven: amountKes.toFixed(0),
               amountExpectedBack: loanAmount.toFixed(0),
               amountExpectedBackWthClrnc: loanAmount.toFixed(0),
               amountRepaid: 0,
@@ -170,12 +182,12 @@ const ChmCovLns = () => {
               memberId: ChmNMmbrPhns,
               status: 'LoanActive',
               lnType: 'GrpLn',
-              interest: repaymentAmt,
+              interest: repaymentAmountKes.toFixed(0),
               dfltUpdate: new Date().getTime(),
               owner: user.userId,
               blOfficer: 'None',
               advEmail: advRegNu === 'None' ? 'None' : AdvEmail,
-              installmentAmount,
+              installmentAmount: installmentAmountKes.toFixed(0),
               paymentFrequency
             }
           }
@@ -207,7 +219,7 @@ const ChmCovLns = () => {
         variables: {
           input: {
             ChamaNMember: ChmNMmbrPhns,
-            LonAmtGven: (parseFloat(chmMember.LonAmtGven) + parseFloat(amount)).toFixed(0),
+            LonAmtGven: (parseFloat(chmMember.LonAmtGven) + amountKes).toFixed(0),
             GrossLnsGvn: (parseFloat(chmMember.GrossLnsGvn) + totalAmount).toFixed(0),
             LnBal: (parseFloat(chmMember.LnBal) + totalAmount).toFixed(0),
             loanStatus: 'LoanActive',
@@ -234,7 +246,7 @@ const ChmCovLns = () => {
             awsemail: loaneeEmail,
             TtlActvLonsTmsLneeChmCov: parseFloat(recAccount.TtlActvLonsTmsLneeChmCov) + 1,
             TtlActvLonsAmtLneeChmCov: (parseFloat(recAccount.TtlActvLonsAmtLneeChmCov) + totalAmount).toFixed(0),
-            balance: (parseFloat(recAccount.balance) + parseFloat(amount)).toFixed(0),
+            balance: (parseFloat(recAccount.balance) + amountKes).toFixed(0),
             loanStatus: 'LoanActive',
             blStatus: 'AccountNotBL',
             loanAcceptanceCode: 'None'
@@ -249,12 +261,12 @@ const ChmCovLns = () => {
         variables: {
           input: {
             AdminId: "BaruchHabaB'ShemAdonai2",
-            ttlCompCovEarnings: parseFloat(company.ttlCompCovEarnings) + totalAmount,
-            AdvEarningBal: parseFloat(company.AdvEarningBal) + ttlCovFeeAmount,
-            AdvEarning: parseFloat(company.AdvEarning) + ttlCovFeeAmount,
-            companyEarningBal: parseFloat(company.companyEarningBal) + netCompEarning,
-            companyEarning: parseFloat(company.companyEarning) + netCompEarning,
-            ttlChmLnsInAmtCov: parseFloat(company.ttlChmLnsInAmtCov) + totalAmount,
+            ttlCompCovEarnings: (parseFloat(company.ttlCompCovEarnings) + totalAmount).toFixed(0),
+            AdvEarningBal: (parseFloat(company.AdvEarningBal) + ttlCovFeeAmount).toFixed(0),
+            AdvEarning: (parseFloat(company.AdvEarning) + ttlCovFeeAmount).toFixed(0),
+            companyEarningBal: (parseFloat(company.companyEarningBal) + netCompEarning).toFixed(0),
+            companyEarning: (parseFloat(company.companyEarning) + netCompEarning).toFixed(0),
+            ttlChmLnsInAmtCov: (parseFloat(company.ttlChmLnsInAmtCov) + totalAmount).toFixed(0),
             ttlChmLnsInTymsCov: parseFloat(company.ttlChmLnsInTymsCov) + 1
           }
         }
@@ -292,7 +304,7 @@ const ChmCovLns = () => {
         variables: {
           input: {
             senderEmail: loaneeEmail,
-            messageBody: `You have received a loan from ${group.grpName} of ${amount} repayable as ${totalAmount} at an interest of ${repaymentAmt} after ${repaymentPeriod} days. The transaction fees were ${transFee} and advocate fees of ${ttlCovFeeAmount}. The monthly installment is ${installmentAmount} payable every ${paymentFrequency} days. The money has been credited to your main account.`
+            messageBody: `You have received a loan from ${group.grpName} of ${formatMoney(amountKes)} repayable as ${formatMoney(totalAmount)} at an interest of ${formatMoney(repaymentAmountKes)} after ${repaymentPeriod} days. The transaction fees were ${formatMoney(transFee)} and advocate fees of ${formatMoney(ttlCovFeeAmount)}. The installment is ${formatMoney(installmentAmountKes)} payable every ${paymentFrequency} days. The money has been credited to your main account.`
           }
         }
       });
@@ -301,10 +313,10 @@ const ChmCovLns = () => {
         variables: {
           riderEmail: loaneeEmail,
           title: "MiFedha: New Loan",
-          body: `You have received a loan from ${group.grpName} of ${amount} repayable as ${totalAmount} at an interest of ${repaymentAmt} after ${repaymentPeriod} days. The monthly installment is ${installmentAmount} payable every ${paymentFrequency} days. The transaction fees were ${transFee} and advocate fees of ${ttlCovFeeAmount}. The money has been credited to your main account.`
+          body: `You have received a loan from ${group.grpName} of ${formatMoney(amountKes)} repayable as ${formatMoney(totalAmount)} at an interest of ${formatMoney(repaymentAmountKes)} after ${repaymentPeriod} days. The installment is ${formatMoney(installmentAmountKes)} payable every ${paymentFrequency} days. The transaction fees were ${formatMoney(transFee)} and advocate fees of ${formatMoney(ttlCovFeeAmount)}. The money has been credited to your main account.`
         }
       });
-      Alert.alert(`Success. TransactionFee: ${transFee.toFixed(2)}${advLicNo !== 'None' ? ` . AdvocateFee: ${ttlCovFeeAmount.toFixed(2)}` : ''}`);
+      Alert.alert(`Success. Transaction fee: ${formatMoney(transFee)}${advLicNo !== 'None' ? ` . Advocate fee: ${formatMoney(ttlCovFeeAmount)}` : ''}`);
       setField('amount', '');
       setField('AmtExp', '');
       setField('SnderPW', '');

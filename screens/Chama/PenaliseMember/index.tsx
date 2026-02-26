@@ -1,12 +1,16 @@
 import React, { useEffect, useState } from 'react';
-import Communications from 'react-native-communications';
-import { updateCompany, updateSMAccount, updateCvrdGroupLoans, updateGroup, updateChamaMembers } from '../../../src/graphql/mutations';
+import { updateCompany, updateSMAccount, updateCvrdGroupLoans, updateGroup, updateChamaMembers, createMessages, sendNotification } from '../../../src/graphql/mutations';
 import { getCompany, getSMAccount, getCvrdGroupLoans, getGroup, getChamaMembers } from '../../../src/graphql/queries';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { View, Text, ImageBackground, Pressable, TextInput, ScrollView, KeyboardAvoidingView, Platform, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
 import styles from './styles';
 import { generateClient } from 'aws-amplify/api';
 import { getCurrentUser, fetchUserAttributes } from 'aws-amplify/auth';
+
+import { useExchange } from '../../../src/contexts/ExchangeContext';
+import { formatAmountSync } from '../../../src/utils/exchange';
+import { nationalityToCode } from '../../../src/utils/nationalityToCode';
+
 const client = generateClient();
 const BLChmCovLoanee = props => {
   const navigation = useNavigation();
@@ -14,7 +18,27 @@ const BLChmCovLoanee = props => {
   const [ChmMbrId, setChmMbrId] = useState("");
   const [SigntryPW, setSigntryPW] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [userNationality, setUserNationality] = useState<string>(null);
   const route = useRoute();
+  
+  const { ratesMap } = useExchange();
+  const userCurrencyKey = nationalityToCode(userNationality);
+
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        const attributes = await fetchUserAttributes();
+        const userData = await client.graphql({
+          query: getSMAccount,
+          variables: { awsemail: attributes.email },
+        });
+        setUserNationality(userData.data.getSMAccount.nationality);
+      } catch (error) {
+        console.error('Error fetching user data:', error);
+      }
+    };
+    fetchUserData();
+  }, []);
   const gtCompDtls = async () => {
     if (isLoading) {
       return;
@@ -112,8 +136,28 @@ const BLChmCovLoanee = props => {
                   }
                 }
                 Alert.alert("You have Penalised " + memberName + " for late payment ");
-                const { nationality, ratesMap } = useExchange();
-                Communications.textWithoutEncoding(memberContact, 'MiFedha. Hi ' + memberName + ', you have been penalised for late subscription by ' + grpName + ' group. The following is a breakdown of your subscription arrears and penalties: ' + '. subscription you have done up to date are ' + formatAmountSync(parseFloat(subscribedAmt), nationalityToCode(nationality), ratesMap) + ' instead of ' + formatAmountSync(parseFloat(Amt2HvBnSub), nationalityToCode(nationality), ratesMap) + '. For clarification call the group Admin: ' + attributes.phone_number + '. Thank you.');
+                
+                const notificationBody = 'MiFedha. Hi ' + memberName + ', you have been penalised for late subscription by ' + grpName + ' group. The following is a breakdown of your subscription arrears and penalties: ' + '. subscription you have done up to date are ' + formatAmountSync(parseFloat(subscribedAmt), userCurrencyKey, ratesMap) + ' instead of ' + formatAmountSync(parseFloat(Amt2HvBnSub), userCurrencyKey, ratesMap) + '. For clarification call the group Admin: ' + attributes.phone_number + '. Thank you.';
+                
+                await client.graphql({
+                  query: createMessages,
+                  variables: {
+                    input: {
+                      senderEmail: memberContact,
+                      messageBody: notificationBody
+                    }
+                  }
+                });
+                
+                await client.graphql({
+                  query: sendNotification,
+                  variables: {
+                    riderEmail: memberContact,
+                    title: 'MiFedha: Late Subscription Penalty',
+                    body: notificationBody
+                  }
+                });
+                
                 setIsLoading(false);
               };
               if (parseFloat(subscriptionFrequency) > tmDif) {

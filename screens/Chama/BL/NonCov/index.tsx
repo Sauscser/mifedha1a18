@@ -1,11 +1,15 @@
 import React, { useEffect, useState } from 'react';
-import Communications from 'react-native-communications';
-import { updateChamaMembers, updateCompany, updateGroup, updateNonCvrdGroupLoans, updateSMAccount } from '../../../../src/graphql/mutations';
+import { updateChamaMembers, updateCompany, updateGroup, updateNonCvrdGroupLoans, updateSMAccount, createMessages, sendNotification } from '../../../../src/graphql/mutations';
 import { getChamaMembers, getCompany, getGroup, getNonCvrdGroupLoans, getSMAccount } from '../../../../src/graphql/queries';
 import { generateClient } from 'aws-amplify/api';
 import { getCurrentUser, fetchUserAttributes } from 'aws-amplify/auth';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { View, Text, TextInput, ScrollView, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
+
+import { formatAmountSync } from '../../../../src/utils/exchange';
+import { nationalityToCode } from '../../../../src/utils/nationalityToCode';
+import { useExchange } from '../../../../src/contexts/ExchangeContext';
+
 import styles from './styles';
 const client = generateClient();
 const BLChmNonCovLoanee = () => {
@@ -15,6 +19,26 @@ const BLChmNonCovLoanee = () => {
   const [ChmMbrId, setChmMbrId] = useState("");
   const [SigntryPW, setSigntryPW] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [userNationality, setUserNationality] = useState<string>(null);
+  const userCode = nationalityToCode(userNationality);
+  const { ratesMap } = useExchange();
+
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        const user = await fetchUserAttributes();
+        const userData = await client.graphql({
+          query: getSMAccount,
+          variables: { awsemail: user.email },
+        });
+        setUserNationality(userData.data.getSMAccount.nationality);
+      } catch (error) {
+        console.error('Error fetching user data:', error);
+      }
+    };
+    fetchUserData();
+  }, []);
+
   const gtCompDtls = async () => {
     if (isLoading) return;
     setIsLoading(true);
@@ -179,12 +203,32 @@ const BLChmNonCovLoanee = () => {
                         }
                       });
                       Alert.alert(`${grpNames}, you have blacklisted ${namess}`);
-                      Communications.textWithoutEncoding(phonecontact, `Hi ${namess}, your loan of ID ${route.params.id} has been blacklisted by ${grpNames} group. 
-Loan balance before blacklisting was Ksh. ${lonBala}. 
-Default Penalty as agreed with your loaner is ${DefaultPenaltyChms}. 
-Loan clearance fee is Ksh. ${MmbrClrnceCosts}. 
-Total current loan repayable is Ksh. ${LonBal}. 
-For clarification call the group Admin: ${attrs.phone_number}. Thank you. MiFedha`);
+                      
+                      const notificationBody = `Hi ${namess}, your loan of ID ${route.params.id} has been blacklisted by ${grpNames} group. 
+Loan balance before blacklisting was ${formatAmountSync(Math.floor(parseFloat(lonBala)), userCode, ratesMap)}. 
+Default Penalty as agreed with your loaner is ${formatAmountSync(Math.floor(parseFloat(DefaultPenaltyChms)), userCode, ratesMap)}. 
+Loan clearance fee is ${formatAmountSync(Math.floor(MmbrClrnceCosts), userCode, ratesMap)}. 
+Total current loan repayable is ${formatAmountSync(Math.floor(LonBal), userCode, ratesMap)}. 
+For clarification call the group Admin: ${attrs.phone_number}. Thank you. MiFedha`;
+                      
+                      await client.graphql({
+                        query: createMessages,
+                        variables: {
+                          input: {
+                            senderEmail: awsemails,
+                            messageBody: notificationBody
+                          }
+                        }
+                      });
+                      
+                      await client.graphql({
+                        query: sendNotification,
+                        variables: {
+                          riderEmail: awsemails,
+                          title: 'MiFedha: Loan Blacklisted',
+                          body: notificationBody
+                        }
+                      });
                     } catch (error) {
                       if (error) {
                         Alert.alert("Blacklisting unsuccessful; Retry");

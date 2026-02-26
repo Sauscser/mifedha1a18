@@ -4,6 +4,8 @@ import { generateClient } from 'aws-amplify/api';
 import { getCurrentUser, fetchUserAttributes } from 'aws-amplify/auth';
 import { getAdvocate, getSMAccount } from '../../../src/graphql/queries';
 import { View, Text, TextInput, ScrollView, ActivityIndicator, TouchableOpacity, Alert } from 'react-native';
+import { useExchange } from '../../../src/contexts/ExchangeContext';
+import { convertForeignToKsh, formatAmountSync } from '../../../src/utils/exchange';
 import styles from './styles';
 const client = generateClient();
 const AdvWthdwl = props => {
@@ -11,6 +13,7 @@ const AdvWthdwl = props => {
   const [AdvReNo, setAdvReNo] = useState("");
   const [amount, setAmount] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const { nationality, ratesMap } = useExchange();
   const fetchAcDtls = async () => {
     if (isLoading) {
       return;
@@ -28,6 +31,7 @@ const AdvWthdwl = props => {
       const usrBala = accountDtl.data.getSMAccount.balance;
       const usrStts = accountDtl.data.getSMAccount.acStatus;
       const owners = accountDtl.data.getSMAccount.owner;
+      const userNationality = accountDtl.data.getSMAccount.nationality;
       const fetchAdvDtls = async () => {
         if (isLoading) {
           return;
@@ -46,6 +50,13 @@ const AdvWthdwl = props => {
           const statussssss = AdvDtl.data.getAdvocate.status;
           const bankNames = AdvDtl.data.getAdvocate.bankName;
           const bkAcNos = AdvDtl.data.getAdvocate.bkAcNo;
+          const amountForeign = Number(amount);
+          if (!Number.isFinite(amountForeign) || amountForeign <= 0) {
+            Alert.alert("Invalid amount", "Enter a valid withdrawal amount");
+            setIsLoading(false);
+            return;
+          }
+          const amountKsh = await convertForeignToKsh(amountForeign, userNationality || undefined);
           const CrtAdvWthdrwls = async () => {
             try {
               await client.graphql({
@@ -55,7 +66,7 @@ const AdvWthdwl = props => {
                     bankAdmnId: "BnkkAdmNatId",
                     advregnu: AdvReNo,
                     owner: userInfo.userId,
-                    amount: amount,
+                    amount: String(Math.round(amountKsh)),
                     bankName: bankNames,
                     bkAcNo: bkAcNos,
                     status: 'AccountActive'
@@ -64,7 +75,7 @@ const AdvWthdwl = props => {
               });
             } catch (error) {
               if (error) {
-                Alert.alert("Error! Access denied!");
+                Alert.alert("Withdrawal failed", "Please retry or check your connection");
                 return;
               }
             }
@@ -82,20 +93,20 @@ const AdvWthdwl = props => {
                 variables: {
                   input: {
                     advregnu: AdvReNo,
-                    advBal: (parseFloat(advBals) - parseFloat(amount)).toFixed(2)
+                    advBal: (parseFloat(advBals) - amountKsh).toFixed(2)
                   }
                 }
               });
             } catch (error) {
               if (error) {
-                Alert.alert("Error! Access denied!");
+                Alert.alert("Update failed", "Please retry or check your connection");
                 return;
               }
             }
-            Alert.alert(names + ", You have Withdrawn Ksh. " + amount);
+            Alert.alert("Withdrawal successful", names + ", You have withdrawn " + formatAmountSync(amountKsh, nationality, ratesMap));
             setIsLoading(false);
           };
-          if (parseFloat(amount) > parseFloat(advBals)) {
+          if (amountKsh > parseFloat(advBals)) {
             Alert.alert("Insufficient Advocate Balance");
             return;
           } else if (statussssss === "AccountInactive") {
@@ -112,7 +123,7 @@ const AdvWthdwl = props => {
           }
         } catch (e) {
           if (e) {
-            Alert.alert("Error! Access denied!");
+            Alert.alert("Error", "Access denied or network issue");
             return;
           }
         }
@@ -125,7 +136,7 @@ const AdvWthdwl = props => {
       }
     } catch (e) {
       if (e) {
-        Alert.alert("Error! Access denied!");
+        Alert.alert("Error", "Access denied or network issue");
         return;
       }
     }

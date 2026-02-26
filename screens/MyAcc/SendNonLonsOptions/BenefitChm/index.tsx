@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import Communications from 'react-native-communications';
-import { createSMLoansCovered, createNonLoans, updateCompany, updateSMAccount, updateGroup, updateChamaMembers, createBenefitContributions2, updateMiFedhaBankAdmin, updateChamaControlTable, createMessages, sendNotification } from '../../.././../src/graphql/mutations';
+import { createBenefitContributions2, createMessages, createNonLoans, createSMLoansCovered, sendNotification, updateChamaControlTable, updateChamaMembers, updateCompany, updateGroup, updateMiFedhaBankAdmin, updateSMAccount } from '../../.././../src/graphql/mutations';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
@@ -28,7 +27,13 @@ const SMASendNonLns = props => {
   const navigation = useNavigation();
 
   const userCode = nationalityToCode(userNationality || nationality);
+  const userCurrencyKey =
+    userCode ||
+    userNationality ||
+    nationality ||
+    undefined;
   const currencySymbol =
+    (userCurrencyKey && ratesMap?.[userCurrencyKey]?.symbol) ||
     (userCode && ratesMap?.[userCode]?.symbol) ||
     (userNationality && ratesMap?.[userNationality]?.symbol) ||
     'KSh';
@@ -39,6 +44,48 @@ const SMASendNonLns = props => {
     const normalized = trimmed.replace(/,/g, '');
     const parsed = Number(normalized);
     return Number.isFinite(parsed) ? parsed : null;
+  };
+
+  const handleAmountChange = (value: string) => {
+    const sanitized = value.replace(/,/g, '');
+    if (sanitized === '') {
+      setAmount('');
+      return;
+    }
+    if (/^\d*(\.\d{0,2})?$/.test(sanitized)) {
+      setAmount(sanitized);
+    }
+  };
+
+  const formatAmountOnBlur = () => {
+    if (!amounts.trim()) return;
+    const parsed = parseAmountInput(amounts);
+    if (parsed === null) return;
+    setAmount(parsed.toFixed(2));
+  };
+
+  const confirmSendMoney = (displayAmount: string, receiver: string, description: string): Promise<boolean> => {
+    return new Promise((resolve) => {
+      Alert.alert(
+        'Confirm Transfer',
+        `You are sending ${displayAmount} to ${receiver}.\n\nDescription: ${description}`,
+        [
+          {
+            text: 'Cancel',
+            style: 'cancel',
+            onPress: () => resolve(false)
+          },
+          {
+            text: 'Send',
+            onPress: () => resolve(true)
+          }
+        ],
+        {
+          cancelable: true,
+          onDismiss: () => resolve(false)
+        }
+      );
+    });
   };
 
   useEffect(() => {
@@ -65,7 +112,6 @@ const SMASendNonLns = props => {
     navigation.navigate("SendNLBnftNone");
   };
   const fetchCvLnSM = async () => {
-    setIsLoading(true);
     const userInfo = await getCurrentUser();
     const attributes = await fetchUserAttributes();
     const amountForeign = parseAmountInput(amounts);
@@ -74,7 +120,13 @@ const SMASendNonLns = props => {
       Alert.alert('Enter a valid amount');
       return;
     }
-    const amountInKES = await convertForeignToKsh(amountForeign, userNationality || nationality || undefined);
+    const amountInKES = await convertForeignToKsh(amountForeign, userCurrencyKey);
+    if (!Number.isFinite(amountInKES) || amountInKES <= 0) {
+      setIsLoading(false);
+      Alert.alert('Unable to convert amount. Please try again.');
+      return;
+    }
+    setIsLoading(true);
     try {
       const Lonees1: any = await client.graphql({
         query: listSMLoansCovereds,
@@ -170,10 +222,8 @@ const SMASendNonLns = props => {
                       });
                       const p2pBenCom = CompDtls.data.getCompany.p2pBenCom;
                       const UsrTransferFee = CompDtls.data.getCompany.userTransferFee;
-                      const UsrTransferFeeAmt = parseFloat(UsrTransferFee) * parseFloat(amounts);
-                      const UsrTransferFee2 = parseFloat(SenderUsrBal) - parseFloat(amounts);
-                      const TotalTransacted = parseFloat(amounts) + parseFloat(UsrTransferFee) * parseFloat(amounts);
-                      const TotalTransacted2 = parseFloat(amounts) + UsrTransferFee2;
+                      const UsrTransferFeeAmt = parseFloat(UsrTransferFee) * amountInKES;
+                      const TotalTransacted = amountInKES + UsrTransferFeeAmt;
                       const CompPhoneContact = CompDtls.data.getCompany.phoneContact;
                       const companyEarningBals = CompDtls.data.getCompany.companyEarningBal;
                       const companyEarnings = CompDtls.data.getCompany.companyEarning;
@@ -257,7 +307,7 @@ const SMASendNonLns = props => {
                                       const contlTbl: any = await client.graphql({
                                         query: getChamaControlTable,
                                         variables: {
-                                          id: "EquityTable"
+                                          id: "EQUITYTABLEID"
                                         }
                                       });
                                       /*
@@ -294,7 +344,7 @@ const SMASendNonLns = props => {
                                             }
                                           });
 
-                                          const formattedMsgAmount = formatAmountSync(Number(amounts), nationality, ratesMap);
+                                          const formattedMsgAmount = formatAmountSync(amountInKES, userCurrencyKey, ratesMap);
                                           const textMsg = `${names} has sent you ${formattedMsgAmount}. The money has been deposited in your main account`;
                                           
                                           await client.graphql({
@@ -336,7 +386,7 @@ const SMASendNonLns = props => {
                                             variables: {
                                               input: {
                                                 awsemail: attributes.email,
-                                                ttlNonLonsSentSM: (parseFloat(ttlNonLonsSentSMs) + parseFloat(amounts)).toFixed(0),
+                                                ttlNonLonsSentSM: (parseFloat(ttlNonLonsSentSMs) + amountInKES).toFixed(0),
                                                 balance: (parseFloat(SenderUsrBal) - TotalTransacted).toFixed(0)
                                               }
                                             }
@@ -362,8 +412,8 @@ const SMASendNonLns = props => {
                                             variables: {
                                               input: {
                                                 awsemail: RecNatId,
-                                                ttlNonLonsRecSM: (parseFloat(ttlNonLonsRecSMs) + parseFloat(amounts)).toFixed(0),
-                                                balance: (parseFloat(RecUsrBal) + parseFloat(amounts)).toFixed(0)
+                                                ttlNonLonsRecSM: (parseFloat(ttlNonLonsRecSMs) + amountInKES).toFixed(0),
+                                                balance: (parseFloat(RecUsrBal) + amountInKES).toFixed(0)
                                               }
                                             }
                                           });
@@ -374,7 +424,7 @@ const SMASendNonLns = props => {
                                             return;
                                           }
                                         }
-                                        console.log((parseFloat(RecUsrBal) + parseFloat(UsrTransferFee) * parseFloat(amounts) * 0.3 + parseFloat(amounts)).toFixed(0));
+                                        console.log((parseFloat(RecUsrBal) + parseFloat(UsrTransferFee) * amountInKES * 0.3 + amountInKES).toFixed(0));
                                         setIsLoading(false);
                                         await updtRecBenAc();
                                       };
@@ -400,7 +450,7 @@ const SMASendNonLns = props => {
                                             return;
                                           }
                                         }
-                                        console.log((parseFloat(RecUsrBal) + parseFloat(UsrTransferFee) * parseFloat(amounts) * 0.3 + parseFloat(amounts)).toFixed(0));
+                                        console.log((parseFloat(RecUsrBal) + parseFloat(UsrTransferFee) * amountInKES * 0.3 + amountInKES).toFixed(0));
                                         setIsLoading(false);
                                         await updtChmAc();
                                       };
@@ -434,7 +484,7 @@ const SMASendNonLns = props => {
                                             query: updateChamaControlTable,
                                             variables: {
                                               input: {
-                                                id: "EquityTable",
+                                                id: "EQUITYTABLEID",
                                                 DepositsEarnings: (parseFloat(DepositsEarnings) + bankAdmEarning).toFixed(0),
                                                 BankAdminEarnings: (parseFloat(BankAdminEarnings) + bankAdmEarning).toFixed(0)
                                               }
@@ -489,8 +539,8 @@ const SMASendNonLns = props => {
                                                 AdminId: "BaruchHabaB'ShemAdonai2",
                                                 companyEarningBal: CompEarnings + parseFloat(companyEarningBals),
                                                 companyEarning: CompEarnings + parseFloat(companyEarnings),
-                                                ttlNonLonssRecSM: parseFloat(amounts) + parseFloat(ttlNonLonssRecSMs),
-                                                ttlNonLonssSentSM: parseFloat(amounts) + parseFloat(ttlNonLonssSentSMs)
+                                                ttlNonLonssRecSM: amountInKES + parseFloat(ttlNonLonssRecSMs),
+                                                ttlNonLonssSentSM: amountInKES + parseFloat(ttlNonLonssSentSMs)
                                               }
                                             }
                                           });
@@ -500,8 +550,34 @@ const SMASendNonLns = props => {
                                             return;
                                           }
                                         }
-                                        Alert.alert("Amount: " + formatAmountSync(parseFloat(amounts), nationality, ratesMap) + ". Transaction fee: " + formatAmountSync(UsrTransferFeeAmt, nationality, ratesMap));
-                                        Communications.textWithoutEncoding(phonecontact, 'Hi ' + ReceiverName + ", " + names + ' has sent you a non loan of ' + formatAmountSync(parseFloat(amounts), nationality, ratesMap) + '. For clarification call the sender ' + attributes.phone_number + '. Thank you. MiFedha');
+                                        Alert.alert("Amount: " + formatAmountSync(amountInKES, userCurrencyKey, ratesMap) + ". Transaction fee: " + formatAmountSync(UsrTransferFeeAmt, userCurrencyKey, ratesMap));
+                                        
+                                        // Send Firebase notification
+                                        const transferMessage = 'Hi ' + ReceiverName + ", " + names + ' has sent you a non loan of ' + formatAmountSync(amountInKES, userCurrencyKey, ratesMap) + '. For clarification call the sender ' + attributes.phone_number + '. Thank you. MiFedha';
+                                        try {
+                                          const msgRes: any = await client.graphql({
+                                            query: createMessages,
+                                            variables: {
+                                              input: {
+                                                senderEmail: phonecontact,
+                                                messageBody: transferMessage
+                                              }
+                                            }
+                                          });
+                                          if (msgRes?.data?.createMessages) {
+                                            await client.graphql({
+                                              query: sendNotification,
+                                              variables: {
+                                                riderEmail: phonecontact,
+                                                title: 'MiFedha: Non-Loan Transfer',
+                                                body: transferMessage
+                                              }
+                                            });
+                                          }
+                                        } catch (notifError) {
+                                          console.log('Notification error:', notifError);
+                                        }
+                                        
                                         setIsLoading(false);
                                       };
                                       const sendSMNonLn1 = async () => {
@@ -525,7 +601,7 @@ const SMASendNonLns = props => {
                                               }
                                             }
                                           });
-                                          const formattedMsgAmount = formatAmountSync(Number(amounts), nationality, ratesMap);
+                                          const formattedMsgAmount = formatAmountSync(amountInKES, userCurrencyKey, ratesMap);
                                           const textMsg = `${names} has sent you ${formattedMsgAmount}. The money has been deposited in your main account`;
                                           await client.graphql({
                                             query: createMessages,
@@ -564,7 +640,7 @@ const SMASendNonLns = props => {
                                             variables: {
                                               input: {
                                                 awsemail: attributes.email,
-                                                ttlNonLonsSentSM: (parseFloat(ttlNonLonsSentSMs) + parseFloat(amounts)).toFixed(0),
+                                                ttlNonLonsSentSM: (parseFloat(ttlNonLonsSentSMs) + amountInKES).toFixed(0),
                                                 balance: (parseFloat(SenderUsrBal) - TotalTransacted).toFixed(0)
                                               }
                                             }
@@ -590,8 +666,8 @@ const SMASendNonLns = props => {
                                             variables: {
                                               input: {
                                                 awsemail: RecNatId,
-                                                ttlNonLonsRecSM: (parseFloat(ttlNonLonsRecSMs) + parseFloat(amounts)).toFixed(0),
-                                                balance: (parseFloat(RecUsrBal) + parseFloat(amounts)).toFixed(0),
+                                                ttlNonLonsRecSM: (parseFloat(ttlNonLonsRecSMs) + amountInKES).toFixed(0),
+                                                balance: (parseFloat(RecUsrBal) + amountInKES).toFixed(0),
                                                 benefitsAmount: (parseFloat(ReceiverbenefitsAmount) + PalBenefits).toFixed(0)
                                               }
                                             }
@@ -603,7 +679,7 @@ const SMASendNonLns = props => {
                                             return;
                                           }
                                         }
-                                        console.log((parseFloat(RecUsrBal) + parseFloat(UsrTransferFee) * parseFloat(amounts) * 0.3 + parseFloat(amounts)).toFixed(0));
+                                        console.log((parseFloat(RecUsrBal) + parseFloat(UsrTransferFee) * amountInKES * 0.3 + amountInKES).toFixed(0));
                                         setIsLoading(false);
                                         await updtRecBenAc1();
                                       };
@@ -643,7 +719,7 @@ const SMASendNonLns = props => {
                                             return;
                                           }
                                         }
-                                        console.log((parseFloat(RecUsrBal) + parseFloat(UsrTransferFee) * parseFloat(amounts) * 0.3 + parseFloat(amounts)).toFixed(0));
+                                        console.log((parseFloat(RecUsrBal) + parseFloat(UsrTransferFee) * amountInKES * 0.3 + amountInKES).toFixed(0));
                                         setIsLoading(false);
                                         await updtChmAc1();
                                       };
@@ -677,7 +753,7 @@ const SMASendNonLns = props => {
                                             query: updateChamaControlTable,
                                             variables: {
                                               input: {
-                                                id: "EquityTable",
+                                                id: "EQUITYTABLEID",
                                                 DepositsEarnings: (parseFloat(DepositsEarnings) + bankAdmEarning).toFixed(0),
                                                 BankAdminEarnings: (parseFloat(BankAdminEarnings) + bankAdmEarning).toFixed(0)
                                               }
@@ -732,8 +808,8 @@ const SMASendNonLns = props => {
                                                 AdminId: "BaruchHabaB'ShemAdonai2",
                                                 companyEarningBal: CompEarnings + parseFloat(companyEarningBals),
                                                 companyEarning: CompEarnings + parseFloat(companyEarnings),
-                                                ttlNonLonssRecSM: parseFloat(amounts) + parseFloat(ttlNonLonssRecSMs),
-                                                ttlNonLonssSentSM: parseFloat(amounts) + parseFloat(ttlNonLonssSentSMs)
+                                                ttlNonLonssRecSM: amountInKES + parseFloat(ttlNonLonssRecSMs),
+                                                ttlNonLonssSentSM: amountInKES + parseFloat(ttlNonLonssSentSMs)
                                               }
                                             }
                                           });
@@ -743,8 +819,34 @@ const SMASendNonLns = props => {
                                             return;
                                           }
                                         }
-                                        Alert.alert("Amount: " + formatAmountSync(parseFloat(amounts), nationality, ratesMap) + ". Transaction fee: " + formatAmountSync(UsrTransferFeeAmt, nationality, ratesMap));
-                                        Communications.textWithoutEncoding(phonecontact, 'Hi ' + ReceiverName + ", " + names + ' has sent you a non loan of ' + formatAmountSync(parseFloat(amounts), nationality, ratesMap) + '. For clarification call the sender ' + attributes.phone_number + '. Thank you. MiFedha');
+                                        Alert.alert("Amount: " + formatAmountSync(amountInKES, userCurrencyKey, ratesMap) + ". Transaction fee: " + formatAmountSync(UsrTransferFeeAmt, userCurrencyKey, ratesMap));
+                                        
+                                        // Send Firebase notification
+                                        const transferMessage2 = 'Hi ' + ReceiverName + ", " + names + ' has sent you a non loan of ' + formatAmountSync(amountInKES, userCurrencyKey, ratesMap) + '. For clarification call the sender ' + attributes.phone_number + '. Thank you. MiFedha';
+                                        try {
+                                          const msgRes: any = await client.graphql({
+                                            query: createMessages,
+                                            variables: {
+                                              input: {
+                                                senderEmail: phonecontact,
+                                                messageBody: transferMessage2
+                                              }
+                                            }
+                                          });
+                                          if (msgRes?.data?.createMessages) {
+                                            await client.graphql({
+                                              query: sendNotification,
+                                              variables: {
+                                                riderEmail: phonecontact,
+                                                title: 'MiFedha: Non-Loan Transfer',
+                                                body: transferMessage2
+                                              }
+                                            });
+                                          }
+                                        } catch (notifError) {
+                                          console.log('Notification error:', notifError);
+                                        }
+                                        
                                         setIsLoading(false);
                                       };
                                       if (userInfo.userId !== owner) {
@@ -758,18 +860,25 @@ const SMASendNonLns = props => {
                                         Alert.alert('You cannot Send money to Yourself');
                                       } else if (parseFloat(ttlDpstSMs) === 0 && parseFloat(TtlWthdrwnSMs) === 0) {
                                         Alert.alert('Receiver ID be verified through deposit at MFNdogo');
-                                      } else if (parseFloat(RecUsrBal) + parseFloat(amounts) > parseFloat(MaxAcBals)) {
+                                      } else if (parseFloat(RecUsrBal) + amountInKES > parseFloat(MaxAcBals)) {
                                         Alert.alert('Receiver Call customer care to have wallet capacity adjusted');
                                       } else if (usrPW !== SnderPW) {
                                         Alert.alert('Wrong password');
                                       } else if (userInfo.userId !== SenderSub) {
                                         Alert.alert('Please send from your own  account');
-                                      } else if (parseFloat(loanLimits) < parseFloat(amounts)) {
+                                      } else if (parseFloat(loanLimits) < amountInKES) {
                                         Alert.alert('Call ' + CompPhoneContact + ' to have your send Amount limit adjusted');
                                       } else if (Lonees1.data.listSMLoansCovereds.items.length > 0 || Lonees3.data.listCovCreditSellers.items.length > 0 || Lonees5.data.listCvrdGroupLoans.items.length > 0) {
                                         SndChmMmbrMny();
                                       } else if (TotalTransacted > SenderUsrBal) {
                                         Alert.alert('Insufficient funds');
+                                      } else if (!(await confirmSendMoney(
+                                        formatAmountSync(amountInKES, userCurrencyKey, ratesMap),
+                                        `${ReceiverName} (${RecNatId})`,
+                                        Desc?.trim() ? Desc.trim() : 'No description provided'
+                                      ))) {
+                                        setIsLoading(false);
+                                        return;
                                       } else if (ReceiverbeneficiaryType === "Pal") {
                                         await sendSMNonLn();
                                       } else if (ReceiverbeneficiaryType === "Biz") {
@@ -916,10 +1025,10 @@ const SMASendNonLns = props => {
                       <TextInput placeholder="Receiver Email" value={RecNatId} onChangeText={setRecNatId} style={styles.input} editable={true}>                          
                         </TextInput>
 
-                        <TextInput placeholder={`${currencySymbol} Amount`} value={amounts} onChangeText={setAmount} style={styles.input} editable={true} keyboardType='decimal-pad'>                                                                         
+                        <TextInput placeholder={`${currencySymbol} Amount`} value={amounts} onChangeText={handleAmountChange} onBlur={formatAmountOnBlur} style={styles.input} editable={true} keyboardType='decimal-pad'>                                                                         
                         </TextInput>   
 
-                        <TextInput placeholder="Description" value={Desc} onChangeText={setDesc} style={styles.input} editable={true} multiline={true}>                                                                         
+                        <TextInput placeholder="Description" value={Desc} onChangeText={setDesc} style={[styles.input, styles.descriptionInput]} editable={true} multiline={true}>                                                                         
                         </TextInput>                     
                      
                      <View style={styles.passwordContainer}>
@@ -976,6 +1085,11 @@ const styles = StyleSheet.create({
     marginBottom: 15,
     borderRadius: 5,
     paddingLeft: 10
+  },
+  descriptionInput: {
+    height: 120,
+    textAlignVertical: 'top',
+    paddingTop: 10
   },
   button: {
     backgroundColor: '#e58d29',

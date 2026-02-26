@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import Communications from 'react-native-communications';
-import { createFloatAdd, createSMAccount, createSMLoansCovered, updateAdvocate, updateAgent, updateCompany, updateReqLoan, updateSAgent, updateSMAccount } from '../../../../../../src/graphql/mutations';
+import { createFloatAdd, createSMAccount, createSMLoansCovered, updateAdvocate, updateAgent, updateCompany, updateReqLoan, updateSAgent, updateSMAccount, createMessages, sendNotification } from '../../../../../../src/graphql/mutations';
 import { getAgent, getCompany, getSMAccount, getSAgent, getAdvocate, listChamasNPwnBrkrs, getReqLoan, listSMLoansCovereds, listCovCreditSellers, listCvrdGroupLoans } from '../../../../../../src/graphql/queries';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { View, Text, ImageBackground, Pressable, TextInput, ScrollView, KeyboardAvoidingView, Platform, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
@@ -8,7 +7,7 @@ import styles from './styles';
 import { parse } from 'expo-linking';
 import { getCurrentUser, fetchUserAttributes } from "aws-amplify/auth";
 import { useExchange } from '../../../../../../src/contexts/ExchangeContext';
-import { formatAmountSync } from '../../../../../../src/utils/exchange';
+import { convertForeignToKsh, formatAmountSync } from '../../../../../../src/utils/exchange';
 import { generateClient } from "aws-amplify/api";
 const client = generateClient();
 const SMASendLns = props => {
@@ -109,6 +108,8 @@ const SMASendLns = props => {
                   const statusNumber = accountDtlszs.data.getReqLoan.statusNumber;
                   const status = accountDtlszs.data.getReqLoan.status;
                   const amount = accountDtlszs.data.getReqLoan.amount;
+                  const convertedAmount = await convertForeignToKsh(parseFloat(amount), 'KES');
+                  const normalizedAmount = Number.isFinite(convertedAmount) ? convertedAmount : parseFloat(amount);
                   const AmtExp = accountDtlszs.data.getReqLoan.repaymentAmt;
                   const RepaymtPeriod = accountDtlszs.data.getReqLoan.repaymentPeriod;
                   const defaultPenalty = accountDtlszs.data.getReqLoan.defaultPenalty;
@@ -176,7 +177,7 @@ const SMASendLns = props => {
                           const AdvCompanyComs = CompDtls.data.getCompany.AdvCompanyCom;
                           const AdvCovFee = parseFloat(CoverageFees) * parseFloat(AdvComs);
                           const CompCovFee = parseFloat(CoverageFees) * parseFloat(AdvCompanyComs);
-                          const AdvCovAmt = AdvCovFee * parseFloat(amount);
+                          const AdvCovAmt = AdvCovFee * normalizedAmount;
                           const CompCovAmt = CompCovFee * parseFloat(amount);
                           const ttlCovFeeAmount = parseFloat(CoverageFees) * parseFloat(amount);
                           const CompanyTotalEarnings = CompCovFee * parseFloat(amount) + parseFloat(userLoanTransferFees) * parseFloat(amount);
@@ -385,7 +386,21 @@ const SMASendLns = props => {
                                 } catch (error) {
                                   console.log(error);
                                 }
-                                Communications.textWithoutEncoding(phonecontact, 'Hi ' + namess + ', you have been loaned ' + formatAmountSync(parseFloat(amount), nationality, ratesMap) + ' by ' + names + '. For clarification call the loaner: ' + attributes.phone_number + '. The following is a break down of your repayable loan: ' + ' Amount debited into your main account is ' + formatAmountSync(parseFloat(amount), nationality, ratesMap) + '. Amount you had committed to repay is ' + formatAmountSync(amtrpayable2, nationality, ratesMap) + '. Transaction fee is ' + formatAmountSync(lnTrnsfrFee, nationality, ratesMap) + '. Total Repayable is ' + formatAmountSync(TotalAmtExp2, nationality, ratesMap) + '. Thank you. MiFedha.');
+                                const loanMessage1 = 'Hi ' + namess + ', you have been loaned ' + formatAmountSync(parseFloat(amount), nationality, ratesMap) + ' by ' + names + '. For clarification call the loaner: ' + attributes.phone_number + '. The following is a break down of your repayable loan: ' + ' Amount debited into your main account is ' + formatAmountSync(parseFloat(amount), nationality, ratesMap) + '. Amount you had committed to repay is ' + formatAmountSync(amtrpayable2, nationality, ratesMap) + '. Transaction fee is ' + formatAmountSync(lnTrnsfrFee, nationality, ratesMap) + '. Total Repayable is ' + formatAmountSync(TotalAmtExp2, nationality, ratesMap) + '. Thank you. MiFedha.';
+                                try {
+                                  const msgRes = await client.graphql({
+                                    query: createMessages,
+                                    variables: { input: { senderEmail: phonecontact, messageBody: loanMessage1 }}
+                                  });
+                                  if (msgRes?.data?.createMessages) {
+                                    await client.graphql({
+                                      query: sendNotification,
+                                      variables: { riderEmail: phonecontact, title: 'MiFedha: Loan Disbursed', body: loanMessage1 }
+                                    });
+                                  }
+                                } catch (notifErr) {
+                                  console.log('Notification error:', notifErr);
+                                }
                                 setIsLoading(false);
                               };
                               const fetchAdv = async () => {
@@ -600,11 +615,21 @@ const SMASendLns = props => {
                                     } catch (error) {
                                       console.log(error);
                                     }
-                                    Communications.textWithoutEncoding(
-                                      phonecontact,
-                                      'Hi ' + namess + ', you have been loaned ' + formatAmountSync(parseFloat(amount), nationality, ratesMap) + ' by ' + names + '. For clarification call the loaner: ' + attributes.phone_number + '. The following is a break down of your repayable loan: ' +
-                                      ' Amount debited into your main account is ' + formatAmountSync(parseFloat(amount), nationality, ratesMap) + '. Amount you had committed to repay is ' + formatAmountSync(amtrpayable, nationality, ratesMap) + '. Transaction fee is ' + formatAmountSync(lnTrnsfrFee, nationality, ratesMap) + '. Advocacy fee is ' + formatAmountSync(ttlCovFeeAmount, nationality, ratesMap) + '. Total Repayable is ' + formatAmountSync(TotalAmtExp, nationality, ratesMap) + '. Thank you. MiFedha.'
-                                    );
+                                    const loanMessage2 = 'Hi ' + namess + ', you have been loaned ' + formatAmountSync(parseFloat(amount), nationality, ratesMap) + ' by ' + names + '. For clarification call the loaner: ' + attributes.phone_number + '. The following is a break down of your repayable loan: ' + ' Amount debited into your main account is ' + formatAmountSync(parseFloat(amount), nationality, ratesMap) + '. Amount you had committed to repay is ' + formatAmountSync(amtrpayable, nationality, ratesMap) + '. Transaction fee is ' + formatAmountSync(lnTrnsfrFee, nationality, ratesMap) + '. Advocacy fee is ' + formatAmountSync(ttlCovFeeAmount, nationality, ratesMap) + '. Total Repayable is ' + formatAmountSync(TotalAmtExp, nationality, ratesMap) + '. Thank you. MiFedha.';
+                                    try {
+                                      const msgRes = await client.graphql({
+                                        query: createMessages,
+                                        variables: { input: { senderEmail: phonecontact, messageBody: loanMessage2 }}
+                                      });
+                                      if (msgRes?.data?.createMessages) {
+                                        await client.graphql({
+                                          query: sendNotification,
+                                          variables: { riderEmail: phonecontact, title: 'MiFedha: Loan Disbursed', body: loanMessage2 }
+                                        });
+                                      }
+                                    } catch (notifErr) {
+                                      console.log('Notification error:', notifErr);
+                                    }
                                     setIsLoading(false);
                                   };
                                 } catch (e) {

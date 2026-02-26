@@ -1,5 +1,5 @@
 // @ts-nocheck
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, ScrollView, TouchableOpacity, Alert, KeyboardAvoidingView, Platform, ActivityIndicator, Dimensions, StyleSheet, Image } from 'react-native';
 import { getCurrentUser, fetchUserAttributes } from 'aws-amplify/auth';
 import { uploadData } from 'aws-amplify/storage';
@@ -10,10 +10,18 @@ import * as ImagePicker from 'expo-image-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
 import { createChamaMembers, createGroup, updateChamaApply2, updateCompany } from '../../../src/graphql/mutations';
 import { getMiFedhaBankAdmin, getSMAccount, getCompany } from '../../../src/graphql/queries';
+
+import { useExchange } from '../../../src/contexts/ExchangeContext';
+import { convertForeignToKsh, formatAmountSync } from '../../../src/utils/exchange';
+import { nationalityToCode } from '../../../src/utils/nationalityToCode';
+
 export type UserReg = {
   usr: string;
 };
 const MAX_IMAGE_SIZE_MB = 5;
+
+const client = generateClient();
+
 const CreateChama = (props: UserReg) => {
   const {
     usr
@@ -42,6 +50,7 @@ const CreateChama = (props: UserReg) => {
   const [lateSub, setlateSub] = useState('');
   const [loanApprovalThreshHold, setloanApprovalThreshHold] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [userNationality, setUserNationality] = useState<string>(null);
 
   // Signature states
   const [chairSignKey, setChairSignKey] = useState<string | null>(null);
@@ -49,6 +58,47 @@ const CreateChama = (props: UserReg) => {
   const [secSignKey, setSecSignKey] = useState<string | null>(null);
   const [secSignUri, setSecSignUri] = useState<string | null>(null);
   const ChmPhnNphoneContact = MmbaID + ChamaAcNu;
+
+  const { ratesMap } = useExchange();
+  const userCurrencyKey = nationalityToCode(userNationality);
+
+  // Parse amount input
+  const parseAmountInput = (value: string): number => {
+    if (!value || value.trim() === '') return 0;
+    const num = parseFloat(value);
+    return isNaN(num) ? 0 : num;
+  };
+
+  // Handle money input with 2-decimal enforcement
+  const handleMoneyInput = (setter: (value: string) => void) => (value: string) => {
+    if (/^\d*(\.\d{0,2})?$/.test(value) || value === '') {
+      setter(value);
+    }
+  };
+
+  // Format to exactly 2 decimals on blur
+  const formatMoneyOnBlur = (value: string, setter: (value: string) => void) => {
+    const num = parseAmountInput(value);
+    if (num > 0) {
+      setter(num.toFixed(2));
+    }
+  };
+
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        const attributes = await fetchUserAttributes();
+        const userData = await client.graphql({
+          query: getSMAccount,
+          variables: { awsemail: attributes.email },
+        });
+        setUserNationality(userData.data.getSMAccount.nationality);
+      } catch (error) {
+        console.error('Error fetching user data:', error);
+      }
+    };
+    fetchUserData();
+  }, []);
 
   /** Image Handling **/
   const pickSignature = async (role: 'chair' | 'sec') => {
@@ -116,6 +166,28 @@ const CreateChama = (props: UserReg) => {
     }
   };
   const handleCreateChama = async () => {
+    // Convert amounts to KES first    const subAmtForeign = parseAmountInput(SubAmt);
+    const lateSubForeign = parseAmountInput(lateSub);
+    const loanThresholdForeign = parseAmountInput(loanApprovalThreshHold);
+    
+    const subAmtInKES = convertForeignToKsh(subAmtForeign, userCurrencyKey, ratesMap);
+    const lateSubInKES = convertForeignToKsh(lateSubForeign, userCurrencyKey, ratesMap);
+    const loanThresholdInKES = convertForeignToKsh(loanThresholdForeign, userCurrencyKey, ratesMap);
+
+    // Confirmation prompt
+    const confirmed = await new Promise<boolean>((resolve) => {
+      Alert.alert(
+        'Confirm Chama Creation',
+        `Subscription Amount: ${formatAmountSync(subAmtInKES, userCurrencyKey, ratesMap)}\nLate Penalty: ${formatAmountSync(lateSubInKES, userCurrencyKey, ratesMap)}\nLoan Threshold: ${formatAmountSync(loanThresholdInKES, userCurrencyKey, ratesMap)}\n\nProceed?`,
+        [
+          { text: 'Cancel', style: 'cancel', onPress: () => resolve(false) },
+          { text: 'Confirm', onPress: () => resolve(true) }
+        ]
+      );
+    });
+    
+    if (!confirmed) return;
+
     setIsLoading(true);
     try {
       if (!MmbaID || !ChmNm || !Sign2Phn || !Sign3Phn || !loanApprovalThreshHold || !pword || !SubFreq || !SubAmt || !lateSub || !ventures || !ChmDesc) {
@@ -218,8 +290,8 @@ const CreateChama = (props: UserReg) => {
             description: ChmDesc,
             ChmBenefits: 0,
             subscriptionFrequency: SubFreq,
-            subscriptionAmt: SubAmt,
-            lateSubscriptionPenalty: lateSub,
+            subscriptionAmt: subAmtInKES.toFixed(0),
+            lateSubscriptionPenalty: lateSubInKES.toFixed(0),
             objectionStatus: 'NotObjected',
             objOfficer: 'None',
             objReason: 'None',
@@ -264,7 +336,7 @@ const CreateChama = (props: UserReg) => {
             status: 'AccountActive',
             owner: userInfo.userId,
             chamaBenSync: 0,
-            loanApprovalThreshHold: loanApprovalThreshHold,
+            loanApprovalThreshHold: loanThresholdInKES.toFixed(0),
             chairSign: chairSignKey ? chairSignKey : 'NoChairSignUploaded',
             secSign: secSignKey ? secSignKey : 'NoSecSignUploaded'
           }
@@ -298,8 +370,8 @@ const CreateChama = (props: UserReg) => {
             owner: userInfo.userId,
             ttlLateSubs: 0,
             subscriptionFrequency: SubFreq,
-            subscriptionAmt: SubAmt,
-            lateSubscriptionPenalty: lateSub,
+            subscriptionAmt: subAmtInKES.toFixed(0),
+            lateSubscriptionPenalty: lateSubInKES.toFixed(0),
             transportApproved: 'ChamaTransportApprovedNo'
           }
         }
@@ -404,13 +476,15 @@ const CreateChama = (props: UserReg) => {
         }, {
           placeholder: 'Enter Loan Approval Threshold %',
           value: loanApprovalThreshHold,
-          setter: setloanApprovalThreshHold,
-          keyboardType: 'numeric'
+          setter: handleMoneyInput(setloanApprovalThreshHold),
+          onBlur: () => formatMoneyOnBlur(loanApprovalThreshHold, setloanApprovalThreshHold),
+          keyboardType: 'decimal-pad'
         }, {
           placeholder: 'Signatory Subscription Amount',
           value: SubAmt,
-          setter: setSubAmt,
-          keyboardType: 'numeric'
+          setter: handleMoneyInput(setSubAmt),
+          onBlur: () => formatMoneyOnBlur(SubAmt, setSubAmt),
+          keyboardType: 'decimal-pad'
         }, {
           placeholder: 'Signatory Subscription Frequency (Days)',
           value: SubFreq,
@@ -419,8 +493,9 @@ const CreateChama = (props: UserReg) => {
         }, {
           placeholder: 'Signatory Late Subscription Penalty',
           value: lateSub,
-          setter: setlateSub,
-          keyboardType: 'numeric'
+          setter: handleMoneyInput(setlateSub),
+          onBlur: () => formatMoneyOnBlur(lateSub, setlateSub),
+          keyboardType: 'decimal-pad'
         }, {
           placeholder: 'Enter Chama PassWord',
           value: pword,
@@ -447,7 +522,16 @@ const CreateChama = (props: UserReg) => {
               </View>;
           }
           return <View key={index} style={styles.sendLoanView}>
-              <TextInput placeholder={item.placeholder} value={item.value} onChangeText={item.setter} style={item.multiline ? styles.sendAmtInputDesc : styles.sendLoanInput} multiline={item.multiline || false} editable keyboardType={item.keyboardType || 'default'} />
+              <TextInput 
+                placeholder={item.placeholder} 
+                value={item.value} 
+                onChangeText={item.setter} 
+                onBlur={item.onBlur} 
+                style={item.multiline ? styles.sendAmtInputDesc : styles.sendLoanInput} 
+                multiline={item.multiline || false} 
+                editable 
+                keyboardType={item.keyboardType || 'default'} 
+              />
             </View>;
         })}
 

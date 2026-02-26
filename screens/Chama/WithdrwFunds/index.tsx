@@ -7,13 +7,58 @@ import { getAgent, getCompany, getSAgent, getSMAccount } from '../../../src/grap
 import { View, Text, TextInput, ScrollView, ActivityIndicator, TouchableOpacity, Alert } from 'react-native';
 import styles from './styles';
 import { useExchange } from '../../../src/contexts/ExchangeContext';
-import { formatAmountForUser, formatAmountSync, convertKshToUserCurrency } from '../../../src/utils/exchange';
+import { formatAmountSync, convertForeignToKsh } from '../../../src/utils/exchange';
+import { nationalityToCode } from '../../../src/utils/nationalityToCode';
 const SMADepositForm = props => {
   const [UsrPWd, setUsrPWd] = useState('');
   const [AgentPhn, setAgentPhn] = useState('');
   const [amount, setAmount] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const { nationality, ratesMap } = useExchange();
+
+  const parseAmountInput = (value: string) => {
+    const trimmed = value.trim();
+    if (!trimmed) return null;
+    const normalized = trimmed.replace(/,/g, '');
+    const parsed = Number(normalized);
+    return Number.isFinite(parsed) ? parsed : null;
+  };
+
+  const handleAmountChange = (value: string) => {
+    const sanitized = value.replace(/,/g, '');
+    if (sanitized === '') {
+      setAmount('');
+      return;
+    }
+    if (/^\d*(\.\d{0,2})?$/.test(sanitized)) {
+      setAmount(sanitized);
+    }
+  };
+
+  const formatAmountOnBlur = () => {
+    if (!amount.trim()) return;
+    const parsed = parseAmountInput(amount);
+    if (parsed === null) return;
+    setAmount(parsed.toFixed(2));
+  };
+
+  const confirmWithdrawal = (displayAmount: string, agentLabel: string) => {
+    return new Promise((resolve) => {
+      Alert.alert(
+        'Confirm Withdrawal',
+        `Withdraw ${displayAmount} from ${agentLabel}?`,
+        [
+          { text: 'Cancel', style: 'cancel', onPress: () => resolve(false) },
+          { text: 'Proceed', onPress: () => resolve(true) }
+        ],
+        {
+          cancelable: true,
+          onDismiss: () => resolve(false)
+        }
+      );
+    });
+  };
+
   const fetchAcDtls = async () => {
     if (isLoading) return;
     setIsLoading(true);
@@ -28,6 +73,17 @@ const SMADepositForm = props => {
       });
       const usrBala = accountDtl.data.getSMAccount.balance;
       const userNationality = accountDtl.data.getSMAccount.nationality;
+      const userCurrencyKey = nationalityToCode(userNationality) || userNationality || nationality || undefined;
+      const amountForeign = parseAmountInput(amount);
+      if (amountForeign === null || amountForeign <= 0) {
+        Alert.alert('Enter a valid amount');
+        return;
+      }
+      const amountInKES = await convertForeignToKsh(amountForeign, userCurrencyKey);
+      if (!Number.isFinite(amountInKES) || amountInKES <= 0) {
+        Alert.alert('Unable to convert amount. Please try again.');
+        return;
+      }
       const TtlWthdrwnSMs = accountDtl.data.getSMAccount.TtlWthdrwnSM;
       const usrStts = accountDtl.data.getSMAccount.acStatus;
       const withdrawalLimits = accountDtl.data.getSMAccount.withdrawalLimit;
@@ -85,25 +141,32 @@ const SMADepositForm = props => {
       const saBalances = saDtls.data.getSAgent.saBalance;
       const namessssssss = saDtls.data.getSAgent.name;
       const MFKWithdrwlFees = saDtls.data.getSAgent.MFKWithdrwlFee;
-      const AgentCommission = (parseFloat(sagentComs) - parseFloat(MFNWithdrwlFees)) / 100 * parseFloat(amount) * parseFloat(UsrWthdrwlFeess);
-      const saCommission = (parseFloat(agentComs) - parseFloat(MFKWithdrwlFees)) / 100 * parseFloat(amount) * parseFloat(UsrWthdrwlFeess);
-      const compCommission = (parseFloat(companyComs) - companyComDisc) / 100 * parseFloat(amount) * parseFloat(UsrWthdrwlFeess);
+      const AgentCommission = (parseFloat(sagentComs) - parseFloat(MFNWithdrwlFees)) / 100 * amountInKES * parseFloat(UsrWthdrwlFeess);
+      const saCommission = (parseFloat(agentComs) - parseFloat(MFKWithdrwlFees)) / 100 * amountInKES * parseFloat(UsrWthdrwlFeess);
+      const compCommission = (parseFloat(companyComs) - companyComDisc) / 100 * amountInKES * parseFloat(UsrWthdrwlFeess);
       const UsrWithdrawalFee = AgentCommission + saCommission + compCommission;
-      const TTlAmtTrnsctd = parseFloat(amount) + UsrWithdrawalFee;
+      const TTlAmtTrnsctd = amountInKES + UsrWithdrawalFee;
       if (TTlAmtTrnsctd > parseFloat(usrBala)) {
-        Alert.alert('Cancelled.' + 'Bal: ' + usrBala + '. Deductable: ' + TTlAmtTrnsctd.toFixed(2));
+        Alert.alert('Cancelled.' + 'Bal: ' + formatAmountSync(parseFloat(usrBala), userCurrencyKey, ratesMap) + '. Deductable: ' + formatAmountSync(TTlAmtTrnsctd, userCurrencyKey, ratesMap));
         return;
       }
       if (usrStts === 'AccountInactive') {
         Alert.alert('User Account has been deactivated');
         return;
       }
-      if (parseFloat(amount) > parseFloat(withdrawalLimits)) {
+      if (amountInKES > parseFloat(withdrawalLimits)) {
         Alert.alert('Withdrawal limit exceeded');
         return;
       }
       if (UsrPWd !== pws) {
         Alert.alert('User credentials are wrong; access denied');
+        return;
+      }
+      const accepted = await confirmWithdrawal(
+        formatAmountSync(amountInKES, userCurrencyKey, ratesMap),
+        `${namess} (${AgentPhn})`
+      );
+      if (!accepted) {
         return;
       }
       await client.graphql({
@@ -114,7 +177,7 @@ const SMADepositForm = props => {
             agentPhonecontact: AgentPhn,
             sagentId: sagentregnos,
             owner: user.userId,
-            amount: parseFloat(amount).toFixed(0),
+            amount: amountInKES.toFixed(0),
             agentName: namess,
             userName: names,
             saName: namessssssss,
@@ -129,7 +192,7 @@ const SMADepositForm = props => {
           input: {
             awsemail: attrs.email,
             balance: (parseFloat(usrBala) - TTlAmtTrnsctd).toFixed(0),
-            TtlWthdrwnSM: (parseFloat(TtlWthdrwnSMs) + parseFloat(amount)).toFixed(0)
+            TtlWthdrwnSM: (parseFloat(TtlWthdrwnSMs) + amountInKES).toFixed(0)
           }
         }
       });
@@ -140,8 +203,8 @@ const SMADepositForm = props => {
             phonecontact: AgentPhn,
             ttlEarnings: (parseFloat(ttlEarningssss) + AgentCommission).toFixed(0),
             agentEarningBal: (parseFloat(agentEarningBalsss) + AgentCommission).toFixed(0),
-            floatBal: (parseFloat(floatBals) + parseFloat(amount)).toFixed(0),
-            TtlFltIn: (parseFloat(TtlFltInsss) + parseFloat(amount)).toFixed(0)
+            floatBal: (parseFloat(floatBals) + amountInKES).toFixed(0),
+            TtlFltIn: (parseFloat(TtlFltInsss) + amountInKES).toFixed(0)
           }
         }
       });
@@ -166,17 +229,12 @@ const SMADepositForm = props => {
             agentEarning: parseFloat(agentEarnings) + AgentCommission,
             saEarningBal: parseFloat(saEarningBals) + saCommission,
             saEarning: parseFloat(saEarnings) + saCommission,
-            ttlUserWthdrwl: parseFloat(ttlUserWthdrwls) + parseFloat(amount),
-            agentFloatIn: parseFloat(agentFloatIns) + parseFloat(amount)
+            ttlUserWthdrwl: parseFloat(ttlUserWthdrwls) + amountInKES,
+            agentFloatIn: parseFloat(agentFloatIns) + amountInKES
           }
         }
       });
-      try {
-        const formatted = await formatAmountForUser(parseFloat(amount), userNationality);
-        Alert.alert(`${names} has withdrawn ${formatted} from ${namess} MFNdogo`);
-      } catch (e) {
-        Alert.alert(names + ' has withdrawn ' + formatAmountSync(parseFloat(amount), userNationality, ratesMap) + ' from ' + namess + ' MFNdogo');
-      }
+      Alert.alert(names + ' has withdrawn ' + formatAmountSync(amountInKES, userCurrencyKey, ratesMap) + ' from ' + namess + ' MFNdogo');
       setAmount('');
       setUsrPWd('');
       setAgentPhn('');
@@ -198,7 +256,7 @@ const SMADepositForm = props => {
       </View>
 
       <View style={styles.sendAmtView}>
-        <TextInput keyboardType="decimal-pad" value={amount} onChangeText={setAmount} style={styles.sendAmtInput} />
+        <TextInput keyboardType="decimal-pad" value={amount} onChangeText={handleAmountChange} onBlur={formatAmountOnBlur} style={styles.sendAmtInput} />
         <Text style={styles.sendAmtText}>Amount</Text>
       </View>
 

@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import Communications from 'react-native-communications';
 import { createSMLoansCovered, createNonLoans, updateCompany, updateSMAccount, updateBizna, createBizSls, updateBizSlsReq } from '../../../../../src/graphql/mutations';
 import { getBizSlsReq, getBizna, getCompany, getSMAccount, listCovCreditSellers, listCvrdGroupLoans, listSMLoansCovereds } from '../../../../../src/graphql/queries';
 import { useNavigation, useRoute } from '@react-navigation/native';
@@ -184,7 +183,7 @@ const SMASendNonLns = props => {
             }
           }
         });
-        Alert.alert("Amount:Ksh. " + parseFloat(amount).toFixed(0) + ". Transaction fee: Ksh. " + UsrTransferFeeAmt.toFixed(0));
+        Alert.alert("Amount: " + parseFloat(amount).toFixed(0) + ". Transaction fee: " + UsrTransferFeeAmt.toFixed(0));
       }
 
       // Conditional checks preserved

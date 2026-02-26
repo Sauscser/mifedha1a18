@@ -240,7 +240,7 @@ const SMASendNonLns = () => {
             }
           }
         })]);
-        Alert.alert(`Successful! Transaction fee: Ksh. ${fee.toFixed(0)}`);
+        Alert.alert(`Successful! Transaction fee: ${fee.toFixed(0)}`);
         setIsLoading(false);
         setSnderPW("");
       }
@@ -291,7 +291,7 @@ const SMASendNonLns = () => {
             }
           }
         })]);
-        Alert.alert(`Successful! Transaction fee: Ksh. ${fee.toFixed(0)}`);
+        Alert.alert(`Successful! Transaction fee: ${fee.toFixed(0)}`);
         setIsLoading(false);
         setSnderPW("");
       }

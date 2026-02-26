@@ -4,6 +4,9 @@ import { getBizna, getCompany, getSMAccount } from '../../../../src/graphql/quer
 import { getCurrentUser, fetchUserAttributes } from 'aws-amplify/auth';
 import { generateClient } from 'aws-amplify/api';
 import { useNavigation } from '@react-navigation/native';
+import { convertForeignToKsh, formatAmountSync } from '../../../../src/utils/exchange';
+import { useExchange } from '../../../../src/contexts/ExchangeContext';
+import { nationalityToCode } from '../../../../src/utils/nationalityToCode';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { View, Text, TextInput, ScrollView, StyleSheet, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
@@ -27,6 +30,7 @@ const CreateChama = (props: UserReg) => {
   const [MmbaID, setMmbaID] = useState('');
   const [Sign2Phn, setSign2Phn] = useState('');
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
+  const { ratesMap } = useExchange();
   const WorkerID = ChmDesc + ChmRegNo;
   const ChckUsrExistence = async () => {
     if (isLoading) return;
@@ -63,6 +67,24 @@ const CreateChama = (props: UserReg) => {
           const onCreateNewSMAc = async () => {
             if (isLoading) return;
             setIsLoading(true);
+
+            const prodCostInput = parseFloat(Sign2Phn);
+            if (!prodCostInput || prodCostInput <= 0) {
+              Alert.alert('Enter a valid product cost');
+              setIsLoading(false);
+              return;
+            }
+
+            const rawNationality = usrDtl?.nationality || (attributes as any).nationality;
+            const userCode = nationalityToCode(rawNationality) || rawNationality || 'KE';
+
+            const prodCostKes = await convertForeignToKsh(prodCostInput, userCode);
+            if (!prodCostKes || prodCostKes <= 0) {
+              Alert.alert('Unable to convert product cost. Please try again.');
+              setIsLoading(false);
+              return;
+            }
+
             try {
               await client.graphql({
                 query: createBenProd2,
@@ -74,14 +96,16 @@ const CreateChama = (props: UserReg) => {
                     prodName: ChmPhn,
                     creatorName: BiznaNames,
                     owner: usrDtl.name,
-                    prodCost: Sign2Phn,
+                    prodCost: prodCostKes.toFixed(0),
                     benefitsAmount: 0,
                     prodDesc: `Product created by ${BiznaNames}. ${ChmDesc}`,
                     prodStatus: 'AccountActive'
                   }
                 }
               });
-              Alert.alert('Product created successfully');
+
+              const formattedCost = formatAmountSync(prodCostKes, userCode, ratesMap);
+              Alert.alert('Success', `Product created successfully. Cost: ${formattedCost}`);
             } catch (error) {
               console.log(error);
               Alert.alert('Error! Access denied!');

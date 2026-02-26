@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { updateCompany, updateSMAccount, updateNonLoans, createNonLoans } from '../../../src/graphql/mutations';
 import { getCompany, getNonLoans, getSMAccount } from '../../../src/graphql/queries';
 import { useNavigation, useRoute } from '@react-navigation/native';
+import { convertForeignToKsh } from '../../../src/utils/exchange';
 import { View, Alert } from 'react-native';
 import styles from './styles';
 import { generateClient } from "aws-amplify/api";
@@ -59,6 +60,9 @@ const SMASendNonLns = props => {
             }
             setIsLoading(true);
             try {
+              const parsedAmount = parseFloat(amounts);
+              const convertedAmount = await convertForeignToKsh(parsedAmount, 'KES');
+              const amountKes = Number.isFinite(convertedAmount) ? convertedAmount : parsedAmount;
               const CompDtls: any = await client.graphql({
                 query: getCompany,
                 variables: {
@@ -66,7 +70,7 @@ const SMASendNonLns = props => {
                 }
               });
               const UsrTransferFee = CompDtls.data.getCompany.userTransferFee;
-              const TotalTransacted = parseFloat(amounts) + parseFloat(UsrTransferFee) * parseFloat(amounts);
+              const TotalTransacted = amountKes + parseFloat(UsrTransferFee) * amountKes;
               const CompPhoneContact = CompDtls.data.getCompany.phoneContact;
               const companyEarningBals = CompDtls.data.getCompany.companyEarningBal;
               const companyEarnings = CompDtls.data.getCompany.companyEarning;
@@ -125,8 +129,8 @@ const SMASendNonLns = props => {
                         variables: {
                           input: {
                             awsemail: recPhns,
-                            ttlNonLonsSentSM: (parseFloat(ttlNonLonsSentSMs) + parseFloat(amounts)).toFixed(2),
-                            balance: (parseFloat(SenderUsrBal) - amounts).toFixed(2)
+                            ttlNonLonsSentSM: (parseFloat(ttlNonLonsSentSMs) + amountKes).toFixed(2),
+                            balance: (parseFloat(SenderUsrBal) - amountKes).toFixed(2)
                           }
                         }
                       });
@@ -150,8 +154,8 @@ const SMASendNonLns = props => {
                         variables: {
                           input: {
                             awsemail: senderPhns,
-                            ttlNonLonsRecSM: (parseFloat(ttlNonLonsRecSMs) + parseFloat(amounts)).toFixed(2),
-                            balance: (parseFloat(RecUsrBal) + (parseFloat(amounts) - parseFloat(UsrTransferFee) * parseFloat(amounts))).toFixed(2)
+                            ttlNonLonsRecSM: (parseFloat(ttlNonLonsRecSMs) + amountKes).toFixed(2),
+                            balance: (parseFloat(RecUsrBal) + (amountKes - parseFloat(UsrTransferFee) * amountKes)).toFixed(2)
                           }
                         }
                       });
@@ -176,10 +180,10 @@ const SMASendNonLns = props => {
                         variables: {
                           input: {
                             AdminId: "BaruchHabaB'ShemAdonai2",
-                            companyEarningBal: parseFloat(UsrTransferFee) * parseFloat(amounts) + parseFloat(companyEarningBals),
-                            companyEarning: parseFloat(UsrTransferFee) * parseFloat(amounts) + parseFloat(companyEarnings),
-                            ttlNonLonssRecSM: parseFloat(amounts) + parseFloat(ttlNonLonssRecSMs),
-                            ttlNonLonssSentSM: parseFloat(amounts) + parseFloat(ttlNonLonssSentSMs)
+                            companyEarningBal: parseFloat(UsrTransferFee) * amountKes + parseFloat(companyEarningBals),
+                            companyEarning: parseFloat(UsrTransferFee) * amountKes + parseFloat(companyEarnings),
+                            ttlNonLonssRecSM: amountKes + parseFloat(ttlNonLonssRecSMs),
+                            ttlNonLonssSentSM: amountKes + parseFloat(ttlNonLonssSentSMs)
                           }
                         }
                       });
@@ -231,7 +235,7 @@ const SMASendNonLns = props => {
                     Alert.alert('Transaction already reversed');
                   } else if (parseFloat(SenderUsrBal) < TotalTransacted) {
                     Alert.alert('Reverser cannot facilitate this');
-                  } else if (parseFloat(loanLimits) < parseFloat(amounts)) {
+                  } else if (parseFloat(loanLimits) < amountKes) {
                     Alert.alert('Call ' + CompPhoneContact + ' to have your send Amount limit adjusted');
                   } else {
                     sendSMNonLn();

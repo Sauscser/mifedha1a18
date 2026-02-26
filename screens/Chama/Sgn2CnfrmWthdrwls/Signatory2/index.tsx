@@ -5,6 +5,11 @@ import { View, Text, TextInput, ScrollView, ActivityIndicator, TouchableOpacity,
 import styles from './styles';
 import { generateClient } from 'aws-amplify/api';
 import { getCurrentUser, fetchUserAttributes } from 'aws-amplify/auth';
+
+import { useExchange } from '../../../../src/contexts/ExchangeContext';
+import { convertForeignToKsh, formatAmountSync } from '../../../../src/utils/exchange';
+import { nationalityToCode } from '../../../../src/utils/nationalityToCode';
+
 const client = generateClient();
 const SMADepositForm = props => {
   const [UsrPWd, setUsrPWd] = useState("");
@@ -12,8 +17,69 @@ const SMADepositForm = props => {
   const [grpKntct, setgrpKntct] = useState("");
   const [amount, setAmount] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [userNationality, setUserNationality] = useState<string>(null);
+  
+  const { ratesMap } = useExchange();
+  const userCurrencyKey = nationalityToCode(userNationality);
+
+  // Parse amount input
+  const parseAmountInput = (value: string): number => {
+    if (!value || value.trim() === '') return 0;
+    const num = parseFloat(value);
+    return isNaN(num) ? 0 : num;
+  };
+
+  // Handle money input with 2-decimal enforcement
+  const handleMoneyInput = (setter: (value: string) => void) => (value: string) => {
+    if (/^\d*(\.\d{0,2})?$/.test(value) || value === '') {
+      setter(value);
+    }
+  };
+
+  // Format to exactly 2 decimals on blur
+  const formatMoneyOnBlur = (value: string, setter: (value: string) => void) => {
+    const num = parseAmountInput(value);
+    if (num > 0) {
+      setter(num.toFixed(2));
+    }
+  };
+
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        const attributes = await fetchUserAttributes();
+        const userData = await client.graphql({
+          query: getSMAccount,
+          variables: { awsemail: attributes.email },
+        });
+        setUserNationality(userData.data.getSMAccount.nationality);
+      } catch (error) {
+        console.error('Error fetching user data:', error);
+      }
+    };
+    fetchUserData();
+  }, []);
   const fetchAcDtls = async () => {
     if (isLoading) return;
+    
+    // Convert amount to KES
+    const amountForeign = parseAmountInput(amount);
+    const amountInKES = convertForeignToKsh(amountForeign, userCurrencyKey, ratesMap);
+
+    // Confirmation prompt
+    const confirmed = await new Promise<boolean>((resolve) => {
+      Alert.alert(
+        'Confirm Withdrawal',
+        `You are confirming withdrawal of ${formatAmountSync(amountInKES, userCurrencyKey, ratesMap)}. Continue?`,
+        [
+          { text: 'Cancel', style: 'cancel', onPress: () => resolve(false) },
+          { text: 'Confirm', onPress: () => resolve(true) }
+        ]
+      );
+    });
+
+    if (!confirmed) return;
+
     setIsLoading(true);
     const user = await getCurrentUser();
     const attributes = await fetchUserAttributes();
@@ -49,7 +115,7 @@ const SMADepositForm = props => {
                   input: {
                     grpContact: grpKntct,
                     WithdrawCnfrmtn2: "YES",
-                    WithdrawCnfrmtnAmt: amount
+                    WithdrawCnfrmtnAmt: amountInKES.toFixed(0)
                   }
                 }
               });
@@ -67,8 +133,8 @@ const SMADepositForm = props => {
           } else if (WithdrawCnfrmtn === "NO") {
             Alert.alert("Let the second signatory first confirm");
             return;
-          } else if (WithdrawCnfrmtnAmt !== amount) {
-            Alert.alert("Enter amount agreed with the other signatory");
+          } else if (WithdrawCnfrmtnAmt !== amountInKES.toFixed(0)) {
+            Alert.alert(`Enter amount agreed with the other signatory. Expected: ${formatAmountSync(parseFloat(WithdrawCnfrmtnAmt), userCurrencyKey, ratesMap)}`);
             return;
           } else if (UsrPWd !== pws) {
             Alert.alert("User credentials are wrong; access denied");
@@ -112,7 +178,7 @@ const SMADepositForm = props => {
           </View>
 
           <View style={styles.sendAmtView}>
-            <TextInput value={amount} onChangeText={setAmount} style={styles.sendAmtInput} editable={true}></TextInput>
+            <TextInput keyboardType="decimal-pad" value={amount} onChangeText={handleMoneyInput(setAmount)} onBlur={() => formatMoneyOnBlur(amount, setAmount)} style={styles.sendAmtInput} editable={true}></TextInput>
             <Text style={styles.sendAmtText}>Amount</Text>
           </View>
 

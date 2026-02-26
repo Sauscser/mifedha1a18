@@ -4,6 +4,8 @@ import { getAgent, getBankAdmin, getCompany, getSAgent, getSMAccount } from '../
 import { View, Text, TextInput, ScrollView, ActivityIndicator, TouchableOpacity, Alert } from 'react-native';
 import styles from './styles';
 import { getCurrentUser, fetchUserAttributes } from "aws-amplify/auth";
+import { useExchange } from '../../../src/contexts/ExchangeContext';
+import { convertForeignToKsh, formatAmountSync } from '../../../src/utils/exchange';
 import { generateClient } from "aws-amplify/api";
 const client = generateClient();
 const MFNWthdwFlt = props => {
@@ -11,6 +13,7 @@ const MFNWthdwFlt = props => {
   const [MFKPhn, setMFKPhn] = useState("");
   const [amount, setAmount] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const { nationality, ratesMap } = useExchange();
   const fetchAcDtls = async () => {
     if (isLoading) {
       return;
@@ -28,6 +31,7 @@ const MFNWthdwFlt = props => {
       const usrBala = accountDtl.data.getSMAccount.balance;
       const usrStts = accountDtl.data.getSMAccount.acStatus;
       const owners = accountDtl.data.getSMAccount.owner;
+      const userNationality = accountDtl.data.getSMAccount.nationality;
       const namess = accountDtl.data.getSMAccount.name;
       const fetchMFNDtls = async () => {
         if (isLoading) {
@@ -45,6 +49,13 @@ const MFNWthdwFlt = props => {
           const pws = MFNDtl.data.getAgent.pw;
           const names = MFNDtl.data.getAgent.name;
           const statussssss = MFNDtl.data.getAgent.status;
+          const amountForeign = Number(amount);
+          if (!Number.isFinite(amountForeign) || amountForeign <= 0) {
+            Alert.alert("Invalid amount", "Enter a valid withdrawal amount");
+            setIsLoading(false);
+            return;
+          }
+          const amountKsh = await convertForeignToKsh(amountForeign, userNationality || undefined);
           const CrtMFNFltWthdrwls = async () => {
             try {
               await client.graphql({
@@ -55,16 +66,14 @@ const MFNWthdwFlt = props => {
                     agContact: MFKPhn,
                     agentName: "None",
                     userName: "None",
-                    amount: amount,
+                    amount: String(Math.round(amountKsh)),
                     status: 'AccountActive'
                   }
                 }
               });
             } catch (error) {
-              if (!error) {
-                Alert.alert("Account deactivated successfully");
-              } else {
-                Alert.alert("Please check your internet connection");
+              if (error) {
+                Alert.alert("Withdrawal failed", "Please check your internet connection");
                 return;
               }
             }
@@ -82,17 +91,17 @@ const MFNWthdwFlt = props => {
                 variables: {
                   input: {
                     awsemail: attributes.email,
-                    balance: parseFloat(usrBala) + parseFloat(amount)
+                    balance: parseFloat(usrBala) + amountKsh
                   }
                 }
               });
             } catch (error) {
               if (error) {
-                Alert.alert("Check internet Connection");
+                Alert.alert("Update failed", "Check internet connection");
                 return;
               }
             }
-            Alert.alert(names + ", You have transfered Ksh. " + parseFloat(amount).toFixed(2) + " float to your SM account");
+            Alert.alert("Transfer successful", names + ", You have transferred " + formatAmountSync(amountKsh, nationality, ratesMap) + " float to your SM account");
             setIsLoading(false);
             await onUpdtMFNBal();
           };
@@ -107,20 +116,19 @@ const MFNWthdwFlt = props => {
                 variables: {
                   input: {
                     phonecontact: MFKPhn,
-                    floatBal: parseFloat(floatBals) - parseFloat(amount)
+                    floatBal: parseFloat(floatBals) - amountKsh
                   }
                 }
               });
             } catch (error) {
               if (error) {
-                Alert.alert("Check internet Connection");
+                Alert.alert("Update failed", "Check internet connection");
                 return;
               }
             }
-            Alert.alert(names + ", You have transfered Ksh. " + amount + " to your SM account");
             setIsLoading(false);
           };
-          if (parseFloat(amount) > parseFloat(floatBals)) {
+          if (amountKsh > parseFloat(floatBals)) {
             Alert.alert("Insufficient Admin Balance");
             return;
           } else if (usrStts !== "AccountActive") {
@@ -141,7 +149,7 @@ const MFNWthdwFlt = props => {
           }
         } catch (e) {
           if (e) {
-            Alert.alert("Check your internet connection");
+            Alert.alert("Error", "Check your internet connection");
             return;
           }
         }
@@ -154,7 +162,7 @@ const MFNWthdwFlt = props => {
       }
     } catch (e) {
       if (e) {
-        Alert.alert("Check your internet connection");
+        Alert.alert("Error", "Check your internet connection");
         return;
       }
     }

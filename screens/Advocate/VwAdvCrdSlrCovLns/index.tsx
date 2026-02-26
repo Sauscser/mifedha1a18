@@ -53,6 +53,7 @@ const FetchSMNonLnsSnt = props => {
                 const companyEarningBals = MFNDtls.data.getCompany.companyEarningBal;
                 const companyEarnings = MFNDtls.data.getCompany.companyEarning;
                 const enquiryFees = MFNDtls.data.getCompany.enquiryFee;
+                const enquiryFeeNum = Number(enquiryFees || 0);
                 const updtUsrAc = async () => {
                   try {
                     await client.graphql({
@@ -60,13 +61,13 @@ const FetchSMNonLnsSnt = props => {
                       variables: {
                         input: {
                           awsemail: attrs.email,
-                          balance: parseFloat(balances) - parseFloat(enquiryFees)
+                          balance: parseFloat(balances) - enquiryFeeNum
                         }
                       }
                     });
                   } catch (error) {
                     if (error) {
-                      Alert.alert("Error! Access denied!");
+                      Alert.alert("Error", "Access denied or network issue");
                       return;
                     }
                   }
@@ -78,21 +79,23 @@ const FetchSMNonLnsSnt = props => {
                       variables: {
                         input: {
                           AdminId: "BaruchHabaB'ShemAdonai2",
-                          companyEarningBal: parseFloat(companyEarningBals) + parseFloat(enquiryFees),
-                          companyEarning: parseFloat(companyEarnings) + parseFloat(enquiryFees)
+                          companyEarningBal: parseFloat(companyEarningBals) + enquiryFeeNum,
+                          companyEarning: parseFloat(companyEarnings) + enquiryFeeNum
                         }
                       }
                     });
                   } catch (error) {
                     if (error) {
-                      Alert.alert("Error! Access denied!");
+                      Alert.alert("Error", "Access denied or network issue");
                       return;
                     }
                   }
                   await updtUsrAc();
                 };
-                if (parseFloat(balances) < parseFloat(enquiryFees)) {
-                  Alert.alert("Account Balance is very little");
+                if (!Number.isFinite(enquiryFeeNum) || enquiryFeeNum < 0) {
+                  Alert.alert("Configuration error", "Invalid enquiry fee configuration");
+                } else if (parseFloat(balances) < enquiryFeeNum) {
+                  Alert.alert("Insufficient balance", "Account balance is too low for enquiry fee");
                 } else {
                   await updtActAdm();
                 }

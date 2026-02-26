@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import Communications from 'react-native-communications';
-import { createSMLoansCovered, createNonLoans, updateCompany, updateSMAccount, updateBizna, createBenefitShare2, updateLinkBeneficiary2 } from '../../../../src/graphql/mutations';
+import { createSMLoansCovered, createNonLoans, updateCompany, updateSMAccount, updateBizna, createBenefitShare2, updateLinkBeneficiary2, createMessages, sendNotification } from '../../../../src/graphql/mutations';
 import { getBizna, getCompany, getLinkBeneficiary2, getSMAccount } from '../../../../src/graphql/queries';
 import { useExchange } from '../../../../src/contexts/ExchangeContext';
-import { formatAmountSync } from '../../../../src/utils/exchange';
+import { formatAmountSync, convertForeignToKsh } from '../../../../src/utils/exchange';
+import { nationalityToCode } from '../../../../src/utils/nationalityToCode';
 import { getCurrentUser, fetchUserAttributes } from 'aws-amplify/auth';
 import { generateClient } from 'aws-amplify/api';
 import { View, Text, TextInput, ScrollView, StyleSheet, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
@@ -21,6 +21,8 @@ const SMASendNonLns = props => {
   const [isLoading, setIsLoading] = useState(false);
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const route = useRoute();
+  const routeParams: any = route.params;
+  const { ratesMap } = useExchange();
   const fetchBenProdUsrDtls = async () => {
     if (isLoading) return;
     setIsLoading(true);
@@ -30,7 +32,7 @@ const SMASendNonLns = props => {
       const accountDtlzx: any = await client.graphql({
         query: getLinkBeneficiary2,
         variables: {
-          beneficiaryID: route.params.beneficiaryID
+          beneficiaryID: routeParams.beneficiaryID
         }
       });
       const {
@@ -64,6 +66,8 @@ const SMASendNonLns = props => {
           const SenderSub = accountDtl.data.getBizna.owner;
           const noBL = accountDtl.data.getBizna.noBL;
           const statuss = accountDtl.data.getBizna.status;
+          const senderNationality = accountDtl.data.getBizna.Nationality || (attributes as any).nationality;
+          const userCode = nationalityToCode(senderNationality) || senderNationality || 'KE';
           const fetchCompDtls = async () => {
             try {
               const CompDtls: any = await client.graphql({
@@ -73,7 +77,22 @@ const SMASendNonLns = props => {
                 }
               });
               const UsrTransferFee = CompDtls.data.getCompany.biznaTransferFee;
-              const TotalTransacted = parseFloat(amounts) + parseFloat(UsrTransferFee) * parseFloat(amounts);
+
+              const amountInput = parseFloat(amounts);
+              if (!amountInput || amountInput <= 0) {
+                Alert.alert('Enter a valid amount');
+                setIsLoading(false);
+                return;
+              }
+
+              const amountKes = await convertForeignToKsh(amountInput, userCode);
+              if (!amountKes || amountKes <= 0) {
+                Alert.alert('Unable to convert amount. Please try again.');
+                setIsLoading(false);
+                return;
+              }
+
+              const TotalTransacted = amountKes + UsrTransferFee * amountKes;
               const companyEarningBals = CompDtls.data.getCompany.companyEarningBal;
               const companyEarnings = CompDtls.data.getCompany.companyEarning;
               const ttlNonLonssRecSMs = CompDtls.data.getCompany.ttlNonLonssRecSM;
@@ -97,7 +116,7 @@ const SMASendNonLns = props => {
                           input: {
                             benefitsID: busNames,
                             benefactorAc: benefactorAcs,
-                            amount: parseFloat(amounts).toFixed(2),
+                            amount: amountKes.toFixed(0),
                             benefactorPhone: benefactorPhones,
                             beneficiaryAc: beneficiaryAcs,
                             beneficiaryPhone: beneficiaryPhones,
@@ -126,7 +145,7 @@ const SMASendNonLns = props => {
                         variables: {
                           input: {
                             BusKntct: SenderNatId,
-                            benefitsAmount: (parseFloat(benefitsAmountsz) - TotalTransacted).toFixed(2)
+                            benefitsAmount: (parseFloat(benefitsAmountsz) - TotalTransacted).toFixed(0)
                           }
                         }
                       });
@@ -142,8 +161,8 @@ const SMASendNonLns = props => {
                         query: updateLinkBeneficiary2,
                         variables: {
                           input: {
-                            beneficiaryID: route.params.beneficiaryID,
-                            benefitsAmount: (parseFloat(benefitsAmounts) + parseFloat(amounts)).toFixed(2)
+                            beneficiaryID: routeParams.beneficiaryID,
+                            benefitsAmount: (parseFloat(benefitsAmounts) + amountKes).toFixed(0)
                           }
                         }
                       });
@@ -160,7 +179,7 @@ const SMASendNonLns = props => {
                         variables: {
                           input: {
                             BusKntct: benefactorPhones,
-                            netEarnings: (parseFloat(netEarnings) + parseFloat(amounts)).toFixed(2)
+                            netEarnings: (parseFloat(netEarnings) + amountKes).toFixed(0)
                           }
                         }
                       });
@@ -177,10 +196,10 @@ const SMASendNonLns = props => {
                         variables: {
                           input: {
                             AdminId: "BaruchHabaB'ShemAdonai2",
-                            companyEarningBal: parseFloat(UsrTransferFee) * parseFloat(amounts) + parseFloat(companyEarningBals),
-                            companyEarning: parseFloat(UsrTransferFee) * parseFloat(amounts) + parseFloat(companyEarnings),
-                            ttlNonLonssRecSM: parseFloat(amounts) + parseFloat(ttlNonLonssRecSMs),
-                            ttlNonLonssSentSM: parseFloat(amounts) + parseFloat(ttlNonLonssSentSMs)
+                            companyEarningBal: UsrTransferFee * amountKes + parseFloat(companyEarningBals),
+                            companyEarning: UsrTransferFee * amountKes + parseFloat(companyEarnings),
+                            ttlNonLonssRecSM: amountKes + parseFloat(ttlNonLonssRecSMs),
+                            ttlNonLonssSentSM: amountKes + parseFloat(ttlNonLonssSentSMs)
                           }
                         }
                       });
@@ -188,11 +207,24 @@ const SMASendNonLns = props => {
                       Alert.alert('Check your internet connection');
                       return;
                     }
-                    const { ratesMap } = useExchange();
-                    const formattedAmount = formatAmountSync(parseFloat(amounts), accountDtl.data.getSMAccount.nationality, ratesMap);
-                    const formattedTxFee = formatAmountSync((parseFloat(UsrTransferFee) * parseFloat(amounts)), accountDtl.data.getSMAccount.nationality, ratesMap);
-                    Alert.alert(`Amount: ${formattedAmount} Transaction: ${formattedTxFee}`);
-                    Communications.textWithoutEncoding(beneficiaryPhones, `Confirmed. ${busNames} Benefactor has sent you ${formattedAmount} as Benefits. Please confirm this transaction record is on your Mifedha app. Thank you. MiFedha`);
+                    const formattedAmount = formatAmountSync(amountKes, userCode, ratesMap);
+                    const formattedTxFee = formatAmountSync((UsrTransferFee * amountKes), userCode, ratesMap);
+                    Alert.alert('Success', `Amount: ${formattedAmount} Transaction fee: ${formattedTxFee}`);
+                    const benefitMessage1 = `Confirmed. ${busNames} Benefactor has sent you ${formattedAmount} as Benefits. Please confirm this transaction record is on your Mifedha app. Thank you. MiFedha`;
+                    try {
+                      const msgRes: any = await client.graphql({
+                        query: createMessages,
+                        variables: { input: { senderEmail: beneficiaryPhones, messageBody: benefitMessage1 }}
+                      });
+                      if (msgRes?.data?.createMessages) {
+                        await client.graphql({
+                          query: sendNotification,
+                          variables: { riderEmail: beneficiaryPhones, title: 'MiFedha: Benefits Shared', body: benefitMessage1 }
+                        });
+                      }
+                    } catch (notifErr) {
+                      console.log('Notification error:', notifErr);
+                    }
                     setIsLoading(false);
                   };
                   if (statuss !== 'AccountActive') {

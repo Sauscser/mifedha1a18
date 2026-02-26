@@ -1,17 +1,20 @@
 import React, { useState } from 'react';
 import { View, Text, Pressable, Alert, ActivityIndicator, ScrollView, TouchableOpacity } from 'react-native';
-import Communications from 'react-native-communications';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { getBizna, getCompany, getCovCreditSeller, getSMAccount } from '../../../../src/graphql/queries';
-import { updateCompany, updateCovCreditSeller, updateSMAccount } from '../../../../src/graphql/mutations';
+import { updateCompany, updateCovCreditSeller, updateSMAccount, createMessages, sendNotification } from '../../../../src/graphql/mutations';
 import { getCurrentUser, fetchUserAttributes } from 'aws-amplify/auth';
 import { generateClient } from 'aws-amplify/api';
+import { useExchange } from '../../../../src/contexts/ExchangeContext';
+import { formatAmountSync } from '../../../../src/utils/exchange';
+import { nationalityToCode } from '../../../../src/utils/nationalityToCode';
 import styles from './styles';
 const client = generateClient();
 const BLCovCredByr = () => {
   const navigation = useNavigation();
   const route = useRoute();
   const [isLoading, setIsLoading] = useState(false);
+  const { ratesMap } = useExchange();
   const gtCompDtls = async () => {
     if (isLoading) return;
     setIsLoading(true);
@@ -93,7 +96,9 @@ const BLCovCredByr = () => {
       const loaneeName = loaneeDtls.data.getSMAccount.name;
       const acStatus = loaneeDtls.data.getSMAccount.acStatus;
       const MaxTymsBL = loaneeDtls.data.getSMAccount.MaxTymsBL;
-      const phonecontactz = loaneeDtls.data.getSMAccount.phonecontact;
+      const receiverEmail = loaneeDtls.data.getSMAccount.awsemail;
+      const loaneeNationality = loaneeDtls.data.getSMAccount.nationality;
+      const userCode = nationalityToCode(loaneeNationality) || loaneeNationality || (attributes as any).nationality || 'KE';
 
       // Decision logic
       if (parseFloat(lonBala) === 0) {
@@ -118,7 +123,22 @@ const BLCovCredByr = () => {
           }
         });
         Alert.alert(`${loanerName}, you have Penalised ${loaneeName}`);
-        Communications.textWithoutEncoding(buyerContact, `MiFedha. Hi ${loaneeName}, your loan of ID ${route.params.loanID} has been Penalised by ${loanerName}. Total repayable: Ksh. ${LonBal5.toFixed(0)}.`);
+        const formattedLonBal5 = formatAmountSync(LonBal5, userCode, ratesMap);
+        const blCredMsg3 = `MiFedha. Hi ${loaneeName}, your loan of ID ${route.params.loanID} has been Penalised by ${loanerName}. Total repayable: ${formattedLonBal5}.`;
+        try {
+          const msgRes = await client.graphql({
+            query: createMessages,
+            variables: { input: { senderEmail: receiverEmail || buyerContact, messageBody: blCredMsg3 }}
+          });
+          if (msgRes?.data?.createMessages) {
+            await client.graphql({
+              query: sendNotification,
+              variables: { riderEmail: receiverEmail || buyerContact, title: 'MiFedha: Credit Loan Penalised', body: blCredMsg3 }
+            });
+          }
+        } catch (notifErr) {
+          console.log('Notification error:', notifErr);
+        }
       } else if (tmDif2 > repaymentPeriod && status !== "LoanBL") {
         // Blacklist
         await client.graphql({
@@ -153,13 +173,28 @@ const BLCovCredByr = () => {
             input: {
               AdminId: "BaruchHabaB'ShemAdonai2",
               ttlSellerLnsInBlTymsCov: parseFloat(ttlSellerLnsInBlTymsCov) + 1,
-              ttlSellerLnsInBlAmtCov: (parseFloat(ttlSellerLnsInBlAmtCov) + clearanceAmts).toFixed(2),
+              ttlSellerLnsInBlAmtCov: (parseFloat(ttlSellerLnsInBlAmtCov) + clearanceAmts).toFixed(0),
               ttlBLUsrs: parseFloat(ttlBLUsrs) + 1
             }
           }
         });
         Alert.alert(`${loanerName}, you have blacklisted ${loaneeName}`);
-        Communications.textWithoutEncoding(phonecontactz, `MiFedha. Hi ${loaneeName}, your loan of ID ${route.params.loanID} has been blacklisted by ${loanerName}. Total repayable: Ksh. ${LonBal4.toFixed(0)}.`);
+        const formattedLonBal4 = formatAmountSync(LonBal4, userCode, ratesMap);
+        const blCredMsg4 = `MiFedha. Hi ${loaneeName}, your loan of ID ${route.params.loanID} has been blacklisted by ${loanerName}. Total repayable: ${formattedLonBal4}.`;
+        try {
+          const msgRes = await client.graphql({
+            query: createMessages,
+            variables: { input: { senderEmail: receiverEmail || buyerContact, messageBody: blCredMsg4 }}
+          });
+          if (msgRes?.data?.createMessages) {
+            await client.graphql({
+              query: sendNotification,
+              variables: { riderEmail: receiverEmail || buyerContact, title: 'MiFedha: Credit Loan Blacklisted', body: blCredMsg4 }
+            });
+          }
+        } catch (notifErr) {
+          console.log('Notification error:', notifErr);
+        }
       } else if (tmDif > parseFloat(paymentFrequency) && status === "LoanBL") {
         // Penalise after blacklist
         await client.graphql({
@@ -177,7 +212,22 @@ const BLCovCredByr = () => {
           }
         });
         Alert.alert(`${loanerName}, you have penalised after blacklisting ${loaneeName}`);
-        Communications.textWithoutEncoding(phonecontactz, `MiFedha. Hi ${loaneeName}, your loan of ID ${route.params.loanID} has been Penalised after blacklisting by ${loanerName}. Total repayable: Ksh. ${LonBal5.toFixed(0)}.`);
+        const formattedLonBal5AfterBl = formatAmountSync(LonBal5, userCode, ratesMap);
+        const blCredMsg5 = `MiFedha. Hi ${loaneeName}, your loan of ID ${route.params.loanID} has been Penalised after blacklisting by ${loanerName}. Total repayable: ${formattedLonBal5AfterBl}.`;
+        try {
+          const msgRes = await client.graphql({
+            query: createMessages,
+            variables: { input: { senderEmail: receiverEmail || buyerContact, messageBody: blCredMsg5 }}
+          });
+          if (msgRes?.data?.createMessages) {
+            await client.graphql({
+              query: sendNotification,
+              variables: { riderEmail: receiverEmail || buyerContact, title: 'MiFedha: Credit Loan Penalised', body: blCredMsg5 }
+            });
+          }
+        } catch (notifErr) {
+          console.log('Notification error:', notifErr);
+        }
       } else {
         Alert.alert("Time to Blacklist/Penalise is not yet");
       }

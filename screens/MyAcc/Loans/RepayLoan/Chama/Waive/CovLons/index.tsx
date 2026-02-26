@@ -6,6 +6,9 @@ import { getCvrdGroupLoans, getSMAccount, getGroup, getCompany, getChamaMembers 
 import { updateSMAccount, updateCvrdGroupLoans, updateGroup, updateCompany, updateChamaMembers, createLoanRepayments } from '../../../../../../../src/graphql/mutations';
 import { useRoute } from '@react-navigation/native';
 import { getCurrentUser, fetchUserAttributes } from "aws-amplify/auth";
+import { useExchange } from '../../../../../../../src/contexts/ExchangeContext';
+import { convertForeignToKsh, formatAmountSync } from '../../../../../../../src/utils/exchange';
+import { nationalityToCode } from '../../../../../../../src/utils/nationalityToCode';
 import { generateClient } from "aws-amplify/api";
 const client = generateClient();
 const WaiverScreen = () => {
@@ -13,9 +16,23 @@ const WaiverScreen = () => {
   const [Desc, setDesc] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const route = useRoute();
+  const { nationality, ratesMap } = useExchange();
   const ftchCvdSMLn = async () => {
     if (isLoading) return;
     setIsLoading(true);
+    const amountForeign = parseFloat(amounts);
+    if (!Number.isFinite(amountForeign) || amountForeign <= 0) {
+      Alert.alert('Enter a valid amount');
+      setIsLoading(false);
+      return;
+    }
+    const currencyKey = nationalityToCode(nationality);
+    const amountKes = await convertForeignToKsh(amountForeign, currencyKey);
+    if (!Number.isFinite(amountKes) || amountKes <= 0) {
+      Alert.alert('Unable to convert amount. Please try again.');
+      setIsLoading(false);
+      return;
+    }
     try {
       const userInfo = await getCurrentUser();
 
@@ -50,7 +67,7 @@ const WaiverScreen = () => {
       const now = new Date();
       const daysElapsed = Math.floor((now.getTime() - crtnDate) / (1000 * 60 * 60 * 24));
       const LonBal1 = (netLnBalz * Math.pow(1 + parseFloat(interest) / 36500, daysElapsed) + parseFloat(clearanceAmt) + parseFloat(DefaultPenaltyChm2)).toFixed(0);
-      const LonBalsss = parseFloat(LonBal1) - parseFloat(amounts);
+      const LonBalsss = parseFloat(LonBal1) - amountKes;
 
       // Fetch sender account
       const accountRes: any = await client.graphql({
@@ -81,12 +98,12 @@ const WaiverScreen = () => {
       }
 
       // Validation checks
-      if (ClranceAmt > parseFloat(amounts)) {
+      if (ClranceAmt > amountKes) {
         Alert.alert(`Too little amount waived: at least ${ClranceAmt}`);
         setIsLoading(false);
         return;
       }
-      if (parseFloat(amounts) > parseFloat(LonBal1)) {
+      if (amountKes > parseFloat(LonBal1)) {
         Alert.alert(`The Loan Balance is lesser: ${formatAmountSync(Number(lonBala), nationality || undefined, ratesMap)}`);
         setIsLoading(false);
         return;
@@ -99,7 +116,7 @@ const WaiverScreen = () => {
           variables: {
             input: {
               ChamaNMember: memberId,
-              AmtRepaid: (parseFloat(senderAcc.AmtRepaids) + parseFloat(amounts)).toFixed(0),
+              AmtRepaid: (parseFloat(senderAcc.AmtRepaids) + amountKes).toFixed(0),
               LnBal: LonBalsss.toFixed(0)
             }
           }
@@ -111,7 +128,7 @@ const WaiverScreen = () => {
           variables: {
             input: {
               loanID: route.params.loanID,
-              amountRepaid: (parseFloat(amounts) + parseFloat(amountRepaid)).toFixed(0),
+              amountRepaid: (amountKes + parseFloat(amountRepaid)).toFixed(0),
               lonBala: LonBalsss.toFixed(0),
               amountExpectedBackWthClrnc: LonBalsss.toFixed(0),
               DefaultPenaltyChm2: 0,
@@ -138,7 +155,7 @@ const WaiverScreen = () => {
             loanId1: route.params.loanID,
             loanId2: route.params.loanID,
             loanId3: route.params.loanID,
-            amount: parseFloat(amounts).toFixed(0),
+            amount: amountKes.toFixed(0),
             description: Desc,
             status: 'Waived',
             owner: userInfo.userId

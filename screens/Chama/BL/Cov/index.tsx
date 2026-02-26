@@ -311,7 +311,27 @@ const BLChmCovLoanee = () => {
           }
         });
         Alert.alert(`${grpName}, you have penalised after blacklisting ${loaneeName}`);
-        Communications.textWithoutEncoding(loaneePhn, `Hi ${loaneeName}, your loan of ID ${route.params.loanID} has been penalised after blacklisting by ${grpName}. Total repayable: Ksh. ${LonBal5.toFixed(0)}.`);
+        
+        const notificationBody = `Hi ${loaneeName}, your loan of ID ${route.params.loanID} has been penalised after blacklisting by ${grpName}. Total repayable: ${formatAmountSync(Math.floor(LonBal5), userCode, ratesMap)}.`;
+        
+        await client.graphql({
+          query: createMessages,
+          variables: {
+            input: {
+              senderEmail: loaneePhn,
+              messageBody: notificationBody
+            }
+          }
+        });
+        
+        await client.graphql({
+          query: sendNotification,
+          variables: {
+            riderEmail: loaneePhn,
+            title: 'MiFedha: Loan Blacklist Penalty',
+            body: notificationBody
+          }
+        });
       }
 
       // General helper to update loan

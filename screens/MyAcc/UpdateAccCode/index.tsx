@@ -7,6 +7,8 @@ import styles from './styles';
 import { updateBankAdmin } from '../../../src/graphql/mutations';
 import { getCurrentUser, fetchUserAttributes } from "aws-amplify/auth";
 import { useExchange } from '../../../src/contexts/ExchangeContext';
+import { convertForeignToKsh } from '../../../src/utils/exchange';
+import { nationalityToCode } from '../../../src/utils/nationalityToCode';
 import { generateClient } from "aws-amplify/api";
 const client = generateClient();
 const UpdtSMPW = props => {
@@ -42,15 +44,18 @@ const UpdtSMPW = props => {
           return;
         }
         setIsLoading(true);
+        const currencyKey = nationalityToCode(nationality);
+        const amountKes = await convertForeignToKsh(parseFloat(groupCnt || '0'), currencyKey);
+        const defaultPenaltyKes = await convertForeignToKsh(parseFloat(DfltPnlty || '0'), currencyKey);
         try {
           await client.graphql({
             query: updateSMAccount,
             variables: {
               input: {
                 awsemail: attributes.email,
-                DefaultPenaltySM: parseFloat(DfltPnlty).toFixed(2),
+                DefaultPenaltySM: Number.isFinite(defaultPenaltyKes) ? defaultPenaltyKes.toFixed(2) : parseFloat(DfltPnlty).toFixed(2),
                 loanAcceptanceCode: LnAcCod,
-                TtlActvLonsTmsLnrCov: groupCnt,
+                TtlActvLonsTmsLnrCov: Number.isFinite(amountKes) ? amountKes.toFixed(2) : groupCnt,
                 TtlActvLonsTmsLneeCov: RpymtPrd
               }
             }
@@ -70,12 +75,17 @@ const UpdtSMPW = props => {
         Alert.alert("You are not the Owner of the Account");
       } else if (attributes.email === LnAcCod) {
         Alert.alert("You should not request a loan from yourself");
-      } else if (parseFloat(groupCnt) < parseFloat(DfltPnlty)) {
-        Alert.alert("Exploitative penalty! please enter a lesser penalty");
-      } else if (acStatuss !== "AccountActive") {
-        Alert.alert("This User Account is inactive");
       } else {
-        updtSMDtls();
+        const currencyKey = nationalityToCode(nationality);
+        const amountKes = await convertForeignToKsh(parseFloat(groupCnt || '0'), currencyKey);
+        const defaultPenaltyKes = await convertForeignToKsh(parseFloat(DfltPnlty || '0'), currencyKey);
+        if ((Number.isFinite(amountKes) ? amountKes : parseFloat(groupCnt)) < (Number.isFinite(defaultPenaltyKes) ? defaultPenaltyKes : parseFloat(DfltPnlty))) {
+          Alert.alert("Exploitative penalty! please enter a lesser penalty");
+        } else if (acStatuss !== "AccountActive") {
+          Alert.alert("This User Account is inactive");
+        } else {
+          updtSMDtls();
+        }
       }
     } catch (error) {
       console.log(error);

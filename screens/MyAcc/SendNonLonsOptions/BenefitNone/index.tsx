@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import Communications from 'react-native-communications';
-import { createSMLoansCovered, createNonLoans, updateCompany, updateSMAccount } from '../../../../src/graphql/mutations';
+import { createMessages, createNonLoans, createSMLoansCovered, sendNotification, updateCompany, updateSMAccount } from '../../../../src/graphql/mutations';
 import { getCompany, getSMAccount, listCovCreditSellers, listCvrdGroupLoans, listSMLoansCovereds } from '../../../../src/graphql/queries';
 import { useNavigation } from '@react-navigation/native';
 import { View, Text, ImageBackground, Pressable, TextInput, ScrollView, KeyboardAvoidingView, Platform, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
@@ -358,7 +357,33 @@ const SMASendNonLns = props => {
                                       }
                                     }
                                     Alert.alert("Amount: " + formatUserInputAmount(amountForeign) + ". Transaction fee: " + formatAmountSync(UsrTransferFeeAmt, senderNat || nationality, ratesMap));
-                                    Communications.textWithoutEncoding(phonecontact, 'Hi ' + namess + ', ' + names + ' has sent you a non loan of ' + formatUserInputAmount(amountForeign) + '. For clarification call the sender ' + attributes.phone_number + '. Thank you. MiFedha');
+                                    
+                                    // Send Firebase notification
+                                    const transferMessage = 'Hi ' + namess + ', ' + names + ' has sent you a non loan of ' + formatUserInputAmount(amountForeign) + '. For clarification call the sender ' + attributes.phone_number + '. Thank you. MiFedha';
+                                    try {
+                                      const msgRes: any = await client.graphql({
+                                        query: createMessages,
+                                        variables: {
+                                          input: {
+                                            senderEmail: phonecontact,
+                                            messageBody: transferMessage
+                                          }
+                                        }
+                                      });
+                                      if (msgRes?.data?.createMessages) {
+                                        await client.graphql({
+                                          query: sendNotification,
+                                          variables: {
+                                            riderEmail: phonecontact,
+                                            title: 'MiFedha: Non-Loan Transfer',
+                                            body: transferMessage
+                                          }
+                                        });
+                                      }
+                                    } catch (notifError) {
+                                      console.log('Notification error:', notifError);
+                                    }
+                                    
                                     setIsLoading(false);
                                   };
                                   if (userInfo.userId !== owner) {

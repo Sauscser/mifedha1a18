@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { updateCompany, updateNonCovCreditSeller, updateSMAccount, updateSMLoansCovered } from '../../../../../../src/graphql/mutations';
+import { updateCompany, updateNonCovCreditSeller, updateSMAccount, updateSMLoansCovered, createMessages, sendNotification } from '../../../../../../src/graphql/mutations';
 import { getBizna, getCompany, getNonCovCreditSeller, getSMAccount, getSMLoansCovered, getSMLoansNonCovered } from '../../../../../../src/graphql/queries';
-import Communications from 'react-native-communications';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { View, Text, ImageBackground, Pressable, TextInput, ScrollView, KeyboardAvoidingView, Platform, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
 import styles from './styles';
@@ -176,7 +175,21 @@ const BLNonCovCredByr = props => {
                     }
                     Alert.alert(names + ", you have blacklisted " + namess);
                     // Use nationalityToCode for all currency formatting
-                    Communications.textWithoutEncoding(phonecontactz, 'Hi ' + namess + ', your loan of ID ' + route.params.id + 'has been blacklisted by ' + names + ' Business. The following is a breakdown of your repayable loan. Loan balance before blacklisting was ' + formatAmountSync(Number(lonBala), nationalityToCode(nationality), ratesMap) + '. Default Penalty as you had agreed with your loaner is ' + formatAmountSync(Number(DefaultPenaltyCredSls), nationalityToCode(nationality), ratesMap) + '. Clearance fee is ' + formatAmountSync(Number(ClrnceCosts), nationalityToCode(nationality), ratesMap) + '. Total current loan repayable is ' + formatAmountSync(Number(LonBal), nationalityToCode(nationality), ratesMap) + '. For clarification call the Business Owner: ' + attributes.phone_number + '. Thank you. MiFedha');
+                    const blMessage9 = 'Hi ' + namess + ', your loan of ID ' + route.params.id + 'has been blacklisted by ' + names + ' Business. The following is a breakdown of your repayable loan. Loan balance before blacklisting was ' + formatAmountSync(Number(lonBala), nationalityToCode(nationality), ratesMap) + '. Default Penalty as you had agreed with your loaner is ' + formatAmountSync(Number(DefaultPenaltyCredSls), nationalityToCode(nationality), ratesMap) + '. Clearance fee is ' + formatAmountSync(Number(ClrnceCosts), nationalityToCode(nationality), ratesMap) + '. Total current loan repayable is ' + formatAmountSync(Number(LonBal), nationalityToCode(nationality), ratesMap) + '. For clarification call the Business Owner: ' + attributes.phone_number + '. Thank you. MiFedha';
+                    try {
+                      const msgRes = await client.graphql({
+                        query: createMessages,
+                        variables: { input: { senderEmail: phonecontactz, messageBody: blMessage9 }}
+                      });
+                      if (msgRes?.data?.createMessages) {
+                        await client.graphql({
+                          query: sendNotification,
+                          variables: { riderEmail: phonecontactz, title: 'MiFedha: Credit Loan Blacklisted', body: blMessage9 }
+                        });
+                      }
+                    } catch (notifErr) {
+                      console.log('Notification error:', notifErr);
+                    }
                     setIsLoading(false);
                   };
                 } catch (error) {

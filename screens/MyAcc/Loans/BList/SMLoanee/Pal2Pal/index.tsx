@@ -1,11 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { useExchange } from '../../../../../../src/contexts/ExchangeContext';
 import { formatAmountSync } from '../../../../../../src/utils/exchange';
-import { updateCompany, updateSMAccount, updateSMLoansCovered } from '../../../../../../src/graphql/mutations';
+import { updateCompany, updateSMAccount, updateSMLoansCovered, createMessages, sendNotification } from '../../../../../../src/graphql/mutations';
 import { getCompany, getSMAccount, getSMLoansCovered } from '../../../../../../src/graphql/queries';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import Communications from 'react-native-communications';
-                    import { nationalityToCode } from '../../../../../../src/utils/nationalityToCode';
+import { nationalityToCode } from '../../../../../../src/utils/nationalityToCode';
 
 import { View, Text, ImageBackground, Pressable, TextInput, ScrollView, KeyboardAvoidingView, Platform, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
 import styles from './styles';
@@ -180,7 +179,21 @@ const BLSMCovLoanee = props => {
                       }
                     }
                     Alert.alert(names + ", you have penalised  " + namess);
-                    Communications.textWithoutEncoding(phonecontact, 'MiFedha. Hi ' + namess + ', your loan of ID ' + route.params.loanID + ' has been penalised by ' + names + '. The following is a breakdown of your repayable loan. Loan balance before blacklisting was ' + formatAmountSync(Number(LonBal), nationalityToCode(nationality), ratesMap) + '. Default Penalty as you had agreed with your loaner is ' + formatAmountSync(Number(DefaultPenaltySMs), nationalityToCode(nationality), ratesMap) + '. Total current loan repayable: ' + formatAmountSync(Number(LonBal6), nationalityToCode(nationality), ratesMap) + '. For clarification call the Business Owner: ' + attributes.phone_number + '. Thank you. MiFedha');
+                    const blMessage1 = 'MiFedha. Hi ' + namess + ', your loan of ID ' + route.params.loanID + ' has been penalised by ' + names + '. The following is a breakdown of your repayable loan. Loan balance before blacklisting was ' + formatAmountSync(Number(LonBal), nationalityToCode(nationality), ratesMap) + '. Default Penalty as you had agreed with your loaner is ' + formatAmountSync(Number(DefaultPenaltySMs), nationalityToCode(nationality), ratesMap) + '. Total current loan repayable: ' + formatAmountSync(Number(LonBal6), nationalityToCode(nationality), ratesMap) + '. For clarification call the Business Owner: ' + attributes.phone_number + '. Thank you. MiFedha';
+                    try {
+                      const msgRes = await client.graphql({
+                        query: createMessages,
+                        variables: { input: { senderEmail: phonecontact, messageBody: blMessage1 }}
+                      });
+                      if (msgRes?.data?.createMessages) {
+                        await client.graphql({
+                          query: sendNotification,
+                          variables: { riderEmail: phonecontact, title: 'MiFedha: Loan Penalised', body: blMessage1 }
+                        });
+                      }
+                    } catch (notifErr) {
+                      console.log('Notification error:', notifErr);
+                    }
                     setIsLoading(false);
                   };
                   const updateLoanerDtls = async () => {
@@ -295,7 +308,21 @@ const BLSMCovLoanee = props => {
                       }
                     }
                     Alert.alert(names + ", you have blacklisted " + namess);
-                    Communications.textWithoutEncoding(phonecontact, 'MiFedha. Hi ' + namess + ', your loan of ID ' + route.params.loanID + ' has been blacklisted by ' + names + '. The following is a breakdown of your repayable loan. Loan balance before blacklisting was ' + formatAmountSync(Number(LonBal), nationalityToCode(nationality), ratesMap) + '. Default Penalty as you had agreed with your loaner is ' + formatAmountSync(Number(DefaultPenaltySMs), nationalityToCode(nationality), ratesMap) + '. Clearance fee is ' + formatAmountSync(Number(MmbrClrnceCost), nationalityToCode(nationality), ratesMap) + '. compounded loan balance is ' + formatAmountSync(Number(LonBal1), nationalityToCode(nationality), ratesMap) + '. Total current loan repayable: ' + formatAmountSync(Number(LonBal4), nationalityToCode(nationality), ratesMap) + '. For clarification call the Loaner: ' + attributes.phone_number + '. Thank you. MiFedha');
+                    const blMessage2 = 'MiFedha. Hi ' + namess + ', your loan of ID ' + route.params.loanID + ' has been blacklisted by ' + names + '. The following is a breakdown of your repayable loan. Loan balance before blacklisting was ' + formatAmountSync(Number(LonBal), nationalityToCode(nationality), ratesMap) + '. Default Penalty as you had agreed with your loaner is ' + formatAmountSync(Number(DefaultPenaltySMs), nationalityToCode(nationality), ratesMap) + '. Clearance fee is ' + formatAmountSync(Number(MmbrClrnceCost), nationalityToCode(nationality), ratesMap) + '. compounded loan balance is ' + formatAmountSync(Number(LonBal1), nationalityToCode(nationality), ratesMap) + '. Total current loan repayable: ' + formatAmountSync(Number(LonBal4), nationalityToCode(nationality), ratesMap) + '. For clarification call the Loaner: ' + attributes.phone_number + '. Thank you. MiFedha';
+                    try {
+                      const msgRes = await client.graphql({
+                        query: createMessages,
+                        variables: { input: { senderEmail: phonecontact, messageBody: blMessage2 }}
+                      });
+                      if (msgRes?.data?.createMessages) {
+                        await client.graphql({
+                          query: sendNotification,
+                          variables: { riderEmail: phonecontact, title: 'MiFedha: Loan Blacklisted', body: blMessage2 }
+                        });
+                      }
+                    } catch (notifErr) {
+                      console.log('Notification error:', notifErr);
+                    }
                     setIsLoading(false);
                   };
                   const updateLoanerDtls2 = async () => {
@@ -421,7 +448,21 @@ const BLSMCovLoanee = props => {
                       }
                     }
                     Alert.alert(names + ", you have penalised after blacklisting " + namess);
-                    Communications.textWithoutEncoding(phonecontact, 'Hi ' + namess + ', your loan of ID ' + route.params.loanID + ' has been penalised after being blacklisted by ' + names + '. The following is a breakdown of your repayable loan. Loan balance before blacklisting was ' + formatAmountSync(Number(LonBal), nationalityToCode(nationality), ratesMap) + '. Clearance fee is ' + formatAmountSync(Number(MmbrClrnceCost), nationalityToCode(nationality), ratesMap) + '. compounded loan balance is ' + formatAmountSync(Number(LonBal1), nationalityToCode(nationality), ratesMap) + '. Total current loan repayable: ' + formatAmountSync(Number(LonBal5), nationalityToCode(nationality), ratesMap) + '. For clarification call the Business Owner: ' + attributes.phone_number + '. Thank you. MiFedha');
+                    const blMessage3 = 'Hi ' + namess + ', your loan of ID ' + route.params.loanID + ' has been penalised after being blacklisted by ' + names + '. The following is a breakdown of your repayable loan. Loan balance before blacklisting was ' + formatAmountSync(Number(LonBal), nationalityToCode(nationality), ratesMap) + '. Clearance fee is ' + formatAmountSync(Number(MmbrClrnceCost), nationalityToCode(nationality), ratesMap) + '. compounded loan balance is ' + formatAmountSync(Number(LonBal1), nationalityToCode(nationality), ratesMap) + '. Total current loan repayable: ' + formatAmountSync(Number(LonBal5), nationalityToCode(nationality), ratesMap) + '. For clarification call the Business Owner: ' + attributes.phone_number + '. Thank you. MiFedha';
+                    try {
+                      const msgRes = await client.graphql({
+                        query: createMessages,
+                        variables: { input: { senderEmail: phonecontact, messageBody: blMessage3 }}
+                      });
+                      if (msgRes?.data?.createMessages) {
+                        await client.graphql({
+                          query: sendNotification,
+                          variables: { riderEmail: phonecontact, title: 'MiFedha: Loan Penalty After Blacklist', body: blMessage3 }
+                        });
+                      }
+                    } catch (notifErr) {
+                      console.log('Notification error:', notifErr);
+                    }
                     setIsLoading(false);
                   };
                 } catch (error) {

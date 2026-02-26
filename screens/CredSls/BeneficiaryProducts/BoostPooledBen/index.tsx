@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
-import Communications from 'react-native-communications';
 import { createSMLoansCovered, createNonLoans, updateCompany, updateSMAccount, updateBizna } from '../../../../src/graphql/mutations';
 import { getBizna, getCompany, getSMAccount } from '../../../../src/graphql/queries';
 import { getCurrentUser, fetchUserAttributes } from 'aws-amplify/auth';
 import { generateClient } from 'aws-amplify/api';
 import { useNavigation } from '@react-navigation/native';
+import { convertForeignToKsh, formatAmountSync } from '../../../../src/utils/exchange';
+import { useExchange } from '../../../../src/contexts/ExchangeContext';
+import { nationalityToCode } from '../../../../src/utils/nationalityToCode';
 import { View, Text, ImageBackground, Pressable, TextInput, ScrollView, KeyboardAvoidingView, Platform, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
 import styles from './styles';
 const client = generateClient();
@@ -16,6 +18,7 @@ const SMASendNonLns = (props: any) => {
   const [amounts, setAmount] = useState('');
   const [Desc, setDesc] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const { ratesMap } = useExchange();
   const fetchSenderUsrDtls = async () => {
     if (isLoading) return;
     setIsLoading(false);
@@ -35,6 +38,8 @@ const SMASendNonLns = (props: any) => {
       const noBL = accountDtl.data.getBizna.noBL;
       const benefitsAmount = accountDtl.data.getBizna.benefitsAmount;
       const status = accountDtl.data.getBizna.status;
+      const senderNationality = accountDtl.data.getBizna.Nationality || (attributes as any).nationality;
+      const userCode = nationalityToCode(senderNationality) || senderNationality || 'KE';
       const fetchCompDtls = async () => {
         if (isLoading) return;
         setIsLoading(true);
@@ -46,7 +51,22 @@ const SMASendNonLns = (props: any) => {
             }
           });
           const UsrTransferFee = CompDtls.data.getCompany.biznaTransferFee;
-          const TotalTransacted = parseFloat(amounts) + parseFloat(UsrTransferFee) * parseFloat(amounts);
+
+          const amountInput = parseFloat(amounts);
+          if (!amountInput || amountInput <= 0) {
+            Alert.alert('Enter a valid amount');
+            setIsLoading(false);
+            return;
+          }
+
+          const amountKes = await convertForeignToKsh(amountInput, userCode);
+          if (!amountKes || amountKes <= 0) {
+            Alert.alert('Unable to convert amount. Please try again.');
+            setIsLoading(false);
+            return;
+          }
+
+          const TotalTransacted = amountKes + UsrTransferFee * amountKes;
           const companyEarningBals = CompDtls.data.getCompany.companyEarningBal;
           const companyEarnings = CompDtls.data.getCompany.companyEarning;
           const ttlNonLonssRecSMs = CompDtls.data.getCompany.ttlNonLonssRecSM;
@@ -61,7 +81,7 @@ const SMASendNonLns = (props: any) => {
                   input: {
                     recPhn: SenderNatId,
                     senderPhn: SenderNatId,
-                    amount: parseFloat(amounts).toFixed(2),
+                    amount: amountKes.toFixed(0),
                     description: Desc,
                     RecName: busNames,
                     SenderName: busNames,
@@ -86,8 +106,8 @@ const SMASendNonLns = (props: any) => {
                 variables: {
                   input: {
                     BusKntct: SenderNatId,
-                    benefitsAmount: parseFloat(benefitsAmount) + parseFloat(amounts),
-                    netEarnings: (parseFloat(netEarningss) - TotalTransacted).toFixed(2)
+                    benefitsAmount: parseFloat(benefitsAmount) + amountKes,
+                    netEarnings: (parseFloat(netEarningss) - TotalTransacted).toFixed(0)
                   }
                 }
               });
@@ -107,10 +127,10 @@ const SMASendNonLns = (props: any) => {
                 variables: {
                   input: {
                     AdminId: "BaruchHabaB'ShemAdonai2",
-                    companyEarningBal: parseFloat(UsrTransferFee) * parseFloat(amounts) + parseFloat(companyEarningBals),
-                    companyEarning: parseFloat(UsrTransferFee) * parseFloat(amounts) + parseFloat(companyEarnings),
-                    ttlNonLonssRecSM: parseFloat(amounts) + parseFloat(ttlNonLonssRecSMs),
-                    ttlNonLonssSentSM: parseFloat(amounts) + parseFloat(ttlNonLonssSentSMs)
+                    companyEarningBal: UsrTransferFee * amountKes + parseFloat(companyEarningBals),
+                    companyEarning: UsrTransferFee * amountKes + parseFloat(companyEarnings),
+                    ttlNonLonssRecSM: amountKes + parseFloat(ttlNonLonssRecSMs),
+                    ttlNonLonssSentSM: amountKes + parseFloat(ttlNonLonssSentSMs)
                   }
                 }
               });
@@ -118,7 +138,9 @@ const SMASendNonLns = (props: any) => {
               Alert.alert('Check your internet connection');
               return;
             }
-            Alert.alert('Boost of Amount: Ksh. ' + parseFloat(amounts).toFixed(2) + ' successful. Fees: Ksh. ' + (parseFloat(UsrTransferFee) * parseFloat(amounts)).toFixed(2));
+            const formattedAmount = formatAmountSync(amountKes, userCode, ratesMap);
+            const formattedFee = formatAmountSync((UsrTransferFee * amountKes), userCode, ratesMap);
+            Alert.alert('Success', 'Boost of Amount: ' + formattedAmount + ' successful. Fees: ' + formattedFee);
           };
           if (status !== 'AccountActive') {
             Alert.alert('Your Account is not active');

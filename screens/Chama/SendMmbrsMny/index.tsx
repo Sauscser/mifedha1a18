@@ -1,11 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, ScrollView, TouchableOpacity, StyleSheet, Alert, ActivityIndicator } from 'react-native';
-import Communications from 'react-native-communications';
 import { useRoute } from '@react-navigation/native';
 import { getChamaMembers, getGroup, getCompany, getSMAccount, getMiFedhaBankAdmin, getChamaControlTable } from '../../../src/graphql/queries';
-import { createGroupNonLoans, updateChamaMembers, updateMiFedhaBankAdmin, updateChamaControlTable, updateCompany, updateSMAccount, updateGroup } from '../../../src/graphql/mutations';
+import { createGroupNonLoans, updateChamaMembers, updateMiFedhaBankAdmin, updateChamaControlTable, updateCompany, updateSMAccount, updateGroup, createMessages, sendNotification } from '../../../src/graphql/mutations';
 import { generateClient } from 'aws-amplify/api';
 import { getCurrentUser, fetchUserAttributes } from 'aws-amplify/auth';
+
+import { useExchange } from '../../../src/contexts/ExchangeContext';
+import { convertForeignToKsh, formatAmountSync } from '../../../src/utils/exchange';
+import { nationalityToCode } from '../../../src/utils/nationalityToCode';
+
 const client = generateClient();
 const themeColor = '#e29d59';
 const SMASendNonLns = () => {
@@ -14,7 +18,49 @@ const SMASendNonLns = () => {
   const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [userNationality, setUserNationality] = useState<string>(null);
   const route = useRoute();
+  
+  const { ratesMap } = useExchange();
+  const userCurrencyKey = nationalityToCode(userNationality);
+
+  // Parse amount input
+  const parseAmountInput = (value: string): number => {
+    if (!value || value.trim() === '') return 0;
+    const num = parseFloat(value);
+    return isNaN(num) ? 0 : num;
+  };
+
+  // Handle money input with 2-decimal enforcement
+  const handleMoneyInput = (setter: (value: string) => void) => (value: string) => {
+    if (/^\d*(\.\d{0,2})?$/.test(value) || value === '') {
+      setter(value);
+    }
+  };
+
+  // Format to exactly 2 decimals on blur
+  const formatMoneyOnBlur = (value: string, setter: (value: string) => void) => {
+    const num = parseAmountInput(value);
+    if (num > 0) {
+      setter(num.toFixed(2));
+    }
+  };
+
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        const attributes = await fetchUserAttributes();
+        const userData = await client.graphql({
+          query: getSMAccount,
+          variables: { awsemail: attributes.email },
+        });
+        setUserNationality(userData.data.getSMAccount.nationality);
+      } catch (error) {
+        console.error('Error fetching user data:', error);
+      }
+    };
+    fetchUserData();
+  }, []);
   const resetForm = () => {
     setAmount('');
     setDescription('');
@@ -23,6 +69,25 @@ const SMASendNonLns = () => {
   const showAlert = (message: string) => Alert.alert(message);
   const fetchChamaMemberDetails = async () => {
     if (isLoading) return;
+    
+    // Convert amount to KES
+    const amountForeign = parseAmountInput(amount);
+    const amountInKES = convertForeignToKsh(amountForeign, userCurrencyKey, ratesMap);
+
+    // Confirmation prompt
+    const confirmed = await new Promise<boolean>((resolve) => {
+      Alert.alert(
+        'Confirm Send Money',
+        `You are about to send ${formatAmountSync(amountInKES, userCurrencyKey, ratesMap)} to this member. Continue?`,
+        [
+          { text: 'Cancel', style: 'cancel', onPress: () => resolve(false) },
+          { text: 'Send', onPress: () => resolve(true) }
+        ]
+      );
+    });
+
+    if (!confirmed) return;
+
     setIsLoading(true);
     try {
       const user = await getCurrentUser();
@@ -67,15 +132,15 @@ const SMASendNonLns = () => {
         setIsLoading(false);
         return;
       }
-      if (parseFloat(receiver.balance) + parseFloat(amount) > parseFloat(receiver.MaxAcBal)) {
+      if (parseFloat(receiver.balance) + amountInKES > parseFloat(receiver.MaxAcBal)) {
         showAlert('Receiver wallet capacity exceeded. Contact customer care.');
         setIsLoading(false);
         return;
       }
-      const totalTransaction = parseFloat(amount); // Simplified; add fees if needed
+      const totalTransaction = amountInKES; // Simplified; add fees if needed
 
       if (parseFloat(group.grpBal) < totalTransaction) {
-        showAlert(`Insufficient group balance. Available: ${group.grpBal}`);
+        showAlert(`Insufficient group balance. Available: ${formatAmountSync(parseFloat(group.grpBal), userCurrencyKey, ratesMap)}`);
         setIsLoading(false);
         return;
       }
@@ -89,7 +154,7 @@ const SMASendNonLns = () => {
             recipientPhn: memberContact,
             receiverName: receiver.name,
             SenderName: group.grpName,
-            amountSent: parseFloat(amount).toFixed(0),
+            amountSent: amountInKES.toFixed(0),
             description,
             memberId: route.params.ChamaNMember,
             senderEmail: attributes.email,
@@ -104,9 +169,28 @@ const SMASendNonLns = () => {
       });
 
       // Notify receiver
-      const { nationality, ratesMap } = useExchange();
-      const formattedAmount = formatAmountSync(parseFloat(amount), nationality, ratesMap);
-      Communications.textWithoutEncoding(receiver.phonecontact, `Hi ${receiver.name}, ${group.grpName} has sent you ${formattedAmount}. Contact ${attributes.phone_number} for clarification.`);
+      const formattedAmount = formatAmountSync(amountInKES, userCurrencyKey, ratesMap);
+      const notificationBody = `Hi ${receiver.name}, ${group.grpName} has sent you ${formattedAmount}. Contact ${attributes.phone_number} for clarification.`;
+      
+      await client.graphql({
+        query: createMessages,
+        variables: {
+          input: {
+            senderEmail: receiver.memberContact,
+            messageBody: notificationBody
+          }
+        }
+      });
+      
+      await client.graphql({
+        query: sendNotification,
+        variables: {
+          riderEmail: receiver.memberContact,
+          title: 'MiFedha: Money Received from Group',
+          body: notificationBody
+        }
+      });
+      
       showAlert(`Remittance of ${formattedAmount} successfully booked`);
       resetForm();
     } catch (error) {
@@ -134,7 +218,7 @@ const SMASendNonLns = () => {
         <View style={{
         marginBottom: 15
       }}>
-          <TextInput keyboardType="decimal-pad" value={amount} onChangeText={setAmount} placeholder="Enter Amount" style={{
+          <TextInput keyboardType="decimal-pad" value={amount} onChangeText={handleMoneyInput(setAmount)} onBlur={() => formatMoneyOnBlur(amount, setAmount)} placeholder="Enter Amount" style={{
           borderWidth: 1,
           borderColor: themeColor,
           borderRadius: 8,

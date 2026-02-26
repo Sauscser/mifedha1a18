@@ -1,9 +1,9 @@
 // @ts-nocheck
 import React, { useEffect, useState } from 'react';
 import { useExchange } from '../../../src/contexts/ExchangeContext';
-import { formatAmountSync } from '../../../src/utils/exchange';
-import Communications from 'react-native-communications';
-import { createFloatReduction, updateAgent, updateCompany, updateSMAccount } from '../../../src/graphql/mutations';
+import { convertForeignToKsh, formatAmountSync } from '../../../src/utils/exchange';
+import { nationalityToCode } from '../../../src/utils/nationalityToCode';
+import { createFloatReduction, createMessages, sendNotification, updateAgent, updateCompany, updateSMAccount } from '../../../src/graphql/mutations';
 import { getAgent, getCompany, getSMAccount } from '../../../src/graphql/queries';
 import { View, Text, StyleSheet, TextInput, ScrollView, ActivityIndicator, TouchableOpacity, Alert, Platform, KeyboardAvoidingView, TouchableWithoutFeedback, Keyboard } from 'react-native';
 import { getCurrentUser, fetchUserAttributes } from "aws-amplify/auth";
@@ -30,6 +30,19 @@ const SMADepositForm = props => {
       return;
     }
     setIsLoading(true);
+    const amountForeign = parseFloat(amount);
+    if (!Number.isFinite(amountForeign) || amountForeign <= 0) {
+      Alert.alert("Enter a valid amount");
+      setIsLoading(false);
+      return;
+    }
+    const currencyKey = nationalityToCode(nationality);
+    const amountKes = await convertForeignToKsh(amountForeign, currencyKey);
+    if (!Number.isFinite(amountKes) || amountKes <= 0) {
+      Alert.alert("Unable to convert amount. Please try again.");
+      setIsLoading(false);
+      return;
+    }
     try {
       const accountDtl: any = await client.graphql({
         query: getSMAccount,
@@ -45,7 +58,7 @@ const SMADepositForm = props => {
       const nationalids = accountDtl.data.getSMAccount.nationalid;
       const MaxAcBals = accountDtl.data.getSMAccount.MaxAcBal;
       const phonecontact = accountDtl.data.getSMAccount.phonecontact;
-      const WalCap = parseFloat(usrBala) + parseFloat(amount);
+      const WalCap = parseFloat(usrBala) + amountKes;
       console.log(WalCap);
       const fetchAgtBal = async () => {
         if (isLoading) {
@@ -89,7 +102,7 @@ const SMADepositForm = props => {
                         agContact: AgentPhn,
                         agentName: agentNames,
                         userName: names,
-                        amount: amount,
+                        amount: amountKes.toFixed(2),
                         status: 'AccountActive'
                       }
                     }
@@ -114,8 +127,8 @@ const SMADepositForm = props => {
                     variables: {
                       input: {
                         awsemail: nationalId,
-                        balance: (parseFloat(usrBala) + parseFloat(amount)).toFixed(2),
-                        ttlDpstSM: (parseFloat(usrTlDpst) + parseFloat(amount)).toFixed(2)
+                        balance: (parseFloat(usrBala) + amountKes).toFixed(2),
+                        ttlDpstSM: (parseFloat(usrTlDpst) + amountKes).toFixed(2)
                       }
                     }
                   });
@@ -140,8 +153,8 @@ const SMADepositForm = props => {
                     variables: {
                       input: {
                         phonecontact: AgentPhn,
-                        TtlFltOut: (parseFloat(agtTtlFtOut) + parseFloat(amount)).toFixed(2),
-                        floatBal: (parseFloat(agtFltBl) - parseFloat(amount)).toFixed(2)
+                        TtlFltOut: (parseFloat(agtTtlFtOut) + amountKes).toFixed(2),
+                        floatBal: (parseFloat(agtFltBl) - amountKes).toFixed(2)
                       }
                     }
                   });
@@ -166,16 +179,42 @@ const SMADepositForm = props => {
                     variables: {
                       input: {
                         AdminId: "BaruchHabaB'ShemAdonai2",
-                        ttlUsrDep: parseFloat(ttlUsrDpsts) + parseFloat(amount),
-                        agentFloatOut: parseFloat(agentFloatOuts) + parseFloat(amount)
+                        ttlUsrDep: parseFloat(ttlUsrDpsts) + amountKes,
+                        agentFloatOut: parseFloat(agentFloatOuts) + amountKes
                       }
                     }
                   });
                 } catch (error) {
                   console.log(error);
                 }
-                Alert.alert(formatAmountSync(Number(amount), nationality, ratesMap) + " deposited in " + names + "'s ac ");
-                Communications.textWithoutEncoding(phonecontact, 'Confirmed. You have successfully deposited ' + formatAmountSync(Number(amount), nationality, ratesMap) + ' into your main account.' + ' Please confirm this deposit record is on your MiFedha app. Thank you. MiFedha');
+                Alert.alert(formatAmountSync(amountKes, nationality, ratesMap) + " deposited in " + names + "'s ac ");
+                
+                // Send Firebase notification
+                const depositMessage = 'Confirmed. You have successfully deposited ' + formatAmountSync(amountKes, nationality, ratesMap) + ' into your main account. Please confirm this deposit record is on your MiFedha app. Thank you. MiFedha';
+                try {
+                  const msgRes: any = await client.graphql({
+                    query: createMessages,
+                    variables: {
+                      input: {
+                        senderEmail: phonecontact,
+                        messageBody: depositMessage
+                      }
+                    }
+                  });
+                  if (msgRes?.data?.createMessages) {
+                    await client.graphql({
+                      query: sendNotification,
+                      variables: {
+                        riderEmail: phonecontact,
+                        title: 'MiFedha: Deposit Confirmation',
+                        body: depositMessage
+                      }
+                    });
+                  }
+                } catch (notifError) {
+                  console.log('Notification error:', notifError);
+                }
+                
                 setIsLoading(false);
               };
               if (usrStts === "AccountInactive") {
@@ -184,7 +223,7 @@ const SMADepositForm = props => {
               } else if (nationalids !== UsrId) {
                 Alert.alert("Depositer ID is wrong");
                 return;
-              } else if (parseFloat(amount) > parseFloat(depositLimits)) {
+              } else if (amountKes > parseFloat(depositLimits)) {
                 Alert.alert('Limit exceeded; call customer care for adjusment');
                 return;
               } else if (AgAcAct === "AccountInactive") {
@@ -193,7 +232,7 @@ const SMADepositForm = props => {
               } else if (WalCap > parseFloat(MaxAcBals)) {
                 Alert.alert("Depositor call customer care to have wallet capacity adjusted");
                 return;
-              } else if (parseFloat(agtFltBl) < parseFloat(amount)) {
+              } else if (parseFloat(agtFltBl) < amountKes) {
                 Alert.alert("Insufficient MFNdogo Balance: " + formatAmountSync(Number(agtFltBl), nationality, ratesMap));
                 return;
               } else if (agPW !== agPWd) {

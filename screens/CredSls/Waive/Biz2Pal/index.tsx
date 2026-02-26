@@ -6,6 +6,8 @@ import { getBizna, getCompany, getCovCreditSeller, getSMAccount } from '../../..
 import { createLoanRepayments, updateBizna, updateCompany, updateCovCreditSeller, updateSMAccount } from '../../../../src/graphql/mutations';
 import { getCurrentUser, fetchUserAttributes } from "aws-amplify/auth";
 import { generateClient } from "aws-amplify/api";
+import { convertForeignToKsh } from '../../../../src/utils/exchange';
+import { nationalityToCode } from '../../../../src/utils/nationalityToCode';
 const client = generateClient();
 const RepayCovSellerLnsss = props => {
   const [SnderPW, setSnderPW] = useState("");
@@ -89,7 +91,23 @@ const RepayCovSellerLnsss = props => {
           const netLnBalz = amountExpectedBacks - amountrepaids;
           const netLnBal2 = netLnBalz * Math.pow(1 + parseFloat(interest) / 36500, tmDif2);
           const LonBal1 = (netLnBal2 + parseFloat(clearanceAmts) + parseFloat(DefaultPenaltyCredSl2s)).toFixed(0);
-          const LoanBalz = parseFloat(LonBal1) - parseFloat(amounts);
+          const amountInput = parseFloat(amounts);
+          if (!Number.isFinite(amountInput) || amountInput <= 0) {
+            Alert.alert('Enter a valid amount');
+            setIsLoading(false);
+            return;
+          }
+
+          const rawNationality = (attributes as any).nationality;
+          const userCode = nationalityToCode(rawNationality) || rawNationality || 'KE';
+          const amountKes = await convertForeignToKsh(amountInput, userCode);
+          if (!Number.isFinite(amountKes) || amountKes <= 0) {
+            Alert.alert('Unable to convert amount. Please try again.');
+            setIsLoading(false);
+            return;
+          }
+
+          const LoanBalz = parseFloat(LonBal1) - amountKes;
           const fetchCompDtls = async () => {
             if (isLoading) {
               return;
@@ -113,7 +131,7 @@ const RepayCovSellerLnsss = props => {
               const companyEarnings = CompDtls.data.getCompany.companyEarning;
               const ttlNonLonssRecSMs = CompDtls.data.getCompany.ttlNonLonssRecSM;
               const ttlNonLonssSentSMs = CompDtls.data.getCompany.ttlNonLonssSentSM;
-              const TotalTransacted = parseFloat(amounts) + parseFloat(UsrTransferFee) * parseFloat(amounts) + ClranceAmt;
+              const TotalTransacted = amountKes + parseFloat(UsrTransferFee) * amountKes + ClranceAmt;
               const maxBLss = CompDtls.data.getCompany.maxBLs;
               const fetchRecUsrDtls = async () => {
                 if (isLoading) {
@@ -190,7 +208,7 @@ const RepayCovSellerLnsss = props => {
                         variables: {
                           input: {
                             loanID: route.params.loanID,
-                            amountRepaid: (parseFloat(amounts) + parseFloat(amountrepaids)).toFixed(0),
+                            amountRepaid: (amountKes + parseFloat(amountrepaids)).toFixed(0),
                             lonBala: LoanBalz.toFixed(0),
                             amountExpectedBackWthClrnc: LoanBalz.toFixed(0),
                             status: "LoanCleared",
@@ -226,7 +244,7 @@ const RepayCovSellerLnsss = props => {
                             loanId1: "route.params.id",
                             loanId3: "route.params.id",
                             SenderName: buyerNames,
-                            amount: parseFloat(amounts).toFixed(0),
+                            amount: amountKes.toFixed(0),
                             description: Desc,
                             status: "Waived",
                             owner: userInfo.userId
@@ -300,7 +318,7 @@ const RepayCovSellerLnsss = props => {
                         variables: {
                           input: {
                             loanID: route.params.loanID,
-                            amountRepaid: (parseFloat(amounts) + parseFloat(amountrepaids)).toFixed(0),
+                            amountRepaid: (amountKes + parseFloat(amountrepaids)).toFixed(0),
                             lonBala: LoanBalz.toFixed(0),
                             DefaultPenaltyCredSl2: 0,
                             amountExpectedBackWthClrnc: LoanBalz.toFixed(0),
@@ -335,7 +353,7 @@ const RepayCovSellerLnsss = props => {
                             loanId2: route.params.loanID,
                             loanId1: "route.params.id",
                             loanId3: "route.params.id",
-                            amount: parseFloat(amounts).toFixed(0),
+                            amount: amountKes.toFixed(0),
                             description: Desc,
                             status: "Waived",
                             owner: userInfo.userId
@@ -429,14 +447,14 @@ const RepayCovSellerLnsss = props => {
                   } else if (usrAcActvStts === "AccountInactive") {
                     Alert.alert('Sender account is inactive');
                     return;
-                  } else if (ClranceAmt > parseFloat(amounts)) {
+                  } else if (ClranceAmt > amountKes) {
                     Alert.alert("Too little Waiver: at least " + ClranceAmt.toFixed(2));
                     return;
-                  } else if (parseFloat(amounts) > parseFloat(LonBal1)) {
+                  } else if (amountKes > parseFloat(LonBal1)) {
                     Alert.alert("The Loan Balance is lesser: " + LonBal1);
-                  } else if (parseFloat(amounts) === parseFloat(LonBal1) && parseFloat(MaxTymsBLss) === parseFloat(maxBLss)) {
+                  } else if (amountKes === parseFloat(LonBal1) && parseFloat(MaxTymsBLss) === parseFloat(maxBLss)) {
                     updtSendrAcLonOvr1();
-                  } else if (parseFloat(amounts) === parseFloat(LonBal1) && parseFloat(MaxTymsBLss) > parseFloat(maxBLss)) {
+                  } else if (amountKes === parseFloat(LonBal1) && parseFloat(MaxTymsBLss) > parseFloat(maxBLss)) {
                     updtSendrAcLonOvr2();
                   } else {
                     repyCovLn();

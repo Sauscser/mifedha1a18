@@ -1,12 +1,14 @@
 // @ts-nocheck
 import React, { useEffect, useState } from 'react';
-import Communications from 'react-native-communications';
-import { createFloatReduction, updateAgent, updateBizna, updateCompany, updateSMAccount } from '../../../../src/graphql/mutations';
+import { createFloatReduction, updateAgent, updateBizna, updateCompany, updateSMAccount, createMessages, sendNotification } from '../../../../src/graphql/mutations';
 import { getAgent, getBizna, getCompany, getSMAccount } from '../../../../src/graphql/queries';
 import { View, Text, StyleSheet, TextInput, ScrollView, ActivityIndicator, TouchableOpacity, Alert } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { getCurrentUser, fetchUserAttributes } from 'aws-amplify/auth';
 import { generateClient } from 'aws-amplify/api';
+import { useExchange } from '../../../../src/contexts/ExchangeContext';
+import { formatAmountSync } from '../../../../src/utils/exchange';
+import { nationalityToCode } from '../../../../src/utils/nationalityToCode';
 const client = generateClient();
 const SMADepositForm = props => {
   const [nationalId, setNationalid] = useState("");
@@ -16,6 +18,7 @@ const SMADepositForm = props => {
   const [UsrId, setUsrId] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [ownr, setownr] = useState(null);
+  const { ratesMap } = useExchange();
   const fetchAcDtls = async () => {
     if (isLoading) return;
     setIsLoading(true);
@@ -60,6 +63,8 @@ const SMADepositForm = props => {
         }
       });
       const nationalidz = compDtlsxz.data.getSMAccount.nationalid;
+      const rawNationality = accountDtl.data.getBizna.Nationality || (attributes as any).nationality;
+      const userCode = nationalityToCode(rawNationality) || rawNationality || 'KE';
 
       // Validation checks
       if (usrStts === "AccountInactive") {
@@ -73,8 +78,7 @@ const SMADepositForm = props => {
         return;
       }
       if (parseFloat(agtFltBl) < parseFloat(amount)) {
-        const { nationality, ratesMap } = useExchange();
-        Alert.alert("Insufficient MFNdogo Balance: " + formatAmountSync(parseFloat(agtFltBl), nationalityToCode(nationality), ratesMap));
+        Alert.alert("Insufficient MFNdogo Balance: " + formatAmountSync(parseFloat(agtFltBl), userCode, ratesMap));
         setIsLoading(false);
         return;
       }
@@ -135,9 +139,22 @@ const SMADepositForm = props => {
           }
         }
       });
-      const { nationality, ratesMap } = useExchange();
-      Alert.alert(formatAmountSync(parseFloat(amount), nationalityToCode(nationality), ratesMap) + " deposited in " + names + "'s ac ");
-      Communications.textWithoutEncoding(nationalId, 'Confirmed. You have successfully deposited ' + formatAmountSync(parseFloat(amount), nationalityToCode(nationality), ratesMap) + ' into your Business account.' + ' Please confirm this deposit record is on your MiFedha app. Thank you. MiFedha');
+      Alert.alert(formatAmountSync(parseFloat(amount), userCode, ratesMap) + " deposited in " + names + "'s ac ");
+      const depositMessage2 = 'Confirmed. You have successfully deposited ' + formatAmountSync(parseFloat(amount), userCode, ratesMap) + ' into your Business account.' + ' Please confirm this deposit record is on your MiFedha app. Thank you. MiFedha';
+      try {
+        const msgRes = await client.graphql({
+          query: createMessages,
+          variables: { input: { senderEmail: nationalId, messageBody: depositMessage2 }}
+        });
+        if (msgRes?.data?.createMessages) {
+          await client.graphql({
+            query: sendNotification,
+            variables: { riderEmail: nationalId, title: 'MiFedha: Deposit Confirmed', body: depositMessage2 }
+          });
+        }
+      } catch (notifErr) {
+        console.log('Notification error:', notifErr);
+      }
     } catch (error) {
       console.log(error);
       Alert.alert("Error! Update app or call customer care");

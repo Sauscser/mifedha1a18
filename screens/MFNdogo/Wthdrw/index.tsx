@@ -3,8 +3,10 @@ import { createAgentWithdrawals, createBankAdmWithdrawals, createFloatAdd, creat
 import { getAgent, getBankAdmin, getCompany, getSAgent, getSMAccount } from '../../../src/graphql/queries';
 import { View, Text, TextInput, ScrollView, ActivityIndicator, TouchableOpacity, Alert } from 'react-native';
 import styles from './styles';
-import { getCurrentUser, fetchUserAttributes } from "aws-amplify/auth";import { useExchange } from '../../../src/contexts/ExchangeContext';
-import { formatAmountSync } from '../../../src/utils/exchange';import { generateClient } from "aws-amplify/api";
+import { getCurrentUser, fetchUserAttributes } from "aws-amplify/auth";
+import { useExchange } from '../../../src/contexts/ExchangeContext';
+import { convertForeignToKsh, formatAmountSync } from '../../../src/utils/exchange';
+import { generateClient } from "aws-amplify/api";
 const client = generateClient();
 const MFNWthdwl = props => {
   const [UsrPWd, setUsrPWd] = useState("");
@@ -29,6 +31,7 @@ const MFNWthdwl = props => {
       const usrBala = accountDtl.data.getSMAccount.balance;
       const usrStts = accountDtl.data.getSMAccount.acStatus;
       const owners = accountDtl.data.getSMAccount.owner;
+      const userNationality = accountDtl.data.getSMAccount.nationality;
       const namess = accountDtl.data.getSMAccount.name;
       const fetchMFNDtls = async () => {
         if (isLoading) {
@@ -48,6 +51,13 @@ const MFNWthdwl = props => {
           const statussssss = MFNDtl.data.getAgent.status;
           const bankNames = MFNDtl.data.getAgent.bankName;
           const bkAcNos = MFNDtl.data.getAgent.bkAcNo;
+          const amountForeign = Number(amount);
+          if (!Number.isFinite(amountForeign) || amountForeign <= 0) {
+            Alert.alert("Invalid amount", "Enter a valid withdrawal amount");
+            setIsLoading(false);
+            return;
+          }
+          const amountKsh = await convertForeignToKsh(amountForeign, userNationality || undefined);
           const CrtMFNWthdrwls = async () => {
             try {
               await client.graphql({
@@ -57,7 +67,7 @@ const MFNWthdwl = props => {
                     bankAdminId: "BnkkAdmNatId",
                     agentPhone: MFKPhn,
                     owner: userInfo.userId,
-                    Amount: amount,
+                    Amount: String(Math.round(amountKsh)),
                     bankName: bankNames,
                     bkAcNo: bkAcNos,
                     status: 'AccountActive'
@@ -66,13 +76,13 @@ const MFNWthdwl = props => {
               });
             } catch (error) {
               if (error) {
-                Alert.alert("Withdrawal unsuccessful; Retry");
+                Alert.alert("Withdrawal failed", "Please retry or contact support");
                 return;
               }
             }
             await UpdateMFN();
             setIsLoading(false);
-            Alert.alert(names + ", You have Withdrawn " + formatAmountSync(Number(amount), nationality, ratesMap));
+            Alert.alert("Withdrawal successful", names + ", You have withdrawn " + formatAmountSync(amountKsh, nationality, ratesMap));
           };
           const UpdateMFN = async () => {
             try {
@@ -81,20 +91,20 @@ const MFNWthdwl = props => {
                 variables: {
                   input: {
                     phonecontact: MFKPhn,
-                    agentEarningBal: parseFloat(agentEarningBals) - parseFloat(amount)
+                    agentEarningBal: parseFloat(agentEarningBals) - amountKsh
                   }
                 }
               });
             } catch (error) {
               console.log(error);
               if (error) {
-                Alert.alert("Retry or update app or call customer care");
+                Alert.alert("Update failed", "Retry or update app or call customer care");
                 return;
               }
             }
             setIsLoading(false);
           };
-          if (parseFloat(amount) > parseFloat(agentEarningBals)) {
+          if (amountKsh > parseFloat(agentEarningBals)) {
             Alert.alert("Insufficient MFNdogo Balance");
             return;
           } else if (statussssss !== "AccountActive") {
@@ -111,7 +121,7 @@ const MFNWthdwl = props => {
           }
         } catch (e) {
           if (e) {
-            Alert.alert("Retry or update app or call customer care");
+            Alert.alert("Error", "Retry or update app or call customer care");
             return;
           }
         }
@@ -120,7 +130,7 @@ const MFNWthdwl = props => {
       await fetchMFNDtls();
     } catch (e) {
       if (e) {
-        Alert.alert("Retry or update app or call customer care");
+        Alert.alert("Error", "Retry or update app or call customer care");
         return;
       }
     }

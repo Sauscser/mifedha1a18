@@ -9,7 +9,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import MyAccount from '../../../Transport';
 import { getCurrentUser, fetchUserAttributes } from "aws-amplify/auth";
 import { useExchange } from '../../../../src/contexts/ExchangeContext';
-import { getUserNationalityByEmail, formatAmountForUser, formatAmountSync, convertKshToUserCurrency } from '../../../../src/utils/exchange';
+import { getUserNationalityByEmail, formatAmountForUser, formatAmountSync, convertKshToUserCurrency, convertForeignToKsh } from '../../../../src/utils/exchange';
 import { generateClient } from "aws-amplify/api";
 const client = generateClient();
 const SMADepositForm = props => {
@@ -178,8 +178,18 @@ const SMADepositForm = props => {
                               const namessssssss = compDtls.data.getSAgent.name;
                               const MFKWithdrwlFees = compDtls.data.getSAgent.MFKWithdrwlFee;
                               const senderNat = await getUserNationalityByEmail(attributes.email);
-                              const amountForeign = parseFloat(amount) || 0;
+                              const amountForeign = parseFloat(amount);
+                              if (!Number.isFinite(amountForeign) || amountForeign <= 0) {
+                                Alert.alert("Enter a valid amount");
+                                setIsLoading(false);
+                                return;
+                              }
                               const amountKes = await convertForeignToKsh(amountForeign, senderNat);
+                              if (!Number.isFinite(amountKes) || amountKes <= 0) {
+                                Alert.alert("Unable to convert amount. Please try again.");
+                                setIsLoading(false);
+                                return;
+                              }
                               const AgentCommission = (parseFloat(agentComs) - parseFloat(MFNWithdrwlFees)) / 100 * amountKes * parseFloat(UsrWthdrwlFeess);
                               const saCommission = (parseFloat(sagentComs) - parseFloat(MFKWithdrwlFees)) / 100 * amountKes * parseFloat(UsrWthdrwlFeess);
                               const compCommission = parseFloat(companyComs) / 100 * amountKes * parseFloat(UsrWthdrwlFeess);

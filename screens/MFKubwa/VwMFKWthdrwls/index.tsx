@@ -49,6 +49,11 @@ const FetchSMNonLnsSnt = props => {
               const companyEarningBals = MFNDtls.data.getCompany.companyEarningBal;
               const companyEarnings = MFNDtls.data.getCompany.companyEarning;
               const enquiryFees = MFNDtls.data.getCompany.enquiryFee;
+              const enquiryFeeNum = Number(enquiryFees || 0);
+              if (!Number.isFinite(enquiryFeeNum) || enquiryFeeNum < 0) {
+                Alert.alert("Configuration error", "Invalid enquiry fee configuration");
+                return;
+              }
               const updtActAdm = async () => {
                 try {
                   await client.graphql({
@@ -56,14 +61,14 @@ const FetchSMNonLnsSnt = props => {
                     variables: {
                       input: {
                         AdminId: "BaruchHabaB'ShemAdonai2",
-                        companyEarningBal: parseFloat(companyEarningBals) + parseFloat(enquiryFees),
-                        companyEarning: parseFloat(companyEarnings) + parseFloat(enquiryFees)
+                        companyEarningBal: parseFloat(companyEarningBals) + enquiryFeeNum,
+                        companyEarning: parseFloat(companyEarnings) + enquiryFeeNum
                       }
                     }
                   });
                 } catch (error) {
                   if (error) {
-                    Alert.alert("Check your internet connection");
+                    Alert.alert("Error", "Check your internet connection");
                     return;
                   }
                 }
@@ -76,25 +81,25 @@ const FetchSMNonLnsSnt = props => {
                     variables: {
                       input: {
                         awsemail: attributes.email,
-                        balance: parseFloat(balances) - parseFloat(enquiryFees)
+                        balance: parseFloat(balances) - enquiryFeeNum
                       }
                     }
                   });
                 } catch (error) {
                   if (error) {
-                    Alert.alert("Retry or update app or call customer care");
+                    Alert.alert("Error", "Retry or update app or call customer care");
                     return;
                   }
                 }
               };
-              if (parseFloat(balances) < parseFloat(enquiryFees)) {
-                Alert.alert("Account Balance is very little");
+              if (parseFloat(balances) < enquiryFeeNum) {
+                Alert.alert("Insufficient balance", "Your account balance is too low for enquiry fee");
               } else {
                 await updtActAdm();
               }
             } catch (e) {
               if (e) {
-                Alert.alert("MFKubwa does not exist does not exist; otherwise check internet connection");
+                Alert.alert("Error", "MFKubwa does not exist; otherwise check internet connection");
                 return;
               }
               console.log(e);
@@ -103,7 +108,7 @@ const FetchSMNonLnsSnt = props => {
           await fetchCompDtls();
         } catch (e) {
           if (e) {
-            Alert.alert("MFKubwa does not exist; otherwise check internet connection");
+            Alert.alert("Error", "MFKubwa does not exist; otherwise check internet connection");
             return;
           }
           console.log(e);

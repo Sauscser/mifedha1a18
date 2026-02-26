@@ -1,11 +1,16 @@
 // @ts-nocheck
 import React, { useEffect, useState } from 'react';
 import { createFloatReduction, updateAgent, updateCompany, updateGroup } from '../../../src/graphql/mutations';
-import { getAgent, getCompany, getGroup } from '../../../src/graphql/queries';
+import { getAgent, getCompany, getGroup, getSMAccount } from '../../../src/graphql/queries';
 import { View, Text, TextInput, ScrollView, ActivityIndicator, TouchableOpacity, Alert } from 'react-native';
 import styles from './styles';
 import { generateClient } from 'aws-amplify/api';
-import { getCurrentUser } from 'aws-amplify/auth';
+import { getCurrentUser, fetchUserAttributes } from 'aws-amplify/auth';
+
+import { useExchange } from '../../../src/contexts/ExchangeContext';
+import { convertForeignToKsh, formatAmountSync } from '../../../src/utils/exchange';
+import { nationalityToCode } from '../../../src/utils/nationalityToCode';
+
 const client = generateClient();
 const SMADepositForm = props => {
   const [nationalId, setNationalid] = useState("");
@@ -15,15 +20,72 @@ const SMADepositForm = props => {
   const [UsrId, setUsrId] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [ownr, setownr] = useState(null);
+  const [userNationality, setUserNationality] = useState<string>(null);
+  
+  const { ratesMap } = useExchange();
+  const userCurrencyKey = nationalityToCode(userNationality);
+
+  // Parse amount input
+  const parseAmountInput = (value: string): number => {
+    if (!value || value.trim() === '') return 0;
+    const num = parseFloat(value);
+    return isNaN(num) ? 0 : num;
+  };
+
+  // Handle money input with 2-decimal enforcement
+  const handleMoneyInput = (setter: (value: string) => void) => (value: string) => {
+    if (/^\d*(\.\d{0,2})?$/.test(value) || value === '') {
+      setter(value);
+    }
+  };
+
+  // Format to exactly 2 decimals on blur
+  const formatMoneyOnBlur = (value: string, setter: (value: string) => void) => {
+    const num = parseAmountInput(value);
+    if (num > 0) {
+      setter(num.toFixed(2));
+    }
+  };
+
   useEffect(() => {
     const fetchUser = async () => {
       const user = await getCurrentUser();
       setownr(user.userId);
+      
+      try {
+        const attributes = await fetchUserAttributes();
+        const userData = await client.graphql({
+          query: getSMAccount,
+          variables: { awsemail: attributes.email },
+        });
+        setUserNationality(userData.data.getSMAccount.nationality);
+      } catch (error) {
+        console.error('Error fetching user data:', error);
+      }
     };
     fetchUser();
   }, []);
   const fetchAcDtls = async () => {
     if (isLoading) return;
+    
+    // Convert amount to KES
+    const amountForeign = parseAmountInput(amount);
+    const amountInKES = convertForeignToKsh(amountForeign, userCurrencyKey, ratesMap);
+
+    // Confirmation prompt
+    const confirmed = await new Promise<boolean>((resolve) => {
+      Alert.alert(
+        'Confirm Deposit',
+        `You are about to deposit ${formatAmountSync(amountInKES, userCurrencyKey, ratesMap)} to the chama account. Continue?`,
+        [
+          { text: 'Cancel', style: 'cancel', onPress: () => resolve(false) },
+          { text: 'Deposit', onPress: () => resolve(true) }
+        ]
+      );
+    });
+
+    if (!confirmed) return;
+
     setIsLoading(true);
     try {
       const ChamaDtl: any = await client.graphql({
@@ -70,8 +132,8 @@ const SMADepositForm = props => {
         Alert.alert("Depositer ID is wrong");
       } else if (AgStatus === "AccountInactive") {
         Alert.alert("MFNdogo Account is Inactive");
-      } else if (parseFloat(floatBal) < parseFloat(amount)) {
-        Alert.alert("Insufficient MFNdogo Balance: Ksh " + floatBal);
+      } else if (parseFloat(floatBal) < amountInKES) {
+        Alert.alert(`Insufficient MFNdogo Balance: ${formatAmountSync(parseFloat(floatBal), userCurrencyKey, ratesMap)}`);
       } else if (pw !== agPWd) {
         Alert.alert("MFNdogo access denied");
       } else {
@@ -84,7 +146,7 @@ const SMADepositForm = props => {
               agContact: AgentPhn,
               agentName: name,
               userName: grpName,
-              amount: parseFloat(amount).toFixed(0),
+              amount: amountInKES.toFixed(0),
               status: 'AccountActive'
             }
           }
@@ -96,8 +158,8 @@ const SMADepositForm = props => {
           variables: {
             input: {
               grpContact: nationalId,
-              grpBal: (parseFloat(grpBal) + parseFloat(amount)).toFixed(0),
-              ttlDpst: (parseFloat(ttlDpst) + parseFloat(amount)).toFixed(0)
+              grpBal: (parseFloat(grpBal) + amountInKES).toFixed(0),
+              ttlDpst: (parseFloat(ttlDpst) + amountInKES).toFixed(0)
             }
           }
         });
@@ -108,8 +170,8 @@ const SMADepositForm = props => {
           variables: {
             input: {
               phonecontact: AgentPhn,
-              TtlFltOut: (parseFloat(TtlFltOut) + parseFloat(amount)).toFixed(0),
-              floatBal: (parseFloat(floatBal) - parseFloat(amount)).toFixed(0)
+              TtlFltOut: (parseFloat(TtlFltOut) + amountInKES).toFixed(0),
+              floatBal: (parseFloat(floatBal) - amountInKES).toFixed(0)
             }
           }
         });
@@ -120,13 +182,13 @@ const SMADepositForm = props => {
           variables: {
             input: {
               AdminId: "BaruchHabaB'ShemAdonai2",
-              ttlUsrDep: parseFloat(ttlUsrDep) + parseFloat(amount),
-              agentFloatOut: parseFloat(agentFloatOut) + parseFloat(amount)
+              ttlUsrDep: parseFloat(ttlUsrDep) + amountInKES,
+              agentFloatOut: parseFloat(agentFloatOut) + amountInKES
             }
           }
         });
-        const { nationality, ratesMap } = useExchange();
-        Alert.alert(`${formatAmountSync(parseFloat(amount), nationalityToCode(nationality), ratesMap)} deposited in ${grpName}'s account`);
+        
+        Alert.alert(`${formatAmountSync(amountInKES, userCurrencyKey, ratesMap)} deposited in ${grpName}'s account`);
       }
     } catch (error) {
       console.log(error);
@@ -208,7 +270,7 @@ const SMADepositForm = props => {
           </View>
 
           <View style={styles.sendAmtView}>
-            <TextInput keyboardType={"decimal-pad"} value={amount} onChangeText={setAmount} style={styles.sendAmtInput} editable={true}></TextInput>
+            <TextInput keyboardType={"decimal-pad"} value={amount} onChangeText={handleMoneyInput(setAmount)} onBlur={() => formatMoneyOnBlur(amount, setAmount)} style={styles.sendAmtInput} editable={true}></TextInput>
             <Text style={styles.sendAmtText}>Amount</Text>
           </View>
 

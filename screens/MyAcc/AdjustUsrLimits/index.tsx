@@ -5,10 +5,14 @@ import { useNavigation } from '@react-navigation/native';
 import { View, Text, TextInput, ScrollView, ActivityIndicator, TouchableOpacity, Alert } from 'react-native';
 import styles from './styles';
 import { getCurrentUser, fetchUserAttributes } from "aws-amplify/auth";
+import { useExchange } from '../../../src/contexts/ExchangeContext';
+import { convertForeignToKsh } from '../../../src/utils/exchange';
+import { nationalityToCode } from '../../../src/utils/nationalityToCode';
 import { generateClient } from "aws-amplify/api";
 const client = generateClient();
 const UpdtSMPW = props => {
   const navigation = useNavigation();
+  const { nationality } = useExchange();
   const [maxInttSM, setmaxInttSM] = useState("");
   const [maxIntCredSllr, setmaxIntCredSllr] = useState("");
   const [maxIntGrp, setmaxIntGrp] = useState("");
@@ -41,17 +45,23 @@ const UpdtSMPW = props => {
           return;
         }
         setIsLoading(true);
+        const currencyKey = nationalityToCode(nationality);
+        const loanLimitKes = await convertForeignToKsh(parseFloat(maxMFNdogo || '0'), currencyKey);
+        const nonLoanLimitKes = await convertForeignToKsh(parseFloat(maxBL || '0'), currencyKey);
+        const withdrawalLimitKes = await convertForeignToKsh(parseFloat(WthdrwlLim || '0'), currencyKey);
+        const depositLimitKes = await convertForeignToKsh(parseFloat(DpstLim || '0'), currencyKey);
+        const maxAcBalKes = await convertForeignToKsh(parseFloat(AcBal || '0'), currencyKey);
         try {
           await client.graphql({
             query: updateSMAccount,
             variables: {
               input: {
                 awsemail: maxIntGrp,
-                loanLimit: maxMFNdogo,
-                nonLonLimit: maxBL,
-                withdrawalLimit: WthdrwlLim,
-                depositLimit: DpstLim,
-                MaxAcBal: AcBal
+                loanLimit: Number.isFinite(loanLimitKes) ? loanLimitKes.toFixed(2) : maxMFNdogo,
+                nonLonLimit: Number.isFinite(nonLoanLimitKes) ? nonLoanLimitKes.toFixed(2) : maxBL,
+                withdrawalLimit: Number.isFinite(withdrawalLimitKes) ? withdrawalLimitKes.toFixed(2) : WthdrwlLim,
+                depositLimit: Number.isFinite(depositLimitKes) ? depositLimitKes.toFixed(2) : DpstLim,
+                MaxAcBal: Number.isFinite(maxAcBalKes) ? maxAcBalKes.toFixed(2) : AcBal
               }
             }
           });

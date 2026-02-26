@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import Communications from 'react-native-communications';
-import { createBizSlsReq } from '../../../../../src/graphql/mutations';
+import { createBizSlsReq, createMessages, sendNotification } from '../../../../../src/graphql/mutations';
 import { getBizna, getCompany, getSMAccount, listCovCreditSellers, listCvrdGroupLoans, listPersonels, listSMLoansCovereds } from '../../../../../src/graphql/queries';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
@@ -8,6 +7,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { View, Text, TextInput, ScrollView, StyleSheet, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
 import { getCurrentUser, fetchUserAttributes } from 'aws-amplify/auth';
 import { generateClient } from 'aws-amplify/api';
+import { convertForeignToKsh } from '../../../../../src/utils/exchange';
+import { nationalityToCode } from '../../../../../src/utils/nationalityToCode';
 const client = generateClient();
 const SMASendNonLns = props => {
   const [SenderNatId, setSenderNatId] = useState('');
@@ -40,6 +41,20 @@ const SMASendNonLns = props => {
       const SenderAcstatus = accountDtl.data.getBizna.status;
       const pw = accountDtl.data.getBizna.pw;
       const noBL = accountDtl.data.getBizna.noBL;
+      const amountInput = parseFloat(amounts);
+      if (!Number.isFinite(amountInput) || amountInput <= 0) {
+        Alert.alert("Enter a valid amount");
+        setIsLoading(false);
+        return;
+      }
+      const rawNationality = accountDtl.data.getBizna.Nationality || accountDtl.data.getBizna.nationality;
+      const senderCode = nationalityToCode(rawNationality) || rawNationality || 'KE';
+      const amountKes = await convertForeignToKsh(amountInput, senderCode);
+      if (!Number.isFinite(amountKes) || amountKes <= 0) {
+        Alert.alert("Unable to convert amount. Please try again.");
+        setIsLoading(false);
+        return;
+      }
       const Admins = [accountDtl.data.getBizna.Admin1, accountDtl.data.getBizna.Admin2, accountDtl.data.getBizna.Admin3, accountDtl.data.getBizna.Admin4, accountDtl.data.getBizna.Admin5, accountDtl.data.getBizna.Admin6, accountDtl.data.getBizna.Admin7, accountDtl.data.getBizna.Admin8, accountDtl.data.getBizna.Admin9, accountDtl.data.getBizna.Admin10, accountDtl.data.getBizna.Admin11, accountDtl.data.getBizna.Admin12, accountDtl.data.getBizna.Admin13, accountDtl.data.getBizna.Admin14, accountDtl.data.getBizna.Admin15, accountDtl.data.getBizna.Admin16, accountDtl.data.getBizna.Admin17, accountDtl.data.getBizna.Admin18, accountDtl.data.getBizna.Admin19, accountDtl.data.getBizna.Admin20, accountDtl.data.getBizna.Admin21, accountDtl.data.getBizna.Admin22, accountDtl.data.getBizna.Admin23, accountDtl.data.getBizna.Admin24, accountDtl.data.getBizna.Admin25, accountDtl.data.getBizna.Admin26, accountDtl.data.getBizna.Admin27, accountDtl.data.getBizna.Admin28, accountDtl.data.getBizna.Admin29, accountDtl.data.getBizna.Admin30, accountDtl.data.getBizna.Admin31, accountDtl.data.getBizna.Admin32, accountDtl.data.getBizna.Admin33, accountDtl.data.getBizna.Admin34, accountDtl.data.getBizna.Admin35, accountDtl.data.getBizna.Admin36, accountDtl.data.getBizna.Admin37, accountDtl.data.getBizna.Admin38, accountDtl.data.getBizna.Admin39, accountDtl.data.getBizna.Admin40, accountDtl.data.getBizna.Admin41, accountDtl.data.getBizna.Admin42, accountDtl.data.getBizna.Admin43, accountDtl.data.getBizna.Admin44, accountDtl.data.getBizna.Admin45, accountDtl.data.getBizna.Admin46, accountDtl.data.getBizna.Admin47, accountDtl.data.getBizna.Admin48, accountDtl.data.getBizna.Admin49, accountDtl.data.getBizna.Admin50];
       const userInfo = await getCurrentUser();
       const attributes = await fetchUserAttributes();
@@ -91,7 +106,7 @@ const SMASendNonLns = props => {
             input: {
               recPhn: RecNatId,
               senderPhn: SenderNatId,
-              amount: parseFloat(amounts).toFixed(0),
+              amount: amountKes.toFixed(0),
               description: Desc,
               RecName: namess,
               SenderName: name,
@@ -102,7 +117,21 @@ const SMASendNonLns = props => {
           }
         });
         Alert.alert("Request Successful");
-        Communications.textWithoutEncoding(SenderNatId, 'MiFedha. Greetings ' + name + ", " + namexs + ' working at your business has requested to pay Ksh. ' + amounts + ' to ' + namess + ' business. ' + '. Please call customer care if it is not a valid transaction ' + ' as per your business policies. For clarification reach the personnel through ' + phonecontactzx + '. Thank you.');
+        const cashReqMsg2 = 'MiFedha. Greetings ' + name + ", " + namexs + ' working at your business has requested to pay ' + amounts + ' to ' + namess + ' business. ' + '. Please call customer care if it is not a valid transaction ' + ' as per your business policies. For clarification reach the personnel through ' + phonecontactzx + '. Thank you.';
+        try {
+          const msgRes = await client.graphql({
+            query: createMessages,
+            variables: { input: { senderEmail: SenderNatId, messageBody: cashReqMsg2 }}
+          });
+          if (msgRes?.data?.createMessages) {
+            await client.graphql({
+              query: sendNotification,
+              variables: { riderEmail: SenderNatId, title: 'MiFedha: Cash Sale Approval Request', body: cashReqMsg2 }
+            });
+          }
+        } catch (notifErr) {
+          console.log('Notification error:', notifErr);
+        }
       }
 
       // Conditional checks preserved

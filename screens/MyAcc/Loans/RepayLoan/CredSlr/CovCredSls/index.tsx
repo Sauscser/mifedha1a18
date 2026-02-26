@@ -5,6 +5,9 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import { View, Text, ImageBackground, Pressable, TextInput, ScrollView, KeyboardAvoidingView, Platform, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
 import styles from './styles';
 import { getCurrentUser, fetchUserAttributes } from "aws-amplify/auth";
+import { useExchange } from '../../../../../../src/contexts/ExchangeContext';
+import { convertForeignToKsh, formatAmountSync } from '../../../../../../src/utils/exchange';
+import { nationalityToCode } from '../../../../../../src/utils/nationalityToCode';
 import { generateClient } from "aws-amplify/api";
 const client = generateClient();
 const RepayCovSellerLnsss = props => {
@@ -13,11 +16,25 @@ const RepayCovSellerLnsss = props => {
   const [Desc, setDesc] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const route = useRoute();
+  const { nationality, ratesMap } = useExchange();
   const fetchSenderUsrDtls = async () => {
     if (isLoading) {
       return;
     }
-    setIsLoading(false);
+    setIsLoading(true);
+    const amountForeign = parseFloat(amounts);
+    if (!Number.isFinite(amountForeign) || amountForeign <= 0) {
+      Alert.alert("Enter a valid repayment amount");
+      setIsLoading(false);
+      return;
+    }
+    const currencyKey = nationalityToCode(nationality);
+    const amountKes = await convertForeignToKsh(amountForeign, currencyKey);
+    if (!Number.isFinite(amountKes) || amountKes <= 0) {
+      Alert.alert("Unable to convert amount. Please try again.");
+      setIsLoading(false);
+      return;
+    }
     const userInfo = await getCurrentUser();
     const attributes = await fetchUserAttributes();
     try {
@@ -87,7 +104,7 @@ const RepayCovSellerLnsss = props => {
               const companyEarnings = CompDtls.data.getCompany.companyEarning;
               const ttlNonLonssRecSMs = CompDtls.data.getCompany.ttlNonLonssRecSM;
               const ttlNonLonssSentSMs = CompDtls.data.getCompany.ttlNonLonssSentSM;
-              const TotalTransacted = parseFloat(amounts) + parseFloat(UsrTransferFee) * parseFloat(amounts) + ClranceAmt;
+              const TotalTransacted = amountKes + parseFloat(UsrTransferFee) * amountKes + ClranceAmt;
               const maxBLss = CompDtls.data.getCompany.maxBLs;
               const fetchRecUsrDtls = async () => {
                 if (isLoading) {
@@ -166,8 +183,8 @@ const RepayCovSellerLnsss = props => {
                         variables: {
                           input: {
                             loanID: route.params.loanID,
-                            amountRepaid: (parseFloat(amounts) + parseFloat(amountrepaids)).toFixed(0),
-                            lonBala: (parseFloat(lonBalas) - parseFloat(amounts)).toFixed(0),
+                            amountRepaid: (amountKes + parseFloat(amountrepaids)).toFixed(0),
+                            lonBala: (parseFloat(lonBalas) - amountKes).toFixed(0),
                             amountExpectedBackWthClrnc: (parseFloat(amountExpectedBackWthClrncs) - ClranceAmt).toFixed(0),
                             status: "LoanCleared",
                             DefaultPenaltyCredSl2: 0
@@ -198,7 +215,7 @@ const RepayCovSellerLnsss = props => {
                             recPhn: sellerContacts,
                             RecName: SellerNames,
                             SenderName: buyerNames,
-                            amount: parseFloat(amounts).toFixed(0),
+                            amount: amountKes.toFixed(0),
                             description: Desc,
                             loanId2: route.params.loanID,
                             loanId1: "route.params.id",
@@ -228,8 +245,8 @@ const RepayCovSellerLnsss = props => {
                         variables: {
                           input: {
                             BusKntct: sellerContacts,
-                            netEarnings: (parseFloat(netEarningss) + (parseFloat(amounts) + parseFloat(DefaultPenaltyCredSl2s))).toFixed(0),
-                            earningsBal: (parseFloat(earningsBalszz) + (parseFloat(amounts) + parseFloat(DefaultPenaltyCredSl2s))).toFixed(0)
+                            netEarnings: (parseFloat(netEarningss) + (amountKes + parseFloat(DefaultPenaltyCredSl2s))).toFixed(0),
+                            earningsBal: (parseFloat(earningsBalszz) + (amountKes + parseFloat(DefaultPenaltyCredSl2s))).toFixed(0)
                           }
                         }
                       });
@@ -254,9 +271,9 @@ const RepayCovSellerLnsss = props => {
                         variables: {
                           input: {
                             AdminId: "BaruchHabaB'ShemAdonai2",
-                            companyEarningBal: UsrTransferFee * parseFloat(amounts) + parseFloat(companyEarningBals) + ClranceAmt - parseFloat(DefaultPenaltyCredSl2s),
-                            companyEarning: UsrTransferFee * parseFloat(amounts) + parseFloat(companyEarnings) + ClranceAmt - parseFloat(DefaultPenaltyCredSl2s),
-                            totalLnsRecovered: parseFloat(totalLnsRecovereds) + parseFloat(amounts)
+                            companyEarningBal: UsrTransferFee * amountKes + parseFloat(companyEarningBals) + ClranceAmt - parseFloat(DefaultPenaltyCredSl2s),
+                            companyEarning: UsrTransferFee * amountKes + parseFloat(companyEarnings) + ClranceAmt - parseFloat(DefaultPenaltyCredSl2s),
+                            totalLnsRecovered: parseFloat(totalLnsRecovereds) + amountKes
                           }
                         }
                       });
@@ -266,7 +283,7 @@ const RepayCovSellerLnsss = props => {
                         return;
                       }
                     }
-                    Alert.alert("Cleared. ClearanceFee: " + ClranceAmt.toFixed(2) + " TransactionFee: " + (parseFloat(UsrTransferFee) * parseFloat(amounts)).toFixed(2));
+                    Alert.alert("Cleared. ClearanceFee: " + ClranceAmt.toFixed(2) + " TransactionFee: " + (parseFloat(UsrTransferFee) * amountKes).toFixed(2));
                     setIsLoading(false);
                   };
                   const repyCovLn = async () => {
@@ -280,8 +297,8 @@ const RepayCovSellerLnsss = props => {
                         variables: {
                           input: {
                             loanID: route.params.loanID,
-                            amountRepaid: (parseFloat(amounts) + parseFloat(amountrepaids)).toFixed(0),
-                            lonBala: (parseFloat(lonBalas) - parseFloat(amounts)).toFixed(0),
+                            amountRepaid: (amountKes + parseFloat(amountrepaids)).toFixed(0),
+                            lonBala: (parseFloat(lonBalas) - amountKes).toFixed(0),
                             DefaultPenaltyCredSl2: 0,
                             amountExpectedBackWthClrnc: (parseFloat(amountExpectedBackWthClrncs) - ClranceAmt).toFixed(0)
                           }
@@ -311,7 +328,7 @@ const RepayCovSellerLnsss = props => {
                             senderPhn: attributes.email,
                             RecName: SellerNames,
                             SenderName: buyerNames,
-                            amount: parseFloat(amounts).toFixed(0),
+                            amount: amountKes.toFixed(0),
                             description: Desc,
                             loanId2: route.params.loanID,
                             loanId1: "route.params.id",
@@ -367,8 +384,8 @@ const RepayCovSellerLnsss = props => {
                         variables: {
                           input: {
                             BusKntct: sellerContacts,
-                            netEarnings: (parseFloat(netEarningss) + (parseFloat(amounts) + parseFloat(DefaultPenaltyCredSl2s))).toFixed(0),
-                            earningsBal: (parseFloat(earningsBalszz) + (parseFloat(amounts) + parseFloat(DefaultPenaltyCredSl2s))).toFixed(0)
+                            netEarnings: (parseFloat(netEarningss) + (amountKes + parseFloat(DefaultPenaltyCredSl2s))).toFixed(0),
+                            earningsBal: (parseFloat(earningsBalszz) + (amountKes + parseFloat(DefaultPenaltyCredSl2s))).toFixed(0)
                           }
                         }
                       });
@@ -393,10 +410,10 @@ const RepayCovSellerLnsss = props => {
                         variables: {
                           input: {
                             AdminId: "BaruchHabaB'ShemAdonai2",
-                            ttlSellerLnsInClrdAmtCov: parseFloat(ttlSellerLnsInClrdAmtCovs) + parseFloat(amounts),
-                            companyEarningBal: UsrTransferFee * parseFloat(amounts) + parseFloat(companyEarningBals) + ClranceAmt - parseFloat(DefaultPenaltyCredSl2s),
-                            companyEarning: UsrTransferFee * parseFloat(amounts) + parseFloat(companyEarnings) + ClranceAmt - parseFloat(DefaultPenaltyCredSl2s),
-                            totalLnsRecovered: parseFloat(totalLnsRecovereds) + parseFloat(amounts)
+                            ttlSellerLnsInClrdAmtCov: parseFloat(ttlSellerLnsInClrdAmtCovs) + amountKes,
+                            companyEarningBal: UsrTransferFee * amountKes + parseFloat(companyEarningBals) + ClranceAmt - parseFloat(DefaultPenaltyCredSl2s),
+                            companyEarning: UsrTransferFee * amountKes + parseFloat(companyEarnings) + ClranceAmt - parseFloat(DefaultPenaltyCredSl2s),
+                            totalLnsRecovered: parseFloat(totalLnsRecovereds) + amountKes
                           }
                         }
                       });
@@ -406,7 +423,7 @@ const RepayCovSellerLnsss = props => {
                         return;
                       }
                     }
-                    Alert.alert("Partially paid. Clearance: " + ClranceAmt.toFixed(2) + " TransactionFee: " + (parseFloat(UsrTransferFee) * parseFloat(amounts)).toFixed(2));
+                    Alert.alert("Partially paid. Clearance: " + ClranceAmt.toFixed(2) + " TransactionFee: " + (parseFloat(UsrTransferFee) * amountKes).toFixed(2));
                     setIsLoading(false);
                   };
                   if (userInfo.userId !== owner) {
@@ -421,17 +438,17 @@ const RepayCovSellerLnsss = props => {
                   } else if (usrPW !== SnderPW) {
                     Alert.alert('Wrong password');
                     return;
-                  } else if (parseFloat(nonLonLimits) < parseFloat(amounts)) {
+                  } else if (parseFloat(nonLonLimits) < amountKes) {
                     Alert.alert('Call ' + CompPhoneContact + ' to have your send Amount limit adjusted');
                     return;
-                  } else if (ClranceAmt > parseFloat(amounts)) {
+                  } else if (ClranceAmt > amountKes) {
                     Alert.alert("Too little repayment: at least " + ClranceAmt.toFixed(2));
                     return;
-                  } else if (parseFloat(amounts) > lonBalas) {
+                  } else if (amountKes > lonBalas) {
                     Alert.alert("Your Loan Balance is lesser: " + lonBalas);
-                  } else if (parseFloat(amounts) === parseFloat(lonBalas) && parseFloat(MaxTymsBLss) === parseFloat(maxBLss)) {
+                  } else if (amountKes === parseFloat(lonBalas) && parseFloat(MaxTymsBLss) === parseFloat(maxBLss)) {
                     updtSendrAcLonOvr1();
-                  } else if (parseFloat(amounts) === parseFloat(lonBalas) && parseFloat(MaxTymsBLss) > parseFloat(maxBLss)) {
+                  } else if (amountKes === parseFloat(lonBalas) && parseFloat(MaxTymsBLss) > parseFloat(maxBLss)) {
                     updtSendrAcLonOvr2();
                   } else {
                     repyCovLn();

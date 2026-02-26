@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useExchange } from '../../../../src/contexts/ExchangeContext';
-import { formatAmountSync } from '../../../../src/utils/exchange';
+import { convertForeignToKsh, formatAmountSync } from '../../../../src/utils/exchange';
+import { nationalityToCode } from '../../../../src/utils/nationalityToCode';
 import { View, Text, TextInput, ScrollView, StyleSheet, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
@@ -12,6 +13,7 @@ import { generateClient } from "aws-amplify/api";
 const client = generateClient();
 const DepositScreen = () => {
   const navigation = useNavigation();
+  const { nationality, ratesMap } = useExchange();
   const [amount, setAmount] = useState('');
   const [password, setPassword] = useState('');
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
@@ -44,6 +46,13 @@ const DepositScreen = () => {
         setIsLoading(false);
         return;
       }
+      const currencyKey = nationalityToCode(nationality);
+      const amountKes = await convertForeignToKsh(amountValue, currencyKey);
+      if (!Number.isFinite(amountKes) || amountKes <= 0) {
+        Alert.alert('Unable to convert amount. Please try again.');
+        setIsLoading(false);
+        return;
+      }
       const accountData = await client.graphql({
         query: getSMAccount,
         variables: {
@@ -56,7 +65,7 @@ const DepositScreen = () => {
         setIsLoading(false);
         return;
       }
-      if (amountValue > parseFloat(account.depositLimit)) {
+      if (amountKes > parseFloat(account.depositLimit)) {
         Alert.alert('Limit exceeded; contact customer care.');
         setIsLoading(false);
         return;
@@ -68,7 +77,6 @@ const DepositScreen = () => {
       }
       const paystackFees = await fetchPaystackFees(amountValue);
       const totalAmount = amountValue * 100 + paystackFees;
-      const { nationality, ratesMap } = useExchange();
       const response = await fetch('https://api.paystack.co/transaction/initialize', {
         method: 'POST',
         headers: {

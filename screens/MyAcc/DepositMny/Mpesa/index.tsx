@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { useExchange } from '../../../../src/contexts/ExchangeContext';
-import { formatAmountSync } from '../../../../src/utils/exchange';
+import { convertForeignToKsh, formatAmountSync } from '../../../../src/utils/exchange';
 import { nationalityToCode } from '../../../../src/utils/nationalityToCode';
 import { View, Text, TextInput, ScrollView, StyleSheet, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { WebView } from 'react-native-webview';
 import { useNavigation } from '@react-navigation/native';
-import { getCompany, getExRates, getSMAccount } from '../../../../src/graphql/queries';
+import { getCompany, getSMAccount } from '../../../../src/graphql/queries';
 import { createFloatReduction, updateCompany, updateSMAccount } from '../../../../src/graphql/mutations';
 import { Ionicons } from '@expo/vector-icons';
 import { getCurrentUser, fetchUserAttributes } from "aws-amplify/auth";
@@ -32,6 +32,13 @@ const DepositScreen = () => {
         setIsLoading(false);
         return;
       }
+      const currencyKey = nationalityToCode(nationality);
+      const amountKes = await convertForeignToKsh(amountValue, currencyKey);
+      if (!Number.isFinite(amountKes) || amountKes <= 0) {
+        Alert.alert('Unable to convert amount. Please try again.');
+        setIsLoading(false);
+        return;
+      }
       const accountData = await client.graphql({
         query: getSMAccount,
         variables: {
@@ -44,7 +51,7 @@ const DepositScreen = () => {
         setIsLoading(false);
         return;
       }
-      if (amountValue > parseFloat(account.depositLimit)) {
+      if (amountKes > parseFloat(account.depositLimit)) {
         Alert.alert('Limit exceeded; contact customer care.');
         setIsLoading(false);
         return;
@@ -119,14 +126,9 @@ const DepositScreen = () => {
       });
       const company = companyData.data.getCompany;
       const paystackFees = parseFloat(companyData.data.getCompany.maxInterestPwnBrkr);
-      const exchangeData = await client.graphql({
-        query: getExRates,
-        variables: {
-          cur: 'Nig'
-        }
-      });
-      const exchangeRate = parseFloat(exchangeData.data.getExRates.buyingPrice);
-      const convertedAmount = (parseFloat(amount) * exchangeRate * (1 - paystackFees)).toFixed(2);
+      const currencyKey = nationalityToCode(nationality);
+      const amountKes = await convertForeignToKsh(parseFloat(amount), currencyKey);
+      const convertedAmount = (amountKes * (1 - paystackFees)).toFixed(2);
       await client.graphql({
         query: createFloatReduction,
         variables: {

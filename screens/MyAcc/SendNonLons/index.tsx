@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import Communications from 'react-native-communications';
-import { createSMLoansCovered, createNonLoans, updateCompany, updateSMAccount } from '../../../src/graphql/mutations';
+import { createMessages, createNonLoans, createSMLoansCovered, sendNotification, updateCompany, updateSMAccount } from '../../../src/graphql/mutations';
 import { getCompany, getSMAccount, listCovCreditSellers, listCvrdGroupLoans, listSMLoansCovereds } from '../../../src/graphql/queries';
 import { useNavigation } from '@react-navigation/native';
 import { View, Text, ImageBackground, Pressable, TextInput, ScrollView, KeyboardAvoidingView, Platform, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
@@ -121,8 +120,18 @@ const SMASendNonLns = props => {
                       });
                       const UsrTransferFee = CompDtls.data.getCompany.userTransferFee;
                       const senderNat = await getUserNationalityByEmail(attributes.email);
-                      const amountForeign = parseFloat(amounts) || 0;
+                      const amountForeign = parseFloat(amounts);
+                      if (!Number.isFinite(amountForeign) || amountForeign <= 0) {
+                        Alert.alert("Enter a valid amount");
+                        setIsLoading(false);
+                        return;
+                      }
                       const amountKes = await convertForeignToKsh(amountForeign, senderNat);
+                      if (!Number.isFinite(amountKes) || amountKes <= 0) {
+                        Alert.alert("Unable to convert amount. Please try again.");
+                        setIsLoading(false);
+                        return;
+                      }
                       const UsrTransferFeeAmt = parseFloat(UsrTransferFee) * amountKes;
                       const UsrTransferFee2 = parseFloat(SenderUsrBal) - amountKes;
                       const TotalTransacted = amountKes + parseFloat(UsrTransferFee) * amountKes;
@@ -265,12 +274,62 @@ const SMASendNonLns = props => {
                               const formattedAmount = await formatAmountForUser(amountKes, nat);
                               const formattedFee = await formatAmountForUser(UsrTransferFeeAmt, nat);
                               Alert.alert(`Amount: ${formattedAmount}. Transaction fee: ${formattedFee}`);
-                              Communications.textWithoutEncoding(phonecontact, 'Hi ' + namess + names + ', has sent you a non loan of ' + formattedAmount + '. For clarification call the: ' + attributes2.phone_number + '. Thank you. MiFedha');
+                              
+                              // Send Firebase notification
+                              const nonLoanMessage = 'Hi ' + namess + names + ', has sent you a non loan of ' + formattedAmount + '. For clarification call the: ' + attributes2.phone_number + '. Thank you. MiFedha';
+                              try {
+                                const msgRes: any = await client.graphql({
+                                  query: createMessages,
+                                  variables: {
+                                    input: {
+                                      senderEmail: phonecontact,
+                                      messageBody: nonLoanMessage
+                                    }
+                                  }
+                                });
+                                if (msgRes?.data?.createMessages) {
+                                  await client.graphql({
+                                    query: sendNotification,
+                                    variables: {
+                                      riderEmail: phonecontact,
+                                      title: 'MiFedha: Non-Loan Transfer',
+                                      body: nonLoanMessage
+                                    }
+                                  });
+                                }
+                              } catch (notifError) {
+                                console.log('Notification error:', notifError);
+                              }
                             } catch (e) {
                               const formattedFallback = formatAmountSync(amountKes, nationality, ratesMap);
                               const formattedFeeFallback = formatAmountSync(UsrTransferFeeAmt, nationality, ratesMap);
                               Alert.alert(`Amount: ${formattedFallback}. Transaction fee: ${formattedFeeFallback}`);
-                              Communications.textWithoutEncoding(phonecontact, 'Hi ' + namess + names + ', has sent you a non loan of ' + formattedFallback + '. For clarification call the: ' + attributes.phone_number + '. Thank you. MiFedha');
+                              
+                              // Send Firebase notification (fallback)
+                              const nonLoanMessageFallback = 'Hi ' + namess + names + ', has sent you a non loan of ' + formattedFallback + '. For clarification call the: ' + attributes.phone_number + '. Thank you. MiFedha';
+                              try {
+                                const msgRes: any = await client.graphql({
+                                  query: createMessages,
+                                  variables: {
+                                    input: {
+                                      senderEmail: phonecontact,
+                                      messageBody: nonLoanMessageFallback
+                                    }
+                                  }
+                                });
+                                if (msgRes?.data?.createMessages) {
+                                  await client.graphql({
+                                    query: sendNotification,
+                                    variables: {
+                                      riderEmail: phonecontact,
+                                      title: 'MiFedha: Non-Loan Transfer',
+                                      body: nonLoanMessageFallback
+                                    }
+                                  });
+                                }
+                              } catch (notifError) {
+                                console.log('Notification error:', notifError);
+                              }
                             }
                             setIsLoading(false);
                           };
@@ -287,13 +346,13 @@ const SMASendNonLns = props => {
                             Alert.alert('Receiver ID be verified through deposit at MFNdogo');
                           } else if (UsrTransferFee2 < 0) {
                             Alert.alert('Requested amount is more than you have in your account');
-                          } else if (parseFloat(RecUsrBal) + parseFloat(amounts) > parseFloat(MaxAcBals)) {
+                          } else if (parseFloat(RecUsrBal) + amountKes > parseFloat(MaxAcBals)) {
                             Alert.alert('Receiver Call customer care to have wallet capacity adjusted');
                           } else if (usrPW !== SnderPW) {
                             Alert.alert('Wrong password');
                           } else if (userInfo.userId !== SenderSub) {
                             Alert.alert('Please send from your own  account');
-                          } else if (parseFloat(loanLimits) < parseFloat(amounts)) {
+                          } else if (parseFloat(loanLimits) < amountKes) {
                             Alert.alert('Call ' + CompPhoneContact + ' to have your send Amount limit adjusted');
                           } else if (Lonees1.data.listSMLoansCovereds.items.length > 0 || Lonees3.data.listCovCreditSellers.items.length > 0 || Lonees5.data.listCvrdGroupLoans.items.length > 0) {
                             SndChmMmbrMny();

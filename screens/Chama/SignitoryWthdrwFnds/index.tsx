@@ -3,8 +3,13 @@ import { createFloatAdd, updateAgent, updateCompany, updateGroup, updateSAgent, 
 import styles from './styles';
 import { getAgent, getCompany, getGroup, getSAgent, getSMAccount } from '../../../src/graphql/queries';
 import { generateClient } from 'aws-amplify/api';
-import { getCurrentUser } from 'aws-amplify/auth';
+import { getCurrentUser, fetchUserAttributes } from 'aws-amplify/auth';
 import { ActivityIndicator, Alert, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
+
+import { useExchange } from '../../../src/contexts/ExchangeContext';
+import { convertForeignToKsh, formatAmountSync } from '../../../src/utils/exchange';
+import { nationalityToCode } from '../../../src/utils/nationalityToCode';
+
 const client = generateClient();
 const SMADepositForm = props => {
   const [WthDrwrPhn, setWthDrwrPhn] = useState(null);
@@ -13,8 +18,69 @@ const SMADepositForm = props => {
   const [AgentPhn, setAgentPhn] = useState("");
   const [amount, setAmount] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [userNationality, setUserNationality] = useState<string>(null);
+  
+  const { ratesMap } = useExchange();
+  const userCurrencyKey = nationalityToCode(userNationality);
+
+  // Parse amount input
+  const parseAmountInput = (value: string): number => {
+    if (!value || value.trim() === '') return 0;
+    const num = parseFloat(value);
+    return isNaN(num) ? 0 : num;
+  };
+
+  // Handle money input with 2-decimal enforcement
+  const handleMoneyInput = (setter: (value: string) => void) => (value: string) => {
+    if (/^\d*(\.\d{0,2})?$/.test(value) || value === '') {
+      setter(value);
+    }
+  };
+
+  // Format to exactly 2 decimals on blur
+  const formatMoneyOnBlur = (value: string, setter: (value: string) => void) => {
+    const num = parseAmountInput(value);
+    if (num > 0) {
+      setter(num.toFixed(2));
+    }
+  };
+
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        const attributes = await fetchUserAttributes();
+        const userData = await client.graphql({
+          query: getSMAccount,
+          variables: { awsemail: attributes.email },
+        });
+        setUserNationality(userData.data.getSMAccount.nationality);
+      } catch (error) {
+        console.error('Error fetching user data:', error);
+      }
+    };
+    fetchUserData();
+  }, []);
   const fetchChmDtls = async () => {
     if (isLoading) return;
+    
+    // Convert amount to KES
+    const amountForeign = parseAmountInput(amount);
+    const amountInKES = convertForeignToKsh(amountForeign, userCurrencyKey, ratesMap);
+
+    // Confirmation prompt
+    const confirmed = await new Promise<boolean>((resolve) => {
+      Alert.alert(
+        'Confirm Withdrawal',
+        `You are about to withdraw ${formatAmountSync(amountInKES, userCurrencyKey, ratesMap)} from the chama account. Continue?`,
+        [
+          { text: 'Cancel', style: 'cancel', onPress: () => resolve(false) },
+          { text: 'Withdraw', onPress: () => resolve(true) }
+        ]
+      );
+    });
+
+    if (!confirmed) return;
+
     setIsLoading(true);
     try {
       const user = await getCurrentUser();
@@ -74,13 +140,13 @@ const SMADepositForm = props => {
       const saBalances = saDtls.data.getSAgent.saBalance;
       const namessssssss = saDtls.data.getSAgent.name;
       const MFKWithdrwlFees = saDtls.data.getSAgent.MFKWithdrwlFee;
-      const AgentCommission = parseFloat(MFNWithdrwlFees) * parseFloat(amount) * parseFloat(UsrWthdrwlFeess);
-      const saCommission = parseFloat(MFKWithdrwlFees) * parseFloat(amount) * parseFloat(UsrWthdrwlFeess);
-      const compCommission = parseFloat(companyComs) * parseFloat(amount) * parseFloat(UsrWthdrwlFeess);
+      const AgentCommission = parseFloat(MFNWithdrwlFees) * amountInKES * parseFloat(UsrWthdrwlFeess);
+      const saCommission = parseFloat(MFKWithdrwlFees) * amountInKES * parseFloat(UsrWthdrwlFeess);
+      const compCommission = parseFloat(companyComs) * amountInKES * parseFloat(UsrWthdrwlFeess);
       const UsrWithdrawalFee = AgentCommission + saCommission;
-      const TTlAmtTrnsctd = parseFloat(amount) + UsrWithdrawalFee;
+      const TTlAmtTrnsctd = amountInKES + UsrWithdrawalFee;
       const acChamp = saDtls.data.getSAgent.acChamp;
-      const ChampCommission = parseFloat(ChampCom) * parseFloat(amount) * parseFloat(UsrWthdrwlFeess);
+      const ChampCommission = parseFloat(ChampCom) * amountInKES * parseFloat(UsrWthdrwlFeess);
       const compDtlsx: any = await client.graphql({
         query: getSMAccount,
         variables: {
@@ -92,14 +158,14 @@ const SMADepositForm = props => {
       // Validation checks
       if (WithdrawCnfrmtns === "NO") {
         Alert.alert("Let signatory 2 confirm withdrawal first");
-      } else if (WithdrawCnfrmtnAmt !== parseFloat(amount)) {
-        Alert.alert("Enter amount agreed with signatory 2");
+      } else if (parseFloat(WithdrawCnfrmtnAmt) !== amountInKES) {
+        Alert.alert(`Enter amount agreed with signatory 2. Expected: ${formatAmountSync(parseFloat(WithdrawCnfrmtnAmt), userCurrencyKey, ratesMap)}`);
       } else if (WithdrawCnfrmtn2 === "NO") {
         Alert.alert("Let signatory 3 confirm withdrawal first");
-      } else if (WithdrawCnfrmtnAmt2 !== parseFloat(amount)) {
-        Alert.alert("Enter amount agreed with signatory 3");
+      } else if (parseFloat(WithdrawCnfrmtnAmt2) !== amountInKES) {
+        Alert.alert(`Enter amount agreed with signatory 3. Expected: ${formatAmountSync(parseFloat(WithdrawCnfrmtnAmt2), userCurrencyKey, ratesMap)}`);
       } else if (TTlAmtTrnsctd > parseFloat(grpBals)) {
-        Alert.alert("Insufficient Chama Balance");
+        Alert.alert(`Insufficient Chama Balance. Available: ${formatAmountSync(parseFloat(grpBals), userCurrencyKey, ratesMap)}`);
       } else if (usrStts === "AccountInactive") {
         Alert.alert("Chama Account has been deactivated");
       } else if (user.userId !== owners) {
@@ -118,7 +184,7 @@ const SMADepositForm = props => {
               agentPhonecontact: AgentPhn,
               sagentId: sagentregnos,
               owner: user.userId,
-              amount: parseFloat(amount).toFixed(0),
+              amount: amountInKES.toFixed(0),
               agentName: namess,
               userName: names,
               saName: namessssssss,
@@ -136,7 +202,7 @@ const SMADepositForm = props => {
               grpContact: ChmKntct,
               WithdrawalSync: (parseFloat(WithdrawalSync) + TTlAmtTrnsctd).toFixed(0),
               grpBal: (parseFloat(grpBals) - TTlAmtTrnsctd).toFixed(0),
-              ttlWthdrwn: (parseFloat(ttlWthdrwns) + parseFloat(amount)).toFixed(0),
+              ttlWthdrwn: (parseFloat(ttlWthdrwns) + amountInKES).toFixed(0),
               WithdrawCnfrmtn: "NO",
               WithdrawCnfrmtn2: "NO"
             }
@@ -151,8 +217,8 @@ const SMADepositForm = props => {
               phonecontact: AgentPhn,
               ttlEarnings: (parseFloat(ttlEarningssss) + AgentCommission).toFixed(0),
               agentEarningBal: (parseFloat(agentEarningBalsss) + AgentCommission).toFixed(0),
-              floatBal: (parseFloat(floatBals) + parseFloat(amount)).toFixed(0),
-              TtlFltIn: (parseFloat(TtlFltInsss) + parseFloat(amount)).toFixed(0)
+              floatBal: (parseFloat(floatBals) + amountInKES).toFixed(0),
+              TtlFltIn: (parseFloat(TtlFltInsss) + amountInKES).toFixed(0)
             }
           }
         });
@@ -179,8 +245,8 @@ const SMADepositForm = props => {
               agentEarning: parseFloat(agentEarnings) + AgentCommission,
               saEarningBal: parseFloat(saEarningBals) + saCommission,
               saEarning: parseFloat(saEarnings) + saCommission,
-              ttlUserWthdrwl: parseFloat(ttlUserWthdrwls) + parseFloat(amount),
-              agentFloatIn: parseFloat(agentFloatIns) + parseFloat(amount)
+              ttlUserWthdrwl: parseFloat(ttlUserWthdrwls) + amountInKES,
+              agentFloatIn: parseFloat(agentFloatIns) + amountInKES
             }
           }
         });
@@ -195,14 +261,8 @@ const SMADepositForm = props => {
             }
           }
         });
-        try {
-          const { formatAmount } = useExchange();
-          const formatted = await formatAmount(parseFloat(amount));
-          Alert.alert(`${names} has withdrawn ${formatted} from ${namess} MFNdogo`);
-        } catch (e) {
-          const { nationality, ratesMap } = useExchange();
-          Alert.alert(`${names} has withdrawn ${formatAmountSync(parseFloat(amount), nationalityToCode(nationality), ratesMap)} from ${namess} MFNdogo`);
-        }
+        
+        Alert.alert(`${names} has withdrawn ${formatAmountSync(amountInKES, userCurrencyKey, ratesMap)} from ${namess} MFNdogo`);
       }
     } catch (error) {
       console.log(error);
@@ -232,7 +292,7 @@ const SMADepositForm = props => {
           </View>
 
           <View style={styles.sendAmtView}>
-            <TextInput keyboardType={"decimal-pad"} value={amount} onChangeText={setAmount} style={styles.sendAmtInput} editable={true}></TextInput>
+            <TextInput keyboardType={"decimal-pad"} value={amount} onChangeText={handleMoneyInput(setAmount)} onBlur={() => formatMoneyOnBlur(amount, setAmount)} style={styles.sendAmtInput} editable={true}></TextInput>
             <Text style={styles.sendAmtText}>Amount</Text>
           </View>
 

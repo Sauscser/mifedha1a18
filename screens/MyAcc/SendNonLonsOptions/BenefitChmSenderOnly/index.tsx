@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import Communications from 'react-native-communications';
-import { createSMLoansCovered, createNonLoans, updateCompany, updateSMAccount, createBenefitContributions2, createMessages, sendNotification } from '../../../../src/graphql/mutations';
+import { createBenefitContributions2, createMessages, createNonLoans, createSMLoansCovered, sendNotification, updateCompany, updateSMAccount } from '../../../../src/graphql/mutations';
 import { getCompany, getSMAccount, listCovCreditSellers, listCvrdGroupLoans, listSMLoansCovereds } from '../../../../src/graphql/queries';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
@@ -340,7 +339,32 @@ const SMASendNonLns = props => {
                                       });
                                       if (response6?.data?.updateCompany) {
                                         Alert.alert("Amount: " + formatUserInputAmount(amountForeign) + ". Transaction fee: " + formatAmountSync(UsrTransferFeeAmt, senderNat || nationality, ratesMap));
-                                        Communications.textWithoutEncoding(phonecontact, 'Hi ' + ReceiverName + ', ' + names + ' has sent you a non loan of ' + formatUserInputAmount(amountForeign) + '. For clarification call the sender ' + attributes.phone_number + '. Thank you. MiFedha');
+                                        
+                                        // Send Firebase notification
+                                        const transferMessage = 'Hi ' + ReceiverName + ', ' + names + ' has sent you a non loan of ' + formatUserInputAmount(amountForeign) + '. For clarification call the sender ' + attributes.phone_number + '. Thank you. MiFedha';
+                                        try {
+                                          const msgRes: any = await client.graphql({
+                                            query: createMessages,
+                                            variables: {
+                                              input: {
+                                                senderEmail: phonecontact,
+                                                messageBody: transferMessage
+                                              }
+                                            }
+                                          });
+                                          if (msgRes?.data?.createMessages) {
+                                            await client.graphql({
+                                              query: sendNotification,
+                                              variables: {
+                                                riderEmail: phonecontact,
+                                                title: 'MiFedha: Non-Loan Transfer',
+                                                body: transferMessage
+                                              }
+                                            });
+                                          }
+                                        } catch (notifError) {
+                                          console.log('Notification error:', notifError);
+                                        }
                                       } else {
                                         Alert.alert("Error! retry or update app");
                                       }
@@ -503,7 +527,32 @@ const SMASendNonLns = props => {
                                       });
                                       if (responx6?.data?.updateCompany) {
                                         Alert.alert("Amount: " + formatUserInputAmount(amountForeign) + ". Transaction fee: " + formatAmountSync(UsrTransferFeeAmt, senderNat || nationality, ratesMap));
-                                        Communications.textWithoutEncoding(phonecontact, 'Hi ' + ReceiverName + ', ' + names + ' has sent you a non loan of ' + formatUserInputAmount(amountForeign) + '. For clarification call the sender ' + attributes.phone_number + '. Thank you. MiFedha');
+                                        
+                                        // Send Firebase notification
+                                        const transferMessage2 = 'Hi ' + ReceiverName + ', ' + names + ' has sent you a non loan of ' + formatUserInputAmount(amountForeign) + '. For clarification call the sender ' + attributes.phone_number + '. Thank you. MiFedha';
+                                        try {
+                                          const msgRes: any = await client.graphql({
+                                            query: createMessages,
+                                            variables: {
+                                              input: {
+                                                senderEmail: phonecontact,
+                                                messageBody: transferMessage2
+                                              }
+                                            }
+                                          });
+                                          if (msgRes?.data?.createMessages) {
+                                            await client.graphql({
+                                              query: sendNotification,
+                                              variables: {
+                                                riderEmail: phonecontact,
+                                                title: 'MiFedha: Non-Loan Transfer',
+                                                body: transferMessage2
+                                              }
+                                            });
+                                          }
+                                        } catch (notifError) {
+                                          console.log('Notification error:', notifError);
+                                        }
                                       } else {
                                         Alert.alert("Error! retry or update app");
                                       }
@@ -669,7 +718,32 @@ const SMASendNonLns = props => {
                                       });
                                       if (responz6?.data?.updateCompany) {
                                         Alert.alert("Amount: " + formatUserInputAmount(amountForeign) + ". Transaction fee: " + formatAmountSync(UsrTransferFeeAmt, senderNat || nationality, ratesMap));
-                                        Communications.textWithoutEncoding(phonecontact, 'Hi ' + ReceiverName + ', ' + names + ' has sent you a non loan of ' + formatUserInputAmount(amountForeign) + '. For clarification call the sender ' + attributes.phone_number + '. Thank you. MiFedha');
+                                        
+                                        // Send Firebase notification
+                                        const transferMessage3 = 'Hi ' + ReceiverName + ', ' + names + ' has sent you a non loan of ' + formatUserInputAmount(amountForeign) + '. For clarification call the sender ' + attributes.phone_number + '. Thank you. MiFedha';
+                                        try {
+                                          const msgRes: any = await client.graphql({
+                                            query: createMessages,
+                                            variables: {
+                                              input: {
+                                                senderEmail: phonecontact,
+                                                messageBody: transferMessage3
+                                              }
+                                            }
+                                          });
+                                          if (msgRes?.data?.createMessages) {
+                                            await client.graphql({
+                                              query: sendNotification,
+                                              variables: {
+                                                riderEmail: phonecontact,
+                                                title: 'MiFedha: Non-Loan Transfer',
+                                                body: transferMessage3
+                                              }
+                                            });
+                                          }
+                                        } catch (notifError) {
+                                          console.log('Notification error:', notifError);
+                                        }
                                       }
                                     } catch (error) {
                                       console.log(error);
@@ -849,7 +923,32 @@ const SMASendNonLns = props => {
                                       });
                                       if (responce6?.data?.updateCompany) {
                                         Alert.alert("Amount: " + formatUserInputAmount(amountForeign) + ". Transaction fee: " + formatAmountSync(UsrTransferFeeAmt, senderNat || nationality, ratesMap));
-                                        Communications.textWithoutEncoding(phonecontact, 'Hi ' + ReceiverName + ', ' + names + ' has sent you a non loan of ' + formatUserInputAmount(amountForeign) + '. For clarification call the sender ' + attributes.phone_number + '. Thank you. MiFedha');
+                                        
+                                        // Send Firebase notification
+                                        const transferMessage4 = 'Hi ' + ReceiverName + ', ' + names + ' has sent you a non loan of ' + formatUserInputAmount(amountForeign) + '. For clarification call the sender ' + attributes.phone_number + '. Thank you. MiFedha';
+                                        try {
+                                          const msgRes: any = await client.graphql({
+                                            query: createMessages,
+                                            variables: {
+                                              input: {
+                                                senderEmail: phonecontact,
+                                                messageBody: transferMessage4
+                                              }
+                                            }
+                                          });
+                                          if (msgRes?.data?.createMessages) {
+                                            await client.graphql({
+                                              query: sendNotification,
+                                              variables: {
+                                                riderEmail: phonecontact,
+                                                title: 'MiFedha: Non-Loan Transfer',
+                                                body: transferMessage4
+                                              }
+                                            });
+                                          }
+                                        } catch (notifError) {
+                                          console.log('Notification error:', notifError);
+                                        }
                                       } else {
                                         Alert.alert("Retry or update app or call customer care");
                                         return;

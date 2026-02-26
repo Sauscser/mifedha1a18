@@ -1,12 +1,14 @@
 import React, { useEffect, useState } from 'react';
-import Communications from 'react-native-communications';
-import { createSMLoansCovered, createNonLoans, updateCompany, updateSMAccount, updateSMLoansCovered, updateBizna, createLoanRepayments } from '../../../../../../../src/graphql/mutations';
+import { createSMLoansCovered, createNonLoans, updateCompany, updateSMAccount, updateSMLoansCovered, updateBizna, createLoanRepayments, createMessages, sendNotification } from '../../../../../../../src/graphql/mutations';
 import { getBizna, getCompany, getSMAccount, getSMLoansCovered } from '../../../../../../../src/graphql/queries';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { View, Text, ImageBackground, Pressable, TextInput, ScrollView, KeyboardAvoidingView, Platform, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
 import styles from './styles';
 import { getCurrentUser, fetchUserAttributes } from "aws-amplify/auth";
 import { generateClient } from "aws-amplify/api";
+import { useExchange } from '../../../../../../../src/contexts/ExchangeContext';
+import { convertForeignToKsh, formatAmountSync } from '../../../../../../../src/utils/exchange';
+import { nationalityToCode } from '../../../../../../../src/utils/nationalityToCode';
 const client = generateClient();
 const RepayCovLnsss = props => {
   const [SnderPW, setSnderPW] = useState("");
@@ -14,11 +16,25 @@ const RepayCovLnsss = props => {
   const [Desc, setDesc] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const route = useRoute();
+  const { nationality, ratesMap } = useExchange();
   const ftchCvdSMLn = async () => {
     if (isLoading) {
       return;
     }
     setIsLoading(true);
+    const amountForeign = parseFloat(amounts);
+    if (!Number.isFinite(amountForeign) || amountForeign <= 0) {
+      Alert.alert("Enter a valid repayment amount");
+      setIsLoading(false);
+      return;
+    }
+    const currencyKey = nationalityToCode(nationality);
+    const amountKes = await convertForeignToKsh(amountForeign, currencyKey);
+    if (!Number.isFinite(amountKes) || amountKes <= 0) {
+      Alert.alert("Unable to convert amount. Please try again.");
+      setIsLoading(false);
+      return;
+    }
     try {
       const RecAccountDtl: any = await client.graphql({
         query: getSMLoansCovered,
@@ -90,7 +106,7 @@ const RepayCovLnsss = props => {
       const netLnBal = parseFloat(amountExpectedBackWthClrncs) - parseFloat(clearanceAmts) - parseFloat(DefaultPenaltySM2s);
       const netLnBal2 = netLnBalz * Math.pow(1 + parseFloat(interest) / 36500, tmDif2);
       const LonBal1 = (netLnBal2 + parseFloat(clearanceAmts) + parseFloat(DefaultPenaltySM2s)).toFixed(0);
-      const LoanBalz = parseFloat(LonBal1) - parseFloat(amounts);
+      const LoanBalz = parseFloat(LonBal1) - amountKes;
       const fetchSenderUsrDtls = async () => {
         if (isLoading) {
           return;
@@ -137,7 +153,7 @@ const RepayCovLnsss = props => {
               const companyEarnings = CompDtls.data.getCompany.companyEarning;
               const ttlNonLonssRecSMs = CompDtls.data.getCompany.ttlNonLonssRecSM;
               const ttlNonLonssSentSMs = CompDtls.data.getCompany.ttlNonLonssSentSM;
-              const TotalTransacted = parseFloat(amounts) + parseFloat(UsrTransferFee) * parseFloat(amounts) + ClranceAmt;
+              const TotalTransacted = amountKes + parseFloat(UsrTransferFee) * amountKes + ClranceAmt;
               const maxBLss = CompDtls.data.getCompany.maxBLs;
               const fetchRecUsrDtls = async () => {
                 if (isLoading) {
@@ -213,7 +229,7 @@ const RepayCovLnsss = props => {
                         variables: {
                           input: {
                             loanID: route.params.loanID,
-                            amountrepaid: (parseFloat(amounts) + parseFloat(amountrepaids)).toFixed(0),
+                            amountrepaid: (amountKes + parseFloat(amountrepaids)).toFixed(0),
                             lonBala: LoanBalz.toFixed(0),
                             amountExpectedBackWthClrnc: LoanBalz.toFixed(0),
                             status: "LoanCleared",
@@ -277,7 +293,21 @@ const RepayCovLnsss = props => {
                       }
                     }
                     Alert.alert("Cleared.");
-                    Communications.textWithoutEncoding(loaneePhns, 'MiFedha. Hi ' + names + ', your loan of ID ' + route.params.loanID + ' has been waived ' + formatAmountSync(Number(amounts), nationality, ratesMap) + ' by ' + busName + '. For clarification call the loaner: ' + loanerPhns + '. Thank you.');
+                    const waiveMessage3 = 'MiFedha. Hi ' + names + ', your loan of ID ' + route.params.loanID + ' has been waived ' + formatAmountSync(amountKes, nationality, ratesMap) + ' by ' + busName + '. For clarification call the loaner: ' + loanerPhns + '. Thank you.';
+                    try {
+                      const msgRes = await client.graphql({
+                        query: createMessages,
+                        variables: { input: { senderEmail: loaneePhns, messageBody: waiveMessage3 }}
+                      });
+                      if (msgRes?.data?.createMessages) {
+                        await client.graphql({
+                          query: sendNotification,
+                          variables: { riderEmail: loaneePhns, title: 'MiFedha: Loan Waived', body: waiveMessage3 }
+                        });
+                      }
+                    } catch (notifErr) {
+                      console.log('Notification error:', notifErr);
+                    }
                     setIsLoading(false);
                     await sendNonLnLnOver();
                   };
@@ -298,7 +328,7 @@ const RepayCovLnsss = props => {
                             loanId1: route.params.loanID,
                             loanId2: "route.params.id",
                             loanId3: "route.params.id",
-                            amount: parseFloat(amounts).toFixed(0),
+                            amount: amountKes.toFixed(0),
                             description: Desc,
                             status: "Waived",
                             owner: userInfo.userId
@@ -324,7 +354,7 @@ const RepayCovLnsss = props => {
                         variables: {
                           input: {
                             loanID: route.params.loanID,
-                            amountrepaid: (parseFloat(amounts) + parseFloat(amountrepaids)).toFixed(0),
+                            amountrepaid: (amountKes + parseFloat(amountrepaids)).toFixed(0),
                             lonBala: LoanBalz.toFixed(0),
                             DefaultPenaltySM2: 0,
                             amountExpectedBackWthClrnc: LoanBalz.toFixed(0),
@@ -411,7 +441,21 @@ const RepayCovLnsss = props => {
                       }
                     }
                     Alert.alert("Partially Waived.");
-                    Communications.textWithoutEncoding(loaneeEmail, 'Hi ' + names + ', your loan of ID ' + route.params.loanID + ' has been partially waived ' + formatAmountSync(Number(amounts), nationality, ratesMap) + ' by ' + busName + '. For clarification call the loaner: ' + loanerPhns + '. Thank you. MiFedha');
+                    const waiveMessage4 = 'Hi ' + names + ', your loan of ID ' + route.params.loanID + ' has been partially waived ' + formatAmountSync(amountKes, nationality, ratesMap) + ' by ' + busName + '. For clarification call the loaner: ' + loanerPhns + '. Thank you. MiFedha';
+                    try {
+                      const msgRes = await client.graphql({
+                        query: createMessages,
+                        variables: { input: { senderEmail: loaneeEmail, messageBody: waiveMessage4 }}
+                      });
+                      if (msgRes?.data?.createMessages) {
+                        await client.graphql({
+                          query: sendNotification,
+                          variables: { riderEmail: loaneeEmail, title: 'MiFedha: Loan Partially Waived', body: waiveMessage4 }
+                        });
+                      }
+                    } catch (notifErr) {
+                      console.log('Notification error:', notifErr);
+                    }
                     setIsLoading(false);
                     await sendNonLnLnOver2();
                   };
@@ -432,7 +476,7 @@ const RepayCovLnsss = props => {
                             loanId1: route.params.loanID,
                             loanId2: "route.params.id",
                             loanId3: "route.params.id",
-                            amount: parseFloat(amounts).toFixed(0),
+                            amount: amountKes.toFixed(0),
                             description: Desc,
                             status: "Waived",
                             owner: userInfo.userId
@@ -453,14 +497,14 @@ const RepayCovLnsss = props => {
                   } else if (usrAcActvStts === "AccountInactive") {
                     Alert.alert('Sender account is inactive');
                     return;
-                  } else if (ClranceAmt > parseFloat(amounts)) {
+                  } else if (ClranceAmt > amountKes) {
                     Alert.alert("Too little amount waived: at least " + ClranceAmt.toFixed(2));
                     return;
-                  } else if (parseFloat(amounts) > parseFloat(LonBal1)) {
+                  } else if (amountKes > parseFloat(LonBal1)) {
                     Alert.alert("The Loan Balance is lesser: " + LonBal1);
-                  } else if (parseFloat(amounts) === parseFloat(LonBal1) && parseFloat(MaxTymsBLs) === parseFloat(maxBLss)) {
+                  } else if (amountKes === parseFloat(LonBal1) && parseFloat(MaxTymsBLs) === parseFloat(maxBLss)) {
                     updtSendrAcLonOvr1();
-                  } else if (parseFloat(amounts) === parseFloat(LonBal1) && parseFloat(MaxTymsBLs) > parseFloat(maxBLss)) {
+                  } else if (amountKes === parseFloat(LonBal1) && parseFloat(MaxTymsBLs) > parseFloat(maxBLss)) {
                     updtSendrAcLonOvr2();
                   } else {
                     repyCovLn();

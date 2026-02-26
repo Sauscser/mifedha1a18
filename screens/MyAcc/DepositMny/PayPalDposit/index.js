@@ -1,4 +1,7 @@
 import React, { useEffect, useState } from 'react';
+import { useExchange } from '../../../../src/contexts/ExchangeContext';
+import { convertForeignToKsh } from '../../../../src/utils/exchange';
+import { nationalityToCode } from '../../../../src/utils/nationalityToCode';
 import { View, Text, TextInput, ScrollView, StyleSheet, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { WebView } from 'react-native-webview';
@@ -10,6 +13,7 @@ import { generateClient } from "aws-amplify/api";
 const client = generateClient();
 const DepositScreen = () => {
   const navigation = useNavigation();
+  const { nationality } = useExchange();
   const [amount, setAmount] = useState('');
   const [password, setPassword] = useState('');
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
@@ -54,6 +58,13 @@ const DepositScreen = () => {
         setIsLoading(false);
         return;
       }
+      const currencyKey = nationalityToCode(nationality);
+      const amountKes = await convertForeignToKsh(amountValue, currencyKey);
+      if (!Number.isFinite(amountKes) || amountKes <= 0) {
+        Alert.alert('Unable to convert amount. Please try again.');
+        setIsLoading(false);
+        return;
+      }
       const accountData = await client.graphql({
         query: getSMAccount,
         variables: {
@@ -66,7 +77,7 @@ const DepositScreen = () => {
         setIsLoading(false);
         return;
       }
-      if (amountValue > parseFloat(account.depositLimit)) {
+      if (amountKes > parseFloat(account.depositLimit)) {
         Alert.alert('Limit exceeded; contact customer care.');
         setIsLoading(false);
         return;

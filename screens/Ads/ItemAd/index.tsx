@@ -220,6 +220,12 @@ const CreateBiz = () => {
       setIsLoading(false);
       return;
     }
+    const priceInKsh = parseFloat(PriceInKsh);
+    if (!Number.isFinite(priceInKsh) || priceInKsh <= 0) {
+      Alert.alert('Error', 'Enter a valid item price.');
+      setIsLoading(false);
+      return;
+    }
     try {
       const user = await getCurrentUser();
       const attributes = await fetchUserAttributes();
@@ -273,7 +279,7 @@ const CreateBiz = () => {
             itemCodeBar: ItemCode,
             itemPhoto: itemPhotoKey,
             // NOTE: Price is stored in KES in backend, even though displayed in owner's currency in UI
-            sokoprice: parseFloat(itemPrice),
+            sokoprice: priceInKsh,
             latitude: business.latitude,
             longitude: business.longitude,
             itemBrand: brandName || '',
@@ -314,7 +320,7 @@ const CreateBiz = () => {
               itemName,
               itemBrand: brandName,
               itemSpecs: itemSpecifications,
-              itemPrice: parseFloat(itemPrice).toFixed(2),
+              itemPrice: priceInKsh.toFixed(2),
               Nationality: businessOwnerNationality
             }
           }
@@ -323,12 +329,12 @@ const CreateBiz = () => {
       // Format price for display in business owner's currency
       const ownerCode = nationalityToCode(businessOwnerNationality);
       const priceInOwnerCurrency = ownerCode
-        ? formatAmountSync(parseFloat(itemPrice), ownerCode, ratesMap)
-        : `Ksh ${parseFloat(itemPrice).toFixed(2)}`;
+        ? formatAmountSync(priceInKsh, ownerCode, ratesMap)
+        : `Ksh ${priceInKsh.toFixed(2)}`;
 
         console.log(itemPrice);
       
-      Alert.alert('Success', `Item successfully advertised.\n\nPrice: ${priceInOwnerCurrency}\n\n(Stored in backend as: Ksh ${parseFloat(itemPrice).toFixed(2)})`);
+      Alert.alert('Success', `Item successfully advertised.\n\nPrice: ${priceInOwnerCurrency}\n\n(Stored in backend as: Ksh ${priceInKsh.toFixed(2)})`);
       clearForm();
     } catch (err) {
       console.error(err);

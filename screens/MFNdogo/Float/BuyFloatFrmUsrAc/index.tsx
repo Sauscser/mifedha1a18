@@ -34,6 +34,12 @@ const BuyFlt = (props: buyAgntFlts) => {
       return;
     }
     setIsLoading(true);
+    const amountKsh = Number(amt);
+    if (!Number.isFinite(amountKsh) || amountKsh <= 0) {
+      Alert.alert("Invalid amount", "Enter a valid float amount");
+      setIsLoading(false);
+      return;
+    }
     try {
       const agntBal: any = await client.graphql({
         query: getAgent,
@@ -70,9 +76,9 @@ const BuyFlt = (props: buyAgntFlts) => {
                   awsemail: UsrEmail
                 }
               });
-              const balances = CompFltBal.data.getBankAdmin.balance;
-              const pws = CompFltBal.data.getBankAdmin.pw;
-              const owners = CompFltBal.data.getBankAdmin.owner;
+              const balances = CompFltBal?.data?.getSMAccount?.balance;
+              const pws = CompFltBal?.data?.getSMAccount?.pw;
+              const owners = CompFltBal?.data?.getSMAccount?.owner;
               const buyAgntFlt = async () => {
                 if (isLoading) {
                   return;
@@ -84,8 +90,8 @@ const BuyFlt = (props: buyAgntFlts) => {
                     variables: {
                       input: {
                         agentphone: phoneContact,
-                        amount: amt,
-                        transactId: transId,
+                        amount: String(Math.round(amountKsh)),
+                        transactId: transId || "DirectUserFunding",
                         bankAdminID: "bankAdminId",
                         status: "AccountActive",
                         owner: ownr
@@ -94,7 +100,7 @@ const BuyFlt = (props: buyAgntFlts) => {
                   });
                 } catch (error) {
                   if (error) {
-                    Alert.alert("Purchase unsuccessful; Retry");
+                    Alert.alert("Purchase failed", "Retry or check your connection");
                     return;
                   }
                 }
@@ -107,8 +113,8 @@ const BuyFlt = (props: buyAgntFlts) => {
                 Alert.alert("User password is wrong");
               } else if (ownr !== owners) {
                 Alert.alert("Please load from your account");
-              } else if (parseFloat(amt) > parseFloat(balances)) {
-                Alert.alert("Please load from your account");
+              } else if (amountKsh > parseFloat(balances || '0')) {
+                Alert.alert("Insufficient balance", "Please load a lower amount from your account");
               } else {
                 buyAgntFlt();
               }
@@ -122,8 +128,8 @@ const BuyFlt = (props: buyAgntFlts) => {
                     variables: {
                       input: {
                         phonecontact: phoneContact,
-                        floatBal: parseFloat(amt) + parseFloat(fltBal),
-                        TtlFltIn: parseFloat(amt) + parseFloat(ttlFltIn)
+                        floatBal: amountKsh + parseFloat(fltBal),
+                        TtlFltIn: amountKsh + parseFloat(ttlFltIn)
                       }
                     }
                   });
@@ -143,7 +149,7 @@ const BuyFlt = (props: buyAgntFlts) => {
                     variables: {
                       input: {
                         AdminId: "BaruchHabaB'ShemAdonai2",
-                        agentFloatIn: parseFloat(amt) + parseFloat(CompFtBal)
+                        agentFloatIn: amountKsh + parseFloat(CompFtBal)
                       }
                     }
                   });
@@ -167,7 +173,7 @@ const BuyFlt = (props: buyAgntFlts) => {
                     variables: {
                       input: {
                         awsemail: UsrEmail,
-                        balance: parseFloat(balances) - parseFloat(amt)
+                        balance: parseFloat(balances || '0') - amountKsh
                       }
                     }
                   });
@@ -178,7 +184,7 @@ const BuyFlt = (props: buyAgntFlts) => {
                   }
                   ;
                 }
-                Alert.alert(names + ", you have loaded Ksh. " + amt);
+                Alert.alert("Float purchase successful", names + ", you have loaded Ksh. " + amountKsh.toFixed(2));
                 setIsLoading(false);
               };
             } catch (error) {

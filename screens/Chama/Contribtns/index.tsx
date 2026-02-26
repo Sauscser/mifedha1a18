@@ -5,6 +5,11 @@ import { generateClient } from 'aws-amplify/api';
 import { getCurrentUser, fetchUserAttributes } from 'aws-amplify/auth';
 import { getChamaMembers, getCompany, getGroup, getSMAccount } from '../../../src/graphql/queries';
 import { View, Text, TextInput, ScrollView, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
+
+import { useExchange } from '../../../src/contexts/ExchangeContext';
+import { convertForeignToKsh, formatAmountSync } from '../../../src/utils/exchange';
+import { nationalityToCode } from '../../../src/utils/nationalityToCode';
+
 import styles from './styles';
 const client = generateClient();
 const SMASendChmNonLns = props => {
@@ -15,17 +20,82 @@ const SMASendChmNonLns = props => {
   const [Desc, setDesc] = useState('');
   const [ownr, setownr] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [userNationality, setUserNationality] = useState<string>(null);
   const route = useRoute();
   const MembaId = route.params.ChamaNMember;
+  
+  const { ratesMap } = useExchange();
+  const userCurrencyKey = nationalityToCode(userNationality);
+
+  // Parse amount input
+  const parseAmountInput = (value: string): number => {
+    if (!value || value.trim() === '') return 0;
+    const num = parseFloat(value);
+    return isNaN(num) ? 0 : num;
+  };
+
+  // Handle money input with 2-decimal enforcement
+  const handleMoneyInput = (setter: (value: string) => void) => (value: string) => {
+    if (/^\d*(\.\d{0,2})?$/.test(value) || value === '') {
+      setter(value);
+    }
+  };
+
+  // Format to exactly 2 decimals on blur
+  const formatMoneyOnBlur = (value: string, setter: (value: string) => void) => {
+    const num = parseAmountInput(value);
+    if (num > 0) {
+      setter(num.toFixed(2));
+    }
+  };
+
   const fetchUser = async () => {
     const user = await getCurrentUser();
     const attributes = await fetchUserAttributes();
     setownr(attributes.sub);
+    
+    try {
+      const userData = await client.graphql({
+        query: getSMAccount,
+        variables: { awsemail: attributes.email },
+      });
+      setUserNationality(userData.data.getSMAccount.nationality);
+    } catch (error) {
+      console.error('Error fetching user data:', error);
+    }
   };
   useEffect(() => {
     fetchUser();
   }, []);
+
+  // Confirmation prompt
+  const confirmContribution = (): Promise<boolean> => {
+    return new Promise((resolve) => {
+      const amountForeign = parseAmountInput(amounts);
+      const amountInKES = convertForeignToKsh(amountForeign, userCurrencyKey, ratesMap);
+      
+      Alert.alert(
+        'Confirm Contribution',
+        `You are about to contribute ${formatAmountSync(amountInKES, userCurrencyKey, ratesMap)} to the group. Continue?`,
+        [
+          { text: 'Cancel', style: 'cancel', onPress: () => resolve(false) },
+          { text: 'Confirm', onPress: () => resolve(true) }
+        ]
+      );
+    });
+  };
+
   const fetchChmMbrDtls = async () => {
+    // Confirm before proceeding
+    const confirmed = await confirmContribution();
+    if (!confirmed) {
+      return;
+    }
+
+    // Convert amount to KES once
+    const amountForeign = parseAmountInput(amounts);
+    const amountInKES = convertForeignToKsh(amountForeign, userCurrencyKey, ratesMap);
+
     if (isLoading) return;
     setIsLoading(true);
     try {
@@ -66,14 +136,14 @@ const SMASendChmNonLns = props => {
                 }
               });
               const userTransferFees = CompDtls.data.getCompany.chmMmbrTransferFee;
-              const UsrTransferFeeAmt = userTransferFees * parseFloat(amounts);
-              const UsrTransferFee2 = parseFloat(SenderUsrBal) - parseFloat(amounts);
-              const TotalTransacted2 = parseFloat(amounts) + UsrTransferFee2;
+              const UsrTransferFeeAmt = userTransferFees * amountInKES;
+              const UsrTransferFee2 = parseFloat(SenderUsrBal) - amountInKES;
+              const TotalTransacted2 = amountInKES + UsrTransferFee2;
               const companyEarningBals = CompDtls.data.getCompany.companyEarningBal;
               const companyEarnings = CompDtls.data.getCompany.companyEarning;
               const CompPhoneContact = CompDtls.data.getCompany.phoneContact;
-              const TotalTransacted = parseFloat(amounts) + parseFloat(userTransferFees) * parseFloat(amounts);
-              const TransferFee = parseFloat(amounts) + parseFloat(userTransferFees) * parseFloat(amounts);
+              const TotalTransacted = amountInKES + parseFloat(userTransferFees) * amountInKES;
+              const TransferFee = amountInKES + parseFloat(userTransferFees) * amountInKES;
               const ttlNonLonssRecChmss = CompDtls.data.getCompany.ttlNonLonssRecChm;
               const fetchRecUsrDtls = async () => {
                 if (isLoading) return;
@@ -102,7 +172,7 @@ const SMASendChmNonLns = props => {
                             mmberNme: names,
                             GrpName: grpNames,
                             grpContact: groupContacts,
-                            contriAmount: parseFloat(amounts).toFixed(0),
+                            contriAmount: amountInKES.toFixed(0),
                             memberId: MembaId,
                             status: "AccountActive",
                             owner: ownr
@@ -145,9 +215,9 @@ const SMASendChmNonLns = props => {
                         variables: {
                           input: {
                             grpContact: groupContacts,
-                            MemberSubscrptnSync: (parseFloat(MemberSubscrptnSync) + parseFloat(amounts)).toFixed(0),
-                            grpBal: (parseFloat(grpBals) + parseFloat(amounts)).toFixed(0),
-                            ttlNonLonsRecChm: (parseFloat(amounts) + parseFloat(ttlNonLonsRecChmsssssss)).toFixed(0)
+                            MemberSubscrptnSync: (parseFloat(MemberSubscrptnSync) + amountInKES).toFixed(0),
+                            grpBal: (parseFloat(grpBals) + amountInKES).toFixed(0),
+                            ttlNonLonsRecChm: (amountInKES + parseFloat(ttlNonLonsRecChmsssssss)).toFixed(0)
                           }
                         }
                       });
@@ -169,7 +239,7 @@ const SMASendChmNonLns = props => {
                             AdminId: "BaruchHabaB'ShemAdonai2",
                             companyEarningBal: parseFloat(companyEarningBals) + TransferFee,
                             companyEarning: parseFloat(companyEarnings) + TransferFee,
-                            ttlNonLonssRecChm: (parseFloat(amounts) + parseFloat(ttlNonLonssRecChmss)).toFixed(2)
+                            ttlNonLonssRecChm: (amountInKES + parseFloat(ttlNonLonssRecChmss)).toFixed(2)
                           }
                         }
                       });
@@ -189,8 +259,8 @@ const SMASendChmNonLns = props => {
                         variables: {
                           input: {
                             ChamaNMember: MembaId,
-                            NonLoanAcBal: (parseFloat(NonLoanAcBals) + parseFloat(amounts)).toFixed(0),
-                            subscribedAmt: (parseFloat(subscribedAmt) + parseFloat(amounts)).toFixed(0)
+                            NonLoanAcBal: (parseFloat(NonLoanAcBals) + amountInKES).toFixed(0),
+                            subscribedAmt: (parseFloat(subscribedAmt) + amountInKES).toFixed(0)
                           }
                         }
                       });
@@ -198,8 +268,7 @@ const SMASendChmNonLns = props => {
                       Alert.alert("Check your internet connection");
                       return;
                     }
-                    const { nationality, ratesMap } = useExchange();
-                    Alert.alert(formatAmountSync(parseFloat(amounts), nationalityToCode(nationality), ratesMap) + " sent to " + grpNames + " Transaction fee " + formatAmountSync(parseFloat(UsrTransferFeeAmt), nationalityToCode(nationality), ratesMap));
+                    Alert.alert(formatAmountSync(amountInKES, userCurrencyKey, ratesMap) + " sent to " + grpNames + " Transaction fee " + formatAmountSync(Math.floor(UsrTransferFeeAmt), userCurrencyKey, ratesMap));
                     setIsLoading(false);
                   };
 
@@ -216,7 +285,7 @@ const SMASendChmNonLns = props => {
                             mmberNme: names,
                             GrpName: grpNames,
                             grpContact: groupContacts,
-                            contriAmount: parseFloat(amounts).toFixed(0),
+                            contriAmount: amountInKES.toFixed(0),
                             memberId: MembaId,
                             status: "AccountActive",
                             owner: ownr
@@ -259,9 +328,9 @@ const SMASendChmNonLns = props => {
                         variables: {
                           input: {
                             grpContact: groupContacts,
-                            MemberSubscrptnSync: (parseFloat(MemberSubscrptnSync) + parseFloat(amounts)).toFixed(0),
-                            grpBal: (parseFloat(grpBals) + parseFloat(amounts)).toFixed(0),
-                            ttlNonLonsRecChm: (parseFloat(amounts) + parseFloat(ttlNonLonsRecChmsssssss)).toFixed(0)
+                            MemberSubscrptnSync: (parseFloat(MemberSubscrptnSync) + amountInKES).toFixed(0),
+                            grpBal: (parseFloat(grpBals) + amountInKES).toFixed(0),
+                            ttlNonLonsRecChm: (amountInKES + parseFloat(ttlNonLonsRecChmsssssss)).toFixed(0)
                           }
                         }
                       });
@@ -283,7 +352,7 @@ const SMASendChmNonLns = props => {
                             AdminId: "BaruchHabaB'ShemAdonai2",
                             companyEarningBal: parseFloat(companyEarningBals) + UsrTransferFee2,
                             companyEarning: parseFloat(companyEarnings) + UsrTransferFee2,
-                            ttlNonLonssRecChm: (parseFloat(amounts) + parseFloat(ttlNonLonssRecChmss)).toFixed(2)
+                            ttlNonLonssRecChm: (amountInKES + parseFloat(ttlNonLonssRecChmss)).toFixed(2)
                           }
                         }
                       });
@@ -303,7 +372,7 @@ const SMASendChmNonLns = props => {
                         variables: {
                           input: {
                             ChamaNMember: MembaId,
-                            NonLoanAcBal: (parseFloat(NonLoanAcBals) + parseFloat(amounts)).toFixed(0)
+                            NonLoanAcBal: (parseFloat(NonLoanAcBals) + amountInKES).toFixed(0)
                           }
                         }
                       });
@@ -311,8 +380,7 @@ const SMASendChmNonLns = props => {
                       Alert.alert("Check your internet connection");
                       return;
                     }
-                    const { nationality, ratesMap } = useExchange();
-                    Alert.alert("Insufficient transaction fees? No worries! " + formatAmountSync(parseFloat(amounts), nationalityToCode(nationality), ratesMap) + " sent!");
+                    Alert.alert("Insufficient transaction fees? No worries! " + formatAmountSync(amountInKES, userCurrencyKey, ratesMap) + " sent!");
                     setIsLoading(false);
                   };
 
@@ -327,7 +395,7 @@ const SMASendChmNonLns = props => {
                     Alert.alert("Wrong password");
                   } else if (ownr !== SenderSub) {
                     Alert.alert("Please send from your own account");
-                  } else if (parseFloat(loanLimits) < parseFloat(amounts)) {
+                  } else if (parseFloat(loanLimits) < amountInKES) {
                     Alert.alert("Call " + CompPhoneContact + " to have your send Amount limit adjusted");
                   } else if (UsrTransferFeeAmt > UsrTransferFee2) {
                     await CrtChmMbrContri2();
@@ -422,8 +490,14 @@ const SMASendChmNonLns = props => {
         
 
           <View style={styles.sendAmtView}>
-            <TextInput keyboardType={"decimal-pad"} value={amounts} onChangeText={setAmount} style={styles.sendAmtInput} editable={true}></TextInput>
-              
+            <TextInput 
+              keyboardType="decimal-pad" 
+              value={amounts} 
+              onChangeText={handleMoneyInput(setAmount)} 
+              onBlur={() => formatMoneyOnBlur(amounts, setAmount)} 
+              style={styles.sendAmtInput} 
+              editable={true} 
+            />
             <Text style={styles.sendAmtText}>Amount Sent</Text>
           </View>
 

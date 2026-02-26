@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import Communications from 'react-native-communications';
 import { createSMLoansCovered, createNonLoans, updateCompany, updateSMAccount, updateBizna, createBizSls, updateBizSlsReq } from '../../../../../src/graphql/mutations';
 import { getBizSlsReq, getBizna, getCompany, getSMAccount, listCovCreditSellers, listCvrdGroupLoans, listSMLoansCovereds } from '../../../../../src/graphql/queries';
 import { useNavigation, useRoute } from '@react-navigation/native';
@@ -7,11 +6,15 @@ import { View, Text, TextInput, ScrollView, TouchableOpacity, Alert, ActivityInd
 import styles from './styles';
 import { getCurrentUser, fetchUserAttributes } from 'aws-amplify/auth';
 import { generateClient } from 'aws-amplify/api';
+import { useExchange } from '../../../../../src/contexts/ExchangeContext';
+import { formatAmountSync } from '../../../../../src/utils/exchange';
+import { nationalityToCode } from '../../../../../src/utils/nationalityToCode';
 const client = generateClient();
 const SMASendNonLns = props => {
   const [isLoading, setIsLoading] = useState(false);
   const route = useRoute();
   const navigation = useNavigation();
+  const { ratesMap } = useExchange();
   const SndChmMmbrMny = () => {
     navigation.navigate("AutomaticRepayAllTyps");
   };
@@ -229,8 +232,9 @@ const SMASendNonLns = props => {
             }
           }
         });
-        const { nationality, ratesMap } = useExchange();
-        Alert.alert("Amount: " + formatAmountSync(parseFloat(amount), nationalityToCode(nationality), ratesMap) + ". Transaction fee: " + formatAmountSync(parseFloat(UsrTransferFeeAmt), nationalityToCode(nationality), ratesMap));
+        const rawNationality = (attributes as any).nationality;
+        const userCode = nationalityToCode(rawNationality) || rawNationality || 'KE';
+        Alert.alert("Amount: " + formatAmountSync(parseFloat(amount), userCode, ratesMap) + ". Transaction fee: " + formatAmountSync(parseFloat(UsrTransferFeeAmt), userCode, ratesMap));
       }
       async function sendSMNonLn11() {
         await client.graphql({
@@ -290,7 +294,7 @@ const SMASendNonLns = props => {
             }
           }
         });
-        Alert.alert("Insufficient transaction fees? No worries! Ksh. " + parseFloat(amount).toFixed(0) + " sent!");
+        Alert.alert("Insufficient transaction fees? No worries! " + parseFloat(amount).toFixed(0) + " sent!");
       }
       async function sendSMNonLn9() {
         // Same cascade style preserved for Public receiver

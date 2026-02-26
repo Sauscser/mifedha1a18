@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import Communications from 'react-native-communications';
-import { createReqLoanChama, createReqLoanCredSl, updateCompany } from '../../../../src/graphql/mutations';
+import { createReqLoanChama, createReqLoanCredSl, updateCompany, createMessages, sendNotification } from '../../../../src/graphql/mutations';
 import { getAdvocate, getBizna, getCompany, getSMAccount } from '../../../../src/graphql/queries';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { View, Text, TextInput, ScrollView, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
@@ -120,7 +119,21 @@ const CreateBiz = props => {
                   }
                 }
                 Alert.alert("Loan Request Successful");
-                Communications.textWithoutEncoding(phonecontactzs, "MiFedha. " + name + ' has requested ' + ' you to loan goods/services worth Ksh. ' + itemPrys + '. Please go to your MiFedha' + ' app to view the loan details and thereafter' + ' grant me the request. Thank you.');
+                const loanReqMsg11 = "MiFedha. " + name + ' has requested ' + ' you to loan goods/services worth ' + itemPrys + '. Please go to your MiFedha' + ' app to view the loan details and thereafter' + ' grant me the request. Thank you.';
+                try {
+                  const msgRes = await client.graphql({
+                    query: createMessages,
+                    variables: { input: { senderEmail: phonecontactzs, messageBody: loanReqMsg11 }}
+                  });
+                  if (msgRes?.data?.createMessages) {
+                    await client.graphql({
+                      query: sendNotification,
+                      variables: { riderEmail: phonecontactzs, title: 'MiFedha: Credit Loan Request', body: loanReqMsg11 }
+                    });
+                  }
+                } catch (notifErr) {
+                  console.log('Notification error:', notifErr);
+                }
               };
               const gtAdv = async () => {
                 if (isLoading) {
@@ -179,7 +192,21 @@ const CreateBiz = props => {
                       }
                     }
                     Alert.alert("Loan Request Successful");
-                    Communications.textWithoutEncoding(phonecontact, 'MiFedha. Greetings! ' + 'We ' + name + ', the loanee and ' + namesz + ', the Loaning Business humbly' + ' request that you witness our loan contract on MiFedha app amounting to Ksh. ' + itemPrys + ' repayable with ' + lnPrsntg + '% interest by the end of ' + rpymntPrd + ' days. Default penalty is Ksh. ' + MmbaID + '. You can reach my loaner through ' + awsEmail + '. You can also reach me through ' + phonecontacts + '. Thank you.');
+                    const loanReqMsg12 = 'MiFedha. Greetings! ' + 'We ' + name + ', the loanee and ' + namesz + ', the Loaning Business humbly' + ' request that you witness our loan contract on MiFedha app amounting to ' + itemPrys + ' repayable with ' + lnPrsntg + '% interest by the end of ' + rpymntPrd + ' days. Default penalty is ' + MmbaID + '. You can reach my loaner through ' + awsEmail + '. You can also reach me through ' + phonecontacts + '. Thank you.';
+                    try {
+                      const msgRes = await client.graphql({
+                        query: createMessages,
+                        variables: { input: { senderEmail: phonecontact, messageBody: loanReqMsg12 }}
+                      });
+                      if (msgRes?.data?.createMessages) {
+                        await client.graphql({
+                          query: sendNotification,
+                          variables: { riderEmail: phonecontact, title: 'MiFedha: Witness Loan Contract', body: loanReqMsg12 }
+                        });
+                      }
+                    } catch (notifErr) {
+                      console.log('Notification error:', notifErr);
+                    }
                   };
                   CreateNewSMAc();
                 } catch (e) {

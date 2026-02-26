@@ -24,6 +24,17 @@ const BuyFlt = (props: buyAgntFlts) => {
     }
     setIsLoading(true);
     const userInfo = await getCurrentUser();
+    const amountKsh = Number(amt);
+    if (!Number.isFinite(amountKsh) || amountKsh <= 0) {
+      Alert.alert("Invalid amount", "Enter a valid float amount");
+      setIsLoading(false);
+      return;
+    }
+    if (!transId) {
+      Alert.alert("Missing transaction ID", "Please enter a transaction ID");
+      setIsLoading(false);
+      return;
+    }
     try {
       const agntBal: any = await client.graphql({
         query: getAgent,
@@ -73,8 +84,8 @@ const BuyFlt = (props: buyAgntFlts) => {
                     variables: {
                       input: {
                         agentphone: phoneContact,
-                        amount: amt,
-                        transactId: bankAdminId,
+                        amount: String(Math.round(amountKsh)),
+                        transactId: transId,
                         bankAdminID: bankAdminId,
                         status: "AccountActive",
                         owner: userInfo.userId
@@ -83,7 +94,7 @@ const BuyFlt = (props: buyAgntFlts) => {
                   });
                 } catch (error) {
                   if (error) {
-                    Alert.alert("Purchase unsuccessful; Retry");
+                    Alert.alert("Purchase failed", "Retry or check your connection");
                     return;
                   }
                 }
@@ -109,8 +120,8 @@ const BuyFlt = (props: buyAgntFlts) => {
                     variables: {
                       input: {
                         phonecontact: phoneContact,
-                        floatBal: parseFloat(amt) + parseFloat(fltBal),
-                        TtlFltIn: parseFloat(amt) + parseFloat(ttlFltIn)
+                        floatBal: amountKsh + parseFloat(fltBal),
+                        TtlFltIn: amountKsh + parseFloat(ttlFltIn)
                       }
                     }
                   });
@@ -130,7 +141,7 @@ const BuyFlt = (props: buyAgntFlts) => {
                     variables: {
                       input: {
                         AdminId: "BaruchHabaB'ShemAdonai2",
-                        agentFloatIn: parseFloat(amt) + parseFloat(CompFtBal)
+                        agentFloatIn: amountKsh + parseFloat(CompFtBal)
                       }
                     }
                   });
@@ -141,7 +152,7 @@ const BuyFlt = (props: buyAgntFlts) => {
                   }
                   ;
                 }
-                Alert.alert(names + " has loaded Ksh. " + amt);
+                Alert.alert("Float purchase successful", names + " has loaded Ksh. " + amountKsh.toFixed(2));
                 setIsLoading(false);
               };
             } catch (error) {

@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import Communications from 'react-native-communications';
-import { updateCompany } from '../../../../src/graphql/mutations';
+import { updateCompany, createMessages, sendNotification } from '../../../../src/graphql/mutations';
 import { getAdvocate, getBizna, getCompany, getSMAccount } from '../../../../src/graphql/queries';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { View, Text, TextInput, ScrollView, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
@@ -9,7 +8,7 @@ import { createReqLoan } from '../../../../src/graphql/mutations';
 import { getCurrentUser, fetchUserAttributes } from "aws-amplify/auth";
 import { generateClient } from "aws-amplify/api";
 import { useExchange } from '../../../../src/contexts/ExchangeContext';
-import { formatAmountSync } from '../../../../src/utils/exchange';
+import { convertForeignToKsh, formatAmountSync } from '../../../../src/utils/exchange';
 import { nationalityToCode } from '../../../../src/utils/nationalityToCode';
 const client = generateClient();
 const CreateBiz = props => {
@@ -38,6 +37,35 @@ const CreateBiz = props => {
     setIsLoading(true);
     const userInfo = await getCurrentUser();
     const attributes = await fetchUserAttributes();
+    const amountForeign = parseFloat(itemPrys);
+    const installmentForeign = parseFloat(InstAmt);
+    const defaultPenaltyForeign = parseFloat(MmbaID);
+    if (!Number.isFinite(amountForeign) || amountForeign <= 0) {
+      Alert.alert("Enter a valid loan amount");
+      setIsLoading(false);
+      return;
+    }
+    if (!Number.isFinite(installmentForeign) || installmentForeign <= 0) {
+      Alert.alert("Enter a valid installment amount");
+      setIsLoading(false);
+      return;
+    }
+    if (!Number.isFinite(defaultPenaltyForeign) || defaultPenaltyForeign < 0) {
+      Alert.alert("Enter a valid default penalty");
+      setIsLoading(false);
+      return;
+    }
+    const currencyKey = nationalityToCode(nationality);
+    const [amountKes, installmentKes, defaultPenaltyKes] = await Promise.all([
+      convertForeignToKsh(amountForeign, currencyKey),
+      convertForeignToKsh(installmentForeign, currencyKey),
+      convertForeignToKsh(defaultPenaltyForeign, currencyKey)
+    ]);
+    if (!Number.isFinite(amountKes) || amountKes <= 0 || !Number.isFinite(installmentKes) || installmentKes <= 0 || !Number.isFinite(defaultPenaltyKes) || defaultPenaltyKes < 0) {
+      Alert.alert("Unable to convert amount. Please try again.");
+      setIsLoading(false);
+      return;
+    }
     try {
       const compDtls: any = await client.graphql({
         query: getSMAccount,
@@ -49,7 +77,7 @@ const CreateBiz = props => {
       const phonecontacts = compDtls.data.getSMAccount.phonecontact;
       const name = compDtls.data.getSMAccount.name;
       const ownerz = compDtls.data.getSMAccount.owner;
-      const Int = (parseFloat(lnPrsntg) - parseFloat(itemPrys)) * 100 / (parseFloat(lnPrsntg) * parseFloat(rpymntPrd));
+      const Int = (parseFloat(lnPrsntg) - amountKes) * 100 / (parseFloat(lnPrsntg) * parseFloat(rpymntPrd));
       const gtComp = async () => {
         if (isLoading) {
           return;
@@ -65,7 +93,7 @@ const CreateBiz = props => {
           });
           const maxDefaultPen = compDtls.data.getCompany.maxDfltPen;
           const RecomDfltPnltyRate = parseFloat(lnPrsntg) * maxDefaultPen / 100;
-          const DfltPnltyRate = parseFloat(MmbaID) * maxDefaultPen / 100;
+          const DfltPnltyRate = defaultPenaltyKes * maxDefaultPen / 100;
           const gtLnerDtls = async () => {
             if (isLoading) {
               return;
@@ -81,7 +109,7 @@ const CreateBiz = props => {
               });
               const phonecontactz = compDtls.data.getSMAccount.phonecontact;
               const namez = compDtls.data.getSMAccount.name;
-              const amtrpayable = parseFloat(itemPrys) * Math.pow(1 + parseFloat(lnPrsntg) / 36500, 0);
+              const amtrpayable = amountKes * Math.pow(1 + parseFloat(lnPrsntg) / 36500, 0);
               const ExpInstmnt = amtrpayable / parseFloat(rpymntPrd);
               const CreateNewSMAc2 = async () => {
                 if (isLoading) {
@@ -103,15 +131,15 @@ const CreateBiz = props => {
                         dfltDeadLn: 0,
                         loanerName: namez,
                         loanerPhone: phonecontactz,
-                        amount: parseFloat(itemPrys).toFixed(2),
+                        amount: amountKes.toFixed(2),
                         repaymentAmt: parseFloat(lnPrsntg).toFixed(2),
                         repaymentPeriod: rpymntPrd,
                         status: "AwaitingResponse",
                         statusNumber: 0,
                         owner: userInfo.userId,
                         description: ChmRegNo,
-                        defaultPenalty: MmbaID,
-                        installmentAmount: InstAmt,
+                        defaultPenalty: defaultPenaltyKes.toFixed(2),
+                        installmentAmount: installmentKes.toFixed(2),
                         paymentFrequency: InstFreq,
                         confirm1: "NO",
                         confirm2: "NO"
@@ -126,7 +154,21 @@ const CreateBiz = props => {
                   }
                 }
                 Alert.alert("Loan Request Successful");
-                Communications.textWithoutEncoding(phonecontactz, 'MiFedha. Hi ' + namez + '. It is ' + name + '. I request a soft loan of ' + formatAmountSync(parseFloat(itemPrys), nationalityToCode(nationality), ratesMap) + ' from you. ' + 'Please go to MiFedha app to grant me the request' + '. Thank you.');
+                const loanReqMessage1 = 'MiFedha. Hi ' + namez + '. It is ' + name + '. I request a soft loan of ' + formatAmountSync(amountKes, currencyKey, ratesMap) + ' from you. ' + 'Please go to MiFedha app to grant me the request' + '. Thank you.';
+                try {
+                  const msgRes = await client.graphql({
+                    query: createMessages,
+                    variables: { input: { senderEmail: phonecontactz, messageBody: loanReqMessage1 }}
+                  });
+                  if (msgRes?.data?.createMessages) {
+                    await client.graphql({
+                      query: sendNotification,
+                      variables: { riderEmail: phonecontactz, title: 'MiFedha: Loan Request', body: loanReqMessage1 }
+                    });
+                  }
+                } catch (notifErr) {
+                  console.log('Notification error:', notifErr);
+                }
               };
               const gtAdvDtls = async () => {
                 if (isLoading) {
@@ -166,7 +208,7 @@ const CreateBiz = props => {
                             loanerName: namez,
                             dfltDeadLn: 0,
                             loanerPhone: phonecontactz,
-                            amount: parseFloat(itemPrys).toFixed(2),
+                            amount: amountKes.toFixed(2),
                             repaymentAmt: parseFloat(lnPrsntg).toFixed(2),
                             repaymentPeriod: rpymntPrd,
                             status: "AwaitingResponse",
@@ -174,8 +216,8 @@ const CreateBiz = props => {
                             statusNumber: 0,
                             owner: userInfo.userId,
                             description: ChmRegNo,
-                            defaultPenalty: MmbaID,
-                            installmentAmount: InstAmt,
+                            defaultPenalty: defaultPenaltyKes.toFixed(2),
+                            installmentAmount: installmentKes.toFixed(2),
                             paymentFrequency: InstFreq
                           }
                         }
@@ -188,7 +230,21 @@ const CreateBiz = props => {
                       }
                     }
                     Alert.alert("Loan Request Successful");
-                    Communications.textWithoutEncoding(phonecontact, 'MiFedha. Greetings! ' + 'We ' + name + ', the loanee and ' + namez + ', the loaner humbly' + ' request that you witness our loan contract on MiFedha app amounting to ' + formatAmountSync(parseFloat(itemPrys), nationalityToCode(nationality), ratesMap) + ' repayable with ' + lnPrsntg + '% interest by the end of ' + rpymntPrd + ' days. Default penalty is ' + formatAmountSync(parseFloat(MmbaID), nationalityToCode(nationality), ratesMap) + '. You can reach my loaner through ' + phonecontactz + '. You can also reach me through ' + phonecontacts + '. Thank you.');
+                    const loanReqMessage2 = 'MiFedha. Greetings! ' + 'We ' + name + ', the loanee and ' + namez + ', the loaner humbly' + ' request that you witness our loan contract on MiFedha app amounting to ' + formatAmountSync(amountKes, currencyKey, ratesMap) + ' repayable with ' + lnPrsntg + '% interest by the end of ' + rpymntPrd + ' days. Default penalty is ' + formatAmountSync(defaultPenaltyKes, currencyKey, ratesMap) + '. You can reach my loaner through ' + phonecontactz + '. You can also reach me through ' + phonecontacts + '. Thank you.';
+                    try {
+                      const msgRes = await client.graphql({
+                        query: createMessages,
+                        variables: { input: { senderEmail: phonecontact, messageBody: loanReqMessage2 }}
+                      });
+                      if (msgRes?.data?.createMessages) {
+                        await client.graphql({
+                          query: sendNotification,
+                          variables: { riderEmail: phonecontact, title: 'MiFedha: Witness Loan Contract', body: loanReqMessage2 }
+                        });
+                      }
+                    } catch (notifErr) {
+                      console.log('Notification error:', notifErr);
+                    }
                   };
                   CreateNewSMAc();
                 } catch (e) {
@@ -206,7 +262,7 @@ const CreateBiz = props => {
                 Alert.alert("Enter repayment Period greater than 1 day");
               } else if (awsEmail === attributes.email) {
                 Alert.alert("You cannot buy from yourself");
-              } else if (ExpInstmnt > parseFloat(InstAmt)) {
+              } else if (ExpInstmnt > installmentKes) {
                 Alert.alert("Enter Installment greater than " + (ExpInstmnt + 1).toFixed(0));
               } else if (Sign2Phn != "") {
                 await gtAdvDtls();

@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import Communications from 'react-native-communications';
 import { createSMLoansCovered, createNonLoans, updateCompany, updateSMAccount, updateBizna, createBenefitContributions2 } from '../../../../../src/graphql/mutations';
 import { getBizna, getCompany, getSMAccount, listCovCreditSellers, listCvrdGroupLoans, listSMLoansCovereds } from '../../../../../src/graphql/queries';
 import { useNavigation } from '@react-navigation/native';

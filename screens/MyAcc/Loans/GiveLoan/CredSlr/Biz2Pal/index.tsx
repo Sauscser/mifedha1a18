@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import Communications from 'react-native-communications';
-import { createCovCreditSeller, createFloatAdd, createSMAccount, createSMLoansCovered, updateAdvocate, updateAgent, updateBizna, updateCompany, updateCovCreditSeller, updateReqLoanCredSl, updateSAgent, updateSMAccount } from '../../../../../../src/graphql/mutations';
+import { createCovCreditSeller, createFloatAdd, createSMAccount, createSMLoansCovered, updateAdvocate, updateAgent, updateBizna, updateCompany, updateCovCreditSeller, updateReqLoanCredSl, updateSAgent, updateSMAccount, createMessages, sendNotification } from '../../../../../../src/graphql/mutations';
 import { getAgent, getCompany, getSMAccount, getSAgent, getAdvocate, getPersonel, getBizna, getReqLoanCredSl, listSMLoansCovereds, listCovCreditSellers, listCvrdGroupLoans } from '../../../../../../src/graphql/queries';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { View, Text, ImageBackground, Pressable, TextInput, ScrollView, KeyboardAvoidingView, Platform, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
@@ -9,7 +8,7 @@ import { parse } from 'expo-linking';
 import { getCurrentUser, fetchUserAttributes } from "aws-amplify/auth";
 import { generateClient } from "aws-amplify/api";
 import { useExchange } from '../../../../../../src/contexts/ExchangeContext';
-import { formatAmountSync } from '../../../../../../src/utils/exchange';
+import { convertForeignToKsh, formatAmountSync } from '../../../../../../src/utils/exchange';
 import { nationalityToCode } from '../../../../../../src/utils/nationalityToCode';
 const client = generateClient();
 const CovCredSls = props => {
@@ -53,6 +52,8 @@ const CovCredSls = props => {
       const statusNumber = PersnlDtl.data.getReqLoanCredSl.statusNumber;
       const itemName = PersnlDtl.data.getReqLoanCredSl.itemName;
       const amount = PersnlDtl.data.getReqLoanCredSl.amount;
+      const convertedAmount = await convertForeignToKsh(parseFloat(amount), 'KES');
+      const normalizedAmount = Number.isFinite(convertedAmount) ? convertedAmount : parseFloat(amount);
       const AmtExp = PersnlDtl.data.getReqLoanCredSl.repaymentAmt;
       const RepaymtPeriod = PersnlDtl.data.getReqLoanCredSl.repaymentPeriod;
       const status = PersnlDtl.data.getReqLoanCredSl.status;
@@ -157,7 +158,7 @@ const CovCredSls = props => {
                       const AdvCompanyComs = CompDtls.data.getCompany.AdvCompanyCom;
                       const AdvCovFee = parseFloat(CoverageFees) * parseFloat(AdvComs);
                       const CompCovFee = parseFloat(CoverageFees) * parseFloat(AdvCompanyComs);
-                      const AdvCovAmt = AdvCovFee * parseFloat(amount);
+                      const AdvCovAmt = AdvCovFee * normalizedAmount;
                       const CompCovAmt = CompCovFee * parseFloat(amount);
                       const ttlCovFeeAmount = parseFloat(CoverageFees) * parseFloat(amount);
                       const CompPhoneContact = CompDtls.data.getCompany.phoneContact;
@@ -403,7 +404,21 @@ const CovCredSls = props => {
                                       }
                                     }
                                     Alert.alert("Success. TransactionFee: " + formatAmountSync((parseFloat(userLoanTransferFees) * parseFloat(amount)), nationalityToCode(nationality), ratesMap));
-                                    Communications.textWithoutEncoding(phonecontactz, 'MiFedha. Hi ' + namess + ', you have been loaned goods worth ' + formatAmountSync(parseFloat(amount), nationalityToCode(nationality), ratesMap) + ' by ' + busNames + ' Business. For clarification call the business owner: ' + attributes.phone_number + '. The following is a break down of your repayable loan: ' + ' Cash price of the goods is ' + formatAmountSync(parseFloat(amount), nationalityToCode(nationality), ratesMap) + '. Amount you had committed to repay is ' + formatAmountSync(amtrpayable2, nationalityToCode(nationality), ratesMap) + '. Transaction fee is ' + formatAmountSync(lnTrnsfrFee, nationalityToCode(nationality), ratesMap) + '. Total Repayable is ' + formatAmountSync(TotalAmtExp2, nationalityToCode(nationality), ratesMap) + '. Thank you.');
+                                    const credLoanMsg7 = 'MiFedha. Hi ' + namess + ', you have been loaned goods worth ' + formatAmountSync(parseFloat(amount), nationalityToCode(nationality), ratesMap) + ' by ' + busNames + ' Business. For clarification call the business owner: ' + attributes.phone_number + '. The following is a break down of your repayable loan: ' + ' Cash price of the goods is ' + formatAmountSync(parseFloat(amount), nationalityToCode(nationality), ratesMap) + '. Amount you had committed to repay is ' + formatAmountSync(amtrpayable2, nationalityToCode(nationality), ratesMap) + '. Transaction fee is ' + formatAmountSync(lnTrnsfrFee, nationalityToCode(nationality), ratesMap) + '. Total Repayable is ' + formatAmountSync(TotalAmtExp2, nationalityToCode(nationality), ratesMap) + '. Thank you.';
+                                    try {
+                                      const msgRes = await client.graphql({
+                                        query: createMessages,
+                                        variables: { input: { senderEmail: phonecontactz, messageBody: credLoanMsg7 }}
+                                      });
+                                      if (msgRes?.data?.createMessages) {
+                                        await client.graphql({
+                                          query: sendNotification,
+                                          variables: { riderEmail: phonecontactz, title: 'MiFedha: Credit Loan Disbursed', body: credLoanMsg7 }
+                                        });
+                                      }
+                                    } catch (notifErr) {
+                                      console.log('Notification error:', notifErr);
+                                    }
                                     setIsLoading(false);
                                   };
                                   const fetchAdv = async () => {
@@ -612,7 +627,21 @@ const CovCredSls = props => {
                                           }
                                         }
                                         Alert.alert("Success. AdvocateFee:" + (parseFloat(CoverageFees) * parseFloat(amount)).toFixed(2) + ", TransactionFee:" + (parseFloat(userLoanTransferFees) * parseFloat(amount)).toFixed(2));
-                                        Communications.textWithoutEncoding(phonecontactz, 'MiFedha. Hi ' + namess + ', you have been loaned goods worth Ksh. ' + parseFloat(amount).toFixed(2) + ' by ' + busNames + ' Business. For clarification call the business Owner: ' + BusinessRegNos + '. The following is a break down of your repayable loan: ' + ' Cash price of the goods is Ksh. ' + parseFloat(amount).toFixed + '. Amount you had committed to repay is Ksh. ' + amtrpayable.toFixed(2) + '. Transaction fee is Ksh. ' + lnTrnsfrFee.toFixed(2) + '. Advocacy Fee is Ksh. ' + ttlCovFeeAmount.toFixed(2) + '. Total Repayable is Ksh ' + TotalAmtExp.toFixed(2) + '. Thank you.');
+                                        const credLoanMsg8 = 'MiFedha. Hi ' + namess + ', you have been loaned goods worth ' + formatAmountSync(Number(amount), nationalityToCode(nationality), ratesMap) + ' by ' + busNames + ' Business. For clarification call the business Owner: ' + BusinessRegNos + '. The following is a break down of your repayable loan: ' + ' Cash price of the goods is ' + formatAmountSync(Number(amount), nationalityToCode(nationality), ratesMap) + '. Amount you had committed to repay is ' + formatAmountSync(Number(amtrpayable), nationalityToCode(nationality), ratesMap) + '. Transaction fee is ' + formatAmountSync(Number(lnTrnsfrFee), nationalityToCode(nationality), ratesMap) + '. Advocacy Fee is ' + formatAmountSync(Number(ttlCovFeeAmount), nationalityToCode(nationality), ratesMap) + '. Total Repayable is ' + formatAmountSync(Number(TotalAmtExp), nationalityToCode(nationality), ratesMap) + '. Thank you.';
+                                        try {
+                                          const msgRes = await client.graphql({
+                                            query: createMessages,
+                                            variables: { input: { senderEmail: phonecontactz, messageBody: credLoanMsg8 }}
+                                          });
+                                          if (msgRes?.data?.createMessages) {
+                                            await client.graphql({
+                                              query: sendNotification,
+                                              variables: { riderEmail: phonecontactz, title: 'MiFedha: Credit Loan Disbursed', body: credLoanMsg8 }
+                                            });
+                                          }
+                                        } catch (notifErr) {
+                                          console.log('Notification error:', notifErr);
+                                        }
                                         setIsLoading(false);
                                       };
                                     } catch (e) {
@@ -780,7 +809,21 @@ const CovCredSls = props => {
                                       }
                                     }
                                     Alert.alert("Success. TransactionFee:" + UsrTransferFee2.toFixed(2));
-                                    Communications.textWithoutEncoding(phonecontactz, 'MiFedha. Hi ' + namess + ', you have been loaned goods worth Ksh. ' + parseFloat(amount).toFixed(2) + ' by ' + busNames + ' Business. For clarification call the business Owner: ' + BusinessRegNos + '. The following is a break down of your repayable loan: ' + ' Cash price of the goods is Ksh. ' + parseFloat(amount).toFixed(2) + '. Amount you had committed to repay is Ksh. ' + amtrpayable2.toFixed(2) + '. Transaction fee is Ksh. ' + lnTrnsfrFee.toFixed(2) + '. Total Repayable is Ksh ' + TotalAmtExp3.toFixed(2) + '. Thank you.');
+                                    const credLoanMsg9 = 'MiFedha. Hi ' + namess + ', you have been loaned goods worth ' + formatAmountSync(Number(amount), nationalityToCode(nationality), ratesMap) + ' by ' + busNames + ' Business. For clarification call the business Owner: ' + BusinessRegNos + '. The following is a break down of your repayable loan: ' + ' Cash price of the goods is ' + formatAmountSync(Number(amount), nationalityToCode(nationality), ratesMap) + '. Amount you had committed to repay is ' + formatAmountSync(Number(amtrpayable2), nationalityToCode(nationality), ratesMap) + '. Transaction fee is ' + formatAmountSync(Number(lnTrnsfrFee), nationalityToCode(nationality), ratesMap) + '. Total Repayable is ' + formatAmountSync(Number(TotalAmtExp3), nationalityToCode(nationality), ratesMap) + '. Thank you.';
+                                    try {
+                                      const msgRes = await client.graphql({
+                                        query: createMessages,
+                                        variables: { input: { senderEmail: phonecontactz, messageBody: credLoanMsg9 }}
+                                      });
+                                      if (msgRes?.data?.createMessages) {
+                                        await client.graphql({
+                                          query: sendNotification,
+                                          variables: { riderEmail: phonecontactz, title: 'MiFedha: Credit Loan Disbursed', body: credLoanMsg9 }
+                                        });
+                                      }
+                                    } catch (notifErr) {
+                                      console.log('Notification error:', notifErr);
+                                    }
                                     setIsLoading(false);
                                   };
                                   if (parseFloat(usrNoBL) > parseFloat(maxBLss)) {

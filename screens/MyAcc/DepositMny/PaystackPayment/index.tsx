@@ -3,6 +3,9 @@ import React, { useEffect, useState } from 'react';
 import { View, ActivityIndicator, Alert } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { useNavigation, useRoute } from '@react-navigation/native';
+import { useExchange } from '../../../../src/contexts/ExchangeContext';
+import { convertForeignToKsh } from '../../../../src/utils/exchange';
+import { nationalityToCode } from '../../../../src/utils/nationalityToCode';
 import { getSMAccount } from '../../../../src/graphql/queries';
 import { getCurrentUser, fetchUserAttributes } from "aws-amplify/auth";
 import { generateClient } from "aws-amplify/api";
@@ -10,6 +13,7 @@ const client = generateClient();
 const PaystackPayment = () => {
   const navigation = useNavigation();
   const route = useRoute();
+  const { nationality, ratesMap } = useExchange();
   const [checkoutUrl, setCheckoutUrl] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const amounts = route.params.amount;
@@ -27,6 +31,13 @@ const PaystackPayment = () => {
         navigation.goBack();
         return;
       }
+      const currencyKey = nationalityToCode(nationality);
+      const amountKes = await convertForeignToKsh(amountz, currencyKey);
+      if (!Number.isFinite(amountKes) || amountKes <= 0) {
+        Alert.alert('Unable to convert amount. Please try again.');
+        navigation.goBack();
+        return;
+      }
       const accountData = await client.graphql({
         query: getSMAccount,
         variables: {
@@ -39,12 +50,11 @@ const PaystackPayment = () => {
         navigation.goBack();
         return;
       }
-      if (amountz > parseFloat(account.depositLimit)) {
+      if (amountKes > parseFloat(account.depositLimit)) {
         Alert.alert('Limit exceeded; contact customer care.');
         navigation.goBack();
         return;
       }
-      const { nationality, ratesMap } = useExchange();
       const response = await fetch('https://api.paystack.co/transaction/initialize', {
         method: 'POST',
         headers: {

@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import Communications from 'react-native-communications';
 import { createSMLoansCovered, createNonLoans, updateCompany, updateSMAccount, updateBizna } from '../../../../../src/graphql/mutations';
 import { getBizna, getCompany, getSMAccount, listCovCreditSellers, listCvrdGroupLoans, listSMLoansCovereds } from '../../../../../src/graphql/queries';
 import { useNavigation } from '@react-navigation/native';
@@ -7,6 +6,8 @@ import { View, Text, TextInput, ScrollView, TouchableOpacity, Alert, ActivityInd
 import styles from './styles';
 import { getCurrentUser, fetchUserAttributes } from 'aws-amplify/auth';
 import { generateClient } from 'aws-amplify/api';
+import { convertForeignToKsh } from '../../../../../src/utils/exchange';
+import { nationalityToCode } from '../../../../../src/utils/nationalityToCode';
 const client = generateClient();
 const SMASendNonLns = () => {
   const [SenderNatId, setSenderNatId] = useState('');
@@ -23,6 +24,18 @@ const SMASendNonLns = () => {
     try {
       const userInfo = await getCurrentUser();
       const attributes = await fetchUserAttributes();
+      const amountInput = parseFloat(amounts);
+      if (!Number.isFinite(amountInput) || amountInput <= 0) {
+        Alert.alert('Enter a valid amount');
+        return;
+      }
+      const rawNationality = (attributes as any).nationality;
+      const senderCode = nationalityToCode(rawNationality) || rawNationality || 'KE';
+      const amountKes = await convertForeignToKsh(amountInput, senderCode);
+      if (!Number.isFinite(amountKes) || amountKes <= 0) {
+        Alert.alert('Unable to convert amount. Please try again.');
+        return;
+      }
 
       // Loan checks
       const [loan1, loan2, loan3] = await Promise.all([client.graphql({
@@ -91,7 +104,7 @@ const SMASendNonLns = () => {
       if (pw !== SnderPW) return Alert.alert('Wrong password');
       if (acStatus !== 'AccountActive') return Alert.alert('Sender account is inactive');
       if (userInfo.userId !== owner) return Alert.alert('Please send from your own account');
-      if (parseFloat(loanLimit) < parseFloat(amounts)) return Alert.alert('Send limit exceeded');
+      if (parseFloat(loanLimit) < amountKes) return Alert.alert('Send limit exceeded');
 
       // Company
       const compRes = await client.graphql({
@@ -109,8 +122,8 @@ const SMASendNonLns = () => {
         ttlNonLonssRecSM,
         ttlNonLonssSentSM
       } = company;
-      const fee = parseFloat(userTransferFee || 0) * parseFloat(amounts);
-      const totalDebit = parseFloat(amounts) + fee;
+      const fee = parseFloat(userTransferFee || 0) * amountKes;
+      const totalDebit = amountKes + fee;
       if (parseFloat(balance) < totalDebit) return Alert.alert('Insufficient balance');
 
       // Recipient
@@ -131,7 +144,7 @@ const SMASendNonLns = () => {
           input: {
             recPhn: RecNatId,
             senderPhn: attributes.email,
-            amount: parseFloat(amounts).toFixed(0),
+            amount: amountKes.toFixed(0),
             description: Desc,
             RecName: recipientName,
             SenderName: name,
@@ -145,7 +158,7 @@ const SMASendNonLns = () => {
         variables: {
           input: {
             awsemail: attributes.email,
-            ttlNonLonsSentSM: (parseFloat(sender.ttlNonLonsSentSM) + parseFloat(amounts)).toFixed(0),
+            ttlNonLonsSentSM: (parseFloat(sender.ttlNonLonsSentSM) + amountKes).toFixed(0),
             balance: (parseFloat(balance) - totalDebit).toFixed(0)
           }
         }
@@ -154,8 +167,8 @@ const SMASendNonLns = () => {
         variables: {
           input: {
             BusKntct: RecNatId,
-            netEarnings: (parseFloat(rec.netEarnings) + parseFloat(amounts)).toFixed(0),
-            earningsBal: (parseFloat(rec.netEarnings) + parseFloat(amounts)).toFixed(0)
+            netEarnings: (parseFloat(rec.netEarnings) + amountKes).toFixed(0),
+            earningsBal: (parseFloat(rec.netEarnings) + amountKes).toFixed(0)
           }
         }
       }), client.graphql({
@@ -165,12 +178,12 @@ const SMASendNonLns = () => {
             AdminId: "BaruchHabaB'ShemAdonai2",
             companyEarningBal: fee + parseFloat(companyEarningBal),
             companyEarning: fee + parseFloat(companyEarning),
-            ttlNonLonssRecSM: parseFloat(amounts) + parseFloat(ttlNonLonssRecSM),
-            ttlNonLonssSentSM: parseFloat(amounts) + parseFloat(ttlNonLonssSentSM)
+            ttlNonLonssRecSM: amountKes + parseFloat(ttlNonLonssRecSM),
+            ttlNonLonssSentSM: amountKes + parseFloat(ttlNonLonssSentSM)
           }
         }
       })]);
-      Alert.alert(`Successful! Transaction fee: Ksh. ${fee.toFixed(0)}`);
+      Alert.alert(`Successful! Transaction fee: ${fee.toFixed(0)}`);
     } catch (e) {
       console.error(e);
       Alert.alert('Transaction failed, please retry or update your app');

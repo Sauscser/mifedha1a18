@@ -1,0 +1,953 @@
+{
+  "found": {
+    "BiznaReqstPage2": {
+      "alerts": [],
+      "labels": [
+        "Request Loans"
+      ],
+      "buttons": [
+        "Pal2Pal",
+        "Request",
+        "View",
+        "Pal2Company"
+      ]
+    },
+    "DissolveBiz": {
+      "alerts": [
+        "Dissolution unsuccessful; Retry",
+        "Wrong Admin password",
+        "You do not own this business",
+        "Business account has funds; please share it",
+        "Enter details correctly"
+      ],
+      "labels": [
+        "+2547xxxxxxxx",
+        "Fill Details Below",
+        "Business Phone",
+        "Business PassWord",
+        "Click to dissolve Business"
+      ],
+      "buttons": []
+    },
+    "ElimCredCvLnee": {
+      "alerts": [
+        "Please Main Account",
+        "Please first sign up"
+      ],
+      "labels": [],
+      "buttons": []
+    },
+    "ElimCredCvLnr": {
+      "alerts": [
+        "Please create Main Account",
+        "Please first sign up"
+      ],
+      "labels": [],
+      "buttons": []
+    },
+    "giveBizna": {
+      "alerts": [
+        "Error! Update app or call customer care",
+        "Wrong Business Password",
+        "This is not your Business!",
+        "Check your Details"
+      ],
+      "labels": [
+        "+2547xxxxxxxx",
+        "Fill Business Details Below",
+        "Business Phone",
+        "New Owner Email",
+        "Business Pass Word",
+        "Click to Hand Over"
+      ],
+      "buttons": []
+    },
+    "PersonelVw2GrntLR/Biz2Biz": {
+      "alerts": [
+        "Wrong User credentials",
+        "You do not work here",
+        "This is not your Account",
+        "Please first create main account",
+        "Retry or update app or call customer care"
+      ],
+      "labels": [
+        "+2547xxxxxxxx",
+        "Fill Details Below",
+        "Business Phone",
+        "Sales Officer User PW"
+      ],
+      "buttons": [
+        "Click to View"
+      ]
+    },
+    "PersonelVw2GrntLR/Biz2Pal": {
+      "alerts": [
+        "Wrong User credentials",
+        "You do not work here",
+        "This is not your Account",
+        "Please first create main account",
+        "Retry or update app or call customer care"
+      ],
+      "labels": [
+        "+2547xxxxxxxx",
+        "Fill Details Below",
+        "Business Phone",
+        "Sales Officer User PW"
+      ],
+      "buttons": [
+        "Click to View"
+      ]
+    },
+    "RmvPersonnel": {
+      "alerts": [
+        "Removal unsuccessful; Retry",
+        "Worker Removed",
+        "Wrong Administrator password",
+        "Not authorised to deregister worker",
+        "Unsuccessful, retry"
+      ],
+      "labels": [
+        "+2547xxxxxxxx",
+        "Fill Details Below",
+        "Business Phone",
+        "Personnel Work ID",
+        "Business AC PW",
+        "Click to DeRegister"
+      ],
+      "buttons": []
+    },
+    "SgnIn2TransferBiz": {
+      "alerts": [
+        "You dont own this Business",
+        "Wrong Admin password",
+        "Business does not exist; otherwise check internet connection"
+      ],
+      "labels": [
+        "+2547xxxxxxxx",
+        "Fill Details Below",
+        "Business Phone",
+        "Business PassWord",
+        "Click to View"
+      ],
+      "buttons": []
+    },
+    "SgnIn2VwBizna": {
+      "alerts": [
+        "You dont own this Business",
+        "Wrong Business password",
+        "Business does not exist; otherwise check internet connection"
+      ],
+      "labels": [
+        "+2547xxxxxxxx",
+        "Fill Details Below",
+        "Business Phone",
+        "Business PassWord",
+        "Click to View"
+      ],
+      "buttons": []
+    },
+    "SgnIn2VwCashSales": {
+      "alerts": [
+        "Wrong User credentials",
+        "You do not work here",
+        "This is not your Account",
+        "Retry or update app or call customer care",
+        "Please first create main account",
+        "Error: Retry"
+      ],
+      "labels": [
+        "+2547xxxxxxxx",
+        "Fill Details Below",
+        "Business Phone",
+        "Sales Officer User PW",
+        "Click to View"
+      ],
+      "buttons": []
+    },
+    "SgnIn2VwCovCrdSlsLnees": {
+      "alerts": [
+        "Wrong User credentials",
+        "You do not work here",
+        "This is not your Account",
+        "Retry or update app or call customer care",
+        "Please first create main account"
+      ],
+      "labels": [
+        "+2547xxxxxxxx",
+        "Fill Details Below",
+        "Business Phone",
+        "Sales Officer User PW",
+        "Click to View"
+      ],
+      "buttons": []
+    },
+    "SgnIn2VwRevenueShare": {
+      "alerts": [
+        "You dont own this Business",
+        "Wrong Admin password",
+        "Business does not exist; otherwise check internet connection"
+      ],
+      "labels": [
+        "+2547xxxxxxxx",
+        "Fill Details Below",
+        "Business Phone",
+        "Business PassWord",
+        "Click to View"
+      ],
+      "buttons": []
+    },
+    "SignIn2GrntCrdSls/Biz2Biz": {
+      "alerts": [
+        "Wrong User credentials",
+        "You do not work here",
+        "This is not your Account",
+        "Retry or update app or call customer care",
+        "Please first create main account"
+      ],
+      "labels": [
+        "+2547xxxxxxxx",
+        "Fill Details Below",
+        "Business Phone",
+        "Sales Officer User PW",
+        "Click to View"
+      ],
+      "buttons": []
+    },
+    "SignIn2GrntCrdSls/Biz2Pal": {
+      "alerts": [
+        "Wrong User credentials",
+        "You do not work here",
+        "This is not your Account",
+        "Retry or update app or call customer care",
+        "Please first create main account"
+      ],
+      "labels": [
+        "+2547xxxxxxxx",
+        "Fill Details Below",
+        "Business Phone",
+        "Sales Officer User PW",
+        "Click to View"
+      ],
+      "buttons": []
+    },
+    "SlsLnReq/SI2ReqLoans/Biz2Biz": {
+      "alerts": [
+        "Wrong User credentials",
+        "You do not work here",
+        "This is not your Account",
+        "Retry or update app or call customer care",
+        "Please first create main account"
+      ],
+      "labels": [
+        "+2547xxxxxxxx",
+        "Fill Details Below",
+        "Business Phone",
+        "Sales Officer User PW",
+        "Click to View"
+      ],
+      "buttons": []
+    },
+    "SlsLnReq/SI2ReqLoans/Biz2Pal": {
+      "alerts": [
+        "Wrong User credentials",
+        "You do not work here",
+        "This is not your Account",
+        "Retry or update app or call customer care",
+        "Please first create main account"
+      ],
+      "labels": [
+        "+2547xxxxxxxx",
+        "Fill Details Below",
+        "Business Phone",
+        "Sales Officer User PW",
+        "Click to View"
+      ],
+      "buttons": []
+    },
+    "SlsLnReq/Vw2DelLnReqs": {
+      "alerts": [
+        "Please first create main account",
+        "Retry or update app or call customer care"
+      ],
+      "labels": [
+        "Swipe to View My Loan Requests",
+        "(Select to Delete)"
+      ],
+      "buttons": []
+    },
+    "SlsLnReq/Vw2DelLnReqs2": {
+      "alerts": [
+        "Please first create main account",
+        "Retry or update app or call customer care"
+      ],
+      "labels": [
+        "Swipe to View My Loan Requests",
+        "(Select to Delete)"
+      ],
+      "buttons": []
+    },
+    "SlsLnReq/Vw2Grant/Biz2Biz": {
+      "alerts": [],
+      "labels": [
+        "Swipe down to refresh",
+        "(Select Loan Request to Grant)"
+      ],
+      "buttons": []
+    },
+    "SlsLnReq/Vw2Grant/Biz2Pal": {
+      "alerts": [],
+      "labels": [
+        "Swipe down to refresh",
+        "(Select Loan Request to Grant)"
+      ],
+      "buttons": []
+    },
+    "SlsLnReq/Vw2Grant/Pal2Biz": {
+      "alerts": [
+        "Please create main account on main page"
+      ],
+      "labels": [
+        "Swipe down to refresh",
+        "(Select Loan Request to Grant)"
+      ],
+      "buttons": []
+    },
+    "SlsLnReq/Vw2Grant/Pal2Pal": {
+      "alerts": [
+        "Please create main account on main page"
+      ],
+      "labels": [
+        "Swipe down to refresh",
+        "(Select Loan Request to Grant)"
+      ],
+      "buttons": []
+    },
+    "SlsLnReq/Vw2GrantLnReqCov2": {
+      "alerts": [],
+      "labels": [
+        "Swipe down to refresh",
+        "(Select Loan Request to Grant)"
+      ],
+      "buttons": []
+    },
+    "SnIn2VwCrdSlLP": {
+      "alerts": [
+        "Wrong User credentials",
+        "You do not work here",
+        "This is not your Account",
+        "Retry or update app or call customer care",
+        "Please first create main account"
+      ],
+      "labels": [
+        "+2547xxxxxxxx",
+        "Fill Details Below",
+        "Business Phone",
+        "Sales Officer User PW",
+        "Click to View"
+      ],
+      "buttons": []
+    },
+    "TakeOverBizna": {
+      "alerts": [
+        "Error; update app or call customer care",
+        "Bizna not yet transfered to you",
+        "Error! update app or call customer care"
+      ],
+      "labels": [
+        "+2547xxxxxxxx",
+        "Fill Details Below",
+        "Business Phone",
+        "User PassWord",
+        "Click to Receive"
+      ],
+      "buttons": []
+    },
+    "UpdateBizAc/AddAdmin": {
+      "alerts": [
+        "Failed; Update your app or re-check business Phone number",
+        "Unauthorised to add admin",
+        "Admin should be a Sales Officer in the business",
+        "You are the Creator of the business",
+        "Wrong Business Password",
+        "You have exhausted admin slots",
+        "Retry or update app or call customer care",
+        "Error! Update your app or call customer care!"
+      ],
+      "labels": [
+        "Fill Details Below",
+        "Business Phone",
+        "Admin Main Account Email",
+        "Business Ac PW",
+        "Click to Update Business Details"
+      ],
+      "buttons": []
+    },
+    "UpdateBizAc/AddBizBeneficiary": {
+      "alerts": [
+        "Failed; Update your app",
+        "Unauthorised to update Beneficiary",
+        "Wrong Business password",
+        "Error! Update your app or call customer care!"
+      ],
+      "labels": [
+        "Fill Details Below",
+        "Business Phone",
+        "Beneficiary Main Ac Email",
+        "Business Ac PW",
+        "Click to Update Business Details"
+      ],
+      "buttons": []
+    },
+    "UpdateBizAc/CancelObjection": {
+      "alerts": [
+        "Failed; Update your app",
+        "Unauthorised to remove operations",
+        "You are not the objecting Admin",
+        "Wrong Business password",
+        "Error! Update your app or call customer care!"
+      ],
+      "labels": [
+        "Fill Details Below",
+        "Business Phone",
+        "Reason",
+        "Business Ac PW",
+        "Click to Update Business Details"
+      ],
+      "buttons": []
+    },
+    "UpdateBizAc": {
+      "alerts": [],
+      "labels": [
+        "Update Biz Account"
+      ],
+      "buttons": [
+        "Add Admin",
+        "Change PassWord",
+        "Stop Operations",
+        "Allow Operations",
+        "Dissolve Business"
+      ]
+    },
+    "UpdateBizAc/Object": {
+      "alerts": [
+        "Failed; Update your app",
+        "Unauthorised to stop operations",
+        "Already objected",
+        "Error! Update your app or call customer care!"
+      ],
+      "labels": [
+        "Fill Details Below",
+        "Business Phone",
+        "Reason",
+        "Business Ac PW",
+        "Click to Update Business Details"
+      ],
+      "buttons": []
+    },
+    "UpdateBizAc/UpdatePW": {
+      "alerts": [
+        "Failed; Update your app",
+        "Unauthorised to update password",
+        "Error! Update your app or call customer care!"
+      ],
+      "labels": [
+        "Fill Details Below",
+        "Business Phone",
+        "New Business Ac PW",
+        "Click to Update Business Details"
+      ],
+      "buttons": []
+    },
+    "ViewBiznaShareRec": {
+      "alerts": [
+        "Account Balance is very little",
+        "Please first create main account",
+        "No revenue share",
+        "User does not exist does not exist; otherwise check internet connection"
+      ],
+      "labels": [
+        "(Please swipe down to load)",
+        "Money received from business"
+      ],
+      "buttons": []
+    },
+    "ViewBiznaShareRecBiz": {
+      "alerts": [
+        "Retry or update app or call customer care",
+        "This is not your Business"
+      ],
+      "labels": [
+        "Company/Biz Phone Number...",
+        "Swipe down to load or refresh."
+      ],
+      "buttons": []
+    },
+    "ViewBiznaShareSent": {
+      "alerts": [
+        "Retry or update app",
+        "Retry or update app or call customer care",
+        "This is not your Business"
+      ],
+      "labels": [
+        "Company/Biz Phone Number...",
+        "Swipe down to load or refresh."
+      ],
+      "buttons": []
+    },
+    "ViewBiznaShareSent2Pal": {
+      "alerts": [
+        "Retry or update app or call customer care",
+        "This is not your Business"
+      ],
+      "labels": [
+        "Company/Biz Phone Number...",
+        "Swipe down to load or refresh."
+      ],
+      "buttons": []
+    },
+    "ViewRPymnts/B2BReceived": {
+      "alerts": [
+        "Check your internet connection",
+        "Retry or update app or call customer care",
+        "Account Balance is very little",
+        "User does not exist does not exist; otherwise check internet connection",
+        "Please first create a main account"
+      ],
+      "labels": [
+        "Received Biz LP",
+        "(Please swipe down to load)"
+      ],
+      "buttons": []
+    },
+    "ViewRPymnts/B2BSent": {
+      "alerts": [
+        "Check your internet connection",
+        "Retry or update app or call customer care",
+        "Account Balance is very little",
+        "User does not exist does not exist; otherwise check internet connection",
+        "Please first create a main account"
+      ],
+      "labels": [
+        "Sent Biz LP",
+        "(Please swipe down to load)"
+      ],
+      "buttons": []
+    },
+    "ViewRPymnts/B2PReceived": {
+      "alerts": [
+        "Check your internet connection",
+        "Retry or update app or call customer care",
+        "Account Balance is very little",
+        "User does not exist does not exist; otherwise check internet connection",
+        "Please first create a main account"
+      ],
+      "labels": [
+        "Received Biz LP",
+        "(Please swipe down to load)"
+      ],
+      "buttons": []
+    },
+    "ViewRPymnts/B2PSent": {
+      "alerts": [
+        "Check your internet connection",
+        "Retry or update app or call customer care",
+        "Account Balance is very little",
+        "User does not exist does not exist; otherwise check internet connection",
+        "Please first create a main account"
+      ],
+      "labels": [
+        "Sent Biz LP",
+        "(Please swipe down to load)"
+      ],
+      "buttons": []
+    },
+    "ViewRPymnts/P2BReceived": {
+      "alerts": [
+        "Check your internet connection",
+        "Retry or update app or call customer care",
+        "Account Balance is very little",
+        "User does not exist does not exist; otherwise check internet connection",
+        "Please first create a main account"
+      ],
+      "labels": [
+        "Received Pal LP",
+        "(Please swipe down to load)"
+      ],
+      "buttons": []
+    },
+    "ViewRPymnts/P2BSent": {
+      "alerts": [
+        "Check your internet connection",
+        "Retry or update app or call customer care",
+        "Account Balance is very little",
+        "User does not exist does not exist; otherwise check internet connection",
+        "Please first create a main account"
+      ],
+      "labels": [
+        "Sent PalPal LP",
+        "(Please swipe down to load)"
+      ],
+      "buttons": []
+    },
+    "ViewRPymnts/P2PReceived": {
+      "alerts": [
+        "Check your internet connection",
+        "Retry or update app or call customer care",
+        "Account Balance is very little",
+        "User does not exist does not exist; otherwise check internet connection",
+        "Please first create a main account"
+      ],
+      "labels": [
+        "Received Pal LP",
+        "(Please swipe down to load)"
+      ],
+      "buttons": []
+    },
+    "ViewRPymnts/P2PSent": {
+      "alerts": [
+        "Check your internet connection",
+        "Retry or update app or call customer care",
+        "Account Balance is very little",
+        "User does not exist does not exist; otherwise check internet connection",
+        "Please first create a main account"
+      ],
+      "labels": [
+        "Sent PalPal LP",
+        "(Please swipe down to load)"
+      ],
+      "buttons": []
+    },
+    "Vw2GrntCrdSls/Biz2Biz": {
+      "alerts": [
+        "Please first create main account"
+      ],
+      "labels": [
+        "Select work place to sell",
+        "(Please swipe down to load)"
+      ],
+      "buttons": []
+    },
+    "Vw2GrntCrdSls/Biz2Pal": {
+      "alerts": [
+        "Please first create main account"
+      ],
+      "labels": [
+        "Select work place to sell",
+        "(Please swipe down to load)"
+      ],
+      "buttons": []
+    },
+    "Vw2GrntCrdSls/Pal2Biz": {
+      "alerts": [
+        "Please first create main account"
+      ],
+      "labels": [
+        "Select work place to sell",
+        "(Please swipe down to load)"
+      ],
+      "buttons": []
+    },
+    "Vw2GrntCrdSls/Pal2Pal": {
+      "alerts": [
+        "Please first create main account"
+      ],
+      "labels": [
+        "Select work place to sell",
+        "(Please swipe down to load)"
+      ],
+      "buttons": []
+    },
+    "VwBusAc": {
+      "alerts": [],
+      "labels": [
+        "My Business",
+        "(Please swipe down to load)"
+      ],
+      "buttons": []
+    },
+    "VwBusAc2TakeUp": {
+      "alerts": [],
+      "labels": [
+        "Businesses to Take Over",
+        "(Select if okay with blacklisting Status)"
+      ],
+      "buttons": []
+    },
+    "VwCashPayRec": {
+      "alerts": [
+        "Check your internet connection",
+        "Retry or update app or call customer care",
+        "Account Balance is very little",
+        "User does not exist does not exist; otherwise check internet connection"
+      ],
+      "labels": [
+        "Received Cash Payments",
+        "(Please swipe down to load)"
+      ],
+      "buttons": []
+    },
+    "VwCashPaySent": {
+      "alerts": [
+        "Check your internet connection",
+        "Retry or update app or call customer care",
+        "Account Balance is very little",
+        "User does not exist does not exist; otherwise update app",
+        "Please first create a main account"
+      ],
+      "labels": [
+        "Sent Cash Payments",
+        "(Please swipe down to load)"
+      ],
+      "buttons": []
+    },
+    "VwLoanStts/Biz/MyLoanees": {
+      "alerts": [
+        "Access Denied",
+        "Retry if you're sure you work here."
+      ],
+      "labels": [
+        "My Full Business Number",
+        "Buyer's Name. Even partially",
+        "(Please swipe down to reload)",
+        "Business Credit Sales"
+      ],
+      "buttons": []
+    },
+    "VwLoanStts/Biz/MyLoaneesDtld": {
+      "alerts": [
+        "Retry or update app or call customer care",
+        "Please first create a main account"
+      ],
+      "labels": [
+        "My Loanees",
+        "(Please swipe down to load)"
+      ],
+      "buttons": []
+    },
+    "VwLoanStts/Biz/MyLoaners": {
+      "alerts": [
+        "Access Denied",
+        "Retry if you're sure you work here."
+      ],
+      "labels": [
+        "My Full Business Number",
+        "Seller's Name. Even partially",
+        "(Please swipe down to reload)",
+        "Business Credit Purchases"
+      ],
+      "buttons": []
+    },
+    "VwLoanStts/Biz/MyLoanersDtld": {
+      "alerts": [
+        "Retry or update app or call customer care",
+        "Please first create a main account"
+      ],
+      "labels": [
+        "My Loaners",
+        "(Please swipe down to load)"
+      ],
+      "buttons": []
+    },
+    "VwLoanStts/Biz2Pal/MyLoanees": {
+      "alerts": [
+        "Access Denied",
+        "Retry if you're sure you work here."
+      ],
+      "labels": [
+        "My Full Business Number",
+        "Buyer's Name. Even partially",
+        "(Please swipe down to reload)",
+        "Business Credit Sales"
+      ],
+      "buttons": []
+    },
+    "VwLoanStts/Biz2Pal/MyLoaneesDtld": {
+      "alerts": [
+        "Retry or update app or call customer care",
+        "Please first create a main account"
+      ],
+      "labels": [
+        "My Loanees",
+        "(Please swipe down to load)"
+      ],
+      "buttons": []
+    },
+    "VwLoanStts/Biz2Pal/MyLoaners": {
+      "alerts": [
+        "Retry or update app or call customer care",
+        "Please first create a main account"
+      ],
+      "labels": [
+        "My Loaners",
+        "(Please swipe down to load)"
+      ],
+      "buttons": []
+    },
+    "VwLoanStts/Biz2Pal/MyLoanersDtld": {
+      "alerts": [
+        "Retry or update app or call customer care",
+        "Please first create a main account"
+      ],
+      "labels": [
+        "My Loanees",
+        "(Please swipe down to load)"
+      ],
+      "buttons": []
+    },
+    "VwLoanStts/Pal/MyLoanees": {
+      "alerts": [
+        "Retry or update app or call customer care",
+        "Please first create a main account"
+      ],
+      "labels": [
+        "My Loanees",
+        "(Please swipe down to load)"
+      ],
+      "buttons": []
+    },
+    "VwLoanStts/Pal/MyLoaneesDtld": {
+      "alerts": [
+        "Retry or update app or call customer care",
+        "Please first create a main account"
+      ],
+      "labels": [
+        "My Loanees",
+        "(Please swipe down to load)"
+      ],
+      "buttons": []
+    },
+    "VwLoanStts/Pal/MyLoaners": {
+      "alerts": [
+        "Retry or update app or call customer care",
+        "Please first create a main account"
+      ],
+      "labels": [
+        "My Loaners",
+        "(Please swipe down to load)"
+      ],
+      "buttons": []
+    },
+    "VwLoanStts/Pal/MyLoanersDtld": {
+      "alerts": [
+        "Retry or update app or call customer care",
+        "Please first create a main account"
+      ],
+      "labels": [
+        "My Loaners",
+        "(Please swipe down to load)"
+      ],
+      "buttons": []
+    },
+    "VwLoanStts/Pal2Biz/MyLoanees": {
+      "alerts": [
+        "Retry or update app or call customer care",
+        "Please first create a main account"
+      ],
+      "labels": [
+        "My Loanees",
+        "(Please swipe down to load)"
+      ],
+      "buttons": []
+    },
+    "VwLoanStts/Pal2Biz/MyLoaneesDtld": {
+      "alerts": [
+        "Retry or update app or call customer care",
+        "Please first create a main account"
+      ],
+      "labels": [
+        "My Loanees",
+        "(Please swipe down to load)"
+      ],
+      "buttons": []
+    },
+    "VwLoanStts/Pal2Biz/MyLoaners": {
+      "alerts": [
+        "Access Denied",
+        "Retry if you're sure you work here."
+      ],
+      "labels": [
+        "Full Business Number",
+        "Seller's Name. Even partially",
+        "(Please swipe down to reload)",
+        "Business Credit Purchases"
+      ],
+      "buttons": []
+    },
+    "VwLoanStts/Pal2Biz/MyLoanersDtld": {
+      "alerts": [
+        "Retry or update app or call customer care",
+        "Please first create a main account"
+      ],
+      "labels": [
+        "My Loaners",
+        "(Please swipe down to load)"
+      ],
+      "buttons": []
+    },
+    "VwLoanStts/SI2VwBiz2BizLoanees": {
+      "alerts": [
+        "Wrong User credentials",
+        "You do not work here",
+        "Retry or update app or call customer care",
+        "Please first create a main account"
+      ],
+      "labels": [
+        "+2547xxxxxxxx",
+        "Fill Details Below",
+        "Business Phone",
+        "MainAcPassword",
+        "Click to View"
+      ],
+      "buttons": []
+    },
+    "VwLoanStts/SI2VwBiz2BizLoaners": {
+      "alerts": [
+        "Wrong User credentials",
+        "You do not work here",
+        "Retry or update app or call customer care",
+        "Please first create a main account"
+      ],
+      "labels": [
+        "+2547xxxxxxxx",
+        "Fill Details Below",
+        "Business Phone",
+        "MainAcPassword",
+        "Click to View"
+      ],
+      "buttons": []
+    },
+    "VwLoanStts/SI2VwBiz2PalLoanees": {
+      "alerts": [
+        "Wrong User credentials",
+        "You do not work here",
+        "Retry or update app or call customer care",
+        "Please first create a main account"
+      ],
+      "labels": [
+        "+2547xxxxxxxx",
+        "Fill Details Below",
+        "Business Phone",
+        "MainAcPassword",
+        "Click to View"
+      ],
+      "buttons": []
+    },
+    "VwLoanStts/SI2VwBiz2PalLoaners": {
+      "alerts": [
+        "Wrong User credentials",
+        "You do not work here",
+        "Retry or update app or call customer care",
+        "Please first create a main account"
+      ],
+      "labels": [
+        "+2547xxxxxxxx",
+        "Fill Details Below",
+        "Business Phone",
+        "MainAcPassword",
+        "Click to View"
+      ],
+      "buttons": []
+    }
+  },
+  "missing": []
+}

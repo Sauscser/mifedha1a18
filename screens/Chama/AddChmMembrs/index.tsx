@@ -5,9 +5,13 @@ import { generateClient } from 'aws-amplify/api';
 import { getCurrentUser, fetchUserAttributes } from 'aws-amplify/auth';
 import { createChamaMembers, createMessages, sendNotification, updateCompany, updateGroup } from '../../../src/graphql/mutations';
 import { listGroups, getSMAccount, listSMAccounts } from '../../../src/graphql/queries';
+import { useExchange } from '../../../src/contexts/ExchangeContext';
+import { convertForeignToKsh, formatAmountSync } from '../../../src/utils/exchange';
+import { nationalityToCode } from '../../../src/utils/nationalityToCode';
 const client = generateClient();
 const AddChmMmbrs = () => {
   const navigation = useNavigation();
+  const { nationality, ratesMap } = useExchange();
 
   // Form state
   const [phoneContacts, setPhoneContacts] = useState('');
@@ -129,6 +133,56 @@ const AddChmMmbrs = () => {
   }, []);
 
   // Main function to add a member
+  const parseAmountInput = (value: string): number | null => {
+    const trimmed = value.trim();
+    if (!trimmed) return null;
+    const normalized = trimmed.replace(/,/g, '');
+    const parsed = Number(normalized);
+    return Number.isFinite(parsed) ? parsed : null;
+  };
+
+  const handleMoneyInput = (setter: (val: string) => void) => (value: string) => {
+    const sanitized = value.replace(/,/g, '');
+    if (sanitized === '') {
+      setter('');
+      return;
+    }
+    if (/^\d*(\.\d{0,2})?$/.test(sanitized)) {
+      setter(sanitized);
+    }
+  };
+
+  const formatMoneyOnBlur = (value: string, setter: (val: string) => void) => {
+    if (!value.trim()) return;
+    const parsed = parseAmountInput(value);
+    if (parsed === null) return;
+    setter(parsed.toFixed(2));
+  };
+
+  const confirmAddMember = (
+    groupName: string,
+    memberName: string,
+    memberEmail: string,
+    subscriptionAmount: string,
+    frequencyDays: string,
+    latePenalty: string
+  ): Promise<boolean> => {
+    return new Promise((resolve) => {
+      Alert.alert(
+        'Confirm Member Add',
+        `Add ${memberName} (${memberEmail}) to ${groupName}?\n\nSubscription: ${subscriptionAmount} every ${frequencyDays} days\nLate Penalty: ${latePenalty}`,
+        [
+          { text: 'Cancel', style: 'cancel', onPress: () => resolve(false) },
+          { text: 'Add Member', onPress: () => resolve(true) }
+        ],
+        {
+          cancelable: true,
+          onDismiss: () => resolve(false)
+        }
+      );
+    });
+  };
+
   const handleAddMember = async () => {
     if (!selectedGroup) {
       Alert.alert('Please select a group first');
@@ -173,6 +227,31 @@ const AddChmMmbrs = () => {
         setIsLoading(false);
         return;
       }
+
+      const adminCurrencyKey =
+        nationalityToCode(adminDtls.nationality) ||
+        adminDtls.nationality ||
+        nationality ||
+        undefined;
+
+      const subscriptionForeign = parseAmountInput(SubAmt);
+      if (subscriptionForeign === null || subscriptionForeign <= 0) {
+        Alert.alert('Enter a valid subscription amount');
+        setIsLoading(false);
+        return;
+      }
+
+      const latePenaltyForeign = parseAmountInput(lateSub || '0') ?? 0;
+
+      const subscriptionAmtKES = await convertForeignToKsh(subscriptionForeign, adminCurrencyKey);
+      const latePenaltyKES = await convertForeignToKsh(latePenaltyForeign, adminCurrencyKey);
+
+      if (!Number.isFinite(subscriptionAmtKES) || subscriptionAmtKES <= 0 || !Number.isFinite(latePenaltyKES) || latePenaltyKES < 0) {
+        Alert.alert('Unable to convert amounts. Please try again.');
+        setIsLoading(false);
+        return;
+      }
+
       const memberDtls: any = await client.graphql({
         query: getSMAccount,
         variables: {
@@ -188,6 +267,19 @@ const AddChmMmbrs = () => {
 
       // Fetch selected group details
       const group = selectedGroup;
+
+      const accepted = await confirmAddMember(
+        group.grpName,
+        membaDtls.name,
+        phoneContacts,
+        formatAmountSync(subscriptionAmtKES, adminCurrencyKey, ratesMap),
+        SubFreq,
+        formatAmountSync(latePenaltyKES, adminCurrencyKey, ratesMap)
+      );
+      if (!accepted) {
+        setIsLoading(false);
+        return;
+      }
 
       // Prepare member payload
       const memberPayload = {
@@ -214,8 +306,8 @@ const AddChmMmbrs = () => {
         owner: group.owner,
         totalSubAmt: 0,
         subscriptionFrequency: SubFreq,
-        subscriptionAmt: SubAmt,
-        lateSubscriptionPenalty: lateSub || 0,
+        subscriptionAmt: subscriptionAmtKES.toFixed(2),
+        lateSubscriptionPenalty: latePenaltyKES.toFixed(2),
         ttlLateSubs: 0,
         transportApproved: 'ChamaTransportApprovedNo'
       };
@@ -317,7 +409,7 @@ const AddChmMmbrs = () => {
 
               <View style={ui.inputGroup}>
                 <Text style={ui.label}>Subscription Amount</Text>
-                <TextInput value={SubAmt} onChangeText={setSubAmt} style={ui.input} keyboardType="decimal-pad" />
+                <TextInput value={SubAmt} onChangeText={handleMoneyInput(setSubAmt)} onBlur={() => formatMoneyOnBlur(SubAmt, setSubAmt)} style={ui.input} keyboardType="decimal-pad" />
               </View>
 
               <View style={ui.inputGroup}>
@@ -327,7 +419,7 @@ const AddChmMmbrs = () => {
 
               <View style={ui.inputGroup}>
                 <Text style={ui.label}>Late Subscription Penalty</Text>
-                <TextInput value={lateSub} onChangeText={setLateSub} style={ui.input} keyboardType="decimal-pad" />
+                <TextInput value={lateSub} onChangeText={handleMoneyInput(setLateSub)} onBlur={() => formatMoneyOnBlur(lateSub, setLateSub)} style={ui.input} keyboardType="decimal-pad" />
               </View>
 
               <View style={[ui.inputGroup, {

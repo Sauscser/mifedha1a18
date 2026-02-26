@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { deleteChamaMembers, updateGroup, updateBankAdmin } from '../../../src/graphql/mutations';
+import { deleteChamaMembers, updateGroup, updateBankAdmin, createMessages, sendNotification } from '../../../src/graphql/mutations';
 import { getChamaMembers, getGroup, getSMAccount } from '../../../src/graphql/queries';
-import Communications from 'react-native-communications';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { View, Text, TextInput, ScrollView, ActivityIndicator, TouchableOpacity, Alert } from 'react-native';
 import styles from './styles';
@@ -83,7 +82,27 @@ const DeregChmMmbr = props => {
                 }
                 setIsLoading(false);
                 Alert.alert(grpNames + " has deregistered " + memberNames);
-                Communications.textWithoutEncoding(phonecontact, 'Hi ' + name + ', you have been de-registered from group ' + grpNames + '. For clarification please contact the group admin through ' + attributes.phone_number + '. Thank you. MiFedha.');
+                
+                const notificationBody = 'Hi ' + name + ', you have been de-registered from group ' + grpNames + '. For clarification please contact the group admin through ' + attributes.phone_number + '. Thank you. MiFedha.';
+                
+                await client.graphql({
+                  query: createMessages,
+                  variables: {
+                    input: {
+                      senderEmail: memberContacts,
+                      messageBody: notificationBody
+                    }
+                  }
+                });
+                
+                await client.graphql({
+                  query: sendNotification,
+                  variables: {
+                    riderEmail: memberContacts,
+                    title: 'MiFedha: Group Deregistration',
+                    body: notificationBody
+                  }
+                });
               };
               const updateChmMmbrAc = async () => {
                 if (isLoading) return;

@@ -257,7 +257,7 @@ const SMASendNonLns = props => {
                 }
               });
               if (response?.data?.updateBizSlsReq) {
-                Alert.alert("Success", `Amount: Ksh. ${parseFloat(amount).toFixed(0)}. Transaction fee: Ksh. ${biznaCashSaleFeeAmt.toFixed(0)}`);
+                Alert.alert("Success", `Amount: ${parseFloat(amount).toFixed(0)}. Transaction fee: ${biznaCashSaleFeeAmt.toFixed(0)}`);
               } else {
                 Alert.alert("Update failed", "No response or invalid response from the database.");
               }

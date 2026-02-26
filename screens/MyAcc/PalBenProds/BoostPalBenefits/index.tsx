@@ -7,6 +7,7 @@ import { View, Text, ImageBackground, Pressable, TextInput, ScrollView, Keyboard
 import styles from './styles';
 import { getCurrentUser, fetchUserAttributes } from "aws-amplify/auth";
 import { generateClient } from "aws-amplify/api";
+import { convertForeignToKsh, formatAmountForUser } from '../../../../src/utils/exchange';
 const client = generateClient();
 const SMASendNonLns = props => {
   const [SenderNatId, setSenderNatId] = useState('');
@@ -23,6 +24,12 @@ const SMASendNonLns = props => {
     setIsLoading(true);
     const userInfo = await getCurrentUser();
     const attributes = await fetchUserAttributes();
+    const amountForeign = parseFloat(amounts);
+    if (!Number.isFinite(amountForeign) || amountForeign <= 0) {
+      Alert.alert("Enter a valid amount");
+      setIsLoading(false);
+      return;
+    }
     try {
       const Lonees1: any = await client.graphql({
         query: listSMLoansCovereds,
@@ -106,6 +113,13 @@ const SMASendNonLns = props => {
                   const owner = accountDtl.data.getSMAccount.owner;
                   const senderbeneficiary = accountDtl.data.getSMAccount.beneficiary;
                   const benefitsAmount = accountDtl.data.getSMAccount.benefitsAmount;
+                  const senderNationality = accountDtl.data.getSMAccount.nationality;
+                  const amountKes = await convertForeignToKsh(amountForeign, senderNationality);
+                  if (!Number.isFinite(amountKes) || amountKes <= 0) {
+                    Alert.alert("Unable to convert amount. Please try again.");
+                    setIsLoading(false);
+                    return;
+                  }
                   const fetchCompDtls = async () => {
                     if (isLoading) {
                       return;
@@ -119,10 +133,10 @@ const SMASendNonLns = props => {
                         }
                       });
                       const UsrTransferFee = CompDtls.data.getCompany.userTransferFee;
-                      const UsrTransferFeeAmt = UsrTransferFee * parseFloat(amounts);
-                      const UsrTransferFee2 = parseFloat(SenderUsrBal) - parseFloat(amounts);
-                      const TotalTransacted = parseFloat(amounts) + parseFloat(UsrTransferFee) * parseFloat(amounts);
-                      const TotalTransacted2 = parseFloat(amounts) + UsrTransferFee2;
+                      const UsrTransferFeeAmt = UsrTransferFee * amountKes;
+                      const UsrTransferFee2 = parseFloat(SenderUsrBal) - amountKes;
+                      const TotalTransacted = amountKes + parseFloat(UsrTransferFee) * amountKes;
+                      const TotalTransacted2 = amountKes + UsrTransferFee2;
                       const CompPhoneContact = CompDtls.data.getCompany.phoneContact;
                       const companyEarningBals = CompDtls.data.getCompany.companyEarningBal;
                       const companyEarnings = CompDtls.data.getCompany.companyEarning;
@@ -140,7 +154,7 @@ const SMASendNonLns = props => {
                               input: {
                                 recPhn: attributes.email,
                                 senderPhn: attributes.email,
-                                amount: parseFloat(amounts).toFixed(0),
+                                amount: amountKes.toFixed(0),
                                 description: Desc,
                                 RecName: names,
                                 SenderName: names,
@@ -169,9 +183,9 @@ const SMASendNonLns = props => {
                             variables: {
                               input: {
                                 awsemail: attributes.email,
-                                ttlNonLonsSentSM: (parseFloat(ttlNonLonsSentSMs) + parseFloat(amounts)).toFixed(0),
+                                ttlNonLonsSentSM: (parseFloat(ttlNonLonsSentSMs) + amountKes).toFixed(0),
                                 balance: (parseFloat(SenderUsrBal) - TotalTransacted).toFixed(0),
-                                benefitsAmount: parseFloat(benefitsAmount) + parseFloat(amounts)
+                                benefitsAmount: parseFloat(benefitsAmount) + amountKes
                               }
                             }
                           });
@@ -196,19 +210,18 @@ const SMASendNonLns = props => {
                             variables: {
                               input: {
                                 AdminId: "BaruchHabaB'ShemAdonai2",
-                                companyEarningBal: parseFloat(UsrTransferFee) * parseFloat(amounts) + parseFloat(companyEarningBals),
-                                companyEarning: parseFloat(UsrTransferFee) * parseFloat(amounts) + parseFloat(companyEarnings),
-                                ttlNonLonssRecSM: parseFloat(amounts) + parseFloat(ttlNonLonssRecSMs),
-                                ttlNonLonssSentSM: parseFloat(amounts) + parseFloat(ttlNonLonssSentSMs)
+                                companyEarningBal: parseFloat(UsrTransferFee) * amountKes + parseFloat(companyEarningBals),
+                                companyEarning: parseFloat(UsrTransferFee) * amountKes + parseFloat(companyEarnings),
+                                ttlNonLonssRecSM: amountKes + parseFloat(ttlNonLonssRecSMs),
+                                ttlNonLonssSentSM: amountKes + parseFloat(ttlNonLonssSentSMs)
                               }
                             }
                           });
                           if (resp?.data?.updateCompany) {
-                            // Dynamic currency formatting
-                            const { formatAmountSync } = require('../../../../src/utils/exchange');
-                            const { nationalityToCode } = require('../../../../src/utils/nationalityToCode');
+                            const formattedAmount = await formatAmountForUser(amountKes, senderNationality);
+                            const formattedFee = await formatAmountForUser(UsrTransferFeeAmt, senderNationality);
                             Alert.alert(
-                              `Boost Amount: ${formatAmountSync(Number(amounts), nationalityToCode(SenderNatId))}. Transaction fee: ${formatAmountSync(Number(UsrTransferFeeAmt), nationalityToCode(SenderNatId))}`
+                              `Boost Amount: ${formattedAmount}. Transaction fee: ${formattedFee}`
                             );
                           } else {
                             Alert.alert("Retry or update app or call customer care");
@@ -230,7 +243,7 @@ const SMASendNonLns = props => {
                         Alert.alert('Wrong password');
                       } else if (userInfo.userId !== SenderSub) {
                         Alert.alert('Please send from your own  account');
-                      } else if (parseFloat(loanLimits) < parseFloat(amounts)) {
+                      } else if (parseFloat(loanLimits) < amountKes) {
                         Alert.alert('Call ' + CompPhoneContact + ' to have your send Amount limit adjusted');
                       } else if (Lonees1.data.listSMLoansCovereds.items.length > 0 || Lonees3.data.listCovCreditSellers.items.length > 0 || Lonees5.data.listCvrdGroupLoans.items.length > 0) {
                         SndChmMmbrMny();

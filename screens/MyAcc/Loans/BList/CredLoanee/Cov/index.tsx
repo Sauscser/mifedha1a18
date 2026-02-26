@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import Communications from 'react-native-communications';
-import { updateCompany, updateCovCreditSeller, updateSMAccount, updateSMLoansCovered } from '../../../../../../src/graphql/mutations';
+import { updateCompany, updateCovCreditSeller, updateSMAccount, updateSMLoansCovered, createMessages, sendNotification } from '../../../../../../src/graphql/mutations';
 import { getBizna, getCompany, getCovCreditSeller, getSMAccount, getSMLoansCovered } from '../../../../../../src/graphql/queries';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { View, Text, ImageBackground, Pressable, TextInput, ScrollView, KeyboardAvoidingView, Platform, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
@@ -217,7 +216,21 @@ const BLCovCredByr = props => {
                       }
                     }
                     Alert.alert(names + ", you have blacklisted " + namess);
-                      Communications.textWithoutEncoding(phonecontactz, 'Hi ' + namess + ', your loan of ID ' + route.params.id + 'has been blacklisted by ' + names + ' Business. The following is a breakdown of your repayable loan. Loan balance before blacklisting was ' + formatAmountSync(Number(lonBala), ratesMap) + '. Default Penalty as you had agreed with your loaner is ' + formatAmountSync(Number(DefaultPenaltyCredSls), ratesMap) + '. Clearance fee is ' + formatAmountSync(Number(ClrnceCosts), ratesMap) + '. Total current loan repayable is ' + formatAmountSync(Number(LonBal), ratesMap) + '. For clarification call the Business Owner: ' + attributes.phone_number + '. Thank you. MiFedha');
+                      const blMessage10 = 'Hi ' + namess + ', your loan of ID ' + route.params.id + 'has been blacklisted by ' + names + ' Business. The following is a breakdown of your repayable loan. Loan balance before blacklisting was ' + formatAmountSync(Number(lonBala), ratesMap) + '. Default Penalty as you had agreed with your loaner is ' + formatAmountSync(Number(DefaultPenaltyCredSls), ratesMap) + '. Clearance fee is ' + formatAmountSync(Number(ClrnceCosts), ratesMap) + '. Total current loan repayable is ' + formatAmountSync(Number(LonBal), ratesMap) + '. For clarification call the Business Owner: ' + attributes.phone_number + '. Thank you. MiFedha';
+                    try {
+                      const msgRes = await client.graphql({
+                        query: createMessages,
+                        variables: { input: { senderEmail: phonecontactz, messageBody: blMessage10 }}
+                      });
+                      if (msgRes?.data?.createMessages) {
+                        await client.graphql({
+                          query: sendNotification,
+                          variables: { riderEmail: phonecontactz, title: 'MiFedha: Credit Loan Blacklisted', body: blMessage10 }
+                        });
+                      }
+                    } catch (notifErr) {
+                      console.log('Notification error:', notifErr);
+                    }
                     setIsLoading(false);
                   };
                 } catch (error) {

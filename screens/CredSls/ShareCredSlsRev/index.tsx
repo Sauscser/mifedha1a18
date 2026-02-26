@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import Communications from 'react-native-communications';
-import { createNonLoans, updateCompany, updateSMAccount, updateBizna } from '../../../src/graphql/mutations';
+import { createNonLoans, updateCompany, updateSMAccount, updateBizna, createMessages, sendNotification } from '../../../src/graphql/mutations';
 import { getBizna, getCompany, getSMAccount } from '../../../src/graphql/queries';
 import { useNavigation } from '@react-navigation/native';
 import { View, Text, ImageBackground, Pressable, TextInput, ScrollView, KeyboardAvoidingView, Platform, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
@@ -50,7 +49,6 @@ const SMASendNonLns = props => {
             }
           });
           const UsrTransferFee = CompDtls.data.getCompany.biznaTransferFee;
-          const TotalTransacted = parseFloat(amounts) + parseFloat(UsrTransferFee) * parseFloat(amounts);
           const CompPhoneContact = CompDtls.data.getCompany.phoneContact;
           const companyEarningBals = CompDtls.data.getCompany.companyEarningBal;
           const companyEarnings = CompDtls.data.getCompany.companyEarning;
@@ -200,16 +198,30 @@ const SMASendNonLns = props => {
                 const bizNat = accountDtl.data.getBizna?.nationality || null;
                 const formattedTxFee = formatAmountSync(Number(feeKes), bizNat, ratesMap);
                 Alert.alert(`Amount: ${formattedAmount} Transaction: ${formattedTxFee}`);
-                Communications.textWithoutEncoding(phonecontact, `Confirmed. ${busNames} Business entity has sent you ${formattedAmount} to your MiFedha Main account. Please confirm this transaction record is on your Mifedha app. Thank you. MiFedha`);
+                const revShareMessage3 = `Confirmed. ${busNames} Business entity has sent you ${formattedAmount} to your MiFedha Main account. Please confirm this transaction record is on your Mifedha app. Thank you. MiFedha`;
+                try {
+                  const msgRes = await client.graphql({
+                    query: createMessages,
+                    variables: { input: { senderEmail: phonecontact, messageBody: revShareMessage3 }}
+                  });
+                  if (msgRes?.data?.createMessages) {
+                    await client.graphql({
+                      query: sendNotification,
+                      variables: { riderEmail: phonecontact, title: 'MiFedha: Revenue Shared', body: revShareMessage3 }
+                    });
+                  }
+                } catch (notifErr) {
+                  console.log('Notification error:', notifErr);
+                }
                 setIsLoading(false);
               };
               if (usrAcActvSttss !== "AccountActive") {
                 Alert.alert('Receiver account is inactive');
               } else if (SenderNatId === RecNatId) {
                 Alert.alert('You cannot Send money to yourself Yourself');
-              } else if (parseFloat(netEarningss) < TotalTransacted) {
+              } else if (parseFloat(netEarningss) < totalKes) {
                 Alert.alert('Requested amount is more than you have in your account');
-              } else if (parseFloat(RecUsrBal) + parseFloat(amounts) > parseFloat(MaxAcBals)) {
+              } else if (parseFloat(RecUsrBal) + Number(amountKes) > parseFloat(MaxAcBals)) {
                 Alert.alert("Receiver call customer care to have wallet capacity adjusted");
                 return;
               } else if (noBL > 0) {

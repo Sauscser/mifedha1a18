@@ -264,7 +264,7 @@ const SMASendNonLns = props => {
           }
         });
         if (upcredsl?.data?.updateBizSlsReq) {
-          Alert.alert("Success", `Amount: Ksh. ${parseFloat(amount).toFixed(0)}. Transaction fee: Ksh. ${UsrTransferFeeAmt.toFixed(0)}`);
+          Alert.alert("Success", `Amount: ${parseFloat(amount).toFixed(0)}. Transaction fee: ${UsrTransferFeeAmt.toFixed(0)}`);
         }
       }
 
