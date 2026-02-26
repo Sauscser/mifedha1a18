@@ -5,9 +5,11 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useTranslation } from 'react-i18next';
 
 export default function GlobalHeader({ user, signOut }) {
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
 
   return (
     <LinearGradient
@@ -16,9 +18,9 @@ export default function GlobalHeader({ user, signOut }) {
       end={{ x: 1, y: 0 }}
       style={[styles.container, { paddingTop: insets.top + 24 }]}
     >
-      <Text style={styles.greeting}>Welcome, {user?.username}</Text>
+      <Text style={styles.greeting}>{t('appShell.globalHeader.welcome', { username: user?.username || '' })}</Text>
       <TouchableOpacity onPress={signOut}>
-        <Text style={styles.signOut}>Sign Out</Text>
+        <Text style={styles.signOut}>{t('appShell.globalHeader.signOut')}</Text>
       </TouchableOpacity>
     </LinearGradient>
   );

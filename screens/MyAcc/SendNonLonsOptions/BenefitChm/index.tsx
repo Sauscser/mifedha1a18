@@ -11,9 +11,11 @@ import { useExchange } from '../../../../src/contexts/ExchangeContext';
 import { formatAmountSync } from '../../../../src/utils/exchange';
 import { convertForeignToKsh } from '../../../../src/utils/exchange';
 import { nationalityToCode } from '../../../../src/utils/nationalityToCode';
+import { useTranslation } from 'react-i18next';
 const client = generateClient();
 type BenefitChmRouteParams = { ChamaNMember: string };
 const SMASendNonLns = props => {
+  const { t } = useTranslation();
   const [SenderNatId, setSenderNatId] = useState('');
   const [RecNatId, setRecNatId] = useState('');
   const [SnderPW, setSnderPW] = useState("");
@@ -67,16 +69,20 @@ const SMASendNonLns = props => {
   const confirmSendMoney = (displayAmount: string, receiver: string, description: string): Promise<boolean> => {
     return new Promise((resolve) => {
       Alert.alert(
-        'Confirm Transfer',
-        `You are sending ${displayAmount} to ${receiver}.\n\nDescription: ${description}`,
+        t('myAcc.sendNonLonsOptions.benefitChm.confirm.title'),
+        t('myAcc.sendNonLonsOptions.benefitChm.confirm.body', {
+          amount: displayAmount,
+          receiver,
+          description
+        }),
         [
           {
-            text: 'Cancel',
+            text: t('myAcc.sendNonLonsOptions.benefitChm.confirm.cancel'),
             style: 'cancel',
             onPress: () => resolve(false)
           },
           {
-            text: 'Send',
+            text: t('myAcc.sendNonLonsOptions.benefitChm.confirm.send'),
             onPress: () => resolve(true)
           }
         ],
@@ -117,13 +123,13 @@ const SMASendNonLns = props => {
     const amountForeign = parseAmountInput(amounts);
     if (amountForeign === null || amountForeign <= 0) {
       setIsLoading(false);
-      Alert.alert('Enter a valid amount');
+      Alert.alert(t('myAcc.sendNonLonsOptions.benefitChm.alerts.invalidAmount'));
       return;
     }
     const amountInKES = await convertForeignToKsh(amountForeign, userCurrencyKey);
     if (!Number.isFinite(amountInKES) || amountInKES <= 0) {
       setIsLoading(false);
-      Alert.alert('Unable to convert amount. Please try again.');
+      Alert.alert(t('myAcc.sendNonLonsOptions.benefitChm.alerts.convertFailed'));
       return;
     }
     setIsLoading(true);
@@ -345,7 +351,10 @@ const SMASendNonLns = props => {
                                           });
 
                                           const formattedMsgAmount = formatAmountSync(amountInKES, userCurrencyKey, ratesMap);
-                                          const textMsg = `${names} has sent you ${formattedMsgAmount}. The money has been deposited in your main account`;
+                                          const textMsg = t('myAcc.sendNonLonsOptions.benefitChm.notifications.cashMessage', {
+                                            senderName: names,
+                                            amount: formattedMsgAmount
+                                          });
                                           
                                           await client.graphql({
                                             query: createMessages,
@@ -362,13 +371,13 @@ const SMASendNonLns = props => {
                                             query: sendNotification,
                                             variables: {
                                               riderEmail: RecNatId,
-                                              title: 'MiFedha: Cash',
+                                              title: t('myAcc.sendNonLonsOptions.benefitChm.notifications.cashTitle'),
                                               body: textMsg
                                             }
                                           });
                                         } catch (error) {
                                           if (error) {
-                                            Alert.alert("Sending unsuccessful; Retry");
+                                            Alert.alert(t('myAcc.sendNonLonsOptions.benefitChm.alerts.sendUnsuccessful'));
                                             return;
                                           }
                                         }
@@ -394,7 +403,7 @@ const SMASendNonLns = props => {
                                         } catch (error) {
                                           console.log(error);
                                           if (error) {
-                                            Alert.alert("Retry or update app or call customer care");
+                                            Alert.alert(t('myAcc.sendNonLonsOptions.benefitChm.alerts.retryGeneric'));
                                             return;
                                           }
                                         }
@@ -420,7 +429,7 @@ const SMASendNonLns = props => {
                                         } catch (error) {
                                           console.log(error);
                                           if (error) {
-                                            Alert.alert("Retry or update app or call customer care");
+                                            Alert.alert(t('myAcc.sendNonLonsOptions.benefitChm.alerts.retryGeneric'));
                                             return;
                                           }
                                         }
@@ -446,7 +455,7 @@ const SMASendNonLns = props => {
                                         } catch (error) {
                                           console.log(error);
                                           if (error) {
-                                            Alert.alert("Retry or update app or call customer care");
+                                            Alert.alert(t('myAcc.sendNonLonsOptions.benefitChm.alerts.retryGeneric'));
                                             return;
                                           }
                                         }
@@ -493,7 +502,7 @@ const SMASendNonLns = props => {
                                         } catch (error) {
                                           console.log(error);
                                           if (error) {
-                                            Alert.alert("Retry or update app or call customer care");
+                                            Alert.alert(t('myAcc.sendNonLonsOptions.benefitChm.alerts.retryGeneric'));
                                             return;
                                           }
                                         }
@@ -519,7 +528,7 @@ const SMASendNonLns = props => {
                                         } catch (error) {
                                           console.log(error);
                                           if (error) {
-                                            Alert.alert("Retry or update app or call customer care");
+                                            Alert.alert(t('myAcc.sendNonLonsOptions.benefitChm.alerts.retryGeneric'));
                                             return;
                                           }
                                         }
@@ -550,10 +559,18 @@ const SMASendNonLns = props => {
                                             return;
                                           }
                                         }
-                                        Alert.alert("Amount: " + formatAmountSync(amountInKES, userCurrencyKey, ratesMap) + ". Transaction fee: " + formatAmountSync(UsrTransferFeeAmt, userCurrencyKey, ratesMap));
+                                        Alert.alert(t('myAcc.sendNonLonsOptions.benefitChm.alerts.amountFee', {
+                                          amount: formatAmountSync(amountInKES, userCurrencyKey, ratesMap),
+                                          fee: formatAmountSync(UsrTransferFeeAmt, userCurrencyKey, ratesMap)
+                                        }));
                                         
                                         // Send Firebase notification
-                                        const transferMessage = 'Hi ' + ReceiverName + ", " + names + ' has sent you a non loan of ' + formatAmountSync(amountInKES, userCurrencyKey, ratesMap) + '. For clarification call the sender ' + attributes.phone_number + '. Thank you. MiFedha';
+                                        const transferMessage = t('myAcc.sendNonLonsOptions.benefitChm.notifications.transferMessage', {
+                                          receiverName: ReceiverName,
+                                          senderName: names,
+                                          amount: formatAmountSync(amountInKES, userCurrencyKey, ratesMap),
+                                          senderPhone: attributes.phone_number
+                                        });
                                         try {
                                           const msgRes: any = await client.graphql({
                                             query: createMessages,
@@ -569,7 +586,7 @@ const SMASendNonLns = props => {
                                               query: sendNotification,
                                               variables: {
                                                 riderEmail: phonecontact,
-                                                title: 'MiFedha: Non-Loan Transfer',
+                                                title: t('myAcc.sendNonLonsOptions.benefitChm.notifications.nonLoanTransferTitle'),
                                                 body: transferMessage
                                               }
                                             });
@@ -602,7 +619,10 @@ const SMASendNonLns = props => {
                                             }
                                           });
                                           const formattedMsgAmount = formatAmountSync(amountInKES, userCurrencyKey, ratesMap);
-                                          const textMsg = `${names} has sent you ${formattedMsgAmount}. The money has been deposited in your main account`;
+                                          const textMsg = t('myAcc.sendNonLonsOptions.benefitChm.notifications.cashMessage', {
+                                            senderName: names,
+                                            amount: formattedMsgAmount
+                                          });
                                           await client.graphql({
                                             query: createMessages,
                                             variables: {
@@ -616,13 +636,13 @@ const SMASendNonLns = props => {
                                             query: sendNotification,
                                             variables: {
                                               riderEmail: RecNatId,
-                                              title: 'MiFedha: Cash',
+                                                title: t('myAcc.sendNonLonsOptions.benefitChm.notifications.cashTitle'),
                                               body: textMsg
                                             }
                                           });
                                         } catch (error) {
                                           if (error) {
-                                            Alert.alert("Sending unsuccessful; Retry");
+                                            Alert.alert(t('myAcc.sendNonLonsOptions.benefitChm.alerts.sendUnsuccessful'));
                                             return;
                                           }
                                         }
@@ -648,7 +668,7 @@ const SMASendNonLns = props => {
                                         } catch (error) {
                                           console.log(error);
                                           if (error) {
-                                            Alert.alert("Retry or update app or call customer care");
+                                            Alert.alert(t('myAcc.sendNonLonsOptions.benefitChm.alerts.retryGeneric'));
                                             return;
                                           }
                                         }
@@ -675,7 +695,7 @@ const SMASendNonLns = props => {
                                         } catch (error) {
                                           console.log(error);
                                           if (error) {
-                                            Alert.alert("Retry or update app or call customer care");
+                                            Alert.alert(t('myAcc.sendNonLonsOptions.benefitChm.alerts.retryGeneric'));
                                             return;
                                           }
                                         }
@@ -715,7 +735,7 @@ const SMASendNonLns = props => {
                                         } catch (error) {
                                           console.log(error);
                                           if (error) {
-                                            Alert.alert("Retry or update app or call customer care");
+                                            Alert.alert(t('myAcc.sendNonLonsOptions.benefitChm.alerts.retryGeneric'));
                                             return;
                                           }
                                         }
@@ -762,7 +782,7 @@ const SMASendNonLns = props => {
                                         } catch (error) {
                                           console.log(error);
                                           if (error) {
-                                            Alert.alert("Retry or update app or call customer care");
+                                            Alert.alert(t('myAcc.sendNonLonsOptions.benefitChm.alerts.retryGeneric'));
                                             return;
                                           }
                                         }
@@ -788,7 +808,7 @@ const SMASendNonLns = props => {
                                         } catch (error) {
                                           console.log(error);
                                           if (error) {
-                                            Alert.alert("Retry or update app or call customer care");
+                                            Alert.alert(t('myAcc.sendNonLonsOptions.benefitChm.alerts.retryGeneric'));
                                             return;
                                           }
                                         }
@@ -819,10 +839,18 @@ const SMASendNonLns = props => {
                                             return;
                                           }
                                         }
-                                        Alert.alert("Amount: " + formatAmountSync(amountInKES, userCurrencyKey, ratesMap) + ". Transaction fee: " + formatAmountSync(UsrTransferFeeAmt, userCurrencyKey, ratesMap));
+                                        Alert.alert(t('myAcc.sendNonLonsOptions.benefitChm.alerts.amountFee', {
+                                          amount: formatAmountSync(amountInKES, userCurrencyKey, ratesMap),
+                                          fee: formatAmountSync(UsrTransferFeeAmt, userCurrencyKey, ratesMap)
+                                        }));
                                         
                                         // Send Firebase notification
-                                        const transferMessage2 = 'Hi ' + ReceiverName + ", " + names + ' has sent you a non loan of ' + formatAmountSync(amountInKES, userCurrencyKey, ratesMap) + '. For clarification call the sender ' + attributes.phone_number + '. Thank you. MiFedha';
+                                        const transferMessage2 = t('myAcc.sendNonLonsOptions.benefitChm.notifications.transferMessage', {
+                                          receiverName: ReceiverName,
+                                          senderName: names,
+                                          amount: formatAmountSync(amountInKES, userCurrencyKey, ratesMap),
+                                          senderPhone: attributes.phone_number
+                                        });
                                         try {
                                           const msgRes: any = await client.graphql({
                                             query: createMessages,
@@ -838,7 +866,7 @@ const SMASendNonLns = props => {
                                               query: sendNotification,
                                               variables: {
                                                 riderEmail: phonecontact,
-                                                title: 'MiFedha: Non-Loan Transfer',
+                                                title: t('myAcc.sendNonLonsOptions.benefitChm.notifications.nonLoanTransferTitle'),
                                                 body: transferMessage2
                                               }
                                             });
@@ -850,32 +878,34 @@ const SMASendNonLns = props => {
                                         setIsLoading(false);
                                       };
                                       if (userInfo.userId !== owner) {
-                                        Alert.alert("Please first create a main account");
+                                        Alert.alert(t('myAcc.sendNonLonsOptions.benefitChm.alerts.createMainAccount'));
                                         return;
                                       } else if (usrAcActvStts !== "AccountActive") {
-                                        Alert.alert('Sender account is inactive');
+                                        Alert.alert(t('myAcc.sendNonLonsOptions.benefitChm.alerts.senderInactive'));
                                       } else if (usrAcActvSttss !== "AccountActive") {
-                                        Alert.alert('Receiver account is inactive');
+                                        Alert.alert(t('myAcc.sendNonLonsOptions.benefitChm.alerts.receiverInactive'));
                                       } else if (SenderNatId === RecNatId) {
-                                        Alert.alert('You cannot Send money to Yourself');
+                                        Alert.alert(t('myAcc.sendNonLonsOptions.benefitChm.alerts.cannotSendSelf'));
                                       } else if (parseFloat(ttlDpstSMs) === 0 && parseFloat(TtlWthdrwnSMs) === 0) {
-                                        Alert.alert('Receiver ID be verified through deposit at MFNdogo');
+                                        Alert.alert(t('myAcc.sendNonLonsOptions.benefitChm.alerts.receiverVerifyDeposit'));
                                       } else if (parseFloat(RecUsrBal) + amountInKES > parseFloat(MaxAcBals)) {
-                                        Alert.alert('Receiver Call customer care to have wallet capacity adjusted');
+                                        Alert.alert(t('myAcc.sendNonLonsOptions.benefitChm.alerts.receiverWalletAdjust'));
                                       } else if (usrPW !== SnderPW) {
-                                        Alert.alert('Wrong password');
+                                        Alert.alert(t('myAcc.sendNonLonsOptions.benefitChm.alerts.wrongPassword'));
                                       } else if (userInfo.userId !== SenderSub) {
-                                        Alert.alert('Please send from your own  account');
+                                        Alert.alert(t('myAcc.sendNonLonsOptions.benefitChm.alerts.sendOwnAccount'));
                                       } else if (parseFloat(loanLimits) < amountInKES) {
-                                        Alert.alert('Call ' + CompPhoneContact + ' to have your send Amount limit adjusted');
+                                        Alert.alert(t('myAcc.sendNonLonsOptions.benefitChm.alerts.sendLimitAdjust', {
+                                          phone: CompPhoneContact
+                                        }));
                                       } else if (Lonees1.data.listSMLoansCovereds.items.length > 0 || Lonees3.data.listCovCreditSellers.items.length > 0 || Lonees5.data.listCvrdGroupLoans.items.length > 0) {
                                         SndChmMmbrMny();
                                       } else if (TotalTransacted > SenderUsrBal) {
-                                        Alert.alert('Insufficient funds');
+                                        Alert.alert(t('myAcc.sendNonLonsOptions.benefitChm.alerts.insufficientFunds'));
                                       } else if (!(await confirmSendMoney(
                                         formatAmountSync(amountInKES, userCurrencyKey, ratesMap),
                                         `${ReceiverName} (${RecNatId})`,
-                                        Desc?.trim() ? Desc.trim() : 'No description provided'
+                                        Desc?.trim() ? Desc.trim() : t('myAcc.sendNonLonsOptions.benefitChm.alerts.noDescription')
                                       ))) {
                                         setIsLoading(false);
                                         return;
@@ -884,12 +914,12 @@ const SMASendNonLns = props => {
                                       } else if (ReceiverbeneficiaryType === "Biz") {
                                         await sendSMNonLn1();
                                       } else {
-                                        Alert.alert("Please call customer care or update app");
+                                        Alert.alert(t('myAcc.sendNonLonsOptions.benefitChm.alerts.callCareOrUpdate'));
                                       }
                                     } catch (e) {
                                       if (e) {
                                         console.log(e);
-                                        Alert.alert("Retry or update app or call customer care");
+                                        Alert.alert(t('myAcc.sendNonLonsOptions.benefitChm.alerts.retryGeneric'));
                                       }
                                     }
                                     setIsLoading(false);
@@ -914,7 +944,7 @@ const SMASendNonLns = props => {
                           await fetchRecBenUsrDtls();
                         } catch (e) {
                           if (e) {
-                            Alert.alert("Error Fetching receiver data");
+                            Alert.alert(t('myAcc.sendNonLonsOptions.benefitChm.alerts.errorFetchReceiver'));
                             return;
                           }
                         }
@@ -923,7 +953,7 @@ const SMASendNonLns = props => {
                       await fetchRecUsrDtls();
                     } catch (e) {
                       if (e) {
-                        Alert.alert("Error Fetching Sender data");
+                        Alert.alert(t('myAcc.sendNonLonsOptions.benefitChm.alerts.errorFetchSender'));
                         return;
                       }
                     }
@@ -943,7 +973,7 @@ const SMASendNonLns = props => {
             } catch (e) {
               console.log(e);
               if (e) {
-                Alert.alert("Retry or update app or call customer care");
+                Alert.alert(t('myAcc.sendNonLonsOptions.benefitChm.alerts.retryGeneric'));
                 return;
               }
             }
@@ -953,7 +983,7 @@ const SMASendNonLns = props => {
         } catch (e) {
           console.log(e);
           if (e) {
-            Alert.alert("Retry or update app or call customer care");
+            Alert.alert(t('myAcc.sendNonLonsOptions.benefitChm.alerts.retryGeneric'));
             return;
           }
         }
@@ -963,7 +993,7 @@ const SMASendNonLns = props => {
     } catch (e) {
       console.log(e);
       if (e) {
-        Alert.alert("Retry or update app or call customer care");
+        Alert.alert(t('myAcc.sendNonLonsOptions.benefitChm.alerts.retryGeneric'));
         return;
       }
     }
@@ -1022,17 +1052,19 @@ const SMASendNonLns = props => {
                               <ScrollView>
           
                     <View style={styles.formContainer}>
-                      <TextInput placeholder="Receiver Email" value={RecNatId} onChangeText={setRecNatId} style={styles.input} editable={true}>                          
+                      <TextInput placeholder={t('myAcc.sendNonLonsOptions.benefitChm.placeholders.receiverEmail')} value={RecNatId} onChangeText={setRecNatId} style={styles.input} editable={true}>                          
                         </TextInput>
 
-                        <TextInput placeholder={`${currencySymbol} Amount`} value={amounts} onChangeText={handleAmountChange} onBlur={formatAmountOnBlur} style={styles.input} editable={true} keyboardType='decimal-pad'>                                                                         
+                        <TextInput placeholder={t('myAcc.sendNonLonsOptions.benefitChm.placeholders.amount', {
+                          currencySymbol
+                        })} value={amounts} onChangeText={handleAmountChange} onBlur={formatAmountOnBlur} style={styles.input} editable={true} keyboardType='decimal-pad'>                                                                         
                         </TextInput>   
 
-                        <TextInput placeholder="Description" value={Desc} onChangeText={setDesc} style={[styles.input, styles.descriptionInput]} editable={true} multiline={true}>                                                                         
+                        <TextInput placeholder={t('myAcc.sendNonLonsOptions.benefitChm.placeholders.description')} value={Desc} onChangeText={setDesc} style={[styles.input, styles.descriptionInput]} editable={true} multiline={true}>                                                                         
                         </TextInput>                     
                      
                      <View style={styles.passwordContainer}>
-                                                                   <TextInput placeholder="My Main Account Password" style={styles.passwordInput} value={SnderPW} onChangeText={setSnderPW} secureTextEntry={!isPasswordVisible} placeholderTextColor="#ccc" />
+                                                                   <TextInput placeholder={t('myAcc.sendNonLonsOptions.benefitChm.placeholders.password')} style={styles.passwordInput} value={SnderPW} onChangeText={setSnderPW} secureTextEntry={!isPasswordVisible} placeholderTextColor="#ccc" />
                                                                  <TouchableOpacity onPress={() => setIsPasswordVisible(!isPasswordVisible)}>
                                                                 <Ionicons name={isPasswordVisible ? 'eye' : 'eye-off'} size={24} color="gray" />
                                                                  </TouchableOpacity>
@@ -1040,7 +1072,7 @@ const SMASendNonLns = props => {
                        
                                                                 
                     <TouchableOpacity onPress={fetchCvLnSM} style={styles.button}>
-                      {isLoading ? <ActivityIndicator color="#fff" /> : <Text style={styles.locationText}>Submit</Text>}
+                      {isLoading ? <ActivityIndicator color="#fff" /> : <Text style={styles.locationText}>{t('myAcc.sendNonLonsOptions.benefitChm.labels.submit')}</Text>}
                                             </TouchableOpacity>
                                           </View>
                                         </ScrollView>

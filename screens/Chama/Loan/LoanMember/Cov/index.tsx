@@ -11,9 +11,11 @@ import { getCurrentUser, fetchUserAttributes } from 'aws-amplify/auth';
 import { useExchange } from '../../../../../src/contexts/ExchangeContext';
 import { formatAmountSync } from '../../../../../src/utils/exchange';
 import { nationalityToCode } from '../../../../../src/utils/nationalityToCode';
+import { useTranslation } from 'react-i18next';
 const client = generateClient();
 
 const ChmCovLns = () => {
+  const { t } = useTranslation();
   const { ratesMap } = useExchange();
   const [state, setState] = useState({
     ChmPhn: '',
@@ -47,7 +49,7 @@ const ChmCovLns = () => {
       return result.data;
     } catch (e) {
       console.log(e);
-      Alert.alert('Error! Access denied!');
+      Alert.alert(t('chama.loan.loanMember.cov.alerts.accessDenied'));
       setField('isLoading', false);
       throw e;
     }
@@ -89,7 +91,7 @@ const ChmCovLns = () => {
       });
       setUserNationality(senderAccount?.nationality || null);
       if (state.SnderPW !== senderAccount.pw) {
-        Alert.alert('Wrong password');
+        Alert.alert(t('chama.loan.loanMember.cov.alerts.wrongPassword'));
         setField('isLoading', false);
         return;
       }
@@ -124,22 +126,22 @@ const ChmCovLns = () => {
         nationalid: group.BankAdminAcNu
       });
       if (status === 'Approved') {
-        Alert.alert('Loan already granted');
+        Alert.alert(t('chama.loan.loanMember.cov.alerts.alreadyGranted'));
         setField('isLoading', false);
         return;
       }
       if (status !== 'Cleared') {
-        Alert.alert('Loan not yet cleared by Bank Admin');
+        Alert.alert(t('chama.loan.loanMember.cov.alerts.notCleared'));
         setField('isLoading', false);
         return;
       }
       if (state.MmbrId === chamaPhone) {
-        Alert.alert('You cannot Loan Yourself');
+        Alert.alert(t('chama.loan.loanMember.cov.alerts.cannotLoanSelf'));
         setField('isLoading', false);
         return;
       }
       if (recAccount.acStatus !== 'AccountActive') {
-        Alert.alert('Receiver account inactive');
+        Alert.alert(t('chama.loan.loanMember.cov.alerts.receiverInactive'));
         setField('isLoading', false);
         return;
       }
@@ -304,7 +306,17 @@ const ChmCovLns = () => {
         variables: {
           input: {
             senderEmail: loaneeEmail,
-            messageBody: `You have received a loan from ${group.grpName} of ${formatMoney(amountKes)} repayable as ${formatMoney(totalAmount)} at an interest of ${formatMoney(repaymentAmountKes)} after ${repaymentPeriod} days. The transaction fees were ${formatMoney(transFee)} and advocate fees of ${formatMoney(ttlCovFeeAmount)}. The installment is ${formatMoney(installmentAmountKes)} payable every ${paymentFrequency} days. The money has been credited to your main account.`
+            messageBody: t('chama.loan.loanMember.cov.notifications.message', {
+              groupName: group.grpName,
+              amount: formatMoney(amountKes),
+              totalAmount: formatMoney(totalAmount),
+              interestAmount: formatMoney(repaymentAmountKes),
+              repaymentPeriod,
+              transactionFee: formatMoney(transFee),
+              advocateFee: formatMoney(ttlCovFeeAmount),
+              installmentAmount: formatMoney(installmentAmountKes),
+              paymentFrequency
+            })
           }
         }
       });
@@ -312,11 +324,26 @@ const ChmCovLns = () => {
         query: sendNotification,
         variables: {
           riderEmail: loaneeEmail,
-          title: "MiFedha: New Loan",
-          body: `You have received a loan from ${group.grpName} of ${formatMoney(amountKes)} repayable as ${formatMoney(totalAmount)} at an interest of ${formatMoney(repaymentAmountKes)} after ${repaymentPeriod} days. The installment is ${formatMoney(installmentAmountKes)} payable every ${paymentFrequency} days. The transaction fees were ${formatMoney(transFee)} and advocate fees of ${formatMoney(ttlCovFeeAmount)}. The money has been credited to your main account.`
+          title: t('chama.loan.loanMember.cov.notifications.title'),
+          body: t('chama.loan.loanMember.cov.notifications.message', {
+            groupName: group.grpName,
+            amount: formatMoney(amountKes),
+            totalAmount: formatMoney(totalAmount),
+            interestAmount: formatMoney(repaymentAmountKes),
+            repaymentPeriod,
+            transactionFee: formatMoney(transFee),
+            advocateFee: formatMoney(ttlCovFeeAmount),
+            installmentAmount: formatMoney(installmentAmountKes),
+            paymentFrequency
+          })
         }
       });
-      Alert.alert(`Success. Transaction fee: ${formatMoney(transFee)}${advLicNo !== 'None' ? ` . Advocate fee: ${formatMoney(ttlCovFeeAmount)}` : ''}`);
+      Alert.alert(advLicNo !== 'None' ? t('chama.loan.loanMember.cov.alerts.successWithAdv', {
+        transFee: formatMoney(transFee),
+        advFee: formatMoney(ttlCovFeeAmount)
+      }) : t('chama.loan.loanMember.cov.alerts.successNoAdv', {
+        transFee: formatMoney(transFee)
+      }));
       setField('amount', '');
       setField('AmtExp', '');
       setField('SnderPW', '');
@@ -338,14 +365,14 @@ const ChmCovLns = () => {
       
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerText}>Chama Covered Loans</Text>
-        <Text style={styles.subHeaderText}>Enter your password to approve loan</Text>
+        <Text style={styles.headerText}>{t('chama.loan.loanMember.cov.labels.header')}</Text>
+        <Text style={styles.subHeaderText}>{t('chama.loan.loanMember.cov.labels.subHeader')}</Text>
       </View>
 
       {/* Password Input Card */}
       <View style={styles.inputCard}>
-        <Text style={styles.inputLabel}>Admin Password</Text>
-      <TextInput placeholder="Enter password" value={state.SnderPW} secureTextEntry={!showPassword} onChangeText={text => setField('SnderPW', text)} // ✅ fixed
+        <Text style={styles.inputLabel}>{t('chama.loan.loanMember.cov.labels.adminPassword')}</Text>
+      <TextInput placeholder={t('chama.loan.loanMember.cov.placeholders.password')} value={state.SnderPW} secureTextEntry={!showPassword} onChangeText={text => setField('SnderPW', text)} // ✅ fixed
         style={styles.input} editable={!state.isLoading} // ✅ access isLoading from state
         />
 
@@ -366,7 +393,7 @@ const ChmCovLns = () => {
           x: 1,
           y: 0
         }} style={styles.buttonGradient}>
-    <Text style={styles.buttonText}>Click to Loan</Text>
+    <Text style={styles.buttonText}>{t('chama.loan.loanMember.cov.labels.loanButton')}</Text>
     {state.isLoading && <ActivityIndicator size="small" color="#fff" style={{
             marginLeft: 10
           }} />}

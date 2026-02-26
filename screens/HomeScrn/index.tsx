@@ -17,6 +17,7 @@ const {
 const isCompact = height < 780;
 const client = generateClient();
 const HomeScreen = () => {
+    const { t } = require('react-i18next').useTranslation();
   const [alertMsg, setAlertMsg] = useState("");
   const [Url, setUrl] = useState("");
   const [Url4, setUrl4] = useState("");
@@ -280,7 +281,7 @@ const HomeScreen = () => {
               <LinearGradient colors={['#72ebd8', '#34a4a1']} style={styles.sideButton}>
                 <TouchableOpacity style={styles.sideButton} onPress={() => navigateTo('ViewSmAcs')}>
                   <MaterialCommunityIcons name="eye" size={24} color="#ffffff" style={styles.sideButtonIcon} />
-                  <Text style={styles.sideButtonText}>View{"\n"}Account</Text>
+                  <Text style={styles.sideButtonText}>{t('HomeScrn.labels.viewAccount')}</Text>
                 </TouchableOpacity>
               </LinearGradient>
             </View>
@@ -291,7 +292,7 @@ const HomeScreen = () => {
             <LinearGradient colors={['#72ebd8', '#34a4a1']} style={styles.quickRatesButton}>
               <TouchableOpacity style={styles.quickRatesButton} onPress={() => navigateTo('UpdateExRates')}>
                 <FontAwesome name="exchange" size={16} color="#ffffff" style={styles.quickRatesIcon} />
-                <Text style={styles.quickRatesButtonText}>View Rates</Text>
+                <Text style={styles.quickRatesButtonText}>{t('HomeScrn.labels.viewRates')}</Text>
               </TouchableOpacity>
             </LinearGradient>
           </View>
@@ -299,7 +300,7 @@ const HomeScreen = () => {
           {/* ================= QUOTE SECTION ================= */}
           <LinearGradient colors={['#e58d29', '#f3c642']} style={styles.quoteContainer}>
             <Pressable style={styles.quotePressable} onPress={() => Linking.openURL(Url)}>
-              <Text style={styles.quoteText}>We are Humans and Being Humane is our Business!</Text>
+              <Text style={styles.quoteText}>{t('HomeScrn.labels.weAreHumans')}</Text>
               <FontAwesome name="globe" size={24} color="white" style={styles.globeIcon} />
             </Pressable>
           </LinearGradient>
@@ -308,7 +309,7 @@ const HomeScreen = () => {
           <View style={styles.buttonContainer2}>
             <LinearGradient colors={['#72ebd8', '#34a4a1']} style={styles.mainButton2}>
               <TouchableOpacity style={styles.mainButton2} onPress={() => navigateTo('COMB')}>
-                <Text style={styles.mainButtonText}>Consume On My Bill (COMB)</Text>
+                <Text style={styles.mainButtonText}>{t('HomeScrn.labels.comb')}</Text>
               </TouchableOpacity>
             </LinearGradient>
           </View>
@@ -316,15 +317,15 @@ const HomeScreen = () => {
           {/* ================= PRODUCTS SECTION ================= */}
           <View style={styles.productContainer}>
             <TouchableOpacity style={styles.productButton} onPress={() => navigateTo('LnsScreen')}>
-              <Text style={styles.productButtonText}>Pal-Pal Products</Text>
+              <Text style={styles.productButtonText}>{t('HomeScrn.labels.palPalProducts')}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.productButton} onPress={() => navigateTo('ChamaScreen')}>
-              <Text style={styles.productButtonText}>Chama Products</Text>
+              <Text style={styles.productButtonText}>{t('HomeScrn.labels.chamaProducts')}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.productButton} onPress={() => navigateTo('CredSlsScreen')}>
-              <Text style={styles.productButtonText}>Business Products</Text>
+              <Text style={styles.productButtonText}>{t('HomeScrn.labels.businessProducts')}</Text>
             </TouchableOpacity>
           </View>
 

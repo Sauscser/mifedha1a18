@@ -12,6 +12,7 @@ import SignInBankAdm from "../../screens/MFBankAdmin/SignInAdm";
 import MFSetting from '../../screens/Settings/SignIn';
 import Ref from "../../screens/Settings/Reference";
 import MFBankAdmin from "../../screens/MFBankAdmin";
+import { useTranslation } from 'react-i18next';
 
 import GlobalHeader from '../../src/componentx/GlobalHeader';
 
@@ -34,25 +35,52 @@ const RedirectToHome = ({ navigation, route }: any) => {
   return null;
 };
 
-const DrawerScreens = ({ user, signOut }: any) => (
-  <Drawer.Navigator
+const DrawerScreens = ({ user, signOut }: any) => {
+  const { t } = useTranslation();
+  // Helper for MiFedha brand translation (character-by-character)
+  // Helper for MiFedha brand translation (character-by-character)
+  const mifedhaBrand = () => {
+    const chars = ['m','i','f','e','d','h','a'];
+    const map = t('labels.mifedha', { returnObjects: true }) as Record<string, string>;
+    return chars.map(c => map[c] || c).join('');
+  };
+  // Helper for MF only
+  const mfShort = () => {
+    const map = t('labels.mifedha', { returnObjects: true }) as Record<string, string>;
+    return (map['m'] || 'M') + (map['f'] || 'F');
+  };
+  // Helper for numerals
+  const numeral = (n: number) => {
+    const nums = t('numerals', { returnObjects: true }) as Record<string, string>;
+    return nums[String(n)] || String(n);
+  };
+
+  return <Drawer.Navigator
     screenOptions={{
       headerShown: true,
       header: () => <GlobalHeader user={user} signOut={signOut} />,
-      safeAreaInsets: { top: 60, bottom: 0, left: 0, right: 0 },
+      drawerType: 'back',
+      edgeWidth: 40, // allow swipe to open
+      drawerStyle: {
+        width: 260, // restore normal drawer width
+        shadowColor: 'transparent',
+        elevation: 0,
+        borderRightWidth: 0,
+        backgroundColor: '#fff',
+      },
     }}
   >
-    <Drawer.Screen name="Homes" component={BotTab} />
-    <Drawer.Screen name="MiFedha Ndogos" component={KFNdogoScreen} />
-    <Drawer.Screen name="MiFedha Kubwa" component={MFKw} />
-    <Drawer.Screen name="MiFedha Advocate" component={AdvSgnIn} />
-    <Drawer.Screen name="MiFedha Admin 2" component={MFAdmSgnIn} />
-    <Drawer.Screen name="Bank Admin" component={SignInBankAdm} />
-    <Drawer.Screen name="MFBankAdmin" component={MFBankAdmin} />
-    <Drawer.Screen name="MiFedha Admin 1" component={MFSetting} />
-    <Drawer.Screen name="Reference" component={Ref} />
-  </Drawer.Navigator>
-);
+    <Drawer.Screen name="Homes" component={BotTab} options={{ drawerLabel: t('appShell.drawer.homes'), title: t('appShell.drawer.homes') }} />
+    <Drawer.Screen name="MiFedha Ndogos" component={KFNdogoScreen} options={{ drawerLabel: mfShort() + ' ' + t('labels.ndogo'), title: mfShort() + ' ' + t('labels.ndogo') }} />
+    <Drawer.Screen name="MiFedha Kubwa" component={MFKw} options={{ drawerLabel: mfShort() + ' ' + t('labels.kubwa'), title: mfShort() + ' ' + t('labels.kubwa') }} />
+    <Drawer.Screen name="MiFedha Advocate" component={AdvSgnIn} options={{ drawerLabel: mfShort() + ' ' + t('labels.advocate'), title: mfShort() + ' ' + t('labels.advocate') }} />
+    <Drawer.Screen name="MiFedha Admin 2" component={MFAdmSgnIn} options={{ drawerLabel: mfShort() + ' ' + t('labels.admin', 'Admin') + ' ' + numeral(2), title: mfShort() + ' ' + t('labels.admin', 'Admin') + ' ' + numeral(2) }} />
+    <Drawer.Screen name="Bank Admin" component={SignInBankAdm} options={{ drawerLabel: t('labels.bank', 'Bank') + t('labels.admin', 'Admin'), title: t('labels.bank', 'Bank') + t('labels.admin', 'Admin') }} />
+    <Drawer.Screen name="MFBankAdmin" component={MFBankAdmin} options={{ drawerLabel: mfShort() + t('labels.bank', 'Bank') + t('labels.admin', 'Admin'), title: mfShort() + t('labels.bank', 'Bank') + t('labels.admin', 'Admin') }} />
+    <Drawer.Screen name="MiFedha Admin 1" component={MFSetting} options={{ drawerLabel: mfShort() + ' ' + t('labels.admin', 'Admin') + ' ' + numeral(1), title: mfShort() + ' ' + t('labels.admin', 'Admin') + ' ' + numeral(1) }} />
+    <Drawer.Screen name="Reference" component={Ref} options={{ drawerLabel: t('appShell.drawer.reference'), title: t('appShell.drawer.reference') }} />
+  </Drawer.Navigator>;
+};
 
 const RootNavigator: React.FC<RootNavProps> = ({ colorScheme, user, signOut }) => {
   return (

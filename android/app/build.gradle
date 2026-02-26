@@ -83,15 +83,15 @@ def jscFlavor = 'io.github.react-native-community:jsc-android:2026004.+'
 
 android {
     ndkVersion "27.1.12297006"
-    buildToolsVersion "35.0.0"
+    buildToolsVersion "36.0.0"
 
-    compileSdk 35
+    compileSdk 36
 
     namespace "com.MiFedhaLimited.MiFedha"
     defaultConfig {
         applicationId "com.MiFedhaLimited.MiFedha"
         minSdkVersion 24
-        targetSdkVersion 35
+        targetSdkVersion 36
         versionCode 165
         versionName "1.0.0"
 
