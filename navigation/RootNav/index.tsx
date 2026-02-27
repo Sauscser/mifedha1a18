@@ -15,6 +15,7 @@ import MFBankAdmin from "../../screens/MFBankAdmin";
 import { useTranslation } from 'react-i18next';
 
 import GlobalHeader from '../../src/componentx/GlobalHeader';
+import { drawerTranslations } from '../../src/i18n/drawerTranslations';
 
 const Drawer = createDrawerNavigator();
 
@@ -36,7 +37,9 @@ const RedirectToHome = ({ navigation, route }: any) => {
 };
 
 const DrawerScreens = ({ user, signOut }: any) => {
-  const { t } = useTranslation();
+  const { i18n } = useTranslation();
+  const lang = i18n.language.split('-')[0];
+  const drawer = drawerTranslations[lang] || drawerTranslations.en;
   // Helper for MiFedha brand translation (character-by-character)
   // Helper for MiFedha brand translation (character-by-character)
   const mifedhaBrand = () => {
@@ -70,15 +73,15 @@ const DrawerScreens = ({ user, signOut }: any) => {
       },
     }}
   >
-    <Drawer.Screen name="Homes" component={BotTab} options={{ drawerLabel: t('appShell.drawer.homes'), title: t('appShell.drawer.homes') }} />
-    <Drawer.Screen name="MiFedha Ndogos" component={KFNdogoScreen} options={{ drawerLabel: mfShort() + ' ' + t('labels.ndogo'), title: mfShort() + ' ' + t('labels.ndogo') }} />
-    <Drawer.Screen name="MiFedha Kubwa" component={MFKw} options={{ drawerLabel: mfShort() + ' ' + t('labels.kubwa'), title: mfShort() + ' ' + t('labels.kubwa') }} />
-    <Drawer.Screen name="MiFedha Advocate" component={AdvSgnIn} options={{ drawerLabel: mfShort() + ' ' + t('labels.advocate'), title: mfShort() + ' ' + t('labels.advocate') }} />
-    <Drawer.Screen name="MiFedha Admin 2" component={MFAdmSgnIn} options={{ drawerLabel: mfShort() + ' ' + t('labels.admin', 'Admin') + ' ' + numeral(2), title: mfShort() + ' ' + t('labels.admin', 'Admin') + ' ' + numeral(2) }} />
-    <Drawer.Screen name="Bank Admin" component={SignInBankAdm} options={{ drawerLabel: t('labels.bank', 'Bank') + t('labels.admin', 'Admin'), title: t('labels.bank', 'Bank') + t('labels.admin', 'Admin') }} />
-    <Drawer.Screen name="MFBankAdmin" component={MFBankAdmin} options={{ drawerLabel: mfShort() + t('labels.bank', 'Bank') + t('labels.admin', 'Admin'), title: mfShort() + t('labels.bank', 'Bank') + t('labels.admin', 'Admin') }} />
-    <Drawer.Screen name="MiFedha Admin 1" component={MFSetting} options={{ drawerLabel: mfShort() + ' ' + t('labels.admin', 'Admin') + ' ' + numeral(1), title: mfShort() + ' ' + t('labels.admin', 'Admin') + ' ' + numeral(1) }} />
-    <Drawer.Screen name="Reference" component={Ref} options={{ drawerLabel: t('appShell.drawer.reference'), title: t('appShell.drawer.reference') }} />
+    <Drawer.Screen name="Homes" component={BotTab} options={{ drawerLabel: drawer.homes, title: drawer.homes }} />
+    <Drawer.Screen name="MiFedha Ndogos" component={KFNdogoScreen} options={{ drawerLabel: drawer.ndogo, title: drawer.ndogo }} />
+    <Drawer.Screen name="MiFedha Kubwa" component={MFKw} options={{ drawerLabel: drawer.kubwa, title: drawer.kubwa }} />
+    <Drawer.Screen name="MiFedha Advocate" component={AdvSgnIn} options={{ drawerLabel: drawer.advocate, title: drawer.advocate }} />
+    <Drawer.Screen name="MiFedha Admin 2" component={MFAdmSgnIn} options={{ drawerLabel: drawer.admin2, title: drawer.admin2 }} />
+    <Drawer.Screen name="Bank Admin" component={SignInBankAdm} options={{ drawerLabel: drawer.bankAdmin, title: drawer.bankAdmin }} />
+    <Drawer.Screen name="BankAdmin" component={MFBankAdmin} options={{ drawerLabel: drawer.bankAdmin, title: drawer.bankAdmin }} />
+    <Drawer.Screen name="MiFedha Admin 1" component={MFSetting} options={{ drawerLabel: drawer.admin1, title: drawer.admin1 }} />
+    <Drawer.Screen name="Reference" component={Ref} options={{ drawerLabel: drawer.reference, title: drawer.reference }} />
   </Drawer.Navigator>;
 };
 
