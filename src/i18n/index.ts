@@ -1,12 +1,15 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Localization from 'expo-localization';
 import i18n from 'i18next';
+console.log('[i18n] instance imported:', i18n); // DEBUG: log i18n instance
 import { initReactI18next } from 'react-i18next';
 import { I18n as AmplifyI18n } from 'aws-amplify/utils';
 import * as Updates from 'expo-updates';
 import { I18nManager } from 'react-native';
-import { resources, SUPPORTED_LANGUAGES, SupportedLanguage } from './resources';
+import { resources, SUPPORTED_LANGUAGES } from './resources';
 import { amplifyCustomVocabularies } from './amplifyVocabularies';
+
+type SupportedLanguage = typeof SUPPORTED_LANGUAGES[number];
 
 const STORAGE_KEY = 'app_language';
 const RTL_LANGUAGES = new Set<SupportedLanguage>(['ar', 'he']);
@@ -53,6 +56,8 @@ void i18n.use(initReactI18next).init({
   lng: deviceLanguage,
   fallbackLng: 'en',
   interpolation: { escapeValue: false }
+}).then(() => {
+  console.log('[i18n] initialized with language:', i18n.language);
 });
 
 syncAmplifyLanguage(deviceLanguage);

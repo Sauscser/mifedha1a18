@@ -10,7 +10,10 @@ import useColorScheme from './hooks/useColorScheme';
 import RootNav from './navigation/RootNav';
 import { ExchangeProvider } from './src/contexts/ExchangeContext';
 import { getCurrentLanguage, setAppLanguage } from './src/i18n';
-import { SUPPORTED_LANGUAGES, SupportedLanguage } from './src/i18n/resources';
+import { SUPPORTED_LANGUAGES } from './src/i18n/resources';
+import { I18nextProvider } from 'react-i18next';
+import i18n from './src/i18n';
+type SupportedLanguage = typeof SUPPORTED_LANGUAGES[number];
 
 const getDynamicBottomMargin = () => {
   // 2cm in pixels: 2 * 10mm = 20mm; 1 inch = 25.4mm
@@ -228,8 +231,10 @@ export default function App() {
   const [language, setLanguage] = useState<SupportedLanguage>(getCurrentLanguage());
 
   return (
-    <Authenticator.Provider>
-      <AppLayout language={language} setLanguage={setLanguage} />
-    </Authenticator.Provider>
+    <I18nextProvider i18n={i18n}>
+      <Authenticator.Provider>
+        <AppLayout language={language} setLanguage={setLanguage} />
+      </Authenticator.Provider>
+    </I18nextProvider>
   );
 }

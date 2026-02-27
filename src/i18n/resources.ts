@@ -26,7 +26,6 @@ export const resources = {
           advocate: 'Money Advocate',
           admin2: 'Money Admin 2',
           bankAdmin: 'Money Bank Admin',
-            bankAdmin: 'Money Bank Admin',
           admin1: 'Money Admin 1'
         }
       },
@@ -64,7 +63,6 @@ export const resources = {
           advocate: 'محامي المال',
           admin2: 'مسؤول المال 2',
           bankAdmin: 'مسؤول بنك المال',
-            bankAdmin: 'مسؤول بنك المال',
           admin1: 'مسؤول المال 1'
         }
       },
@@ -102,7 +100,6 @@ export const resources = {
           advocate: '资金倡导者',
           admin2: '资金管理员 2',
           bankAdmin: '资金银行管理员',
-            bankAdmin: '资金银行管理员',
           admin1: '资金管理员 1'
         }
       },
@@ -136,7 +133,6 @@ export const resources = {
           advocate: 'Адвокат денег',
           admin2: 'Админ денег 2',
           bankAdmin: 'Админ банка денег',
-            bankAdmin: 'Админ банка денег',
           admin1: 'Админ денег 1'
         }
       },
@@ -174,7 +170,6 @@ export const resources = {
           advocate: 'Wakili wa Fedha',
           admin2: 'Msimamizi wa Fedha 2',
           bankAdmin: 'Msimamizi wa Benki ya Fedha',
-            bankAdmin: 'Msimamizi wa Benki ya Fedha',
           admin1: 'Msimamizi wa Fedha 1'
         }
       },
@@ -212,7 +207,6 @@ export const resources = {
           advocate: 'Avocat de l’Argent',
           admin2: 'Admin d’Argent 2',
           bankAdmin: 'Admin Banque d’Argent',
-            bankAdmin: 'Admin Banque d’Argent',
           admin1: 'Admin d’Argent 1'
         }
       },
@@ -246,7 +240,6 @@ export const resources = {
           advocate: 'Abogado de Dinero',
           admin2: 'Admin de Dinero 2',
           bankAdmin: 'Admin Banco de Dinero',
-            bankAdmin: 'Admin Banco de Dinero',
           admin1: 'Admin de Dinero 1'
         }
       },
@@ -279,7 +272,6 @@ export const resources = {
           kubwa: 'Kubwa',
           advocate: 'Geldanwalt',
           admin2: 'Geldadmin 2',
-          bankAdmin: 'Geldbankadmin',
           bankAdmin: 'Geldbankadmin',
           admin1: 'Geldadmin 1'
         }
@@ -314,7 +306,6 @@ export const resources = {
           advocate: 'Advogado de Dinheiro',
           admin2: 'Admin de Dinheiro 2',
           bankAdmin: 'Admin Banco de Dinheiro',
-          bankAdmin: 'Admin Banco de Dinheiro',
           admin1: 'Admin de Dinheiro 1'
         }
       },
@@ -348,7 +339,6 @@ export const resources = {
           advocate: 'Avvocato dei Soldi',
           admin2: 'Admin dei Soldi 2',
           bankAdmin: 'Admin Banca dei Soldi',
-            bankAdmin: 'Admin Banca dei Soldi',
           admin1: 'Admin dei Soldi 1'
         }
       },
@@ -381,7 +371,6 @@ export const resources = {
           kubwa: 'קובה',
           advocate: 'עורך דין הכסף',
           admin2: 'מנהל הכסף 2',
-          bankAdmin: 'מנהל בנק הכסף',
           bankAdmin: 'מנהל בנק הכסף',
           admin1: 'מנהל הכסף 1'
         }
@@ -416,7 +405,6 @@ export const resources = {
           advocate: 'पैसे का वकील',
           admin2: 'पैसे का एडमिन 2',
           bankAdmin: 'पैसे का बैंक एडमिन',
-          bankAdmin: 'पैसे का बैंक एडमिन',
           admin1: 'पैसे का एडमिन 1'
         }
       },
@@ -449,7 +437,6 @@ export const resources = {
           kubwa: 'ኩባ',
           advocate: 'ገንዘብ ጠበቃ',
           admin2: 'ገንዘብ አስተዳዳሪ 2',
-          bankAdmin: 'ገንዘብ ባንክ አስተዳዳሪ',
           bankAdmin: 'ገንዘብ ባንክ አስተዳዳሪ',
           admin1: 'ገንዘብ አስተዳዳሪ 1'
         }
