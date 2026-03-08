@@ -1,10 +1,15 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigation } from '@react-navigation/native';
 import { View, Text, ImageBackground, Pressable, FlatList, SafeAreaView, ScrollView, Dimensions } from 'react-native';
 import styles from './styles';
 import { LinearGradient } from 'expo-linear-gradient';
+import translations from './translation';
+import { useTranslation } from 'react-i18next';
 const MyAccount = props => {
   const navigation = useNavigation();
+  const { i18n } = useTranslation();
+  const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+  const t = translations[lang] || translations.en;
   const Section = ({
     title,
     options
@@ -82,37 +87,35 @@ const MyAccount = props => {
         y: 1
       }} style={styles.clientsPressableGradient}>
             
-        <Section title="Account" options={[
-        /*  { label: 'Deposit Money', onPress: DepositOptions, style: styles.ClientsPressables },
-        */
+        <Section title={t.account} options={[
         {
-          label: 'Register COMB Officer - Institution Owner',
+          label: t.registerAuditor,
           onPress: AddCOMBPersonel,
-          style: styles.ClientsPressables
+          style: styles.viewForClientsPressables
         }, {
-          label: 'Create COMB Contract - Funder',
+          label: t.createContract,
           onPress: CreateCOMBContract,
-          style: styles.ClientsPressables
+          style: styles.viewForClientsPressables
         }, {
-          label: 'Link Seller - Consumer',
+          label: t.linkSeller,
           onPress: Vw2LinkSeller,
-          style: styles.ClientsPressables
+          style: styles.viewForClientsPressables
         }, {
-          label: 'Generate COMB Voucher - Seller',
+          label: t.generateVoucher,
           onPress: Vw2GenerateVoucher,
-          style: styles.ClientsPressables
+          style: styles.viewForClientsPressables
         }, {
-          label: 'Approve COMB Voucher - Consumer',
+          label: t.approveVoucher,
           onPress: consumerApproveVoucher,
-          style: styles.ClientsPressables
+          style: styles.viewForClientsPressables
         }, {
-          label: 'Clear COMB Bills - Funder',
+          label: t.clearBills,
           onPress: FunderClearBill,
-          style: styles.ClientsPressables
+          style: styles.viewForClientsPressables
         }, {
-          label: 'Audit COMB Contracts - Auditor',
+          label: t.auditContracts,
           onPress: Auditor,
-          style: styles.ClientsPressables
+          style: styles.viewForClientsPressables
         }]} />
 
       </LinearGradient>

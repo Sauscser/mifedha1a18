@@ -198,7 +198,7 @@ const BLChmCovLoanee = () => {
                 query: sendNotification,
                 variables: {
                   riderEmail: loanee.awsemail,
-                  title: 'MiFedha: Group Loan Penalty',
+                  title: 'NiSenti: Group Loan Penalty',
                   body: `You have been penalised for your loan of ID ${route.params.loanID} by ${grpName}. Total repayable: Ksh. ${formatAmountSync(Math.floor(LonBal5), userCode, ratesMap)}.`
                 }
               });
@@ -265,7 +265,7 @@ const BLChmCovLoanee = () => {
           variables: {
             input: {
               senderEmail: loaneePhn,
-              messageBody: `MiFedha: Hi ${loaneeName}, your loan of ID ${route.params.loanID} has been blacklisted by ${grpName}. Total repayable: Ksh. ${formatAmountSync(Math.floor(LonBal4), userCode, ratesMap)}.`
+              messageBody: `NiSenti: Hi ${loaneeName}, your loan of ID ${route.params.loanID} has been blacklisted by ${grpName}. Total repayable: Ksh. ${formatAmountSync(Math.floor(LonBal4), userCode, ratesMap)}.`
             }
           }
         });
@@ -273,7 +273,7 @@ const BLChmCovLoanee = () => {
           query: sendNotification,
           variables: {
             riderEmail: loaneePhn,
-            title: 'MiFedha: Loan Blacklisted',
+            title: 'NiSenti: Loan Blacklisted',
             body: `Hi ${loaneeName}, your loan of ID ${route.params.loanID} has been blacklisted by ${grpName}. Total repayable: Ksh. ${formatAmountSync(Math.floor(LonBal4), userCode, ratesMap)}.`
           }
         });
@@ -312,7 +312,7 @@ const BLChmCovLoanee = () => {
         });
         Alert.alert(`${grpName}, you have penalised after blacklisting ${loaneeName}`);
         
-        const notificationBody = `Hi ${loaneeName}, your loan of ID ${route.params.loanID} has been penalised after blacklisting by ${grpName}. Total repayable: ${formatAmountSync(Math.floor(LonBal5), userCode, ratesMap)}.`;
+        const notificationBody = `NiSenti: Hi ${loaneeName}, your loan of ID ${route.params.loanID} has been penalised after blacklisting by ${grpName}. Total repayable: ${formatAmountSync(Math.floor(LonBal5), userCode, ratesMap)}.`;
         
         await client.graphql({
           query: createMessages,
@@ -328,7 +328,7 @@ const BLChmCovLoanee = () => {
           query: sendNotification,
           variables: {
             riderEmail: loaneePhn,
-            title: 'MiFedha: Loan Blacklist Penalty',
+            title: 'NiSenti: Loan Blacklist Penalty',
             body: notificationBody
           }
         });

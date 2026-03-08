@@ -52,7 +52,7 @@ const AdminWthdwl = props => {
                 query: createMFBankWithdrawals,
                 variables: {
                   input: {
-                    bankAdmnId: "MiFedha Agent",
+                    bankAdmnId: "NiSenti Agent",
                     bankName: "Aquity",
                     bkAcNo: BankAcNu,
                     owner: userInfo.userId,

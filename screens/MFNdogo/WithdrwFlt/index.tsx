@@ -142,7 +142,7 @@ const MFNWthdwFlt = props => {
             return;
           }
           if (UsrPWd !== pws) {
-            Alert.alert("MFNdogo credentials are wrong; access denied");
+            Alert.alert("NSNdogo credentials are wrong; access denied");
             return;
           } else {
             await CrtMFNFltWthdrwls();
@@ -206,7 +206,7 @@ const MFNWthdwFlt = props => {
 
           <View style={styles.sendAmtView}>
             <TextInput placeholder="+2547xxxxxxxx" value={MFKPhn} onChangeText={setMFKPhn} style={styles.sendAmtInput} editable={true}></TextInput>
-            <Text style={styles.sendAmtText}>MFNdogo Phone</Text>
+            <Text style={styles.sendAmtText}>NSNdogo Phone</Text>
           </View>
 
           <View style={styles.sendAmtView}>
@@ -216,7 +216,7 @@ const MFNWthdwFlt = props => {
 
           <View style={styles.sendAmtView}>
             <TextInput value={UsrPWd} onChangeText={setUsrPWd} secureTextEntry={true} style={styles.sendAmtInput} editable={true}></TextInput>
-            <Text style={styles.sendAmtText}>MFN PW</Text>
+            <Text style={styles.sendAmtText}>NSNdogo PW</Text>
           </View>
 
           <TouchableOpacity onPress={fetchAcDtls} style={styles.sendAmtButton}>

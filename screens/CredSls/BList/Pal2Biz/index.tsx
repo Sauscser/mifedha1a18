@@ -110,7 +110,7 @@ const BLCovCredByr = () => {
         Alert.alert(`${loanerName}, you have Penalised ${loaneeName}`);
 
         const formattedLonBal5 = formatAmountSync(LonBal5, userCode, ratesMap);
-        const blCredMsg1 = `MiFedha. Hi ${loaneeName}, your loan of ID ${routeParams.loanID} has been Penalised by ${loanerName}. Total repayable: ${formattedLonBal5}.`;
+        const blCredMsg1 = `NiSenti. Hi ${loaneeName}, your loan of ID ${routeParams.loanID} has been Penalised by ${loanerName}. Total repayable: ${formattedLonBal5}.`;
 
         try {
           const msgRes: any = await client.graphql({
@@ -120,7 +120,7 @@ const BLCovCredByr = () => {
           if (msgRes?.data?.createMessages) {
             await client.graphql({
               query: sendNotification,
-              variables: { riderEmail: receiverEmail, title: 'MiFedha: Credit Loan Penalised', body: blCredMsg1 }
+              variables: { riderEmail: receiverEmail, title: 'NiSenti: Credit Loan Penalised', body: blCredMsg1 }
             });
           }
         } catch (notifErr) {
@@ -171,7 +171,7 @@ const BLCovCredByr = () => {
         Alert.alert(`${loanerName}, you have blacklisted ${loaneeName}`);
 
         const formattedLonBal4 = formatAmountSync(LonBal4, userCode, ratesMap);
-        const blCredMsg2 = `MiFedha. Hi ${loaneeName}, your loan of ID ${routeParams.loanID} has been blacklisted by ${loanerName}. Total repayable: ${formattedLonBal4}.`;
+        const blCredMsg2 = `NiSenti. Hi ${loaneeName}, your loan of ID ${routeParams.loanID} has been blacklisted by ${loanerName}. Total repayable: ${formattedLonBal4}.`;
 
         try {
           const msgRes: any = await client.graphql({
@@ -181,7 +181,7 @@ const BLCovCredByr = () => {
           if (msgRes?.data?.createMessages) {
             await client.graphql({
               query: sendNotification,
-              variables: { riderEmail: receiverEmail, title: 'MiFedha: Credit Loan Blacklisted', body: blCredMsg2 }
+              variables: { riderEmail: receiverEmail, title: 'NiSenti: Credit Loan Blacklisted', body: blCredMsg2 }
             });
           }
         } catch (notifErr) {
@@ -205,7 +205,7 @@ const BLCovCredByr = () => {
         Alert.alert(`${loanerName}, you have penalised after blacklisting ${loaneeName}`);
 
         const formattedLonBal5After = formatAmountSync(LonBal5, userCode, ratesMap);
-        const blCredMsg3 = `MiFedha. Hi ${loaneeName}, your loan of ID ${routeParams.loanID} has been Penalised after blacklisting by ${loanerName}. Total repayable: ${formattedLonBal5After}.`;
+        const blCredMsg3 = `NiSenti. Hi ${loaneeName}, your loan of ID ${routeParams.loanID} has been Penalised after blacklisting by ${loanerName}. Total repayable: ${formattedLonBal5After}.`;
 
         try {
           const msgRes: any = await client.graphql({
@@ -215,7 +215,7 @@ const BLCovCredByr = () => {
           if (msgRes?.data?.createMessages) {
             await client.graphql({
               query: sendNotification,
-              variables: { riderEmail: receiverEmail, title: 'MiFedha: Credit Loan Penalised', body: blCredMsg3 }
+              variables: { riderEmail: receiverEmail, title: 'NiSenti: Credit Loan Penalised', body: blCredMsg3 }
             });
           }
         } catch (notifErr) {

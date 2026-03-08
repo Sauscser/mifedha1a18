@@ -118,7 +118,7 @@ const CreateBiz = props => {
                   }
                 }
                 Alert.alert("Loan Request Successful");
-                const loanReqMsg5 = "MiFedha. " + name + ' has requested ' + ' your Business entity to loan goods worth ' + itemPrys + '. Please go to your MiFedha' + ' app to view the loan details and thereafter' + ' grant me the request. Thank you.';
+                const loanReqMsg5 = "NiSenti. " + name + ' has requested ' + ' your Business entity to loan goods worth ' + itemPrys + '. Please go to your NiSenti' + ' app to view the loan details and thereafter' + ' grant me the request. Thank you.';
                 try {
                   const msgRes = await client.graphql({
                     query: createMessages,
@@ -127,7 +127,7 @@ const CreateBiz = props => {
                   if (msgRes?.data?.createMessages) {
                     await client.graphql({
                       query: sendNotification,
-                      variables: { riderEmail: awsEmail, title: 'MiFedha: Credit Loan Request', body: loanReqMsg5 }
+                      variables: { riderEmail: awsEmail, title: 'NiSenti: Credit Loan Request', body: loanReqMsg5 }
                     });
                   }
                 } catch (notifErr) {
@@ -191,7 +191,7 @@ const CreateBiz = props => {
                       }
                     }
                     Alert.alert("Loan Request Successful");
-                    const loanReqMsg6 = 'MiFedha. Greetings! ' + 'We ' + name + ', the loanee and ' + busName + ', the Loaning Business humbly' + ' request that you witness our loan contract on MiFedha app amounting to ' + itemPrys + ' repayable with ' + lnPrsntg + '% interest by the end of ' + rpymntPrd + ' days. Default penalty is ' + MmbaID + '. You can reach my loaner through ' + awsEmail + '. You can also reach me through ' + phonecontacts + '. Thank you.';
+                    const loanReqMsg6 = 'NiSenti. Greetings! ' + 'We ' + name + ', the loanee and ' + busName + ', the Loaning Business humbly' + ' request that you witness our loan contract on NiSenti app amounting to ' + itemPrys + ' repayable with ' + lnPrsntg + '% interest by the end of ' + rpymntPrd + ' days. Default penalty is ' + MmbaID + '. You can reach my loaner through ' + awsEmail + '. You can also reach me through ' + phonecontacts + '. Thank you.';
                     try {
                       const msgRes = await client.graphql({
                         query: createMessages,
@@ -200,7 +200,7 @@ const CreateBiz = props => {
                       if (msgRes?.data?.createMessages) {
                         await client.graphql({
                           query: sendNotification,
-                          variables: { riderEmail: phonecontact, title: 'MiFedha: Witness Loan Contract', body: loanReqMsg6 }
+                          variables: { riderEmail: phonecontact, title: 'NiSenti: Witness Loan Contract', body: loanReqMsg6 }
                         });
                       }
                     } catch (notifErr) {

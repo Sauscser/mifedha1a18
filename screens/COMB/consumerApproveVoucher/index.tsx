@@ -8,6 +8,8 @@ import { createMessages, updateCombContractVoucher, sendNotification, updateSMAc
 import { useExchange } from '../../../src/contexts/ExchangeContext';
 import { formatAmountSync, convertKshToUserCurrency } from '../../../src/utils/exchange';
 import { nationalityToCode } from '../../../src/utils/nationalityToCode';
+import { useTranslation } from 'react-i18next';
+import translations from './translation';
 
 /* -------------------- GraphQL Client -------------------- */
 const client = generateClient();
@@ -19,62 +21,53 @@ const VoucherCard = ({
   onDecline,
   updatingId
 }: any) => {
+  const { i18n } = useTranslation();
+  const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+  const t = translations[lang] || translations.en;
   const isUpdating = updatingId === voucher.id;
   const { nationality, ratesMap } = useExchange();
   const sellerNat = voucher.sellerNationality || nationality;
   const funderNat = voucher.funderNationality || nationality;
   const consumerNat = voucher.consumerNationality || nationality;
-  
   const itemPrice = Number(voucher.itemPrice);
   const numItems = Number(voucher.numberOfItems);
   const totalPrice = itemPrice * numItems;
-  
   return <View style={styles.voucherCard}>
-      <Text style={{
-      fontWeight: 'bold',
-      marginBottom: 8
-    }}>
+      <Text style={{ fontWeight: 'bold', marginBottom: 8 }}>
         {voucher.itemName} ({voucher.itemBrand})
       </Text>
-      <Text>Specifications: {voucher.itemSpecifications || '-'}</Text>
-      
+      <Text>{t.specifications}: {voucher.itemSpecifications || '-'}</Text>
       {/* Multi-Currency Price Display */}
       <View style={{ marginVertical: 8, backgroundColor: '#f5f5f5', padding: 8, borderRadius: 4 }}>
-        <Text style={{ fontWeight: 'bold', marginBottom: 6 }}>💰 Price in Different Currencies:</Text>
-        <Text>🛒 Your Currency ({consumerNat}): {formatAmountSync(totalPrice, nationalityToCode(consumerNat), ratesMap || undefined)}</Text>
-        <Text>💳 Funder Currency ({funderNat}): {formatAmountSync(totalPrice, nationalityToCode(funderNat), ratesMap || undefined)}</Text>
-        <Text>🏪 Seller Currency ({sellerNat}): {formatAmountSync(totalPrice, nationalityToCode(sellerNat), ratesMap || undefined)}</Text>
+        <Text style={{ fontWeight: 'bold', marginBottom: 6 }}>💰 {t.priceInDifferentCurrencies}</Text>
+        <Text>🛒 {t.consumer} ({consumerNat}): {formatAmountSync(totalPrice, nationalityToCode(consumerNat), ratesMap || undefined)}</Text>
+        <Text>💳 {t.funder} ({funderNat}): {formatAmountSync(totalPrice, nationalityToCode(funderNat), ratesMap || undefined)}</Text>
+        <Text>🏪 {t.seller} ({sellerNat}): {formatAmountSync(totalPrice, nationalityToCode(sellerNat), ratesMap || undefined)}</Text>
       </View>
-      
-      <Text>Unit Price: {formatAmountSync(itemPrice, nationalityToCode(sellerNat), ratesMap || undefined)}</Text>
-      <Text>Number of Items: {numItems}</Text>
-
-      <Text style={{ marginTop: 8, fontWeight: 'bold' }}>Funder Details:</Text>
-      <Text>  Account: {voucher.funderAccount}</Text>
-      <Text>  Name: {voucher.funderName}</Text>
-      <Text>  Contact: {voucher.funderContact}</Text>
-      <Text>  Email: {voucher.funderEmail || '-'}</Text>
-
-      <Text style={{ marginTop: 8, fontWeight: 'bold' }}>Seller Details:</Text>
-      <Text>  Account: {voucher.sellerAccount}</Text>
-      <Text>  Name: {voucher.sellerName}</Text>
-      <Text>  Contact: {voucher.sellerContact}</Text>
-
+      <Text>{t.unitPrice}: {formatAmountSync(itemPrice, nationalityToCode(sellerNat), ratesMap || undefined)}</Text>
+      <Text>{t.numberOfItems}: {numItems}</Text>
+      <Text style={{ marginTop: 8, fontWeight: 'bold' }}>{t.funderDetails}:</Text>
+      <Text>  {t.funderAccount}: {voucher.funderAccount}</Text>
+      <Text>  {t.funderName}: {voucher.funderName}</Text>
+      <Text>  {t.funderContact}: {voucher.funderContact}</Text>
+      <Text>  {t.funderEmail}: {voucher.funderEmail || '-'}</Text>
+      <Text style={{ marginTop: 8, fontWeight: 'bold' }}>{t.sellerDetails}:</Text>
+      <Text>  {t.sellerAccount}: {voucher.sellerAccount}</Text>
+      <Text>  {t.sellerName}: {voucher.sellerName}</Text>
+      <Text>  {t.sellerContact}: {voucher.sellerContact}</Text>
+      <Text>  {t.sellerEmail}: {voucher.sellerEmail || '-'}</Text>
       <Text style={{ marginTop: 8 }}>
-        Seller Deviation: {Number(voucher.priceDeviation).toFixed(2)} | Policy:{' '}
+        {t.sellerDeviation}: {Number(voucher.priceDeviation).toFixed(2)} | {t.sellerDeviationPolicy}:{' '}
         {voucher.marketConsumptionPrice?.toFixed(2)}%
       </Text>
       <Text>
-        MiFedha Market Deviation: {Number(voucher.referencePrice).toFixed(2)} | Policy:{' '}
+        {t.niSentiMarketDeviation}: {Number(voucher.referencePrice).toFixed(2)} | {t.niSentiMarketPolicy}:{' '}
         {voucher.marketConsumptionFrequency}%
       </Text>
       <Text>
-        General Market Price Deviation: {Number(voucher.generalPriceDev).toFixed(2)} | Policy:{' '}
+        {t.generalMarketPriceDeviation}: {Number(voucher.generalPriceDev).toFixed(2)} | {t.generalMarketPolicy}:{' '}
         {voucher.marketConsumptionTotal}%
       </Text>
-
-      <Text style={{ marginTop: 8 }}>Status: {voucher.accStatus}</Text>
-
       {voucher.accStatus === 'Pending' && <View style={{
       flexDirection: 'row',
       marginTop: 8
@@ -83,22 +76,16 @@ const VoucherCard = ({
         backgroundColor: 'skyblue',
         marginRight: 8
       }]} onPress={() => onApprove(voucher)}>
-            {isUpdating ? <ActivityIndicator color="white" /> : <Text style={{
-          color: 'white'
-        }}>Approve</Text>}
+            {isUpdating ? <ActivityIndicator color="white" /> : <Text style={{ color: 'white' }}>{t.approve}</Text>}
           </Pressable>
-
           <Pressable disabled={isUpdating} style={[styles.button, {
         backgroundColor: '#e58d29'
       }]} onPress={() => onDecline(voucher)}>
-            {isUpdating ? <ActivityIndicator color="white" /> : <Text style={{
-          color: 'white'
-        }}>Decline</Text>}
+            {isUpdating ? <ActivityIndicator color="white" /> : <Text style={{ color: 'white' }}>{t.decline}</Text>}
           </Pressable>
         </View>}
     </View>;
 };
-
 /* -------------------- Main Screen -------------------- */
 const ConsumerApproveVoucherScreen = () => {
   const [vouchers, setVouchers] = useState<any[]>([]);
@@ -108,10 +95,14 @@ const ConsumerApproveVoucherScreen = () => {
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [nextToken, setNextToken] = useState<string | null>(null);
   const [filters, setFilters] = useState({
+
     sellerAccount: '',
     funderAccount: '',
     consumerAccount: ''
   });
+   const { i18n } = useTranslation();
+  const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+  const t = translations[lang] || translations.en;
   const [consumerNationality, setConsumerNationality] = useState<string | null>(null);
   const { nationality, ratesMap } = useExchange();
 
@@ -276,7 +267,7 @@ const ConsumerApproveVoucherScreen = () => {
       setNextToken(res?.data?.listCombContractVouchers?.nextToken || null);
     } catch (err) {
       console.error('❌ Error loading vouchers:', err);
-      Alert.alert('Error', 'Could not load vouchers. ' + (err instanceof Error ? err.message : 'Unknown error'));
+      Alert.alert(t.errorLoadingVouchersMsg + (err instanceof Error ? err.message : 'Unknown error'));
     } finally {
       setLoading(false);
     }
@@ -291,9 +282,9 @@ const ConsumerApproveVoucherScreen = () => {
 
   /* ---------------- Confirmation ---------------- */
   const confirmAction = (voucher: any, status: 'Approved' | 'Declined') => {
-    const verb = status === 'Approved' ? 'Approve' : 'Decline';
-    Alert.alert(`${verb} Voucher`, `Are you sure you want to ${verb} this voucher from ${voucher.sellerName}?`, [{
-      text: 'Cancel',
+    const verb = status === 'Approved' ? t.approve : t.decline;
+    Alert.alert(`${verb} ${t.voucher}`, `${t.approveVoucherMsg.replace('{{sellerName}}', voucher.sellerName)}`, [{
+      text: t.cancel,
       style: 'cancel'
     }, {
       text: verb,
@@ -341,7 +332,7 @@ const ConsumerApproveVoucherScreen = () => {
             variables: {
               input: {
                 senderEmail: voucher.sellerEmail,
-                messageBody: 'Voucher approval window closed.'
+                messageBody: t.voucherClosed
               }
             }
           });
@@ -349,12 +340,12 @@ const ConsumerApproveVoucherScreen = () => {
             query: sendNotification,
             variables: {
               riderEmail: voucher.sellerEmail,
-              title: 'MiFedha: Voucher Closed',
-              body: 'Voucher approval window closed.'
+              title: t.voucherClosedTitle,
+              body: t.voucherClosed
             }
           });
         }
-        Alert.alert('Declined! Voucher approval window closed.');
+        Alert.alert(t.voucherDeclined);
         return;
       }
       if (voucher.consumptionMarginStatus === 'Active' && expiry > now) {
@@ -386,7 +377,7 @@ const ConsumerApproveVoucherScreen = () => {
           }
         }
         if (voucher.sellerEmail) {
-          const msg = `${voucher.consumerName} has approved a COMB contract voucher from ${voucher.sellerName}. Proceed to COMB to clear the bill.`;
+          const msg = t.approveNotificationBody.replace('{{consumerName}}', voucher.consumerName).replace('{{sellerName}}', voucher.sellerName);
           await client.graphql({
             query: createMessages,
             variables: {
@@ -400,12 +391,12 @@ const ConsumerApproveVoucherScreen = () => {
             query: sendNotification,
             variables: {
               riderEmail: voucher.sellerEmail,
-              title: 'MiFedha: Voucher Approval',
+              title: t.approveNotificationTitle,
               body: msg
             }
           });
         }
-        Alert.alert('Voucher successfully approved');
+        Alert.alert(t.voucherApproved);
         return;
       }
 
@@ -523,7 +514,7 @@ const ConsumerApproveVoucherScreen = () => {
           benefitsAmount = Number(res.data.getSMAccount.benefitsAmount);
         }
         if (funderBalance < totalDebited) {
-          Alert.alert('Insufficient funds', `Funder ${voucher.funderName} does not have enough balance.`);
+          Alert.alert(t.insufficientFunds, t.insufficientFundsMsg.replace('{{funderName}}', voucher.funderName));
           setUpdatingId(null);
           setVouchers(prev => [voucher, ...prev]);
           return;
@@ -643,7 +634,7 @@ const ConsumerApproveVoucherScreen = () => {
         const consumerNat = consumerNationality || nationality;
         const funderNat = funderNationality || nationality;
         
-        const messageBody = `${voucher.consumerName} has spent ${formatAmountSync(Number(totalDebited), nationalityToCode(consumerNat), ratesMap || undefined)} (consumer currency) / ${formatAmountSync(Number(totalDebited), nationalityToCode(sellerNat), ratesMap || undefined)} (seller currency) from a COMB voucher from ${voucher.sellerName}.`; 
+        const messageBody = t.spentMsg.replace('{{consumerName}}', voucher.consumerName).replace('{{consumerAmount}}', formatAmountSync(Number(totalDebited), nationalityToCode(consumerNat), ratesMap || undefined)).replace('{{sellerAmount}}', formatAmountSync(Number(totalDebited), nationalityToCode(sellerNat), ratesMap || undefined)).replace('{{sellerName}}', voucher.sellerName);
         if (voucher.funderEmail) await client.graphql({
           query: createMessages,
           variables: {
@@ -657,7 +648,7 @@ const ConsumerApproveVoucherScreen = () => {
           query: sendNotification,
           variables: {
             riderEmail: voucher.funderEmail,
-            title: 'MiFedha: COMB Voucher Update',
+            title: t.approveNotificationTitle,
             body: messageBody
           }
         });
@@ -674,7 +665,7 @@ const ConsumerApproveVoucherScreen = () => {
           query: sendNotification,
           variables: {
             riderEmail: voucher.sellerEmail,
-            title: 'MiFedha: COMB Voucher Update',
+            title: t.approveNotificationTitle,
             body: messageBody
           }
         });
@@ -683,7 +674,7 @@ const ConsumerApproveVoucherScreen = () => {
           variables: {
             input: {
               senderEmail: voucher.consumerEmail,
-              messageBody: `You paid from funder ${voucher.funderName} account for a COMB voucher from ${voucher.sellerName}.`
+              messageBody: t.consumerPaidMsg.replace('{{funderName}}', voucher.funderName).replace('{{sellerName}}', voucher.sellerName)
             }
           }
         });
@@ -691,7 +682,7 @@ const ConsumerApproveVoucherScreen = () => {
     } catch (err) {
       console.error(err);
       setVouchers(prev => [voucher, ...prev]); // rollback
-      Alert.alert('Error', 'Could not update voucher.');
+      Alert.alert(t.errorLoadingVouchers, t.errorLoadingVouchersMsg);
     } finally {
       setUpdatingId(null);
     }
@@ -705,15 +696,15 @@ const ConsumerApproveVoucherScreen = () => {
       flexDirection: 'row',
       marginBottom: 10
     }}>
-        <TextInput placeholder="Seller Account" value={filters.sellerAccount} onChangeText={t => setFilters(f => ({
+        <TextInput placeholder={t.sellerAccountPlaceholder} value={filters.sellerAccount} onChangeText={t => setFilters(f => ({
         ...f,
         sellerAccount: t
       }))} style={styles.input} />
-        <TextInput placeholder="Funder Account" value={filters.funderAccount} onChangeText={t => setFilters(f => ({
+        <TextInput placeholder={t.funderAccountPlaceholder} value={filters.funderAccount} onChangeText={t => setFilters(f => ({
         ...f,
         funderAccount: t
       }))} style={styles.input} />
-        <TextInput placeholder="Consumer Account" value={filters.consumerAccount} onChangeText={t => setFilters(f => ({
+        <TextInput placeholder={t.consumerAccountPlaceholder} value={filters.consumerAccount} onChangeText={t => setFilters(f => ({
         ...f,
         consumerAccount: t
       }))} style={styles.input} />
@@ -730,7 +721,7 @@ const ConsumerApproveVoucherScreen = () => {
           <Text style={{
         color: 'white',
         marginTop: 8
-      }}>Processing voucher...</Text>
+      }}>{t.processingVoucher}</Text>
         </View>}
 
       {/* List */}
@@ -742,13 +733,13 @@ const ConsumerApproveVoucherScreen = () => {
           <ActivityIndicator size="large" color="#4caf50" />
           <Text style={{
         marginTop: 8
-      }}>Loading vouchers...</Text>
+      }}>{t.loadingVouchers}</Text>
         </View> : filteredVouchers.length === 0 ? <View style={{
       flex: 1,
       justifyContent: 'center',
       alignItems: 'center'
     }}>
-          <Text>No pending vouchers found.</Text>
+          <Text>{t.noPendingVouchers}</Text>
         </View> : <FlatList data={filteredVouchers} keyExtractor={item => item.id} renderItem={({
       item
     }) => <Pressable onPress={() => setSelectedVoucherId(item.id)}><VoucherCard voucher={item} updatingId={updatingId} onApprove={(v: any) => confirmAction(v, 'Approved')} onDecline={(v: any) => confirmAction(v, 'Declined')} /></Pressable>} onEndReached={() => {
@@ -766,10 +757,10 @@ const ConsumerApproveVoucherScreen = () => {
         const sellerNat = activeVoucher?.sellerNationality || nationality;
         const funderNat = activeVoucher?.funderNationality || nationality;
         return parent ? <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0, backgroundColor: '#fff', borderTopWidth: 1, borderColor: '#ddd', padding: 8 }}>
-              <Text style={{ fontWeight: 'bold', textAlign: 'center' }}>Remaining Funds</Text>
-              <Text style={{ textAlign: 'center', fontSize: 12 }}>🛒 Consumer: {formatAmountSync(Number(remaining || 0), nationalityToCode(consumerNationality || nationality), ratesMap || undefined)}</Text>
-              <Text style={{ textAlign: 'center', fontSize: 12 }}>🏪 Seller: {formatAmountSync(Number(remaining || 0), nationalityToCode(sellerNat), ratesMap || undefined)}</Text>
-              <Text style={{ textAlign: 'center', fontSize: 12 }}>💳 Funder: {formatAmountSync(Number(remaining || 0), nationalityToCode(funderNat), ratesMap || undefined)}</Text>
+              <Text style={{ fontWeight: 'bold', textAlign: 'center' }}>{t.remainingFunds}</Text>
+              <Text style={{ textAlign: 'center', fontSize: 12 }}>🛒 {t.consumer}: {formatAmountSync(Number(remaining || 0), nationalityToCode(consumerNationality || nationality), ratesMap || undefined)}</Text>
+              <Text style={{ textAlign: 'center', fontSize: 12 }}>🏪 {t.seller}: {formatAmountSync(Number(remaining || 0), nationalityToCode(sellerNat), ratesMap || undefined)}</Text>
+              <Text style={{ textAlign: 'center', fontSize: 12 }}>💳 {t.funder}: {formatAmountSync(Number(remaining || 0), nationalityToCode(funderNat), ratesMap || undefined)}</Text>
             </View> : null;
       })()}
     </View>;

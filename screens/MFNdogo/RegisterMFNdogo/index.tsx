@@ -161,7 +161,7 @@ const RegisterKFNdgAcForm = props => {
                     Alert.alert('Passwords do not match.');
                     return;
                   } else if (actvMFNdogs + 1 > mfnTtl) {
-                    Alert.alert("Exceeded MFNdogo slots; Open another MFKubwa account");
+                    Alert.alert("Exceeded NSNdogo slots; Open another NSKubwa account");
                     return;
                   } else {
                     createNewMFN();
@@ -237,7 +237,7 @@ const RegisterKFNdgAcForm = props => {
                         return;
                       }
                     }
-                    Alert.alert(" MFKubwa " + names + " has registered MFNdogo " + nam);
+                    Alert.alert(" NSKubwa " + names + " has registered NSNdogo " + nam);
                     setIsLoading(false);
                   };
                 } catch (e) {
@@ -385,14 +385,14 @@ const RegisterKFNdgAcForm = props => {
                                             <ScrollView>
 
           <View style={styles.formContainer}>
-            <TextInput placeholder="MFKubwa Phone number" value={saRegNo} onChangeText={setSARegNo} style={styles.input} editable={true}></TextInput>
+            <TextInput placeholder="NSKubwa Phone number" value={saRegNo} onChangeText={setSARegNo} style={styles.input} editable={true}></TextInput>
             
           
-            <TextInput placeholder={"MFNdogo Phone"} value={phoneContact} onChangeText={setPhoneContact} style={styles.input} editable={true}></TextInput>
+            <TextInput placeholder={"NSNdogo Phone"} value={phoneContact} onChangeText={setPhoneContact} style={styles.input} editable={true}></TextInput>
            
 
           
-            <TextInput placeholder={"MFNdogo Name"} value={nam} onChangeText={setName} style={styles.input} editable={true}></TextInput>
+            <TextInput placeholder={"NSNdogo Name"} value={nam} onChangeText={setName} style={styles.input} editable={true}></TextInput>
             
           
             <TextInput placeholder={"Bank Name"} value={BkAcNu} onChangeText={setBkAcNu} style={styles.input} editable={true}></TextInput>
@@ -402,13 +402,13 @@ const RegisterKFNdgAcForm = props => {
             
 
          
-            <TextInput placeholder={"MFNdogo Email"} value={eml} onChangeText={setEml} style={styles.input} editable={true}></TextInput>
+            <TextInput placeholder={"NSNdogo Email"} value={eml} onChangeText={setEml} style={styles.input} editable={true}></TextInput>
          
             <TextInput placeholder={"Nearby Town"} value={twn} onChangeText={settwn} style={styles.input} editable={true}></TextInput>
            
 
            <View style={styles.passwordContainer}>
-                                                       <TextInput placeholder="New MFNdogo Password" style={styles.passwordInput} value={pword} onChangeText={setPW} secureTextEntry={!isPasswordVisible} placeholderTextColor="#ccc" />
+                                                       <TextInput placeholder="New NSNdogo Password" style={styles.passwordInput} value={pword} onChangeText={setPW} secureTextEntry={!isPasswordVisible} placeholderTextColor="#ccc" />
                                                      <TouchableOpacity onPress={() => setIsPasswordVisible(!isPasswordVisible)}>
                                                     <Ionicons name={isPasswordVisible ? 'eye' : 'eye-off'} size={24} color="gray" />
                                                      </TouchableOpacity>

@@ -108,7 +108,7 @@ const BuyFlt = (props: buyAgntFlts) => {
                 setIsLoading(false);
               };
               if (Stts !== "AccountActive") {
-                Alert.alert("Your MFNdogo account has been deactivated");
+                Alert.alert("Your NSNdogo account has been deactivated");
               } else if (pws !== pwss) {
                 Alert.alert("User password is wrong");
               } else if (ownr !== owners) {
@@ -199,7 +199,7 @@ const BuyFlt = (props: buyAgntFlts) => {
           await ftchUsrInfo();
         } catch (e) {
           if (e) {
-            Alert.alert("check details");
+            Alert.alert("Check details");
             return;
           }
         }
@@ -208,7 +208,7 @@ const BuyFlt = (props: buyAgntFlts) => {
       await ftchCompInfo();
     } catch (e) {
       if (e) {
-        Alert.alert("MFNdogo does not exist");
+        Alert.alert("NSNdogo does not exist");
         return;
       }
     }
@@ -263,12 +263,12 @@ const BuyFlt = (props: buyAgntFlts) => {
       <View style={styles.image}>
         <ScrollView>
           <View style={styles.loanTitleView}>
-            <Text style={styles.title}>Fill MFNdogo Account Details Below</Text>
+            <Text style={styles.title}>Fill NSNdogo Account Details Below</Text>
           </View>
 
           <View style={styles.sendLoanView}>
             <TextInput placeholder="+2547xxxxxxxx" value={phoneContact} onChangeText={setPhoneContact} style={styles.sendLoanInput} editable={true}></TextInput>
-            <Text style={styles.sendLoanText}>MFNdogo Phone Contact</Text>
+            <Text style={styles.sendLoanText}>NSNdogo Phone Contact</Text>
           </View>
           
           <View style={styles.sendLoanView}>

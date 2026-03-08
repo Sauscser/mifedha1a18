@@ -66,7 +66,7 @@ const FetchSMNonLnsSnt = () => {
       <View style={styles.inputBlock}>
         <TextInput placeholder="My Full Business Number" value={bizPhone} onChangeText={setBizPhone} style={styles.input} />
 
-        <TextInput placeholder="MFNdogo's Name. Even partially" value={buyerFilter} onChangeText={setBuyerFilter} style={styles.input} />
+        <TextInput placeholder="NSNdogo's Name. Even partially" value={buyerFilter} onChangeText={setBuyerFilter} style={styles.input} />
       </View>
 
       <FlatList data={filteredRecords} renderItem={({

@@ -346,7 +346,7 @@ export default function RideRequestMapScreen({
   const [loadingRiders, setLoadingRiders] = useState<{
     [id: string]: boolean;
   }>({});
-  const [paymentMethod, setPaymentMethod] = useState<'MiFedha' | 'Cash'>('Cash');
+  const [paymentMethod, setPaymentMethod] = useState<'NiSenti' | 'Cash'>('Cash');
   const [pickupText, setPickupText] = useState('Current Location');
   const [destinationText, setDestinationText] = useState('');
   const mapRef = useRef<MapView | null>(null);
@@ -562,7 +562,7 @@ export default function RideRequestMapScreen({
           query: sendNotification,
           variables: {
             riderEmail,
-            title: "MiFedha: New Ride Request",
+            title: "NiSenti: New Ride Request",
             body: `Passenger ${ride.passengerName} requested a ride. Estimated cost: ${formatAmountSync(ride.estimatedCost, natCode, ratesMap)}`
           }
         });
@@ -696,7 +696,7 @@ export default function RideRequestMapScreen({
   
   <TouchableOpacity style={[styles.payBtn, paymentMethod === 'MiFedha' && styles.payBtnActive]} onPress={() => setPaymentMethod('MiFedha')}>
     <Text style={[styles.payTxt, paymentMethod === 'MiFedha' && styles.payTxtActive]}>
-      MiFedha
+      NiSenti
     </Text>
   </TouchableOpacity>
  

@@ -153,7 +153,7 @@ const CreateBiz = props => {
                   }
                 }
                 Alert.alert("Loan Request Successful");
-                const loanReqMessage3 = 'MiFedha. Hi ' + namez + '. It is ' + name + '. I request a soft loan of ' + formatAmountSync(amountKes, currencyKey, ratesMap) + ' from you. ' + 'Please go to MiFedha app to grant me the request' + '. Thank you.';
+                const loanReqMessage3 = 'NiSenti. Hi ' + namez + '. It is ' + name + '. I request a soft loan of ' + formatAmountSync(amountKes, currencyKey, ratesMap) + ' from you. ' + 'Please go to NiSenti app to grant me the request' + '. Thank you.';
                 try {
                   const msgRes = await client.graphql({
                     query: createMessages,
@@ -162,7 +162,7 @@ const CreateBiz = props => {
                   if (msgRes?.data?.createMessages) {
                     await client.graphql({
                       query: sendNotification,
-                      variables: { riderEmail: awsEmail, title: 'MiFedha: Loan Request', body: loanReqMessage3 }
+                      variables: { riderEmail: awsEmail, title: 'NiSenti: Loan Request', body: loanReqMessage3 }
                     });
                   }
                 } catch (notifErr) {
@@ -229,7 +229,7 @@ const CreateBiz = props => {
                       }
                     }
                     Alert.alert("Loan Request Successful");
-                    const loanReqMessage4 = 'MiFedha. Greetings! ' + 'We ' + name + ', the loanee and ' + namez + ', the loaner humbly' + ' request that you witness our loan contract on MiFedha app amounting to ' + formatAmountSync(amountKes, currencyKey, ratesMap) + ' repayable with ' + lnPrsntg + '% interest by the end of ' + rpymntPrd + ' days. Default penalty is ' + formatAmountSync(defaultPenaltyKes, currencyKey, ratesMap) + '. You can reach my loaner through ' + awsEmail + '. You can also reach me through ' + phonecontacts + '. Thank you.';
+                    const loanReqMessage4 = 'NiSenti. Greetings! ' + 'We ' + name + ', the loanee and ' + namez + ', the loaner humbly' + ' request that you witness our loan contract on NiSenti app amounting to ' + formatAmountSync(amountKes, currencyKey, ratesMap) + ' repayable with ' + lnPrsntg + '% interest by the end of ' + rpymntPrd + ' days. Default penalty is ' + formatAmountSync(defaultPenaltyKes, currencyKey, ratesMap) + '. You can reach my loaner through ' + awsEmail + '. You can also reach me through ' + phonecontacts + '. Thank you.';
                     try {
                       const msgRes = await client.graphql({
                         query: createMessages,
@@ -238,7 +238,7 @@ const CreateBiz = props => {
                       if (msgRes?.data?.createMessages) {
                         await client.graphql({
                           query: sendNotification,
-                          variables: { riderEmail: phonecontact, title: 'MiFedha: Witness Loan Contract', body: loanReqMessage4 }
+                          variables: { riderEmail: phonecontact, title: 'NiSenti: Witness Loan Contract', body: loanReqMessage4 }
                         });
                       }
                     } catch (notifErr) {

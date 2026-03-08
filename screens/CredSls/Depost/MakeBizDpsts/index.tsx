@@ -73,17 +73,17 @@ const SMADepositForm = props => {
         return;
       }
       if (AgAcAct === "AccountInactive") {
-        Alert.alert("MFNdogo Account is Inactive");
+        Alert.alert("NSNdogo Account is Inactive");
         setIsLoading(false);
         return;
       }
       if (parseFloat(agtFltBl) < parseFloat(amount)) {
-        Alert.alert("Insufficient MFNdogo Balance: " + formatAmountSync(parseFloat(agtFltBl), userCode, ratesMap));
+        Alert.alert("Insufficient NSNdogo Balance: " + formatAmountSync(parseFloat(agtFltBl), userCode, ratesMap));
         setIsLoading(false);
         return;
       }
       if (agPW !== agPWd) {
-        Alert.alert("MFNdogo access denied");
+        Alert.alert("NSNdogo access denied");
         setIsLoading(false);
         return;
       }
@@ -139,8 +139,8 @@ const SMADepositForm = props => {
           }
         }
       });
-      Alert.alert(formatAmountSync(parseFloat(amount), userCode, ratesMap) + " deposited in " + names + "'s ac ");
-      const depositMessage2 = 'Confirmed. You have successfully deposited ' + formatAmountSync(parseFloat(amount), userCode, ratesMap) + ' into your Business account.' + ' Please confirm this deposit record is on your MiFedha app. Thank you. MiFedha';
+      Alert.alert(formatAmountSync(parseFloat(amount), userCode, ratesMap) + " deposited in " + names + "'s NSNdogo account");
+      const depositMessage2 = 'Confirmed. You have successfully deposited ' + formatAmountSync(parseFloat(amount), userCode, ratesMap) + ' into your Business account.' + ' Please confirm this deposit record is on your NiSenti app. Thank you. NiSenti';
       try {
         const msgRes = await client.graphql({
           query: createMessages,
@@ -149,7 +149,7 @@ const SMADepositForm = props => {
         if (msgRes?.data?.createMessages) {
           await client.graphql({
             query: sendNotification,
-            variables: { riderEmail: nationalId, title: 'MiFedha: Deposit Confirmed', body: depositMessage2 }
+            variables: { riderEmail: nationalId, title: 'NiSenti: Deposit Confirmed', body: depositMessage2 }
           });
         }
       } catch (notifErr) {
@@ -178,7 +178,7 @@ const SMADepositForm = props => {
 
 
         <View style={styles.inputGroup}>
-          <Text style={styles.label}>MFNdogo Phone</Text>
+          <Text style={styles.label}>NSNdogo Phone</Text>
           <TextInput placeholder="+2547xxxxxxxx" value={AgentPhn} onChangeText={setAgentPhn} style={styles.input} placeholderTextColor="#95A5A6" />
         </View>
 
@@ -188,7 +188,7 @@ const SMADepositForm = props => {
         </View>
 
         <View style={styles.inputGroup}>
-          <Text style={styles.label}>MFNdogo Password</Text>
+          <Text style={styles.label}>NSNdogo Password</Text>
           <TextInput placeholder="••••••••" secureTextEntry value={agPWd} onChangeText={setAgPWd} style={styles.input} placeholderTextColor="#95A5A6" />
         </View>
 

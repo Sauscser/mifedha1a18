@@ -105,17 +105,17 @@ const AdminWthdwl = props => {
             setIsLoading(false);
           };
           if (amountKsh > parseFloat(saBalances)) {
-            Alert.alert("Insufficient MFKubwa Balance");
+            Alert.alert("Insufficient NSKubwa Balance");
             return;
           } else if (statussssss !== "AccountActive") {
-            Alert.alert("MFKubwa Account is inactive");
+            Alert.alert("NSKubwa Account is inactive");
             return;
           } else if (userInfo.userId !== owners) {
-            Alert.alert("Please first create a main account");
+            Alert.alert("Please first create a main NSKubwa account");
             return;
           }
           if (UsrPWd !== pws) {
-            Alert.alert("MFKubwa credentials are wrong; access denied");
+            Alert.alert("NSKubwa credentials are wrong; access denied");
             return;
           } else {
             await CrtMFKWthdrwls();
@@ -177,7 +177,7 @@ const AdminWthdwl = props => {
 
           <View style={styles.sendAmtView}>
             <TextInput placeholder="+2547xxxxxxxx" value={MFKPhn} onChangeText={setMFKPhn} style={styles.sendAmtInput} editable={true}></TextInput>
-            <Text style={styles.sendAmtText}>MFKubwa Phone</Text>
+            <Text style={styles.sendAmtText}>NSKubwa Phone</Text>
           </View>
 
           <View style={styles.sendAmtView}>
@@ -187,7 +187,7 @@ const AdminWthdwl = props => {
 
           <View style={styles.sendAmtView}>
             <TextInput value={UsrPWd} onChangeText={setUsrPWd} secureTextEntry={true} style={styles.sendAmtInput} editable={true}></TextInput>
-            <Text style={styles.sendAmtText}>MFKubwa PW</Text>
+            <Text style={styles.sendAmtText}>NSKubwa PW</Text>
           </View>
 
           <TouchableOpacity onPress={fetchAcDtls} style={styles.sendAmtButton}>

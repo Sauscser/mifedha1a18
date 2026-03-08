@@ -60,7 +60,7 @@ const UpdtMFNPW = props => {
           }
         }
         setIsLoading(false);
-        Alert.alert("MFNdogo creation successfully authorised");
+        Alert.alert("NSNdogo creation successfully authorised");
       };
       updtMFNDtls();
     } catch (error) {
@@ -122,7 +122,7 @@ const UpdtMFNPW = props => {
         
                   <View style={styles.sendLoanView}>
                     <TextInput value={OldAdmnPW} onChangeText={setOldAdmnPW} style={styles.sendLoanInput} editable={true}></TextInput>
-                    <Text style={styles.sendLoanText}>Number of MFNdogos</Text>
+                    <Text style={styles.sendLoanText}>Number of NSNdogos</Text>
                   </View>   
 
                        

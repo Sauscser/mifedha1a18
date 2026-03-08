@@ -68,7 +68,7 @@ const MyAccount = props => {
           flexDirection: "row"
         }}>
             <Pressable onPress={goWithdrwMny} style={styles.acNonLnsPressables}>
-              <Text style={styles.acPressableText}>MFNdogo</Text>
+              <Text style={styles.acPressableText}>NSNdogo</Text>
             </Pressable>
             <Pressable onPress={SMWthdrwlsss} style={styles.acNonLnsPressables}>
               <Text style={styles.acPressableText}>Equity</Text>

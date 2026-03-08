@@ -241,7 +241,7 @@ const PayPalPg = () => {
             fontWeight: 'bold',
             color: '#00457C'
           }}>
-                MiFedha
+                NiSenti
               </Text>
               <View style={{
             padding: 13,

@@ -382,11 +382,11 @@ export interface SMAccount {
 
                     <Text style = {styles.repaymentPeriod}>                       
                        {/* repaymentPeriod*/}
-                      MFNdogo Commission: {agentCom}                  
+                      NSNdogo Commission: {agentCom}                  
                     </Text> 
                     <Text style = {styles.interest}>                       
                        {/* interest*/}
-                      MFKubwa commission: {sagentCom}                    
+                      NSKubwa commission: {sagentCom}                    
                     </Text> 
                    <Text style = {styles.interest}>                       
                        {/* interest*/}
@@ -421,7 +421,7 @@ export interface SMAccount {
                     </Text>   
                     <Text style = {styles.repaymentPeriod}>                       
                        {/* repaymentPeriod*/}
-                       Max MFNdogos: {maxMFNdogos}                  
+                       Max NSNdogos: {maxMFNdogos}                  
                     </Text> 
                     <Text style = {styles.interest}>                       
                        {/* interest*/}
@@ -476,15 +476,15 @@ export interface SMAccount {
                     </Text> 
                     <Text style = {styles.interest}>                       
                        {/* interest*/}
-                       Total Active MFNdogo: {ttlKFNdgActv}                    
+                       Total Active NSNdogo: {ttlKFNdgActv}                    
                     </Text> 
                     <Text style = {styles.interest}>                       
                        {/* interest*/}
-                       Total Inactive MFNdogo: {ttlKFNdgInActv}                    
+                       Total Inactive NSNdogo: {ttlKFNdgInActv}                    
                     </Text> 
                     <Text style = {styles.interest}>                       
                        {/* interest*/}
-                       Total BListed MFNdogo: {ttlKNdgBLStts}                    
+                       Total BListed NSNdogo: {ttlKNdgBLStts}                    
                     </Text>                     
                     <Text style = {styles.interest}>                       
                        {/* interest*/}

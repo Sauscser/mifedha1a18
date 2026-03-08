@@ -28,7 +28,7 @@ const FetchSMNonLnsSnt = props => {
       setRecvrs(lds);
     } catch (e) {
       if (e) {
-        Alert.alert("MFNdogo does not exist; otherwise check internet connection");
+        Alert.alert("NSNdogo does not exist; otherwise check internet connection");
         return;
       }
       console.log(e);

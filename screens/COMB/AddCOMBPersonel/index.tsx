@@ -6,7 +6,9 @@ import { generateClient } from 'aws-amplify/api';
 import { getCurrentUser, fetchUserAttributes } from 'aws-amplify/auth';
 import { createBizna, createChamaMembers, createGroup, createMessages, createPersonel, sendNotification, updateCompany } from '../../../src/graphql/mutations';
 import { getBizna, getCompany, getSMAccount } from '../../../src/graphql/queries';
-import styles from './styles';
+import { useTranslation } from 'react-i18next';
+import translations from './translation';
+
 const client = generateClient();
 export type UserReg = {
   usr: String;
@@ -27,6 +29,9 @@ const CreateChama = (props: UserReg) => {
   const [MmbaID, setMmbaID] = useState('');
   const [Sign2Phn, setSign2Phn] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+   const { i18n } = useTranslation();
+  const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+  const t = translations[lang] || translations.en;
   const WorkerID = ChmDesc + ChmRegNo;
   const ChckUsrExistence = async () => {
     if (isLoading) return;
@@ -55,12 +60,12 @@ const CreateChama = (props: UserReg) => {
       });
       const biz = bizRes.data.getBizna;
       if (pw !== pword) {
-        Alert.alert('Wrong Main Account password');
+        Alert.alert(t.wrongPassword);
         return;
       }
       const isAdmin = biz.owner === user.userId || Object.values(biz).includes(attrs.email);
       if (!isAdmin) {
-        Alert.alert('Neither the Creator nor Admin of this Institution');
+        Alert.alert(t.notAdmin);
         return;
       }
       await client.graphql({
@@ -84,7 +89,7 @@ const CreateChama = (props: UserReg) => {
         variables: {
           input: {
             senderEmail: ChmPhn,
-            messageBody: `You have been registered as a COMB Officer under Institution ${biz.busName} successfully.`
+            messageBody: `You have been registered as a NiSenti COMB Officer under Institution ${biz.busName} successfully.`
           }
         }
       });
@@ -93,16 +98,16 @@ const CreateChama = (props: UserReg) => {
           query: sendNotification,
           variables: {
             riderEmail: ChmPhn,
-            title: 'MiFedha: COMB Officer Registration',
-            body: `You have been registered as a COMB Officer under Institution ${biz.busName} successfully.`
+            title: 'NiSenti: COMB Officer Registration',
+            body: `You have been registered as a NiSenti COMB Officer under Institution ${biz.busName} successfully.`
           }
         });
-        Alert.alert('COMB Officer registered successfully');
+        Alert.alert(t.registrationSuccess);
         navigation.goBack();
       }
     } catch (error) {
       console.error(error);
-      Alert.alert('Error! Ensure you enter details correctly!');
+      Alert.alert(t.registrationError);
     } finally {
       setIsLoading(false);
       setChmPhn('');
@@ -121,32 +126,28 @@ const CreateChama = (props: UserReg) => {
       padding: 20
     }}>
         <View style={ui.header}>
-          <Text style={ui.headerTitle}>Register COMB Officer</Text>
-          <Text style={ui.headerSub}> Institution Portal</Text>
+          <Text style={ui.headerTitle}>{t.headerTitle}</Text>
+          <Text style={ui.headerSub}>{t.headerSub}</Text>
         </View>
 
         <View style={ui.card}>
-          <Text style={ui.label}>Institution Account Number</Text>
-          <TextInput placeholder="07xxxxxxxx" value={ChmRegNo} onChangeText={setChmRegNo} style={ui.input} />
+          <Text style={ui.label}>{t.institutionAccount}</Text>
+          <TextInput value={ChmRegNo} onChangeText={setChmRegNo} style={ui.input} />
 
-          <Text style={ui.label}>COMB Officer Email</Text>
-          <TextInput placeholder="email@example.com" value={ChmPhn} onChangeText={setChmPhn} style={ui.input} />
+          <Text style={ui.label}>{t.officerEmail}</Text>
+          <TextInput value={ChmPhn} onChangeText={setChmPhn} style={ui.input} />
 
-          <Text style={ui.label}>COMB Officer Work ID</Text>
+          <Text style={ui.label}>{t.workId}</Text>
           <TextInput value={ChmDesc} onChangeText={setChmDesc} style={ui.input} />
 
-          <Text style={{
-          marginTop: 10
-        }}>Main Account Password</Text>
+          <Text style={{ marginTop: 10 }}>{t.mainAccountPassword}</Text>
           <View style={ui.passwordRow}>
             <TextInput style={[ui.input, {
             flex: 1
-          }]} value={pword} placeholder="Main Account Password" onChangeText={setPW} secureTextEntry={!showPassword} />
+          }]} value={pword} onChangeText={setPW} secureTextEntry={!showPassword} />
             <TouchableOpacity style={ui.eyeButton} onPress={() => setShowPassword(p => !p)}>
-              <Text style={{
-              color: '#fff'
-            }}>
-                {showPassword ? 'Hide' : 'Show'}
+              <Text style={{ color: '#fff' }}>
+                {showPassword ? t.passwordHide : t.passwordShow}
               </Text>
             </TouchableOpacity>
           </View>
@@ -154,7 +155,7 @@ const CreateChama = (props: UserReg) => {
           <TouchableOpacity onPress={ChckUsrExistence} disabled={isLoading}>
             <LinearGradient colors={['#e58d29', '#f2b66d']} style={ui.button}>
               {isLoading ? <ActivityIndicator color="#fff" /> : <Text style={ui.buttonText}>
-                  Register Sales Officer
+                  {t.registerButton}
                 </Text>}
             </LinearGradient>
           </TouchableOpacity>

@@ -200,7 +200,7 @@ const UpdtSMPW = props => {
 
            <View style={styles.sendLoanView2}>
              <TextInput keyboardType={"decimal-pad"} value={maxMFNdogo} onChangeText={setmaxMFNdogo} style={styles.sendLoanInput2} editable={true} multiline={true}></TextInput>
-             <Text style={styles.sendLoanText}>Max MFNdogos</Text>
+             <Text style={styles.sendLoanText}>Max NSNdogos</Text>
            </View>   
 
            <View style={styles.sendLoanView2}>

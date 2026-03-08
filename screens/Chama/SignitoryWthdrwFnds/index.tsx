@@ -171,7 +171,7 @@ const SMADepositForm = props => {
       } else if (user.userId !== owners) {
         Alert.alert("You are not the main chama signitory");
       } else if (AgAcAct === "AccountInactive") {
-        Alert.alert("MFNdogo Account has been deactivated");
+        Alert.alert("NSNdogo Account has been deactivated");
       } else if (UsrPWd !== pws) {
         Alert.alert("User credentials are wrong; access denied");
       } else {
@@ -262,7 +262,7 @@ const SMADepositForm = props => {
           }
         });
         
-        Alert.alert(`${names} has withdrawn ${formatAmountSync(amountInKES, userCurrencyKey, ratesMap)} from ${namess} MFNdogo`);
+        Alert.alert(`${names} has withdrawn ${formatAmountSync(amountInKES, userCurrencyKey, ratesMap)} from ${namess} NSNdogo`);
       }
     } catch (error) {
       console.log(error);
@@ -283,7 +283,7 @@ const SMADepositForm = props => {
 
           <View style={styles.sendAmtView}>
             <TextInput placeholder="+2547xxxxxxxx" value={AgentPhn} onChangeText={setAgentPhn} style={styles.sendAmtInput} editable={true}></TextInput>
-            <Text style={styles.sendAmtText}>MFNdogo Number</Text>
+            <Text style={styles.sendAmtText}>NSNdogo Number</Text>
           </View>
 
           <View style={styles.sendAmtView}>

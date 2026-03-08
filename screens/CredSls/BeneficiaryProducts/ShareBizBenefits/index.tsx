@@ -210,7 +210,7 @@ const SMASendNonLns = props => {
                     const formattedAmount = formatAmountSync(amountKes, userCode, ratesMap);
                     const formattedTxFee = formatAmountSync((UsrTransferFee * amountKes), userCode, ratesMap);
                     Alert.alert('Success', `Amount: ${formattedAmount} Transaction fee: ${formattedTxFee}`);
-                    const benefitMessage1 = `Confirmed. ${busNames} Benefactor has sent you ${formattedAmount} as Benefits. Please confirm this transaction record is on your Mifedha app. Thank you. MiFedha`;
+                    const benefitMessage1 = `Confirmed. ${busNames} Benefactor has sent you ${formattedAmount} as Benefits. Please confirm this transaction record is on your NiSenti app. Thank you. NiSenti`;
                     try {
                       const msgRes: any = await client.graphql({
                         query: createMessages,
@@ -219,7 +219,7 @@ const SMASendNonLns = props => {
                       if (msgRes?.data?.createMessages) {
                         await client.graphql({
                           query: sendNotification,
-                          variables: { riderEmail: beneficiaryPhones, title: 'MiFedha: Benefits Shared', body: benefitMessage1 }
+                          variables: { riderEmail: beneficiaryPhones, title: 'NiSenti: Benefits Shared', body: benefitMessage1 }
                         });
                       }
                     } catch (notifErr) {

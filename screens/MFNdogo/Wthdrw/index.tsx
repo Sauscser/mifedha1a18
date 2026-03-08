@@ -105,16 +105,16 @@ const MFNWthdwl = props => {
             setIsLoading(false);
           };
           if (amountKsh > parseFloat(agentEarningBals)) {
-            Alert.alert("Insufficient MFNdogo Balance");
+            Alert.alert("Insufficient NSNdogo Balance");
             return;
           } else if (statussssss !== "AccountActive") {
-            Alert.alert("MFNdogo Account is inactive");
+            Alert.alert("NSNdogo Account is inactive");
             return;
           } else if (userInfo.userId !== owners) {
             Alert.alert("Please first create a main account");
             return;
           } else if (UsrPWd !== pws) {
-            Alert.alert("MFNdogo credentials are wrong; access denied");
+            Alert.alert("NSNdogo credentials are wrong; access denied");
             return;
           } else {
             await CrtMFNWthdrwls();
@@ -174,7 +174,7 @@ const MFNWthdwl = props => {
 
           <View style={styles.sendAmtView}>
             <TextInput placeholder="+2547xxxxxxxx" value={MFKPhn} onChangeText={setMFKPhn} style={styles.sendAmtInput} editable={true}></TextInput>
-            <Text style={styles.sendAmtText}>MFNdogo Phone</Text>
+            <Text style={styles.sendAmtText}>NSNdogo Phone</Text>
           </View>
 
           <View style={styles.sendAmtView}>

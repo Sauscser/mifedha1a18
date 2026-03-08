@@ -12,7 +12,7 @@ export const resources = {
         },
         tabs: {
           home: 'Home',
-          mfnDogo: 'MFNdogo',
+          nsNdogo: 'NSNdogo',
           howTo: 'HowTo',
           transport: 'Transport',
           goShopping: 'GoShopping',
@@ -22,7 +22,7 @@ export const resources = {
           homes: 'Homes',
           reference: 'Reference',
           mfnDogos: 'Ndogo',
-            kubwa: 'Kubwa',
+          kubwa: 'Kubwa',
           advocate: 'Money Advocate',
           admin2: 'Money Admin 2',
           bankAdmin: 'Money Bank Admin',
@@ -37,6 +37,63 @@ export const resources = {
         advocate: 'Advocate',
         admin: 'Admin',
         bank: 'Bank'
+      },
+      AddCOMBAuditor: {
+        headerTitle: 'Register COMB Officer',
+        headerSub: 'Institution Portal',
+        emailLabel: 'COMB Officer Email',
+        emailPlaceholder: 'email@example.com',
+        clientLabel: "Auditor's Client",
+        clientPlaceholder: "Company's Account Number",
+        passwordLabel: 'Main Account Password',
+        passwordPlaceholder: 'Main Account Password',
+        show: 'Show',
+        hide: 'Hide',
+        button: 'Register COMB Officer',
+        success: 'You have been registered as a COMB Officer under Institution {{usr}} successfully.',
+        error_wrongPasswordOrAccountDoesNotExist: 'Wrong password or account does not exist!',
+        error_accessDeniedOrNetworkError: 'Access denied or network error.',
+        error_auditorEmailDoesNotExist: 'The specified auditor email does not exist in the system.',
+        error_failedToRegisterAuditorPleaseTryAgain: 'Failed to register auditor. Please try again.',
+        successMsg_combOfficerRegisteredSuccessfully: 'You have been registered as a COMB Officer under Institution {{usr}} successfully.'
+        },
+        consumerApproveVoucher: {
+          priceInDifferentCurrencies: '💰 Price in Different Currencies:',
+          yourCurrency: '🛒 Your Currency ({{currency}}): {{amount}}',
+          funderCurrency: '💳 Funder Currency ({{currency}}): {{amount}}',
+          sellerCurrency: '🏪 Seller Currency ({{currency}}): {{amount}}',
+          unitPrice: 'Unit Price:',
+          numberOfItems: 'Number of Items:',
+          funderDetails: 'Funder Details:',
+          account: 'Account:',
+          name: 'Name:',
+          contact: 'Contact:',
+          email: 'Email:',
+          sellerDetails: 'Seller Details:',
+          sellerDeviation: 'Seller Deviation: {{deviation}} | Policy: {{policy}}%',
+          mifedhaMarketDeviation: 'MiFedha Market Deviation: {{deviation}} | Policy: {{policy}}%',
+          generalMarketPriceDeviation: 'General Market Price Deviation: {{deviation}} | Policy: {{policy}}%',
+          status: 'Status:',
+          approve: 'Approve',
+          decline: 'Decline',
+          approveVoucher: 'Approve Voucher',
+          declineVoucher: 'Decline Voucher',
+          confirmApprove: 'Are you sure you want to Approve this voucher from {{sellerName}}?',
+          confirmDecline: 'Are you sure you want to Decline this voucher from {{sellerName}}?',
+          cancel: 'Cancel',
+          processingVoucher: 'Processing voucher...',
+          loadingVouchers: 'Loading vouchers...',
+          noPendingVouchers: 'No pending vouchers found.',
+          remainingFunds: 'Remaining Funds',
+          consumer: 'Consumer:',
+          seller: 'Seller:',
+          funder: 'Funder:',
+          voucherApproved: 'Voucher successfully approved',
+          insufficientFunds: 'Insufficient funds',
+          error: 'Error',
+          couldNotLoadVouchers: 'Could not load vouchers. {{error}}',
+          couldNotUpdateVoucher: 'Could not update voucher. {{error}}',
+          declinedWindowClosed: 'Declined! Voucher approval window closed.'
       }
     }
   },
@@ -58,8 +115,8 @@ export const resources = {
         drawer: {
           homes: 'الرئيسية',
           reference: 'مرجع',
-          mfnDogos: 'M F N d o g o',
-            kubwa: 'كوبا',
+          mfnDogos: 'ندوقو',
+          kubwa: 'كوبا',
           advocate: 'محامي المال',
           admin2: 'مسؤول المال 2',
           bankAdmin: 'مسؤول بنك المال',
@@ -72,7 +129,7 @@ export const resources = {
         pal: 'صديق',
         kubwa: 'كوبا',
         advocate: 'وكيل',
-        admin: ' المسؤول',
+        admin: 'المسؤول',
         bank: 'بنك'
       }
     }
@@ -87,7 +144,7 @@ export const resources = {
         tabs: {
           home: '首页',
           mfnDogo: '恩多戈',
-            mfnDogos: 'ንዶጎ',
+          howTo: '如何',
           transport: '交通',
           goShopping: '购物',
           searchPal: '朋友'
@@ -95,8 +152,8 @@ export const resources = {
         drawer: {
           homes: '首页',
           reference: '参考',
-          mfnDogos: 'ندوقو',
-            kubwa: '库巴',
+          mfnDogos: '恩多戈',
+          kubwa: '库巴',
           advocate: '资金倡导者',
           admin2: '资金管理员 2',
           bankAdmin: '资金银行管理员',
@@ -104,9 +161,13 @@ export const resources = {
         }
       },
       labels: {
-        mf: 'एमएफ', // Hindi
-        ndogo: 'नडोगो',
-        pal: 'मित्र'
+        mf: 'MF', // Chinese
+        ndogo: '恩多戈',
+        pal: '朋友',
+        kubwa: '库巴',
+        advocate: '倡导者',
+        admin: '管理员',
+        bank: '银行'
       }
     }
   },
@@ -128,8 +189,8 @@ export const resources = {
         drawer: {
           homes: 'Главная',
           reference: 'Справка',
-          mfnDogos: '恩多戈',
-            kubwa: 'Кубва',
+          mfnDogos: 'Ндого',
+          kubwa: 'Кубва',
           advocate: 'Адвокат денег',
           admin2: 'Админ денег 2',
           bankAdmin: 'Админ банка денег',
@@ -165,8 +226,8 @@ export const resources = {
         drawer: {
           homes: 'Nyumbani',
           reference: 'Marejeo',
-          mfnDogos: 'Ндого',
-            kubwa: 'كوبا',
+          mfnDogos: 'Ndogo',
+          kubwa: 'Kubwa',
           advocate: 'Wakili wa Fedha',
           admin2: 'Msimamizi wa Fedha 2',
           bankAdmin: 'Msimamizi wa Benki ya Fedha',
@@ -181,6 +242,25 @@ export const resources = {
         advocate: 'Wakili',
         admin: 'Msimamizi',
         bank: 'Benki'
+      },
+      AddCOMBAuditor: {
+        headerTitle: 'Sajili Afisa wa COMB',
+        headerSub: 'Portal ya Taasisi',
+        emailLabel: 'Barua Pepe ya Afisa wa COMB',
+        emailPlaceholder: 'barua@example.com',
+        clientLabel: 'Mteja wa Mkaguzi',
+        clientPlaceholder: 'Nambari ya Akaunti ya Kampuni',
+        passwordLabel: 'Nenosiri la Akaunti Kuu',
+        passwordPlaceholder: 'Nenosiri la Akaunti Kuu',
+        show: 'Onyesha',
+        hide: 'Ficha',
+        button: 'Sajili Afisa wa COMB',
+        success: 'Umesajiliwa kama Afisa wa COMB chini ya Taasisi {{usr}} kwa mafanikio.',
+        error_wrongPasswordOrAccountDoesNotExist: 'Nenosiri au akaunti si sahihi!',
+        error_accessDeniedOrNetworkError: 'Umefungiwa au hitilafu ya mtandao.',
+        error_auditorEmailDoesNotExist: 'Barua pepe ya mkaguzi haipo kwenye mfumo.',
+        error_failedToRegisterAuditorPleaseTryAgain: 'Imeshindikana kusajili mkaguzi. Tafadhali jaribu tena.',
+        successMsg_combOfficerRegisteredSuccessfully: 'Umesajiliwa kama Afisa wa COMB chini ya Taasisi {{usr}} kwa mafanikio.'
       }
     }
   },

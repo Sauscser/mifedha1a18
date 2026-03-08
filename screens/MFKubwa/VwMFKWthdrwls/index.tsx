@@ -99,7 +99,7 @@ const FetchSMNonLnsSnt = props => {
               }
             } catch (e) {
               if (e) {
-                Alert.alert("Error", "MFKubwa does not exist; otherwise check internet connection");
+                Alert.alert("Error", "NSKubwa does not exist; otherwise check internet connection");
                 return;
               }
               console.log(e);
@@ -108,14 +108,14 @@ const FetchSMNonLnsSnt = props => {
           await fetchCompDtls();
         } catch (e) {
           if (e) {
-            Alert.alert("Error", "MFKubwa does not exist; otherwise check internet connection");
+            Alert.alert("Error", "NSKubwa does not exist; otherwise check internet connection");
             return;
           }
           console.log(e);
         }
       };
       if (userInfo.userId !== owner) {
-        Alert.alert("Please first create main account");
+        Alert.alert("Please first create main NSKubwa account");
       } else {
         await fetchLoanees();
       }

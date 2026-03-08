@@ -386,7 +386,7 @@ const SMASendLns = props => {
                                 } catch (error) {
                                   console.log(error);
                                 }
-                                const loanMessage1 = 'Hi ' + namess + ', you have been loaned ' + formatAmountSync(parseFloat(amount), nationality, ratesMap) + ' by ' + names + '. For clarification call the loaner: ' + attributes.phone_number + '. The following is a break down of your repayable loan: ' + ' Amount debited into your main account is ' + formatAmountSync(parseFloat(amount), nationality, ratesMap) + '. Amount you had committed to repay is ' + formatAmountSync(amtrpayable2, nationality, ratesMap) + '. Transaction fee is ' + formatAmountSync(lnTrnsfrFee, nationality, ratesMap) + '. Total Repayable is ' + formatAmountSync(TotalAmtExp2, nationality, ratesMap) + '. Thank you. MiFedha.';
+                                const loanMessage1 = 'Hi ' + namess + ', you have been loaned ' + formatAmountSync(parseFloat(amount), nationality, ratesMap) + ' by ' + names + '. For clarification call the loaner: ' + attributes.phone_number + '. The following is a break down of your repayable loan: ' + ' Amount debited into your main account is ' + formatAmountSync(parseFloat(amount), nationality, ratesMap) + '. Amount you had committed to repay is ' + formatAmountSync(amtrpayable2, nationality, ratesMap) + '. Transaction fee is ' + formatAmountSync(lnTrnsfrFee, nationality, ratesMap) + '. Total Repayable is ' + formatAmountSync(TotalAmtExp2, nationality, ratesMap) + '. Thank you. NiSenti.';
                                 try {
                                   const msgRes = await client.graphql({
                                     query: createMessages,
@@ -395,7 +395,7 @@ const SMASendLns = props => {
                                   if (msgRes?.data?.createMessages) {
                                     await client.graphql({
                                       query: sendNotification,
-                                      variables: { riderEmail: phonecontact, title: 'MiFedha: Loan Disbursed', body: loanMessage1 }
+                                      variables: { riderEmail: phonecontact, title: 'NiSenti: Loan Disbursed', body: loanMessage1 }
                                     });
                                   }
                                 } catch (notifErr) {
@@ -615,7 +615,7 @@ const SMASendLns = props => {
                                     } catch (error) {
                                       console.log(error);
                                     }
-                                    const loanMessage2 = 'Hi ' + namess + ', you have been loaned ' + formatAmountSync(parseFloat(amount), nationality, ratesMap) + ' by ' + names + '. For clarification call the loaner: ' + attributes.phone_number + '. The following is a break down of your repayable loan: ' + ' Amount debited into your main account is ' + formatAmountSync(parseFloat(amount), nationality, ratesMap) + '. Amount you had committed to repay is ' + formatAmountSync(amtrpayable, nationality, ratesMap) + '. Transaction fee is ' + formatAmountSync(lnTrnsfrFee, nationality, ratesMap) + '. Advocacy fee is ' + formatAmountSync(ttlCovFeeAmount, nationality, ratesMap) + '. Total Repayable is ' + formatAmountSync(TotalAmtExp, nationality, ratesMap) + '. Thank you. MiFedha.';
+                                    const loanMessage2 = 'Hi ' + namess + ', you have been loaned ' + formatAmountSync(parseFloat(amount), nationality, ratesMap) + ' by ' + names + '. For clarification call the loaner: ' + attributes.phone_number + '. The following is a break down of your repayable loan: ' + ' Amount debited into your main account is ' + formatAmountSync(parseFloat(amount), nationality, ratesMap) + '. Amount you had committed to repay is ' + formatAmountSync(amtrpayable, nationality, ratesMap) + '. Transaction fee is ' + formatAmountSync(lnTrnsfrFee, nationality, ratesMap) + '. Advocacy fee is ' + formatAmountSync(ttlCovFeeAmount, nationality, ratesMap) + '. Total Repayable is ' + formatAmountSync(TotalAmtExp, nationality, ratesMap) + '. Thank you. NiSenti.';
                                     try {
                                       const msgRes = await client.graphql({
                                         query: createMessages,
@@ -624,7 +624,7 @@ const SMASendLns = props => {
                                       if (msgRes?.data?.createMessages) {
                                         await client.graphql({
                                           query: sendNotification,
-                                          variables: { riderEmail: phonecontact, title: 'MiFedha: Loan Disbursed', body: loanMessage2 }
+                                          variables: { riderEmail: phonecontact, title: 'NiSenti: Loan Disbursed', body: loanMessage2 }
                                         });
                                       }
                                     } catch (notifErr) {
@@ -648,7 +648,7 @@ const SMASendLns = props => {
                                 Alert.alert('Unsuccessful....Apologies. Liase with the Loaned');
                                 return;
                               } else if (parseFloat(ttlDpstSMs) === 0 && parseFloat(TtlWthdrwnSMs) === 0) {
-                                Alert.alert('Loanee ID be verified through deposit at MFNdogo');
+                                Alert.alert('Loanee ID be verified through deposit at NSNdogo');
                               } else if (status === "Approved") {
                                 Alert.alert('Loan already granted');
                               } else if (statusNumber === 0 && advLicNo != "None") {

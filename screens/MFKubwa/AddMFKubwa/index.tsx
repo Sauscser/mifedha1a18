@@ -135,7 +135,7 @@ const UpdtMFNPW = props => {
             }
             setIsLoading(false);
             Alert.alert("MFKubwa creation successfully authorised");
-            Communications.textWithoutEncoding(phonecontact, 'Hi ' + namezs + '. Your application to create MFKubwa account ' + LnAcCod + ' has been approved. Please proceed to create your MFKubwa account on MiFedha App');
+            Communications.textWithoutEncoding(phonecontact, 'Hi ' + namezs + '. Your application to create MFKubwa account ' + LnAcCod + ' has been approved. Please proceed to create your MFKubwa account on NiSenti App');
           };
           if (BankAdminEmail !== attributes.email) {
             Alert.alert("Your are not the Bank Supervisor of the group");

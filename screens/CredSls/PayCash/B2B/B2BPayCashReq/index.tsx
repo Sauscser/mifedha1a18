@@ -117,7 +117,7 @@ const SMASendNonLns = props => {
           }
         });
         Alert.alert("Request Successful");
-        const cashReqMsg2 = 'MiFedha. Greetings ' + name + ", " + namexs + ' working at your business has requested to pay ' + amounts + ' to ' + namess + ' business. ' + '. Please call customer care if it is not a valid transaction ' + ' as per your business policies. For clarification reach the personnel through ' + phonecontactzx + '. Thank you.';
+        const cashReqMsg2 = 'NiSenti. Greetings ' + name + ", " + namexs + ' working at your business has requested to pay ' + amounts + ' to ' + namess + ' business. ' + '. Please call customer care if it is not a valid transaction ' + ' as per your business policies. For clarification reach the personnel through ' + phonecontactzx + '. Thank you.';
         try {
           const msgRes = await client.graphql({
             query: createMessages,
@@ -126,7 +126,7 @@ const SMASendNonLns = props => {
           if (msgRes?.data?.createMessages) {
             await client.graphql({
               query: sendNotification,
-              variables: { riderEmail: SenderNatId, title: 'MiFedha: Cash Sale Approval Request', body: cashReqMsg2 }
+              variables: { riderEmail: SenderNatId, title: 'NiSenti: Cash Sale Approval Request', body: cashReqMsg2 }
             });
           }
         } catch (notifErr) {

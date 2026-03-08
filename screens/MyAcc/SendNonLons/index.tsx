@@ -276,7 +276,7 @@ const SMASendNonLns = props => {
                               Alert.alert(`Amount: ${formattedAmount}. Transaction fee: ${formattedFee}`);
                               
                               // Send Firebase notification
-                              const nonLoanMessage = 'Hi ' + namess + names + ', has sent you a non loan of ' + formattedAmount + '. For clarification call the: ' + attributes2.phone_number + '. Thank you. MiFedha';
+                              const nonLoanMessage = 'Hi ' + namess + names + ', has sent you a non loan of ' + formattedAmount + '. For clarification call the: ' + attributes2.phone_number + '. Thank you. NiSenti';
                               try {
                                 const msgRes: any = await client.graphql({
                                   query: createMessages,
@@ -292,7 +292,7 @@ const SMASendNonLns = props => {
                                     query: sendNotification,
                                     variables: {
                                       riderEmail: phonecontact,
-                                      title: 'MiFedha: Non-Loan Transfer',
+                                      title: 'NiSenti: Non-Loan Transfer',
                                       body: nonLoanMessage
                                     }
                                   });
@@ -306,7 +306,7 @@ const SMASendNonLns = props => {
                               Alert.alert(`Amount: ${formattedFallback}. Transaction fee: ${formattedFeeFallback}`);
                               
                               // Send Firebase notification (fallback)
-                              const nonLoanMessageFallback = 'Hi ' + namess + names + ', has sent you a non loan of ' + formattedFallback + '. For clarification call the: ' + attributes.phone_number + '. Thank you. MiFedha';
+                              const nonLoanMessageFallback = 'Hi ' + namess + names + ', has sent you a non loan of ' + formattedFallback + '. For clarification call the: ' + attributes.phone_number + '. Thank you. NiSenti';
                               try {
                                 const msgRes: any = await client.graphql({
                                   query: createMessages,
@@ -322,7 +322,7 @@ const SMASendNonLns = props => {
                                     query: sendNotification,
                                     variables: {
                                       riderEmail: phonecontact,
-                                      title: 'MiFedha: Non-Loan Transfer',
+                                      title: 'NiSenti: Non-Loan Transfer',
                                       body: nonLoanMessageFallback
                                     }
                                   });
@@ -343,7 +343,7 @@ const SMASendNonLns = props => {
                           } else if (SenderNatId === RecNatId) {
                             Alert.alert('You cannot Send money to yourself Yourself');
                           } else if (parseFloat(ttlDpstSMs) === 0 && parseFloat(TtlWthdrwnSMs) === 0) {
-                            Alert.alert('Receiver ID be verified through deposit at MFNdogo');
+                            Alert.alert('Receiver ID be verified through deposit at NiSenti Ndogo');
                           } else if (UsrTransferFee2 < 0) {
                             Alert.alert('Requested amount is more than you have in your account');
                           } else if (parseFloat(RecUsrBal) + amountKes > parseFloat(MaxAcBals)) {

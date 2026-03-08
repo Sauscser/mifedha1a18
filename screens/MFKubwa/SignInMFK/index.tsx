@@ -39,7 +39,7 @@ const MFKSignIn = props => {
       }
     } catch (e) {
       if (e) {
-        Alert.alert("Either you dont have MFKubwa Ac or Check your internet");
+        Alert.alert("Either you dont have NSKubwa Ac or Check your internet");
         return;
       }
     }
@@ -71,7 +71,7 @@ const MFKSignIn = props => {
         
                   <View style={styles.sendLoanView}>
                     <TextInput placeholder="+2547xxxxxxxx" value={MFKId} onChangeText={setMFKId} style={styles.sendLoanInput} editable={true}></TextInput>
-                    <Text style={styles.sendLoanText}>MFKubwa Phone</Text>
+                    <Text style={styles.sendLoanText}>NSKubwa Phone</Text>
                   </View>
         
                   <View style={styles.sendLoanView}>

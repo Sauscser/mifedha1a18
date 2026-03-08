@@ -74,13 +74,13 @@ const DrawerScreens = ({ user, signOut }: any) => {
     }}
   >
     <Drawer.Screen name="Homes" component={BotTab} options={{ drawerLabel: drawer.homes, title: drawer.homes }} />
-    <Drawer.Screen name="MiFedha Ndogos" component={KFNdogoScreen} options={{ drawerLabel: drawer.ndogo, title: drawer.ndogo }} />
-    <Drawer.Screen name="MiFedha Kubwa" component={MFKw} options={{ drawerLabel: drawer.kubwa, title: drawer.kubwa }} />
-    <Drawer.Screen name="MiFedha Advocate" component={AdvSgnIn} options={{ drawerLabel: drawer.advocate, title: drawer.advocate }} />
-    <Drawer.Screen name="MiFedha Admin 2" component={MFAdmSgnIn} options={{ drawerLabel: drawer.admin2, title: drawer.admin2 }} />
+    <Drawer.Screen name="NiSenti Ndogos" component={KFNdogoScreen} options={{ drawerLabel: drawer.ndogo, title: drawer.ndogo }} />
+    <Drawer.Screen name="NiSenti Kubwa" component={MFKw} options={{ drawerLabel: drawer.kubwa, title: drawer.kubwa }} />
+    <Drawer.Screen name="NiSenti Advocate" component={AdvSgnIn} options={{ drawerLabel: drawer.advocate, title: drawer.advocate }} />
+    <Drawer.Screen name="NiSenti Admin 2" component={MFAdmSgnIn} options={{ drawerLabel: drawer.admin2, title: drawer.admin2 }} />
     <Drawer.Screen name="Bank Admin" component={SignInBankAdm} options={{ drawerLabel: drawer.bankAdmin, title: drawer.bankAdmin }} />
     <Drawer.Screen name="BankAdmin" component={MFBankAdmin} options={{ drawerLabel: drawer.bankAdmin, title: drawer.bankAdmin }} />
-    <Drawer.Screen name="MiFedha Admin 1" component={MFSetting} options={{ drawerLabel: drawer.admin1, title: drawer.admin1 }} />
+    <Drawer.Screen name="NiSenti Admin 1" component={MFSetting} options={{ drawerLabel: drawer.admin1, title: drawer.admin1 }} />
     <Drawer.Screen name="Reference" component={Ref} options={{ drawerLabel: drawer.reference, title: drawer.reference }} />
   </Drawer.Navigator>;
 };

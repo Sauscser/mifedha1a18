@@ -192,7 +192,7 @@ const SMASendNonLns = props => {
                 const bizNat = accountDtl.data.getBizna?.nationality || null;
                 const formattedTxFee = formatAmountSync(Number(feeKes), bizNat, ratesMap);
                 Alert.alert(`Amount: ${formattedAmount} Transaction: ${formattedTxFee}`);
-                const revShareMessage1 = `Confirmed. ${busNames} Business entity has sent you ${formattedAmount} to your MiFedha Group account. Please confirm this transaction record is on your Mifedha app. Thank you. MiFedha`;
+                const revShareMessage1 = `Confirmed. ${busNames} Business entity has sent you ${formattedAmount} to your NiSenti Group account. Please confirm this transaction record is on your NiSenti app. Thank you. NiSenti`;
                 try {
                   const msgRes = await client.graphql({
                     query: createMessages,
@@ -201,7 +201,7 @@ const SMASendNonLns = props => {
                   if (msgRes?.data?.createMessages) {
                     await client.graphql({
                       query: sendNotification,
-                      variables: { riderEmail: signitoryContact, title: 'MiFedha: Revenue Shared', body: revShareMessage1 }
+                      variables: { riderEmail: signitoryContact, title: 'NiSenti: Revenue Shared', body: revShareMessage1 }
                     });
                   }
                 } catch (notifErr) {

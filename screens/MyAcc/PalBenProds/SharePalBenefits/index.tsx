@@ -224,7 +224,7 @@ const SMASendNonLns = props => {
                     Alert.alert(`Benefits ${formattedAmount} sent. Transaction: ${formattedTxFee}`);
                     
                     // Send Firebase notification
-                    const benefitMessage = `Confirmed. ${busNames} Benefactor has sent you ${formattedAmount} as Benefits. Please confirm this transaction record is on your Mifedha app. Thank you. MiFedha`;
+                    const benefitMessage = `Confirmed. ${busNames} Benefactor has sent you ${formattedAmount} as Benefits. Please confirm this transaction record is on your NiSenti app. Thank you. NiSenti`;
                     try {
                       const msgRes: any = await client.graphql({
                         query: createMessages,
@@ -240,7 +240,7 @@ const SMASendNonLns = props => {
                           query: sendNotification,
                           variables: {
                             riderEmail: beneficiaryPhones,
-                            title: 'MiFedha: Benefit Share',
+                            title: 'NiSenti: Benefit Share',
                             body: benefitMessage
                           }
                         });

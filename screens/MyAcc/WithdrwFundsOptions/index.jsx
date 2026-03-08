@@ -338,10 +338,10 @@ const SMADepositForm = props => {
                                     await onUpdtMFChamp();
                                     try {
                                       const formatted = await formatAmountForUser(amountKes, senderNat || undefined);
-                                      Alert.alert(`${names} has withdrawn ${formatted} from ${namess} MFNdogo`);
+                                      Alert.alert(`${names} has withdrawn ${formatted} from ${namess} NSNdogo`);
                                     } catch (e) {
                                       const fallback = formatAmountSync(amountKes, senderNat || undefined);
-                                      Alert.alert(`${names} has withdrawn ${fallback} from ${namess} MFNdogo`);
+                                      Alert.alert(`${names} has withdrawn ${fallback} from ${namess} NSNdogo`);
                                     }
                                   };
                                   const onUpdtMFChamp = async () => {
@@ -381,7 +381,7 @@ const SMADepositForm = props => {
                                     Alert.alert('Withdrawal limit exceeded');
                                     return;
                                   } else if (AgAcAct === "AccountInactive") {
-                                    Alert.alert("MFNdogo Account has been deactivated");
+                                    Alert.alert("NSNdogo Account has been deactivated");
                                     return;
                                   } else if (UsrPWd !== pws) {
                                     Alert.alert("User credentials are wrong; access denied");

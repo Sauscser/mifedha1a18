@@ -64,7 +64,7 @@ const CreateBiz = props => {
           console.log(error);
         }
         setIsLoading(false);
-        Communications.textWithoutEncoding(loaneePhone, 'MiFedha. Hi ' + loaneeName + ', We regret to inform you that due to unavoidable circumstances ' + 'We could not grant your loan request of id number ' + route.params.id + '. Sorry for any inconvenience' + '. Thank you.');
+        Communications.textWithoutEncoding(loaneePhone, 'NiSenti. Hi ' + loaneeName + ', We regret to inform you that due to unavoidable circumstances ' + 'We could not grant your loan request of id number ' + route.params.id + '. Sorry for any inconvenience' + '. Thank you.');
         SndChmMmbrMny2();
       };
       if (userInfo.userId !== owner) {

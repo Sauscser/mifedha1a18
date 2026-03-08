@@ -34,7 +34,7 @@ const RepayCovChmLnsss = () => {
     loanBalanceAfter
   }) => {
     const messageBody = isFullRepayment ? `Your loan from ${grpName} has been fully repaid. Amount paid: ${formatAmountSync(Number(amountPaid), nationality || undefined, ratesMap)}. Your loan balance is now ${formatAmountSync(0, nationality || undefined, ratesMap)}.` : `A partial repayment of ${formatAmountSync(Number(amountPaid), nationality || undefined, ratesMap)} has been made to your loan from ${grpName}. Remaining loan balance: ${formatAmountSync(Number(loanBalanceAfter), nationality || undefined, ratesMap)}.`;
-    const title = isFullRepayment ? 'MiFedha: Loan Fully Repaid' : 'MiFedha: Loan Partially Repaid';
+    const title = isFullRepayment ? 'NiSenti: Loan Fully Repaid' : 'NiSenti: Loan Partially Repaid';
     await client.graphql({
       query: createMessages,
       variables: {
@@ -307,7 +307,7 @@ const RepayCovChmLnsss = () => {
       setIsLoading(false);
     }
   };
-  return <LinearGradient colors={['#4B9CD3', '#1C1C1E']} // MiFedha gradient
+  return <LinearGradient colors={['#4B9CD3', '#1C1C1E']} // NiSenti gradient
   style={{
     flex: 1
   }}>
@@ -321,7 +321,7 @@ const RepayCovChmLnsss = () => {
       }}>
           {/* Header */}
           <View style={styles.headerContainer}>
-            <Text style={styles.headerText}>MiFedha Loan Repayment</Text>
+            <Text style={styles.headerText}>NiSenti Loan Repayment</Text>
             <Text style={styles.subHeaderText}>Fill account details below</Text>
           </View>
 

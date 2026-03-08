@@ -109,7 +109,7 @@ const SMADepositForm = props => {
       const namess = AgentBal.data.getAgent.name;
       const MFNWithdrwlFees = AgentBal.data.getAgent.MFNWithdrwlFee;
       if (AgAcAct === 'AccountInactive') {
-        Alert.alert('MFNdogo Account has been deactivated');
+        Alert.alert('NSNdogo Account has been deactivated');
         return;
       }
       const compDtls = await client.graphql({
@@ -234,7 +234,7 @@ const SMADepositForm = props => {
           }
         }
       });
-      Alert.alert(names + ' has withdrawn ' + formatAmountSync(amountInKES, userCurrencyKey, ratesMap) + ' from ' + namess + ' MFNdogo');
+      Alert.alert(names + ' has withdrawn ' + formatAmountSync(amountInKES, userCurrencyKey, ratesMap) + ' from ' + namess + ' NSNdogo');
       setAmount('');
       setUsrPWd('');
       setAgentPhn('');

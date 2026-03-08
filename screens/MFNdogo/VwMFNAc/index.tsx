@@ -57,7 +57,7 @@ const FetchSMNonLnsSnt = props => {
       alignItems: 'center'
     }} ListHeaderComponent={() => <>
             
-            <Text style={styles.label}> My MFNdogo Account</Text>
+            <Text style={styles.label}> My NSNdogo Account</Text>
             <Text style={styles.label2}> (Please swipe down to load)</Text>
           </>} />
     </View>;

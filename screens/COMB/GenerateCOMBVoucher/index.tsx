@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { View, Text, FlatList, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, Pressable, Animated, Easing } from 'react-native';
+import { useTranslation } from 'react-i18next';
+import translations from './translation';
 import { useRoute } from '@react-navigation/native';
 import { listSokoAds, listMarketConsumptions, listAveragePrices, getCombContract, getBizna, getSMAccount } from '../../../src/graphql/queries';
 import { createCombContractVoucher, createMessages, sendNotification, updateCombContract } from '../../../src/graphql/mutations';
@@ -8,7 +10,12 @@ import { getCurrentUser, fetchUserAttributes } from 'aws-amplify/auth';
 import { useExchange } from '../../../src/contexts/ExchangeContext';
 import { formatAmountSync } from '../../../src/utils/exchange';
 import { nationalityToCode } from '../../../src/utils/nationalityToCode';
+
+
 const client = generateClient();
+
+
+
 
 /* -------------------- Types -------------------- */
 type SokoItem = {
@@ -36,7 +43,7 @@ type PriceAlert = {
 /* -------------------- Helpers -------------------- */
 const handleError = (msg: string, err?: any) => {
   console.error(err);
-  Alert.alert('Error', msg);
+  Alert.alert( msg);
 };
 const useDebouncedState = <T,>(initial: T, delay = 250) => {
   const [value, setValue] = useState<T>(initial);
@@ -62,18 +69,23 @@ const ItemCard = ({
   parent,
   voucherItems,
   sellerNationality,
-  funderNationality
+  funderNationality,
 }: any) => {
   // Local exchange context so ItemCard doesn't rely on outer-scope `nationality` variable
   const { nationality: userNationality, ratesMap } = useExchange();
   const sellerNat = sellerNationality || userNationality;
   const funderNat = funderNationality || userNationality;
   const sellerCode = nationalityToCode(sellerNat);
+  const { i18n } = useTranslation();
+  const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+  const t = translations[lang] || translations.en;
   const funderCode = nationalityToCode(funderNat);
   const [alert, setAlert] = useState<PriceAlert | null>(null);
   const [loadingAlert, setLoadingAlert] = useState(false);
   const qty = quantities[item.id] || 1;
   const priceNum = Number(item.sokoprice) || 0;
+
+  
   const runDeviationCheck = async () => {
     if (loadingAlert) return;
     setLoadingAlert(true);
@@ -91,41 +103,30 @@ const ItemCard = ({
       <Text style={{
       fontWeight: 'bold'
     }}>{item.sokoname} ({item.itemBrand})</Text>
-      <Text>Unit: {item.itemUnit}</Text>
+      <Text>{t.unit}: {item.itemUnit}</Text>
       <View style={{ marginVertical: 4, backgroundColor: '#f5f5f5', padding: 6, borderRadius: 4 }}>
-        <Text>🏪 Seller Currency ({sellerNat}): {formatAmountSync(priceNum, sellerCode, ratesMap || undefined)}</Text>
-        <Text>💳 Funder Currency ({funderNat}): {formatAmountSync(priceNum, funderCode, ratesMap || undefined)}</Text>
+        <Text>🏪 {t.sellerCurrency} ({sellerNat}): {formatAmountSync(priceNum, sellerCode, ratesMap || undefined)}</Text>
+        <Text>💳 {t.funderCurrency} ({funderNat}): {formatAmountSync(priceNum, funderCode, ratesMap || undefined)}</Text>
       </View>
 
       {loadingAlert ? <ActivityIndicator style={{
       marginVertical: 6
     }} /> : alert && parent ? <>
-          <Text>Seller Avg: {formatAmountSync(alert.avgItemPrice, sellerCode, ratesMap || undefined)}</Text>
-          <Text style={{
-            color: Math.abs(alert.itemDeviation) > (parent.marketConsumptionPrice ?? 0) ? '#f44336' : '#4caf50'
-          }}>
-            Seller Deviation: {alert.itemDeviation.toFixed(2)}% | Policy Margin: {parent.marketConsumptionPrice}%
-          </Text>
-
-          <Text>Market Avg (All Sellers): {formatAmountSync(alert.avgCategoryPrice, sellerCode, ratesMap || undefined)}</Text>
-          <Text style={{
-            color: Math.abs(alert.categoryDeviation) > (parent.marketConsumptionFrequency ?? 0) ? '#f44336' : '#4caf50'
-          }}>
-            MiFedha Market Deviation: {alert.categoryDeviation.toFixed(2)}% | Policy Frequency: {parent.marketConsumptionFrequency}%
-          </Text>
-
-          <Text style={{
-            color: Math.abs(alert.generalPriceDev) > (parent.marketConsumptionTotal ?? 0) ? '#f44336' : '#4caf50'
-          }}>
-            Reference Price Deviation: {alert.generalPriceDev.toFixed(2)}% | Policy Total: {parent.marketConsumptionTotal}%
-          </Text>
-
-          <Text>Flag: {alert.priceFlag}</Text>
-        </> : <TouchableOpacity onPress={runDeviationCheck} style={[styles.qtyBtn, {
-      marginVertical: 6
-    }]}> 
-          <Text>Check Deviations</Text>
-        </TouchableOpacity>}
+        <Text>{t.sellerAvg}: {formatAmountSync(alert.avgItemPrice, sellerCode, ratesMap || undefined)}</Text>
+        <Text style={{ color: Math.abs(alert.itemDeviation) > (parent.marketConsumptionPrice ?? 0) ? '#f44336' : '#4caf50' }}>
+          {t.sellerDeviation}: {alert.itemDeviation.toFixed(2)}% | {t.policyMargin}: {parent.marketConsumptionPrice}%
+        </Text>
+        <Text>{t.marketAvgAllSellers}: {formatAmountSync(alert.avgCategoryPrice, sellerCode, ratesMap || undefined)}</Text>
+        <Text style={{ color: Math.abs(alert.categoryDeviation) > (parent.marketConsumptionFrequency ?? 0) ? '#f44336' : '#4caf50' }}>
+          {t.nisentiMarketDeviation}: {alert.categoryDeviation.toFixed(2)}% | {t.policyFrequency}: {parent.marketConsumptionFrequency}%
+        </Text>
+        <Text style={{ color: Math.abs(alert.generalPriceDev) > (parent.marketConsumptionTotal ?? 0) ? '#f44336' : '#4caf50' }}>
+          {t.nisentiReferencePriceDeviation}: {alert.generalPriceDev.toFixed(2)}% | {t.policyTotal}: {parent.marketConsumptionTotal}%
+        </Text>
+        <Text>{t.flag}: {alert.priceFlag}</Text>
+      </> : <TouchableOpacity onPress={runDeviationCheck} style={[styles.qtyBtn, { marginVertical: 6 }]}> 
+        <Text>{t.checkDeviations}</Text>
+      </TouchableOpacity>}
 
       <View style={{
       flexDirection: 'row',
@@ -147,13 +148,8 @@ const ItemCard = ({
       }))} style={styles.qtyBtn}>
           <Text>+</Text>
         </TouchableOpacity>
-        <TouchableOpacity onPress={() => alert ? handleAddToVoucher(item, alert) : Alert.alert('Check Price', 'Run deviation check first.')} style={[styles.qtyBtn, {
-        marginLeft: 10,
-        backgroundColor: '#4caf50'
-      }]}>
-          <Text style={{
-          color: 'white'
-        }}>Add to Voucher</Text>
+        <TouchableOpacity onPress={() => alert ? handleAddToVoucher(item, alert) : Alert.alert(t.checkPrice, t.runDeviationCheckFirst)} style={[styles.qtyBtn, { marginLeft: 10, backgroundColor: '#4caf50' }]}> 
+          <Text style={{ color: 'white' }}>{t.addToVoucher}</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -169,8 +165,9 @@ const VoucherCartCard = ({
   sellerNationality,
   funderNationality,
   alert,
-  parent
-}: { item: SokoItem; quantity: number; onUpdateQuantity: (id: string, qty: number) => void; onRemove: (id: string) => void; sellerNationality?: string | null; funderNationality?: string | null; alert?: PriceAlert | null; parent?: any }) => {
+  parent,
+  t // pass t as prop
+}: { item: SokoItem; quantity: number; onUpdateQuantity: (id: string, qty: number) => void; onRemove: (id: string) => void; sellerNationality?: string | null; funderNationality?: string | null; alert?: PriceAlert | null; parent?: any, t: any }) => {
   const priceNum = Number(item.sokoprice) || 0;
   const { nationality: userNationality, ratesMap } = useExchange();
   const sellerNat = sellerNationality || userNationality;
@@ -183,8 +180,7 @@ const VoucherCartCard = ({
       fontWeight: 'bold'
     }}>{item.sokoname} || {item.itemBrand}</Text>
       <View style={{ marginVertical: 4 }}>
-        <Text style={{ fontSize: 12 }}> Seller: {formatAmountSync(priceNum * quantity, sellerCode, ratesMap || undefined )} || Funder: {formatAmountSync(priceNum * quantity, funderCode, ratesMap || undefined)}
-        </Text>
+        <Text style={{ fontSize: 12 }}>{t.seller}: {formatAmountSync(priceNum * quantity, sellerCode, ratesMap || undefined )} || {t.funder}: {formatAmountSync(priceNum * quantity, funderCode, ratesMap || undefined)}</Text>
       </View>
       {alert && parent && (
         <View style={{ marginTop: 6 }}>
@@ -206,13 +202,8 @@ const VoucherCartCard = ({
         <TouchableOpacity onPress={() => onUpdateQuantity(item.id, quantity + 1)} style={styles.qtyBtn}>
           <Text>+</Text>
         </TouchableOpacity>
-        <TouchableOpacity onPress={() => onRemove(item.id)} style={[styles.qtyBtn, {
-        marginLeft: 6,
-        backgroundColor: '#f44336'
-      }]}>
-          <Text style={{
-          color: 'white'
-        }}>Delete</Text>
+        <TouchableOpacity onPress={() => onRemove(item.id)} style={[styles.qtyBtn, { marginLeft: 6, backgroundColor: '#f44336' }]}> 
+          <Text style={{ color: 'white' }}>{t.delete}</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -221,6 +212,9 @@ const VoucherCartCard = ({
 
 /* -------------------- Main Screen -------------------- */
 const SellerConsumablesVoucherScreen = () => {
+  const { i18n } = useTranslation();
+  const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+  const t = translations[lang] || translations.en;
   const route = useRoute<any>();
   const sellerID = route.params.sellerAccount;
   const combContractID = route.params.id;
@@ -288,7 +282,7 @@ const SellerConsumablesVoucherScreen = () => {
         console.log(sellerNationality)
         setAllItems(res?.data?.listSokoAds?.items || []);
       } catch (err) {
-        handleError('Could not load items.', err);
+        handleError( err);
       } finally {
         setLoading(false);
       }
@@ -501,7 +495,7 @@ const SellerConsumablesVoucherScreen = () => {
     const itemTotal = Number(item.sokoprice) * qty;
     const currentTotal = getCurrentVoucherTotal();
     if (isActiveCap && currentTotal + itemTotal > cap) {
-      Alert.alert('Insufficient Funds', "Adding this item would exceed the consumer's allocated funds.");
+      Alert.alert(t.insufficientFunds, t.insufficientFundsDetail);
       return;
     }
     setVoucherItems(v => ({
@@ -520,7 +514,7 @@ const SellerConsumablesVoucherScreen = () => {
     try {
       const totalVoucherAmount = Object.values(voucherItems).reduce((sum, v) => sum + Number(v.item.sokoprice) * v.quantity, 0);
       if (isActiveCap && totalVoucherAmount > cap) {
-        Alert.alert('Insufficient Funds');
+        Alert.alert(t.insufficientFunds);
         return;
       }
 
@@ -613,8 +607,8 @@ const SellerConsumablesVoucherScreen = () => {
         query: sendNotification,
         variables: {
           riderEmail: parent.consumerEmail,
-          title: 'MiFedha: COMB Contract',
-          body: `A COMB voucher has been generated by ${parent.sellerName}. Please go to COMB to approve or decline.`
+          title: 'NiSenti: COMB Contract',
+          body: `A NiSenti COMB voucher has been generated by ${parent.sellerName}. Please go to COMB to approve or decline.`
         }
       });
 
@@ -622,9 +616,9 @@ const SellerConsumablesVoucherScreen = () => {
       setVoucherItems({});
       setQuantities({});
       await fetchParent();
-      Alert.alert('Voucher Generated');
+      Alert.alert(t.voucherGenerated);
     } catch (err) {
-      handleError('Failed to generate voucher.', err);
+      handleError(t.failedToGenerateVoucher);
     } finally {
       setUpdating(false);
     }
@@ -641,15 +635,15 @@ const SellerConsumablesVoucherScreen = () => {
       flexDirection: 'row',
       marginBottom: 10
     }}>
-        <TextInput placeholder="Name" value={filters.sokoname} onChangeText={t => setFilters(f => ({
+        <TextInput placeholder={t.name} value={filters.sokoname} onChangeText={t => setFilters(f => ({
         ...f,
         sokoname: t
       }))} style={styles.input} />
-        <TextInput placeholder="Brand" value={filters.itemBrand} onChangeText={t => setFilters(f => ({
+        <TextInput placeholder={t.brand} value={filters.itemBrand} onChangeText={t => setFilters(f => ({
         ...f,
         itemBrand: t
       }))} style={styles.input} />
-        <TextInput placeholder="Specs" value={filters.itemSpecifications} onChangeText={t => setFilters(f => ({
+        <TextInput placeholder={t.specs} value={filters.itemSpecifications} onChangeText={t => setFilters(f => ({
         ...f,
         itemSpecifications: t
       }))} style={styles.input} />
@@ -659,7 +653,7 @@ const SellerConsumablesVoucherScreen = () => {
       {loading ? <ActivityIndicator /> : <FlatList data={filteredItems} keyExtractor={i => i.id} renderItem={({
       item
     }) => (
-      <ItemCard item={item} quantities={quantities} setQuantities={setQuantities} getPriceAlertCached={getPriceAlertCached} handleAddToVoucher={handleAddToVoucher} parent={parent} voucherItems={voucherItems} sellerNationality={sellerNationality} funderNationality={funderNationality} />
+      <ItemCard item={item} quantities={quantities} setQuantities={setQuantities} getPriceAlertCached={getPriceAlertCached} handleAddToVoucher={handleAddToVoucher} parent={parent} voucherItems={voucherItems} sellerNationality={sellerNationality} funderNationality={funderNationality} t={t} />
     )} contentContainerStyle={{
       paddingBottom: bottomPadding
     }} />}
@@ -703,7 +697,7 @@ const SellerConsumablesVoucherScreen = () => {
           };
           delete copy[id];
           setVoucherItems(copy);
-        }} />)} />
+        }} t={t} />)} />
 
             {/* Funds Progress & Multi-Currency Display */}
             {isActiveCap && <>
@@ -725,7 +719,7 @@ const SellerConsumablesVoucherScreen = () => {
             marginTop: 4,
             fontWeight: 'bold'
           }}>
-                  Remaining Funds: Consumer: {formatAmountSync(Number(getRemainingFunds() || 0), nationalityToCode(consumerNationality || nationality), ratesMap || undefined)} ||                   Funder: {formatAmountSync(Number(getRemainingFunds() || 0), nationalityToCode(funderNationality || nationality), ratesMap || undefined)}
+                  {t.remainingFunds}: {formatAmountSync(Number(getRemainingFunds() || 0), nationalityToCode(consumerNationality || nationality), ratesMap )} || {formatAmountSync(Number(getRemainingFunds() || 0), nationalityToCode(funderNationality || nationality), ratesMap) }
 
                 </Text>
                
@@ -744,7 +738,7 @@ const SellerConsumablesVoucherScreen = () => {
             color: 'white',
             fontWeight: 'bold'
           }}>
-                {updating ? 'Generating...' : `Generate Voucher — ${Object.keys(voucherItems).length} items`}
+                {updating ? t.generating : `${t.generateVoucher} — ${Object.keys(voucherItems).length} ${t.items}`}
               </Text>
             </Pressable>
           </>}

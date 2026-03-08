@@ -80,11 +80,11 @@ const UpdtMFNPW = props => {
           if (pws !== OldAdmnPW) {
             Alert.alert("Wrong Password; call HR");
           } else if (attributes.owner !== owners) {
-            Alert.alert("You are not the owner of this MFNdogo A/c");
+            Alert.alert("You are not the owner of this NSNdogo A/c");
           } else if (parseFloat(agentComs) < parseFloat(NewAdmnPW)) {
             Alert.alert("Set lower commission, maximum is: " + agentComs);
           } else if (acStatuss !== "AccountActive") {
-            Alert.alert("This MFNdogo Account is inactive");
+            Alert.alert("This NSNdogo Account is inactive");
           } else {
             updtMFNDtls();
           }
@@ -145,17 +145,17 @@ const UpdtMFNPW = props => {
                 <ScrollView>
            
                   <View style={styles.loanTitleView}>
-                    <Text style={styles.title}>Fill MFN Details Below</Text>
+                    <Text style={styles.title}>Fill NSNdogo Details Below</Text>
                   </View>
 
                   <View style={styles.sendLoanView}>
                     <TextInput placeholder="+2547xxxxxxxx" value={AdminID} onChangeText={setAdminId} style={styles.sendLoanInput} editable={true}></TextInput>
-                    <Text style={styles.sendLoanText}>MFNdogo Phone</Text>
+                    <Text style={styles.sendLoanText}>NSNdogo Phone</Text>
                   </View> 
         
                   <View style={styles.sendLoanView}>
                     <TextInput value={OldAdmnPW} onChangeText={setOldAdmnPW} secureTextEntry={true} style={styles.sendLoanInput} editable={true}></TextInput>
-                    <Text style={styles.sendLoanText}>MFNdogo PassWord</Text>
+                    <Text style={styles.sendLoanText}>NSNdogo PassWord</Text>
                   </View>   
 
                        

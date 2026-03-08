@@ -219,7 +219,7 @@ const BLSMCovLoanee = props => {
                       }
                     }
                     Alert.alert(names + ", you have blacklisted " + namess);
-                    const blMessage8 = 'Hi ' + namess + ', your loan of ID ' + route.params.id + 'has been blacklisted by ' + names + '. The following is a breakdown of your repayable loan. Loan balance before blacklisting was ' + formatAmountSync(Number(lonBala), attributes.nationality || undefined, ratesMap) + '. Default Penalty as you had agreed with your loaner is ' + formatAmountSync(Number(DefaultPenaltySMs), attributes.nationality || undefined, ratesMap) + '. Clearance fee is ' + formatAmountSync(Number(ClrnceCosts), attributes.nationality || undefined, ratesMap) + '. Total current loan repayable is ' + formatAmountSync(Number(LonBal), attributes.nationality || undefined, ratesMap) + '. For clarification call the Business Owner: ' + attributes.phone_number + '. Thank you. MiFedha';
+                    const blMessage8 = 'Hi ' + namess + ', your loan of ID ' + route.params.id + 'has been blacklisted by ' + names + '. The following is a breakdown of your repayable loan. Loan balance before blacklisting was ' + formatAmountSync(Number(lonBala), attributes.nationality || undefined, ratesMap) + '. Default Penalty as you had agreed with your loaner is ' + formatAmountSync(Number(DefaultPenaltySMs), attributes.nationality || undefined, ratesMap) + '. Clearance fee is ' + formatAmountSync(Number(ClrnceCosts), attributes.nationality || undefined, ratesMap) + '. Total current loan repayable is ' + formatAmountSync(Number(LonBal), attributes.nationality || undefined, ratesMap) + '. For clarification call the Business Owner: ' + attributes.phone_number + '. Thank you. NiSenti';
                     try {
                       const msgRes = await client.graphql({
                         query: createMessages,
@@ -228,7 +228,7 @@ const BLSMCovLoanee = props => {
                       if (msgRes?.data?.createMessages) {
                         await client.graphql({
                           query: sendNotification,
-                          variables: { riderEmail: phonecontact, title: 'MiFedha: Loan Blacklisted', body: blMessage8 }
+                          variables: { riderEmail: phonecontact, title: 'NiSenti: Loan Blacklisted', body: blMessage8 }
                         });
                       }
                     } catch (notifErr) {

@@ -6,6 +6,8 @@ import { createAuditor, createMessages, sendNotification } from '../../../src/gr
 import { getSMAccount } from '../../../src/graphql/queries';
 import { generateClient } from 'aws-amplify/api';
 import { getCurrentUser, fetchUserAttributes } from 'aws-amplify/auth';
+import { useTranslation } from 'react-i18next';
+import translations from './translation';
 type AuditorRegistrationProps = {
   usr: string;
 };
@@ -13,12 +15,13 @@ const client = generateClient();
 const RegisterAuditor = ({
   usr
 }: AuditorRegistrationProps) => {
+  const { i18n } = useTranslation();
+  const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+  const t = translations[lang] || translations.en;
   const navigation = useNavigation();
 
   // Form state
   const [auditorEmail, setAuditorEmail] = useState('');
-    const [auditorClient, setAuditorClient] = useState('');
-
   const [mainPassword, setMainPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -37,15 +40,15 @@ const RegisterAuditor = ({
         }
       });
       const userData = accountRes?.data?.getSMAccount;
-      if (!userData || userData.pw !== mainPassword) {
-        Alert.alert('Error', 'Wrong password or account does not exist!');
-        setIsLoading(false);
-        return;
+        if (!userData || userData.pw !== mainPassword) {
+          Alert.alert(t.error, t.error_wrongPasswordOrAccountDoesNotExist);
+          setIsLoading(false);
+          return;
       }
       await registerAuditor();
     } catch (error: any) {
       console.error(error);
-      Alert.alert('Error', 'Access denied or network error.');
+        Alert.alert(t.error, t.error_accessDeniedOrNetworkError);
       setIsLoading(false);
     }
   };
@@ -61,10 +64,10 @@ const RegisterAuditor = ({
         }
       });
       const auditorData = AuditorDtl?.data?.getSMAccount;
-      if (!auditorData) {
-        Alert.alert('Error', 'The specified auditor email does not exist in the system.');
-        setIsLoading(false);
-        return;
+        if (!auditorData) {
+          Alert.alert(t.error, t.error_auditorEmailDoesNotExist);
+          setIsLoading(false);
+          return;
       }
       await client.graphql({
         query: createAuditor,
@@ -73,7 +76,7 @@ const RegisterAuditor = ({
             name: auditorData.name,
             email: auditorEmail,
             active: true,
-            organization: auditorClient,
+            organization: usr,
             regions: [],
             createdAt,
             updatedAt: createdAt
@@ -87,7 +90,7 @@ const RegisterAuditor = ({
         variables: {
           input: {
             senderEmail: auditorEmail,
-            messageBody: `You have been registered as a COMB Officer under Institution ${usr} successfully.`
+            messageBody: t.messageBody.replace('{{usr}}', usr)
           }
         }
       });
@@ -95,23 +98,22 @@ const RegisterAuditor = ({
         query: sendNotification,
         variables: {
           riderEmail: auditorEmail,
-          title: 'MiFedha: COMB Officer Registration',
-          body: `You have been registered as a COMB Officer under Institution ${usr} successfully.`
+          title: t.notificationTitle,
+          body: t.notificationBody.replace('{{usr}}', usr)
         }
       });
-      Alert.alert('Success', 'COMB Officer registered successfully!');
+        Alert.alert(t.successMsg_combOfficerRegisteredSuccessfully.replace('{{usr}}', usr));
       navigation.goBack();
       resetForm();
     } catch (error: any) {
       console.error(error);
-      Alert.alert('Error', 'Failed to register auditor. Please try again.');
+        Alert.alert(t.error, t.error_failedToRegisterAuditorPleaseTryAgain);
     } finally {
       setIsLoading(false);
     }
   };
   const resetForm = () => {
     setAuditorEmail('');
-    setAuditorClient('');
     setMainPassword('');
     setShowPassword(false);
   };
@@ -123,36 +125,32 @@ const RegisterAuditor = ({
     }}>
         {/* Header */}
         <View style={ui.header}>
-          <Text style={ui.headerTitle}>Register COMB Officer</Text>
-          <Text style={ui.headerSub}>Institution Portal</Text>
+          <Text style={ui.headerTitle}>{t.headerTitle}</Text>
+          <Text style={ui.headerSub}>{t.headerSub}</Text>
         </View>
 
         {/* Card */}
         <View style={ui.card}>
-          <Text style={ui.label}>COMB Officer Email</Text>
-          <TextInput placeholder="email@example.com" placeholderTextColor="#333" value={auditorEmail} onChangeText={setAuditorEmail} style={ui.input} keyboardType="email-address" autoCapitalize="none" />
+          <Text style={ui.label}>{t.emailLabel}</Text>
+          <TextInput placeholder={t.emailPlaceholder} placeholderTextColor="#333" value={auditorEmail} onChangeText={setAuditorEmail} style={ui.input} keyboardType="email-address" autoCapitalize="none" />
 
-
-        <Text style={ui.label}>Auditor's Client</Text>
-          <TextInput placeholder="Company's Account Number" placeholderTextColor="#333" value={auditorClient} onChangeText={setAuditorClient} style={ui.input} keyboardType="email-address" autoCapitalize="none" />
-
-          <Text style={ui.label}>Main Account Password</Text>
+          <Text style={ui.label}>{t.passwordLabel}</Text>
           <View style={ui.passwordRow}>
             <TextInput style={[ui.input, {
             flex: 1
-          }]} placeholder="Main Account Password" value={mainPassword} onChangeText={setMainPassword} secureTextEntry={!showPassword} autoCapitalize="none" />
+          }]} placeholder={t.passwordPlaceholder} value={mainPassword} onChangeText={setMainPassword} secureTextEntry={!showPassword} autoCapitalize="none" />
             <TouchableOpacity style={ui.eyeButton} onPress={() => setShowPassword(p => !p)}>
               <Text style={{
               color: '#fff',
               fontSize: 14
-            }}>{showPassword ? 'Hide' : 'Show'}</Text>
+            }}>{showPassword ? t.hide : t.show}</Text>
             </TouchableOpacity>
           </View>
 
           {/* Button */}
           <TouchableOpacity onPress={checkUserExistence} disabled={isLoading}>
             <LinearGradient colors={['#e58d29', '#f2b66d']} style={ui.button}>
-              {isLoading ? <ActivityIndicator color="#fff" /> : <Text style={ui.buttonText}>Register COMB Officer</Text>}
+              {isLoading ? <ActivityIndicator color="#fff" /> : <Text style={ui.buttonText}>{t.button}</Text>}
             </LinearGradient>
           </TouchableOpacity>
         </View>

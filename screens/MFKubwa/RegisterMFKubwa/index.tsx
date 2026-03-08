@@ -205,7 +205,7 @@ const RegisterMFKubwaAcForm = props => {
                             return;
                           }
                         }
-                        Alert.alert("MFKubwa Account created successfully");
+                        Alert.alert("NSKubwa Account created successfully");
                         setIsLoading(false);
                       };
                     } catch (e) {
@@ -325,7 +325,7 @@ const RegisterMFKubwaAcForm = props => {
 
           <View style={styles.sendLoanView}>
             <TextInput value={nam} onChangeText={setName} style={styles.sendLoanInput} editable={true}></TextInput>
-            <Text style={styles.sendLoanText}>MFKubwa Name</Text>
+            <Text style={styles.sendLoanText}>NSKubwa Name</Text>
           </View>
 
          

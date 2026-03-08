@@ -50,7 +50,7 @@ const FetchSMNonLnsSnt = props => {
         }
       };
       if (userInfo.userId !== owner) {
-        Alert.alert("Please first create main account");
+        Alert.alert("Please first create main NSKubwa account");
       } else {
         await fetchLoanees();
       }
@@ -72,7 +72,7 @@ const FetchSMNonLnsSnt = props => {
       alignItems: 'center'
     }} ListHeaderComponent={() => <>
             
-            <Text style={styles.label}>My MFKubwa Applications</Text>
+            <Text style={styles.label}>My NSKubwa Applications</Text>
             <Text style={styles.label2}> (Please swipe down to load)</Text>
           </>} />
     </View>;

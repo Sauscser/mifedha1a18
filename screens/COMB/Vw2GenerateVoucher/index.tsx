@@ -4,6 +4,7 @@ import { useNavigation } from '@react-navigation/native';
 import { byCOMBConsumer, byCOMBSeller } from '../../../src/graphql/queries';
 import { generateClient } from 'aws-amplify/api';
 import { getCurrentUser, fetchUserAttributes } from 'aws-amplify/auth';
+
 const client = generateClient();
 const FetchSMNonCovLns = () => {
   const [loading, setLoading] = useState(false);
@@ -28,7 +29,6 @@ const FetchSMNonCovLns = () => {
       const acc = response.data.byCOMBSeller.items;
       setLoanees(acc);
       if (acc.length < 1) {
-        Alert.alert('No COMB Contracts found');
       }
     } catch (e) {
       console.log(e);

@@ -629,7 +629,7 @@ export default function RiderRideRequestScreen() {
             }
           });
         }
-        Alert.alert('Insufficient funds', 'Passenger MiFedha balance insufficient. Marked as pending.');
+        Alert.alert('Insufficient funds', 'Passenger NiSenti balance insufficient. Marked as pending.');
         if (userContact) fetchRides(userContact);
         return true; // Overdue
       }
@@ -714,8 +714,7 @@ export default function RiderRideRequestScreen() {
       if (userContact) fetchRides(userContact);
       return false; // Not overdue
     } catch (err) {
-      console.error('processMiFedhaPayment error', err);
-      Alert.alert('Payment error', 'Could not complete MiFedha payment.');
+      Alert.alert('Payment error', 'Could not complete NiSenti payment.');
       return false;
     }
   }, [fetchRides, stopTracking, userContact]);
@@ -1205,7 +1204,7 @@ export default function RiderRideRequestScreen() {
             {activeRide.rideStatus === 'Completed' && activeRide.paymentStatus !== 'Paid' && (
               activeRide.paymentMethod === 'MiFedha' ? (
                 <TouchableOpacity onPress={() => processMiFedhaPayment(activeRide)} style={[styles.actionButton, { backgroundColor: '#2ecc71' }]}>
-                  <Text style={styles.actionButtonText}>Charge (MiFedha)</Text>
+                  <Text style={styles.actionButtonText}>Charge NiSenti</Text>
                 </TouchableOpacity>
               ) : (
                 <TouchableOpacity onPress={() => manualClearPayment(activeRide)} style={[styles.actionButton, { backgroundColor: '#f39c12' }]}>

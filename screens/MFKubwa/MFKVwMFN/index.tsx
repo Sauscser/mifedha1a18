@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, FlatList, Alert } from 'react-native';
 import NonLnSent from "../../../components/MFKubwa/VwMyMFNs";
 import styles from './styles';
-import { getCompany, getSMAccount, listAgents, mFKVwMFN } from '../../../src/graphql/queries';
+import { getCompany, getSMAccount, listAgents } from '../../../src/graphql/queries';
 import { useRoute } from '@react-navigation/core';
 import { updateCompany, updateSMAccount } from '../../../src/graphql/mutations';
 import { getCurrentUser, fetchUserAttributes } from "aws-amplify/auth";
@@ -95,7 +95,7 @@ const FetchSMNonLnsSnt = props => {
               }
             } catch (e) {
               if (e) {
-                Alert.alert("MFKubwa does not exist does not exist; otherwise check internet connection");
+                Alert.alert("NSKubwa does not exist does not exist; otherwise check internet connection");
                 return;
               }
               console.log(e);
@@ -104,7 +104,7 @@ const FetchSMNonLnsSnt = props => {
           await fetchCompDtls();
         } catch (e) {
           if (e) {
-            Alert.alert("MFKubwa does not exist; otherwise check internet connection");
+            Alert.alert("NSKubwa does not exist; otherwise check internet connection");
             return;
           }
           console.log(e);
@@ -133,7 +133,7 @@ const FetchSMNonLnsSnt = props => {
       alignItems: 'center'
     }} ListHeaderComponent={() => <>
             
-            <Text style={styles.label}> My MFNdogos</Text>
+            <Text style={styles.label}> My NSNdogo</Text>
             <Text style={styles.label2}> (Please swipe down to load)</Text>
           </>} />
     </View>;

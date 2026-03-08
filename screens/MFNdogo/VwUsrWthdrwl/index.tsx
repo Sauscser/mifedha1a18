@@ -50,7 +50,7 @@ const FetchSMNonLnsSnt = () => {
       }
     } catch (e) {
       console.log("Error fetching loanees", e);
-      Alert.alert("Error", "No such a MFNdogo.");
+      Alert.alert("Error", "No such a NSNdogo.");
     } finally {
       setBizPhone('');
       setMFNPW('');

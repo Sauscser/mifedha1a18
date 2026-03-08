@@ -216,7 +216,7 @@ const BLCovCredByr = props => {
                       }
                     }
                     Alert.alert(names + ", you have blacklisted " + namess);
-                      const blMessage10 = 'Hi ' + namess + ', your loan of ID ' + route.params.id + 'has been blacklisted by ' + names + ' Business. The following is a breakdown of your repayable loan. Loan balance before blacklisting was ' + formatAmountSync(Number(lonBala), ratesMap) + '. Default Penalty as you had agreed with your loaner is ' + formatAmountSync(Number(DefaultPenaltyCredSls), ratesMap) + '. Clearance fee is ' + formatAmountSync(Number(ClrnceCosts), ratesMap) + '. Total current loan repayable is ' + formatAmountSync(Number(LonBal), ratesMap) + '. For clarification call the Business Owner: ' + attributes.phone_number + '. Thank you. MiFedha';
+                      const blMessage10 = 'Hi ' + namess + ', your loan of ID ' + route.params.id + 'has been blacklisted by ' + names + ' Business. The following is a breakdown of your repayable loan. Loan balance before blacklisting was ' + formatAmountSync(Number(lonBala), ratesMap) + '. Default Penalty as you had agreed with your loaner is ' + formatAmountSync(Number(DefaultPenaltyCredSls), ratesMap) + '. Clearance fee is ' + formatAmountSync(Number(ClrnceCosts), ratesMap) + '. Total current loan repayable is ' + formatAmountSync(Number(LonBal), ratesMap) + '. For clarification call the Business Owner: ' + attributes.phone_number + '. Thank you. NiSenti';
                     try {
                       const msgRes = await client.graphql({
                         query: createMessages,
@@ -225,7 +225,7 @@ const BLCovCredByr = props => {
                       if (msgRes?.data?.createMessages) {
                         await client.graphql({
                           query: sendNotification,
-                          variables: { riderEmail: phonecontactz, title: 'MiFedha: Credit Loan Blacklisted', body: blMessage10 }
+                          variables: { riderEmail: phonecontactz, title: 'NiSenti: Credit Loan Blacklisted', body: blMessage10 }
                         });
                       }
                     } catch (notifErr) {

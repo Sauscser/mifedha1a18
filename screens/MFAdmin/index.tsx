@@ -68,7 +68,7 @@ const RegKFKubwa = props => {
             {/* MFNdogo Card */}
             <View style={{ flex: 1, backgroundColor: '#f1f2f6', borderRadius: 14, alignItems: 'center', padding: 14, marginHorizontal: 4, minWidth: 100 }}>
               <FontAwesome5 name="user-friends" size={32} color="#00b894" style={{ marginBottom: 8 }} />
-              <Text style={{ fontWeight: 'bold', color: '#636e72', marginBottom: 10, fontSize: 16 }}>MFNdogo</Text>
+              <Text style={{ fontWeight: 'bold', color: '#636e72', marginBottom: 10, fontSize: 16 }}>NSNdogo</Text>
               <Pressable onPress={DActivateMFN} style={[styles.modernButton as import('react-native').ViewStyle, { backgroundColor: '#d63031', width: '100%' }]}><MaterialIcons name="person-remove" size={18} color="#fff" /><Text style={styles.modernButtonText as import('react-native').TextStyle}>DeReg</Text></Pressable>
               <Pressable onPress={goToBuyFloat} style={[styles.modernButton as import('react-native').ViewStyle, { backgroundColor: '#0984e3', width: '100%' }]}><FontAwesome5 name="money-bill-wave" size={18} color="#fff" /><Text style={styles.modernButtonText as import('react-native').TextStyle}>Buy Flt</Text></Pressable>
               <Pressable onPress={AddMFndogoss} style={[styles.modernButton as import('react-native').ViewStyle, { backgroundColor: '#00b894', width: '100%' }]}><Ionicons name="person-add" size={18} color="#fff" /><Text style={styles.modernButtonText as import('react-native').TextStyle}>AddMFN</Text></Pressable>
@@ -83,7 +83,7 @@ const RegKFKubwa = props => {
             {/* MFKubwa Card */}
             <View style={{ flex: 1, backgroundColor: '#f1f2f6', borderRadius: 14, alignItems: 'center', padding: 14, marginHorizontal: 4, minWidth: 100 }}>
               <FontAwesome5 name="users" size={32} color="#6c5ce7" style={{ marginBottom: 8 }} />
-              <Text style={{ fontWeight: 'bold', color: '#636e72', marginBottom: 10, fontSize: 16 }}>MFKubwa</Text>
+              <Text style={{ fontWeight: 'bold', color: '#636e72', marginBottom: 10, fontSize: 16 }}>NSKubwa</Text>
               <Pressable onPress={DActivateMFK} style={[styles.modernButton as import('react-native').ViewStyle, { backgroundColor: '#d63031', width: '100%' }]}><MaterialIcons name="person-remove" size={18} color="#fff" /><Text style={styles.modernButtonText as import('react-native').TextStyle}>DeRegMFK</Text></Pressable>
               <Pressable onPress={AddMFKubwass} style={[styles.modernButton as import('react-native').ViewStyle, { backgroundColor: '#00b894', width: '100%' }]}><Ionicons name="person-add" size={18} color="#fff" /><Text style={styles.modernButtonText as import('react-native').TextStyle}>Add</Text></Pressable>
             </View>

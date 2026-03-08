@@ -43,7 +43,7 @@ const FetchSMNonLnsSnt = props => {
       alignItems: 'center'
     }} ListHeaderComponent={() => <>
             
-            <Text style={styles.label}> Mifedha Policy</Text>
+            <Text style={styles.label}> NiSenti Policy</Text>
             <Text style={styles.label2}> (Please swipe down to load)</Text>
           </>} />
     </View>;

@@ -68,7 +68,7 @@ const DeregMFNForm = props => {
             return;
           }
         }
-        Alert.alert("MFNdogo successfully deactivated");
+        Alert.alert("NSNdogo successfully deactivated");
         setIsLoading(false);
         await updtActAdm();
       };
@@ -95,12 +95,12 @@ const DeregMFNForm = props => {
                 <ScrollView>
            
                   <View style={styles.loanTitleView}>
-                    <Text style={styles.title}>Fill MFNdogo Details Below</Text>
+                    <Text style={styles.title}>Fill NSNdogo Details Below</Text>
                   </View>
         
                   <View style={styles.sendLoanView}>
                     <TextInput placeholder="+2547xxxxxxxx" value={phoneContact} onChangeText={setPhoneContact} style={styles.sendLoanInput} editable={true}></TextInput>
-                    <Text style={styles.sendLoanText}>MFNdogo Phone</Text>
+                    <Text style={styles.sendLoanText}>NSNdogo Phone</Text>
                   </View>
         
                   

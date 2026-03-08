@@ -69,7 +69,7 @@ const ViewSMDeposts = (props: SMAccount) => {
                 </Text>
                 <Text style={styles.prodInfo}><Text style={styles.label}>Transaction ID:</Text> {id}</Text>
                 <Text style={styles.prodInfo}><Text style={styles.label}>Amount:</Text> {formatAmountSync(amount, userCode, ratesMap)}</Text>
-                <Text style={styles.prodInfo}><Text style={styles.label}>MFNdogo Number:</Text> {agContact}</Text>
+                <Text style={styles.prodInfo}><Text style={styles.label}>NSNdogo Number:</Text> {agContact}</Text>
                 <Text style={styles.prodInfo}><Text style={styles.label}>Created At:</Text> {createdAt}</Text>
             </View>
         </View>

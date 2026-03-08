@@ -137,7 +137,7 @@ const BLChmCovLoanee = props => {
                 }
                 Alert.alert("You have Penalised " + memberName + " for late payment ");
                 
-                const notificationBody = 'MiFedha. Hi ' + memberName + ', you have been penalised for late subscription by ' + grpName + ' group. The following is a breakdown of your subscription arrears and penalties: ' + '. subscription you have done up to date are ' + formatAmountSync(parseFloat(subscribedAmt), userCurrencyKey, ratesMap) + ' instead of ' + formatAmountSync(parseFloat(Amt2HvBnSub), userCurrencyKey, ratesMap) + '. For clarification call the group Admin: ' + attributes.phone_number + '. Thank you.';
+                const notificationBody = 'NiSenti: Hi ' + memberName + ', you have been penalised for late subscription by ' + grpName + ' group. The following is a breakdown of your subscription arrears and penalties: ' + '. subscription you have done up to date are ' + formatAmountSync(parseFloat(subscribedAmt), userCurrencyKey, ratesMap) + ' instead of ' + formatAmountSync(parseFloat(Amt2HvBnSub), userCurrencyKey, ratesMap) + '. For clarification call the group Admin: ' + attributes.phone_number + '. Thank you.';
                 
                 await client.graphql({
                   query: createMessages,
@@ -153,7 +153,7 @@ const BLChmCovLoanee = props => {
                   query: sendNotification,
                   variables: {
                     riderEmail: memberContact,
-                    title: 'MiFedha: Late Subscription Penalty',
+                    title: 'NiSenti: Late Subscription Penalty',
                     body: notificationBody
                   }
                 });

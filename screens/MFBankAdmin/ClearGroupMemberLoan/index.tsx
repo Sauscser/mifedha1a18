@@ -231,7 +231,7 @@ return fullMinutes;
     }
   };
 
-  // Fetch MiFedha credit info for a loanee (uses only the fields already in your code)
+  // Fetch NiSenti credit info for a loanee (uses only the fields already in your code)
   const fetchMemberCredit = async (loaneeEmail: string, loaneeName: string) => {
     if (!selectedGroup) return;
     setLoadingCredit(true);
@@ -376,11 +376,11 @@ return fullMinutes;
           { email: loan.signatory3Email, name: 'Signatory 3' },
         ].filter(r => r.email && r.email !== 'None');
 
-        const messageBody = `MiFedha: Your loan in self-help group ${selectedGroup.grpName} has been cleared by the bank`;
+        const messageBody = `NiSenti: Your loan in self-help group ${selectedGroup.grpName} has been cleared by the bank`;
 
         for (const r of recipients) {
           await client.graphql({ query: createMessages, variables: { input: { senderEmail: r.email, messageBody } } });
-          await client.graphql({ query: sendNotification, variables: { riderEmail: r.email, title: 'MiFedha: Loan Bank Clearance', body: messageBody } });
+          await client.graphql({ query: sendNotification, variables: { riderEmail: r.email, title: 'NiSenti: Loan Bank Clearance', body: messageBody } });
         }
 
         Alert.alert('Success', 'Loan cleared successfully');
@@ -762,7 +762,7 @@ ${minutes ? `
             >
               {loadingCredit ? <ActivityIndicator size="small" color="#fff" style={{ marginRight: 8 }} /> : null}
               <Text style={{ color: '#fff', fontWeight: '700' }}>
-                {loadingCredit ? 'Loading...' : 'View MiFedha Credit Worth'}
+                {loadingCredit ? 'Loading...' : 'View NiSenti Credit Worth'}
               </Text>
             </TouchableOpacity>
 

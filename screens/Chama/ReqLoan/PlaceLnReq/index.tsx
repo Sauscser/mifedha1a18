@@ -437,7 +437,7 @@ const CreateBiz = () => {
           query: sendNotification,
           variables: {
             riderEmail: advocateEmail,
-            title: "MiFedha: New Loan Request",
+            title: "NiSenti: New Loan Request",
             body: `A loan request has been made by ${names} under group ${grpName}.`
           }
         });
@@ -457,7 +457,7 @@ const CreateBiz = () => {
         query: sendNotification,
         variables: {
           riderEmail: AppDtls.ChamaAdminEmail,
-          title: "MiFedha: New Loan Request",
+          title: "NiSenti: New Loan Request",
           body: `A loan request has been made by ${names} under group ${grpName}.`
         }
       });

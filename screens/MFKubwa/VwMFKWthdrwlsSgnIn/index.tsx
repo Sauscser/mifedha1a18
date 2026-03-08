@@ -35,15 +35,15 @@ const MFNSignIn = props => {
       const pw1s = MFNDtls.data.getSAgent.pw;
       const owners = MFNDtls.data.getSAgent.owner;
       if (owners !== ownr) {
-        Alert.alert("You dont own this MFKubwa");
+        Alert.alert("You dont own this NSKubwa");
       } else if (MFNPW !== pw1s) {
-        Alert.alert("Wrong MFKubwa credentials");
+        Alert.alert("Wrong NSKubwa credentials");
       } else {
         moveToMFNHm();
       }
     } catch (e) {
       if (e) {
-        Alert.alert("MFKubwa does not exist; otherwise check internet connection");
+        Alert.alert("NSKubwa does not exist; otherwise check internet connection");
         return;
       }
       console.log(e);
@@ -76,12 +76,12 @@ const MFNSignIn = props => {
         
                   <View style={styles.sendLoanView}>
                     <TextInput placeholder="+2547xxxxxxxx" value={MFKPhn} onChangeText={setMFNId} style={styles.sendLoanInput} editable={true}></TextInput>
-                    <Text style={styles.sendLoanText}>MFKubwa Phone</Text>
+                    <Text style={styles.sendLoanText}>NSKubwa Phone</Text>
                   </View>
         
                   <View style={styles.sendLoanView}>
                     <TextInput value={MFNPW} onChangeText={setMFNPW} secureTextEntry={true} style={styles.sendLoanInput} editable={true}></TextInput>
-                    <Text style={styles.sendLoanText}>Pass Word</Text>
+                    <Text style={styles.sendLoanText}>NSKubwa Pass Word</Text>
                   </View>
         
                   <TouchableOpacity onPress={fetchMFNDts} style={styles.sendLoanButton}>

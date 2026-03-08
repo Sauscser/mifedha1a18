@@ -38,7 +38,7 @@ const KFNdogoScreen = () => {
         <Section title="📊 View" gradient={['#e58d29', 'skyblue']}>
           <CustomButton title="Deposit" onPress={nav('FloatBghtSgnIns')} />
           <CustomButton title="Float Bought" onPress={nav('UsrDpositSgnIns')} />
-          <CustomButton title="MFNdogo Withdrawals" onPress={nav('MFNWithdrawlsSgnIns')} />
+          <CustomButton title="NSNdogo Withdrawals" onPress={nav('MFNWithdrawlsSgnIns')} />
           <CustomButton title="Client Withdrawals" onPress={nav('UsrWthdrwlsSgnIns')} />
           <CustomButton title="Float Withdrawals" onPress={nav('FltWthdrwlsSgnIns')} />
         </Section>
@@ -50,7 +50,7 @@ const KFNdogoScreen = () => {
         </Section>
 
         <Section title="💰 Float" gradient={['#e58d29', 'skyblue']}>
-          <CustomButton title="MFNdogo Withdraw" onPress={nav('WthdrwMFNFlts')} />
+          <CustomButton title="NSNdogo Withdraw" onPress={nav('WthdrwMFNFlts')} />
           <CustomButton title="User Deposit" onPress={nav('DpstMney')} />
           <CustomButton title="Chama Deposit" onPress={nav('SignitoryDepositss')} />
           <CustomButton title="Biz Deposit" onPress={nav('MakeBizDpsts')} />

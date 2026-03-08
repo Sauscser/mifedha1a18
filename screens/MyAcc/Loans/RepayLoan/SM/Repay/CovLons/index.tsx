@@ -297,7 +297,7 @@ const RepayCovLnsss = props => {
                       }
                     }
                     Alert.alert("Cleared. ClearanceFee: " + ClranceAmt.toFixed(2) + ". Transaction: " + (parseFloat(UsrTransferFee) * amountKes).toFixed(2));
-                    const repayMessage5 = 'Hi ' + namess + ', your loan of ID ' + route.params.loanID + ' has been repaid ' + formatAmountSync(amountKes, nationality || undefined, ratesMap) + ' by ' + names + '. For clarification call the loanee: ' + attributes.phone_number + '. Thank you. MiFedha';
+                    const repayMessage5 = 'Hi ' + namess + ', your loan of ID ' + route.params.loanID + ' has been repaid ' + formatAmountSync(amountKes, nationality || undefined, ratesMap) + ' by ' + names + '. For clarification call the loanee: ' + attributes.phone_number + '. Thank you. NiSenti';
                     try {
                       const msgRes = await client.graphql({
                         query: createMessages,
@@ -306,7 +306,7 @@ const RepayCovLnsss = props => {
                       if (msgRes?.data?.createMessages) {
                         await client.graphql({
                           query: sendNotification,
-                          variables: { riderEmail: phonecontactz, title: 'MiFedha: Loan Repaid', body: repayMessage5 }
+                          variables: { riderEmail: phonecontactz, title: 'NiSenti: Loan Repaid', body: repayMessage5 }
                         });
                       }
                     } catch (notifErr) {
@@ -452,7 +452,7 @@ const RepayCovLnsss = props => {
                       }
                     }
                     Alert.alert("Partially paid. Clearance: " + ClranceAmt.toFixed(2) + ". Transaction: " + (parseFloat(UsrTransferFee) * amountKes).toFixed(2));
-                    const repayMessage6 = 'Hi ' + namess + ', your loan of ID ' + route.params.loanID + ' has been repaid ' + formatAmountSync(amountKes, nationality || undefined, ratesMap) + ' by ' + names + '. For clarification call the loanee: ' + attributes.phone_number + '. Thank you. MiFedha';
+                    const repayMessage6 = 'Hi ' + namess + ', your loan of ID ' + route.params.loanID + ' has been repaid ' + formatAmountSync(amountKes, nationality || undefined, ratesMap) + ' by ' + names + '. For clarification call the loanee: ' + attributes.phone_number + '. Thank you. NiSenti';
                     try {
                       const msgRes = await client.graphql({
                         query: createMessages,
@@ -461,7 +461,7 @@ const RepayCovLnsss = props => {
                       if (msgRes?.data?.createMessages) {
                         await client.graphql({
                           query: sendNotification,
-                          variables: { riderEmail: phonecontactz, title: 'MiFedha: Loan Partially Repaid', body: repayMessage6 }
+                          variables: { riderEmail: phonecontactz, title: 'NiSenti: Loan Partially Repaid', body: repayMessage6 }
                         });
                       }
                     } catch (notifErr) {
@@ -479,7 +479,7 @@ const RepayCovLnsss = props => {
                     Alert.alert('Receiver account is inactive');
                     return;
                   } else if (parseFloat(ttlDpstSMs) === 0 && parseFloat(TtlWthdrwnSMs) === 0) {
-                    Alert.alert('Loanee ID be verified through deposit at MFNdogo');
+                    Alert.alert('Loanee ID be verified through deposit at NSNdogo');
                   } else if (parseFloat(SenderUsrBal) < TotalTransacted) {
                     Alert.alert('Requested amount is more than you have in your account');
                     return;

@@ -198,7 +198,7 @@ const SMASendNonLns = props => {
                 const bizNat = accountDtl.data.getBizna?.nationality || null;
                 const formattedTxFee = formatAmountSync(Number(feeKes), bizNat, ratesMap);
                 Alert.alert(`Amount: ${formattedAmount} Transaction: ${formattedTxFee}`);
-                const revShareMessage3 = `Confirmed. ${busNames} Business entity has sent you ${formattedAmount} to your MiFedha Main account. Please confirm this transaction record is on your Mifedha app. Thank you. MiFedha`;
+                const revShareMessage3 = `Confirmed. ${busNames} Business entity has sent you ${formattedAmount} to your NiSenti Main account. Please confirm this transaction record is on your NiSenti app. Thank you. NiSenti`;
                 try {
                   const msgRes = await client.graphql({
                     query: createMessages,
@@ -207,7 +207,7 @@ const SMASendNonLns = props => {
                   if (msgRes?.data?.createMessages) {
                     await client.graphql({
                       query: sendNotification,
-                      variables: { riderEmail: phonecontact, title: 'MiFedha: Revenue Shared', body: revShareMessage3 }
+                      variables: { riderEmail: phonecontact, title: 'NiSenti: Revenue Shared', body: revShareMessage3 }
                     });
                   }
                 } catch (notifErr) {
@@ -227,7 +227,7 @@ const SMASendNonLns = props => {
               } else if (noBL > 0) {
                 Alert.alert('Please first clear your lenders');
               } else if (parseFloat(ttlDpstSMs) === 0 && parseFloat(TtlWthdrwnSMs) === 0) {
-                Alert.alert('Receiver ID be verified through deposit at MFNdogo');
+                Alert.alert('Receiver ID be verified through deposit at NSNdogo');
               } else if (usrPW !== SnderPW) {
                 Alert.alert('Wrong password');
               } else if (userInfo.userId !== SenderSub) {

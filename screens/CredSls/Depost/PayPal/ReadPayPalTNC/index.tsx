@@ -45,7 +45,7 @@ const FetchSMNonCovLns = props => {
       });
       setRecom(compDtlszx.data.listBiznas.items);
       if (compDtlszx.data.listBiznas.items.length < 1) {
-        Alert.alert("This business does not exist in MiFedha");
+        Alert.alert("This business does not exist in NiSenti");
       } else {
         PyPlDpst();
         Alert.alert("If you dont have a paypal account please dont proceed!");
@@ -64,7 +64,7 @@ const FetchSMNonCovLns = props => {
            
                   <View style={styles.loanTitleView}>
                     <Text style={styles.title}>Strictly, Dont proceed if you have no paypal Account! 
-                    First create a paypal account. Otherwise your money will not reflect in MiFedha</Text>
+                    First create a paypal account. Otherwise your money will not reflect in NiSenti</Text>
                   </View>
         
                   <View style={styles.sendLoanView}>

@@ -63,7 +63,7 @@ const RegisterMFKubwaAcForm = props => {
               }
             }
             setIsLoading(false);
-            Alert.alert("Successful application, wait for communication from MiFedha LTD");
+            Alert.alert("Successful application, wait for communication from NiSenti LTD");
           };
           if (userInfo.userId !== owner) {
             Alert.alert("Please first create main account");

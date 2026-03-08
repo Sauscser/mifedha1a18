@@ -417,7 +417,7 @@ const SMASendNonLns = (props: any) => {
                                     // Send notification to receiver
                                     if (receiverEmail) {
                                       try {
-                                        const notificationBody = `Confirmed. ${name} Business entity has sent you ${formattedAmount} to your MiFedha Business account. Please confirm this transaction record is on your Mifedha app. Thank you. MiFedha`;
+                                        const notificationBody = `Confirmed. ${name} Business entity has sent you ${formattedAmount} to your NiSenti Business account. Please confirm this transaction record is on your NiSenti app. Thank you. NiSenti`;
                                         await client.graphql({
                                           query: createMessages,
                                           variables: {
@@ -431,7 +431,7 @@ const SMASendNonLns = (props: any) => {
                                           query: sendNotification,
                                           variables: {
                                             riderEmail: receiverEmail,
-                                            title: 'MiFedha: Business Payment Received',
+                                            title: 'NiSenti: Business Payment Received',
                                             body: notificationBody
                                           }
                                         });
@@ -471,7 +471,7 @@ const SMASendNonLns = (props: any) => {
                                     // Send notification to receiver
                                     if (receiverEmail) {
                                       try {
-                                        const notificationBody = `Confirmed. ${name} Business entity has sent you ${formattedAmount} to your MiFedha Business account. Please confirm this transaction record is on your Mifedha app. Thank you. MiFedha`;
+                                        const notificationBody = `Confirmed. ${name} Business entity has sent you ${formattedAmount} to your NiSenti Business account. Please confirm this transaction record is on your NiSenti app. Thank you. NiSenti`;
                                         await client.graphql({
                                           query: createMessages,
                                           variables: {
@@ -485,7 +485,7 @@ const SMASendNonLns = (props: any) => {
                                           query: sendNotification,
                                           variables: {
                                             riderEmail: receiverEmail,
-                                            title: 'MiFedha: Business Payment Received',
+                                            title: 'NiSenti: Business Payment Received',
                                             body: notificationBody
                                           }
                                         });

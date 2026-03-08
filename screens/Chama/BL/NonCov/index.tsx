@@ -204,12 +204,12 @@ const BLChmNonCovLoanee = () => {
                       });
                       Alert.alert(`${grpNames}, you have blacklisted ${namess}`);
                       
-                      const notificationBody = `Hi ${namess}, your loan of ID ${route.params.id} has been blacklisted by ${grpNames} group. 
+                      const notificationBody = `NiSenti: Hi ${namess}, your loan of ID ${route.params.id} has been blacklisted by ${grpNames} group. 
 Loan balance before blacklisting was ${formatAmountSync(Math.floor(parseFloat(lonBala)), userCode, ratesMap)}. 
 Default Penalty as agreed with your loaner is ${formatAmountSync(Math.floor(parseFloat(DefaultPenaltyChms)), userCode, ratesMap)}. 
 Loan clearance fee is ${formatAmountSync(Math.floor(MmbrClrnceCosts), userCode, ratesMap)}. 
 Total current loan repayable is ${formatAmountSync(Math.floor(LonBal), userCode, ratesMap)}. 
-For clarification call the group Admin: ${attrs.phone_number}. Thank you. MiFedha`;
+For clarification call the group Admin: ${attrs.phone_number}. Thank you. NiSenti`;
                       
                       await client.graphql({
                         query: createMessages,
@@ -225,7 +225,7 @@ For clarification call the group Admin: ${attrs.phone_number}. Thank you. MiFedh
                         query: sendNotification,
                         variables: {
                           riderEmail: awsemails,
-                          title: 'MiFedha: Loan Blacklisted',
+                          title: 'NiSenti: Loan Blacklisted',
                           body: notificationBody
                         }
                       });

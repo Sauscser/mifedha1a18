@@ -47,7 +47,7 @@ const ViewSMDeposts = (props:SMAccount) => {
                     </Text>
                     <Text style ={styles.amountoffered}>                       
                        {/* amount*/} 
-                     MFKubwa ACNo: {acMainAc}
+                     NSKubwa ACNo: {acMainAc}
                     </Text>
 
                     <Text style ={styles.amountoffered}>                       

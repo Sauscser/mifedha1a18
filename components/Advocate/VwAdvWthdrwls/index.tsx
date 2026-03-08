@@ -33,7 +33,7 @@ const ViewSMDeposts = (props:SMAccount) => {
             
             <View style = {styles.card}>         
             <Text style={styles.prodInfo}><Text style={styles.label}>Transaction ID: </Text> {id}</Text>
-            <Text style={styles.prodInfo}><Text style={styles.label}> Amount:</Text> KES {amount.toFixed(2)}</Text>
+            <Text style={styles.prodInfo}><Text style={styles.label}> Amount:</Text> KES {typeof amount === 'number' ? amount.toFixed(2) : 'N/A'}</Text>
             <Text style={styles.prodInfo}><Text style={styles.label}>Transaction Time: </Text> {createdAt}</Text>
            
         </View>

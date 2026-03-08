@@ -70,7 +70,7 @@ const ViewSMDeposts = (props: SMAccount) => {
 
     Communications.textWithoutEncoding(
       loanerPhone,
-      'MiFedha. Hi I have witnessed the ' +
+      'NiSenti. Hi I have witnessed the ' +
       ' loan contract between you ' + loanerName +
       ' the Loaner and ' + loaneeName + ' the Loaned. Thank you.'
     );
@@ -97,7 +97,7 @@ const ViewSMDeposts = (props: SMAccount) => {
 
     Communications.textWithoutEncoding(
       loaneePhone,
-      'MiFedha. Hi, I could not witness the ' +
+      'NiSenti. Hi, I could not witness the ' +
       ' loan contract between you ' + loanerName +
       ' the Loaner and ' + loaneeName + ' Please get in touch for more info. Thank you.'
     );
@@ -108,7 +108,7 @@ const ViewSMDeposts = (props: SMAccount) => {
       <View style={styles.card}>
         <Text style={styles.prodName}>
           {/*loaner details */}
-          MiFedha.
+          NiSenti.
           Greetings! We, {loaneeName}, the loaned and {loanerName}, the loaner, humbly
           request that you witness our loan contract amounting to Ksh.
           {amount}, repayable at a compound interest of {repaymentAmt}% per year by the end of {repaymentPeriod} days,

@@ -69,9 +69,9 @@ const UpdtMFNPW = props => {
       if (pws !== OldAdmnPW) {
         Alert.alert("Wrong Old Password; call HR");
       } else if (userInfo.sub !== owners) {
-        Alert.alert("You are not the owner of this MFNdogo A/c");
+        Alert.alert("You are not the owner of this NSNdogo A/c");
       } else if (acStatuss !== "AccountActive") {
-        Alert.alert("This MFNdogo Account is inactive");
+        Alert.alert("This NSNdogo Account is inactive");
       } else {
         updtMFNDtls();
       }
@@ -129,12 +129,12 @@ const UpdtMFNPW = props => {
 
                   <View style={styles.sendLoanView}>
                     <TextInput placeholder="+2547xxxxxxxx" value={AdminID} onChangeText={setAdminId} style={styles.sendLoanInput} editable={true}></TextInput>
-                    <Text style={styles.sendLoanText}>MFNdogo Phone</Text>
+                    <Text style={styles.sendLoanText}>NSNdogo Phone</Text>
                   </View> 
         
                   <View style={styles.sendLoanView}>
                     <TextInput value={OldAdmnPW} onChangeText={setOldAdmnPW} secureTextEntry={true} style={styles.sendLoanInput} editable={true}></TextInput>
-                    <Text style={styles.sendLoanText}>Old MFN PW</Text>
+                    <Text style={styles.sendLoanText}>Old NSNdogo PW</Text>
                   </View>   
 
                        

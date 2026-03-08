@@ -1,5 +1,4 @@
 import { StyleSheet } from 'react-native';
-import LinearGradient from 'react-native-linear-gradient';
 const styles = StyleSheet.create({
   // General view for each section
   clientsView: {
@@ -27,25 +26,35 @@ const styles = StyleSheet.create({
   // View for options and title alignment
   viewForClientsAndTitle: {
     flexDirection: 'column',
-    alignItems: 'flex-start'
+    alignItems: 'center', // Center children horizontally
+    width: '100%',
+    maxWidth: 340, // Fixed max width for professional look
+    alignSelf: 'center', // Center the container itself
+    marginLeft: 'auto',
+    marginRight: 'auto',
   },
   // Base style for each pressable item in the section
   viewForClientsPressables: {
     padding: 10,
-    marginBottom: 8,
+    marginBottom: 12,
     borderRadius: 6,
-    width: '100%',
+    width: 260, // Fixed width for button
+    maxWidth: '100%',
     justifyContent: 'center',
-    alignItems: 'center'
+    alignItems: 'center',
+    alignSelf: 'center',
+    boxSizing: 'border-box',
   },
   // Linear gradient applied to pressable buttons
   clientsPressableGradient: {
     borderRadius: 8,
     width: '100%',
+    minWidth: 180,
+    maxWidth: 260,
     padding: 12,
-    // Add padding for the button inside the gradient
     justifyContent: 'center',
-    alignItems: 'center'
+    alignItems: 'center',
+    alignSelf: 'center',
   },
   // Style for pressable text inside buttons
   salesPressableText: {

@@ -94,7 +94,7 @@ const FetchSMNonLnsSnt = props => {
               }
             } catch (e) {
               if (e) {
-                Alert.alert("MFNdogo does not exist does not exist; otherwise check internet connection");
+                Alert.alert("NSNdogo does not exist does not exist; otherwise check internet connection");
                 return;
               }
               console.log(e);
@@ -103,7 +103,7 @@ const FetchSMNonLnsSnt = props => {
           await fetchCompDtls();
         } catch (e) {
           if (e) {
-            Alert.alert("MFNdogo does not exist; otherwise check internet connection");
+            Alert.alert("NSNdogo does not exist; otherwise check internet connection");
             return;
           }
           console.log(e);

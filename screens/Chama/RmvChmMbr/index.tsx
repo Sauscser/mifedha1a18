@@ -83,7 +83,7 @@ const DeregChmMmbr = props => {
                 setIsLoading(false);
                 Alert.alert(grpNames + " has deregistered " + memberNames);
                 
-                const notificationBody = 'Hi ' + name + ', you have been de-registered from group ' + grpNames + '. For clarification please contact the group admin through ' + attributes.phone_number + '. Thank you. MiFedha.';
+                const notificationBody = 'Hi ' + name + ', you have been de-registered from group ' + grpNames + '. For clarification please contact the group admin through ' + attributes.phone_number + '. Thank you. NiSenti.';
                 
                 await client.graphql({
                   query: createMessages,
@@ -99,7 +99,7 @@ const DeregChmMmbr = props => {
                   query: sendNotification,
                   variables: {
                     riderEmail: memberContacts,
-                    title: 'MiFedha: Group Deregistration',
+                    title: 'NiSenti: Group Deregistration',
                     body: notificationBody
                   }
                 });

@@ -15,10 +15,10 @@ export const resources = {
       appShell: {
         globalHeader: { welcome: 'Welcome, {{username}}', signOut: 'Sign Out' },
         drawer: {
-          homes: 'Homes', mfnDogos: 'MiFedha Ndogos', mfKubwa: 'MiFedha Kubwa', advocate: 'MiFedha Advocate', admin2: 'MiFedha Admin 2', bankAdmin: 'Bank Admin', mfBankAdmin: 'MFBankAdmin', admin1: 'MiFedha Admin 1', reference: 'Reference'
+          homes: 'Homes', mfnDogos: 'NiSenti Ndogos', mfKubwa: 'NSKubwa', advocate: 'NiSenti Advocate', admin2: 'NiSenti Admin 2', bankAdmin: 'Bank Admin', mfBankAdmin: 'NSBankAdmin', admin1: 'NiSenti Admin 1', reference: 'Reference'
         },
         tabs: {
-          home: 'Home', mfnDogo: 'MFNdogo', howTo: 'HowTo', transport: 'Transport', goShopping: 'GoShopping', searchPal: 'Search Pal'
+          home: 'Home', mfnDogo: 'NSNdogo', howTo: 'HowTo', transport: 'Transport', goShopping: 'GoShopping', searchPal: 'Search Pal'
         }
       },
       HomeScrn: {
@@ -43,10 +43,10 @@ export const resources = {
       appShell: {
         globalHeader: { welcome: 'Karibu, {{username}}', signOut: 'Toka' },
         drawer: {
-          homes: 'Nyumbani', mfnDogos: 'MiFedha Ndogos', mfKubwa: 'MiFedha Kubwa', advocate: 'MiFedha Wakili', admin2: 'MiFedha Admin 2', bankAdmin: 'Msimamizi wa Benki', mfBankAdmin: 'MFBankAdmin', admin1: 'MiFedha Admin 1', reference: 'Marejeo'
+          homes: 'Nyumbani', mfnDogos: 'NSNdogo', mfKubwa: 'NSKubwa', advocate: 'NiSenti Wakili', admin2: 'NiSenti Admin 2', bankAdmin: 'Msimamizi wa Benki', mfBankAdmin: 'NSBankAdmin', admin1: 'NiSenti Admin 1', reference: 'Marejeo'
         },
         tabs: {
-          home: 'Nyumbani', mfnDogo: 'MFNdogo', howTo: 'Jinsi ya', transport: 'Usafiri', goShopping: 'Nunua', searchPal: 'Tafuta Pal'
+          home: 'Nyumbani', mfnDogo: 'NSNdogo', howTo: 'Jinsi ya', transport: 'Usafiri', goShopping: 'Nunua', searchPal: 'Tafuta Pal'
         }
       },
       HomeScrn: {

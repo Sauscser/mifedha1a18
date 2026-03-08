@@ -7,6 +7,12 @@ import { getBizna, getCombContract, getSMAccount, listCombPersonels } from "../.
 import { generateClient } from "aws-amplify/api";
 import { getCurrentUser, fetchUserAttributes } from "aws-amplify/auth";
 const client = generateClient();
+
+import { useTranslation } from 'react-i18next';
+import translations from './translation';
+
+
+
 type RouteParams = {
   id: string;
 };
@@ -32,21 +38,24 @@ const UpdateCombSellerScreen: React.FC = () => {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+
+  const { i18n } = useTranslation();
+  const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+  const t = translations[lang] || translations.en;
+
+
   const update = <K extends keyof FormState,>(k: K, v: FormState[K]) => setForm(p => ({
     ...p,
     [k]: v
   }));
   const handleUpdateSeller = async () => {
     if (!form.sellerType) {
-      Alert.alert("Validation", "Select seller type.");
       return;
     }
     if (form.sellerType === "sellerTypeBiz" && (!form.sellerAccount || !form.sellerEmail)) {
-      Alert.alert("Validation", "Enter business and officer details.");
       return;
     }
     if (form.sellerType === "sellerTypePal" && !form.sellerEmail) {
-      Alert.alert("Validation", "Enter seller main account email.");
       return;
     }
     if (isLoading) return;
@@ -63,7 +72,7 @@ const UpdateCombSellerScreen: React.FC = () => {
       });
       const myAccountz = accountRex?.data?.getSMAccount;
       if (!myAccountz || password !== myAccountz.pw) {
-        Alert.alert("Authentication", "Incorrect password or account not found.");
+        Alert.alert(t.authenticationTitle, t.incorrectPasswordMessage);
         setIsLoading(false);
         return;
       }
@@ -117,11 +126,11 @@ const UpdateCombSellerScreen: React.FC = () => {
         });
         const COMBContractDtls = COMBContract?.data?.getCombContract;
         if (COMBContractDtls.consumerAccount === form.sellerAccount) {
-          Alert.alert("The seller cannot sell to oneself");
+          Alert.alert(t.errorTitle, t.sellerCannotSellToSelf);
           return;
         }
         if (COMBContractDtls.funderAccount === form.sellerAccount) {
-          Alert.alert("The seller cannot pay/fund to oneself");
+          Alert.alert(t.errorTitle, t.sellerCannotFundToSelf);
           return;
         }
 
@@ -141,7 +150,7 @@ const UpdateCombSellerScreen: React.FC = () => {
         });
         const personnel = personnelRes?.data?.listCombPersonels?.items;
         if (personnel.length === 0) {
-          Alert.alert("Warning", "This Institution Officer is not authorised to sell. Contact manually.");
+          Alert.alert(t.warningTitle, t.unauthorizedOfficerMessage);
           setIsLoading(false);
           return;
         }
@@ -179,117 +188,102 @@ const UpdateCombSellerScreen: React.FC = () => {
         variables: {
           input: {
             senderEmail: form.sellerEmail,
-            messageBody: `You have been linked to a COMB contract. Go to COMB and generate sale vouchers for the consumer to approve as per the funder's specifications.`
+            messageBody: `You have been linked to a NiSenti COMB contract. Go to COMB and generate sale vouchers for the consumer to approve as per the funder's specifications.`
           }
         }
       });
-      if (Message?.data?.createMessages) {
+      if (Message && 'data' in Message && Message.data?.createMessages) {
         await client.graphql({
           query: sendNotification,
           variables: {
             riderEmail: form.sellerEmail,
-            title: "MiFedha: COMB Contract",
-            body: `You have been linked to a COMB contract. Go to COMB and generate sale vouchers for the consumer to approve as per the funder's specifications.`
+            title: t.notificationTitle,
+            body: t.notificationBody
           }
         });
       }
-      Alert.alert("Success", "Seller details updated successfully.");
+      Alert.alert(t.successTitle, t.successMessage);
     } catch (err: any) {
       console.error("Update seller error:", err);
-      Alert.alert("Error", err.message || "Ensure you enter details correctly.");
+      Alert.alert(t.errorTitle, t.errorMessage);
     } finally {
       setIsLoading(false);
     }
   };
-  return <LinearGradient colors={["#e58d29", "skyblue"]} style={{
-    flex: 1
-  }}>
+  return (
+    <LinearGradient colors={["#e58d29", "skyblue"]} style={{ flex: 1 }}>
       <ScrollView contentContainerStyle={styles.container}>
-        <Text style={styles.title}>Link COMB Seller</Text>
+        <Text style={styles.title}>{t.headerTitle}</Text>
 
         {/* Seller type */}
-        <View style={{
-        marginBottom: 12
-      }}>
-          <Text style={styles.label}>Seller Type</Text>
+        <View style={{ marginBottom: 12 }}>
+          <Text style={styles.label}>{t.sellerTypeLabel}</Text>
           <View style={styles.row}>
-            <TouchableOpacity style={[styles.chip, form.sellerType === "sellerTypePal" && styles.chipActive]} onPress={() => update("sellerType", "sellerTypePal")}>
+            <TouchableOpacity style={[styles.chip, form.sellerType === "sellerTypePal" && styles.chipActive]} onPress={() => update("sellerType", "sellerTypePal")}> 
               <Text style={form.sellerType === "sellerTypePal" ? styles.chipTextActive : styles.chipText}>
-                Individual
+                {t.sellerTypePal}
               </Text>
             </TouchableOpacity>
-            <TouchableOpacity style={[styles.chip, form.sellerType === "sellerTypeBiz" && styles.chipActive]} onPress={() => update("sellerType", "sellerTypeBiz")}>
+            <TouchableOpacity style={[styles.chip, form.sellerType === "sellerTypeBiz" && styles.chipActive]} onPress={() => update("sellerType", "sellerTypeBiz")}> 
               <Text style={form.sellerType === "sellerTypeBiz" ? styles.chipTextActive : styles.chipText}>
-                Business
+                {t.sellerTypeBiz}
               </Text>
             </TouchableOpacity>
           </View>
         </View>
 
         {/* Seller Email */}
-        <View style={{
-        marginBottom: 12
-      }}>
+        <View style={{ marginBottom: 12 }}>
           <Text style={styles.label}>
-            {form.sellerType === "sellerTypePal" ? "Seller Main Account Email" : "Institution/Business Officer Email"}
+            {form.sellerType === "sellerTypePal" ? t.emailLabelPal : t.emailLabelBiz}
           </Text>
           <TextInput style={styles.input} value={form.sellerEmail} onChangeText={v => update("sellerEmail", v)} autoCapitalize="none" keyboardType="email-address" />
         </View>
 
         {/* Business Account */}
-        {form.sellerType === "sellerTypeBiz" && <View style={{
-        marginBottom: 12
-      }}>
-            <Text style={styles.label}>Institution/Business Account Number</Text>
+        {form.sellerType === "sellerTypeBiz" && (
+          <View style={{ marginBottom: 12 }}>
+            <Text style={styles.label}>{t.businessAccountLabel}</Text>
             <TextInput style={styles.input} value={form.sellerAccount} onChangeText={v => update("sellerAccount", v)} autoCapitalize="none" />
-          </View>}
+          </View>
+        )}
 
         {/* Show fetched name and contact */}
-        {form.sellerName !== "" && <>
-            <View style={{
-          marginBottom: 12
-        }}>
-              <Text style={styles.label}>Seller Name</Text>
+        {form.sellerName !== "" && (
+          <>
+            <View style={{ marginBottom: 12 }}>
+              <Text style={styles.label}>{t.sellerNameLabel}</Text>
               <TextInput style={styles.input} value={form.sellerName} editable={false} />
             </View>
-            <View style={{
-          marginBottom: 12
-        }}>
-              <Text style={styles.label}>Seller Contact</Text>
+            <View style={{ marginBottom: 12 }}>
+              <Text style={styles.label}>{t.sellerContactLabel}</Text>
               <TextInput style={styles.input} value={form.sellerContact} editable={false} />
             </View>
-          </>}
+          </>
+        )}
 
         {/* Password */}
-        <View style={{
-        marginBottom: 12
-      }}>
-          <Text style={styles.label}>Enter Your SMAccount Password</Text>
+        <View style={{ marginBottom: 12 }}>
+          <Text style={styles.label}>{t.passwordLabel}</Text>
           <View style={styles.passwordRow}>
-            <TextInput style={[styles.input, {
-            flex: 1
-          }]} value={password} onChangeText={setPassword} secureTextEntry={!showPassword} autoCapitalize="none" />
+            <TextInput style={[styles.input, { flex: 1 }]} value={password} onChangeText={setPassword} secureTextEntry={!showPassword} autoCapitalize="none" />
             <TouchableOpacity style={styles.eyeButton} onPress={() => setShowPassword(p => !p)}>
-              <Text style={{
-              color: "#fff",
-              fontSize: 14
-            }}>
-                {showPassword ? "Hide" : "Show"}
+              <Text style={{ color: "#fff", fontSize: 14 }}>
+                {showPassword ? t.passwordHide : t.passwordShow}
               </Text>
             </TouchableOpacity>
           </View>
         </View>
 
         {/* Submit */}
-        <View style={{
-        marginVertical: 16
-      }}>
+        <View style={{ marginVertical: 16 }}>
           <TouchableOpacity style={styles.button} onPress={handleUpdateSeller} disabled={isLoading}>
-            {isLoading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Link Seller</Text>}
+            {isLoading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>{t.submitButton}</Text>}
           </TouchableOpacity>
         </View>
       </ScrollView>
-    </LinearGradient>;
+    </LinearGradient>
+  );
 };
 const styles = StyleSheet.create({
   container: {

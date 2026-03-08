@@ -352,7 +352,7 @@ const AddChmMmbrs = () => {
         query: sendNotification,
         variables: {
           riderEmail: phoneContacts,
-          title: "MiFedha: New Group Membership",
+          title: "NiSenti: New Group Membership",
           body: `You have been added to group ${group.grpName}. Welcome!`
         }
       });

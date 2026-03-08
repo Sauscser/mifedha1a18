@@ -299,7 +299,7 @@ const RepayNonCovLnsss = props => {
                     
                     // Send Firebase notification
                     const formattedAmt = formatAmountSync(amountKes, accountDtl.data.getSMAccount.nationality, ratesMap);
-                    const repaymentMessage = `Hi ${namess}, your loan of ID ${route.params.id} has been repaid ${formattedAmt} by ${names}. For clarification call the loanee: ${attributes.phone_number}. Thank you. MiFedha`;
+                    const repaymentMessage = `Hi ${namess}, your loan of ID ${route.params.id} has been repaid ${formattedAmt} by ${names}. For clarification call the loanee: ${attributes.phone_number}. Thank you. NiSenti`;
                     try {
                       const msgRes: any = await client.graphql({
                         query: createMessages,
@@ -315,7 +315,7 @@ const RepayNonCovLnsss = props => {
                           query: sendNotification,
                           variables: {
                             riderEmail: phonecontactz,
-                            title: 'MiFedha: Loan Repayment',
+                            title: 'NiSenti: Loan Repayment',
                             body: repaymentMessage
                           }
                         });
@@ -460,7 +460,7 @@ const RepayNonCovLnsss = props => {
                     Alert.alert("Partially paid. Clearance: " + ClranceAmt.toFixed(2) + ". Transaction: " + (parseFloat(UsrTransferFee) * amountKes).toFixed(2));
                     
                     // Send Firebase notification
-                    const repaymentMessage2 = 'Hi ' + namess + ', your loan of ID ' + route.params.id + ' has been repaid ' + formatAmountSync(amountKes, nationality || undefined, ratesMap) + ' by ' + names + '. For clarification call the loanee: ' + attributes.phone_number + '. Thank you. MiFedha';
+                    const repaymentMessage2 = 'Hi ' + namess + ', your loan of ID ' + route.params.id + ' has been repaid ' + formatAmountSync(amountKes, nationality || undefined, ratesMap) + ' by ' + names + '. For clarification call the loanee: ' + attributes.phone_number + '. Thank you. NiSenti';
                     try {
                       const msgRes: any = await client.graphql({
                         query: createMessages,
@@ -476,7 +476,7 @@ const RepayNonCovLnsss = props => {
                           query: sendNotification,
                           variables: {
                             riderEmail: phonecontactz,
-                            title: 'MiFedha: Loan Repayment',
+                            title: 'NiSenti: Loan Repayment',
                             body: repaymentMessage2
                           }
                         });
@@ -508,7 +508,7 @@ const RepayNonCovLnsss = props => {
                     Alert.alert('Wrong password');
                     return;
                   } else if (parseFloat(ttlDpstSMs) === 0 && parseFloat(TtlWthdrwnSMs) === 0) {
-                    Alert.alert('Loanee ID be verified through deposit at MFNdogo');
+                    Alert.alert('Loanee ID be verified through deposit at NSNdogo');
                   } else if (parseFloat(nonLonLimits) < amountKes) {
                     Alert.alert('Call ' + CompPhoneContact + ' to have your send Amount limit adjusted');
                     return;

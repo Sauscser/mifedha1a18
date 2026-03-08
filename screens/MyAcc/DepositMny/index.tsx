@@ -190,7 +190,7 @@ const SMADepositForm = props => {
                 Alert.alert(formatAmountSync(amountKes, nationality, ratesMap) + " deposited in " + names + "'s ac ");
                 
                 // Send Firebase notification
-                const depositMessage = 'Confirmed. You have successfully deposited ' + formatAmountSync(amountKes, nationality, ratesMap) + ' into your main account. Please confirm this deposit record is on your MiFedha app. Thank you. MiFedha';
+                const depositMessage = 'Confirmed. You have successfully deposited ' + formatAmountSync(amountKes, nationality, ratesMap) + ' into your main account. Please confirm this deposit record is on your NiSenti app. Thank you. NiSenti';
                 try {
                   const msgRes: any = await client.graphql({
                     query: createMessages,
@@ -206,7 +206,7 @@ const SMADepositForm = props => {
                       query: sendNotification,
                       variables: {
                         riderEmail: phonecontact,
-                        title: 'MiFedha: Deposit Confirmation',
+                        title: 'NiSenti: Deposit Confirmation',
                         body: depositMessage
                       }
                     });
@@ -227,16 +227,16 @@ const SMADepositForm = props => {
                 Alert.alert('Limit exceeded; call customer care for adjusment');
                 return;
               } else if (AgAcAct === "AccountInactive") {
-                Alert.alert("MFNdogo Account is Inactive");
+                Alert.alert("NSNdogo Account is Inactive");
                 return;
               } else if (WalCap > parseFloat(MaxAcBals)) {
                 Alert.alert("Depositor call customer care to have wallet capacity adjusted");
                 return;
               } else if (parseFloat(agtFltBl) < amountKes) {
-                Alert.alert("Insufficient MFNdogo Balance: " + formatAmountSync(Number(agtFltBl), nationality, ratesMap));
+                Alert.alert("Insufficient NiSenti Ndogo Balance: " + formatAmountSync(Number(agtFltBl), nationality, ratesMap));
                 return;
               } else if (agPW !== agPWd) {
-                Alert.alert("MFNdogo access denied");
+                Alert.alert("NiSenti Ndogo access denied");
                 return;
               } else {
                 CrtFltRed();
@@ -254,7 +254,7 @@ const SMADepositForm = props => {
         } catch (e) {
           console.log(e);
           if (e) {
-            Alert.alert("MFNdogo does not exist");
+            Alert.alert("NSNdogo does not exist");
             return;
           }
         }
@@ -333,7 +333,7 @@ const SMADepositForm = props => {
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>MFNdogo Phone</Text>
+            <Text style={styles.label}>NSNdogo Phone</Text>
             <TextInput placeholder="+2547xxxxxxxx" value={AgentPhn} onChangeText={setAgentPhn} style={styles.input} />
           </View>
 
@@ -343,7 +343,7 @@ const SMADepositForm = props => {
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>MFNdogo Password</Text>
+            <Text style={styles.label}>NSNdogo Password</Text>
             <TextInput placeholder="Enter password" value={agPWd} onChangeText={setAgPWd} secureTextEntry style={styles.input} />
           </View>
 

@@ -313,7 +313,7 @@ const RepayCovLnsss = props => {
                       }
                     }
                     Alert.alert("Cleared. ClearanceFee: " + formatAmountSync(Number(ClranceAmt), nationality, ratesMap) + ". Transaction: " + formatAmountSync(Number(UsrTransferFee) * amountKes, nationality, ratesMap));
-                    const repayMessage7 = 'MiFedha. Hi ' + busName + ', your loan of ID ' + route.params.loanID + 'has been repaid ' + formatAmountSync(amountKes, nationality, ratesMap) + ' by ' + names + '. For clarification call the loanee: ' + attributes.phone_number + '. Thank you.';
+                    const repayMessage7 = 'NiSenti. Hi ' + busName + ', your loan of ID ' + route.params.loanID + 'has been repaid ' + formatAmountSync(amountKes, nationality, ratesMap) + ' by ' + names + '. For clarification call the loanee: ' + attributes.phone_number + '. Thank you.';
                     try {
                       const msgRes = await client.graphql({
                         query: createMessages,
@@ -322,7 +322,7 @@ const RepayCovLnsss = props => {
                       if (msgRes?.data?.createMessages) {
                         await client.graphql({
                           query: sendNotification,
-                          variables: { riderEmail: loanerPhns, title: 'MiFedha: Loan Repaid', body: repayMessage7 }
+                          variables: { riderEmail: loanerPhns, title: 'NiSenti: Loan Repaid', body: repayMessage7 }
                         });
                       }
                     } catch (notifErr) {
@@ -469,7 +469,7 @@ const RepayCovLnsss = props => {
                       }
                     }
                     Alert.alert("Partially paid. Clearance: " + formatAmountSync(Number(ClranceAmt), nationality, ratesMap) + ". Transaction: " + formatAmountSync(Number(UsrTransferFee) * amountKes, nationality, ratesMap));
-                    const repayMessage8 = 'Hi ' + busName + ', your loan of ID ' + route.params.loanID + ' has been repaid ' + formatAmountSync(amountKes, nationality, ratesMap) + ' by ' + names + '. For clarification call the loanee: ' + attributes.phone_number + '. Thank you. MiFedha';
+                    const repayMessage8 = 'Hi ' + busName + ', your loan of ID ' + route.params.loanID + ' has been repaid ' + formatAmountSync(amountKes, nationality, ratesMap) + ' by ' + names + '. For clarification call the loanee: ' + attributes.phone_number + '. Thank you. NiSenti';
                     try {
                       const msgRes = await client.graphql({
                         query: createMessages,
@@ -478,7 +478,7 @@ const RepayCovLnsss = props => {
                       if (msgRes?.data?.createMessages) {
                         await client.graphql({
                           query: sendNotification,
-                          variables: { riderEmail: loanerPhns, title: 'MiFedha: Loan Partially Repaid', body: repayMessage8 }
+                          variables: { riderEmail: loanerPhns, title: 'NiSenti: Loan Partially Repaid', body: repayMessage8 }
                         });
                       }
                     } catch (notifErr) {

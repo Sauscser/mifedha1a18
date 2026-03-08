@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { updateCompany, updateGroup, updateGrpMembers, updateSAgent, updateSMAccount } from '../../../src/graphql/mutations';
-import { getBankAdmin, getCompany, getGroup, getGrpMembers, getSAgent, getSMAccount } from '../../../src/graphql/queries';
+import { updateCompany, updateGroup, updateSAgent, updateSMAccount } from '../../../src/graphql/mutations';
+import { getBankAdmin, getCompany, getGroup, getSAgent, getSMAccount } from '../../../src/graphql/queries';
 import { useNavigation } from '@react-navigation/native';
 import { View, Text, ImageBackground, Pressable, TextInput, ScrollView, ActivityIndicator, KeyboardAvoidingView, Platform, TouchableOpacity, Alert } from 'react-native';
 import styles from './styles';
@@ -78,13 +78,13 @@ const UpdtMFKPW = props => {
             Alert.alert(UserDtls.name + ", You have successfully Adjusted your Commission");
           };
           if (pws !== OldAdmnPW) {
-            Alert.alert("Wrong MFKubwa Password");
+            Alert.alert("Wrong NSKubwa Password");
           } else if (userInfo.sub !== owners) {
-            Alert.alert("You are not the owner of this MFKubwa A/c");
+            Alert.alert("You are not the owner of this NSKubwa A/c");
           } else if (parseFloat(sagentComs) < parseFloat(NewAdmnPW)) {
             Alert.alert("Set lower commission, maximum is: " + sagentComs);
           } else if (acStatuss !== "AccountActive") {
-            Alert.alert("This MFKubwa Account is inactive");
+            Alert.alert("This NSKubwa Account is inactive");
           } else {
             updtMFKDtls();
           }
@@ -150,12 +150,12 @@ const UpdtMFKPW = props => {
 
                   <View style={styles.sendLoanView}>
                     <TextInput placeholder="+2547xxxxxxxx" value={AdminID} onChangeText={setAdminId} style={styles.sendLoanInput} editable={true}></TextInput>
-                    <Text style={styles.sendLoanText}>MFKubwa Phone</Text>
+                    <Text style={styles.sendLoanText}>NSKubwa Phone</Text>
                   </View> 
         
                   <View style={styles.sendLoanView}>
                     <TextInput value={OldAdmnPW} onChangeText={setOldAdmnPW} secureTextEntry={true} style={styles.sendLoanInput} editable={true}></TextInput>
-                    <Text style={styles.sendLoanText}>MFKubwa PW</Text>
+                    <Text style={styles.sendLoanText}>NSKubwa PW</Text>
                   </View>   
 
                        

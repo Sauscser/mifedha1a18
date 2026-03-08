@@ -35,13 +35,13 @@ const MFNSignIn = props => {
       const pw1s = MFNDtls.data.getAgent.pw;
       const owners = MFNDtls.data.getAgent.owner;
       if (MFNPW !== pw1s) {
-        Alert.alert("Wrong MFNdogo credentials");
+        Alert.alert("Wrong NSNdogo credentials");
       } else {
         moveToMFNHm();
       }
     } catch (e) {
       if (e) {
-        Alert.alert("MFNdogo does not exist; otherwise check internet connection");
+        Alert.alert("NSNdogo does not exist; otherwise check internet connection");
         return;
       }
       console.log(e);
@@ -74,7 +74,7 @@ const MFNSignIn = props => {
         
                   <View style={styles.sendLoanView}>
                     <TextInput placeholder="+2547xxxxxxxx" value={MFNId} onChangeText={setMFNId} style={styles.sendLoanInput} editable={true}></TextInput>
-                    <Text style={styles.sendLoanText}>MFNdogo Phone</Text>
+                    <Text style={styles.sendLoanText}>NSNdogo Phone</Text>
                   </View>
         
                   <View style={styles.sendLoanView}>

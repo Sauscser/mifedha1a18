@@ -50,12 +50,12 @@ const ViewSMDeposts = (props:SMAccount) => {
                                       
                     <Text style = {styles.ownerName}>                       
                        {/*loaner details */}   
-                       Active MFNdogos: {actvMFNdog}                 
+                       Active NSNdogos: {actvMFNdog}                 
                     </Text>
 
                     <Text style = {styles.ownerName}>                       
                        {/*loaner details */}   
-                       Inactive MFNdogos: {InctvMFNdog}                 
+                       Inactive NSNdogos: {InctvMFNdog}                 
                     </Text>
 
                     <Text style ={styles.amountoffered}>                       

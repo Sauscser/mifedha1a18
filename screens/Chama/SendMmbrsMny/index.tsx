@@ -186,7 +186,7 @@ const SMASendNonLns = () => {
         query: sendNotification,
         variables: {
           riderEmail: receiver.memberContact,
-          title: 'MiFedha: Money Received from Group',
+          title: 'NiSenti: Money Received from Group',
           body: notificationBody
         }
       });

@@ -4,12 +4,18 @@ import { useNavigation } from '@react-navigation/native';
 import { byCOMBConsumer } from '../../../src/graphql/queries';
 import { generateClient } from 'aws-amplify/api';
 import { getCurrentUser, fetchUserAttributes } from 'aws-amplify/auth';
-const client = generateClient();
+import { useTranslation } from 'react-i18next';
+import translations from './translation';
+
 const FetchSMNonCovLns = () => {
   const [loading, setLoading] = useState(false);
   const [loanees, setLoanees] = useState<any[]>([]);
   const navigation = useNavigation();
-  const navigateTo = (screen: string, params = {}) => {
+  const client = generateClient();
+const { i18n } = useTranslation();
+const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+const t = translations[lang] || translations.en;
+  const navigateTo = (screen: string, params: any = {}) => {
     navigation.navigate(screen as never, params as never);
   };
   const fetchUsrDtls = async () => {
@@ -23,17 +29,13 @@ const FetchSMNonCovLns = () => {
           consumerEmail: attributes.email,
           sortDirection: 'DESC',
           limit: 100,
-          filter: {
-            sellerAccount: {
-              eq: 'None'
-            }
-          }
+          
         }
       });
       const acc = response.data.byCOMBConsumer.items;
       setLoanees(acc);
       if (acc.length < 1) {
-        Alert.alert('No COMB Contracts found');
+        Alert.alert(t.noContractsFound);
       }
     } catch (e) {
       console.log(e);
@@ -44,33 +46,43 @@ const FetchSMNonCovLns = () => {
   useEffect(() => {
     fetchUsrDtls();
   }, []);
-  const renderCard = ({
-    item
-  }: {
-    item: any;
-  }) => <Pressable style={styles.card} onPress={() => navigateTo('LinkCOMBSeller', {
-    id: item.id
-  })}>
-      <Text style={styles.cardTitle}>Funder Name: {item.funderEmail || 'Contract'}</Text>
-      <Text style={styles.cardSubtitle}>Funder Contact {item.funderContact}</Text>
-      <Text style={styles.cardTitle}>Funder Type: {item.funderType || 'Contract'}</Text>
-      <Text style={styles.cardSubtitle}>Consumer Type: {item.consumerType}</Text>
-      <Text style={styles.cardTitle}>Prepaid|Postpaid: {item.prepostPay || 'Contract'}</Text>
-      <Text style={styles.cardSubtitle}>Consumption Margin: {item.consumptionCapping}</Text>
+  // Helper to translate enum values using translation keys
+  const translateEnum = (enumValue: string) => {
+    if (!enumValue) return '';
+    const key = `status${enumValue}`;
+    return t[key] || enumValue;
+  };
+  const renderCard = ({ item }: { item: any }) => (
+    <Pressable style={styles.card} onPress={() => navigateTo('LinkCOMBSeller', { id: item.id })}>
+      <Text style={styles.cardTitle}>{t.funderNameLabel }: {item.funderEmail || t.contractLabel || 'Contract'}</Text>
+      <Text style={styles.cardSubtitle}>{t.funderContactLabel }: {item.funderContact}</Text>
+      <Text style={styles.cardTitle}>{t.funderTypeLabel }: {translateEnum(item.funderType)}</Text>
+      <Text style={styles.cardSubtitle}>{t.consumerTypeLabel }: {translateEnum(item.consumerType)}</Text>
+      <Text style={styles.cardTitle}>{t.prepostPayLabel }: {translateEnum(item.prepostPay) || t.contractLabel || 'Contract'}</Text>
+      <Text style={styles.cardSubtitle}>{t.consumptionCappingLabel }: {item.consumptionCapping}</Text>
       <Text style={styles.cardDetail}>
-        {item.createdAt ? new Date(item.createdAt).toLocaleDateString() : 'N/A'}
+        {item.createdAt ? new Date(item.createdAt).toLocaleDateString() : (t.naLabel || 'N/A')}
       </Text>
-    </Pressable>;
-  return <View style={styles.root}>
-      <FlatList style={{
-      width: '100%'
-    }} data={loanees} renderItem={renderCard} keyExtractor={(item, index) => index.toString()} onRefresh={fetchUsrDtls} refreshing={loading} showsVerticalScrollIndicator={false} ListHeaderComponentStyle={{
-      alignItems: 'center'
-    }} ListHeaderComponent={() => <>
-            <Text style={styles.label}>My COMB Contracts</Text>
-            <Text style={styles.label2}>(Please swipe down to load)</Text>
-          </>} />
-    </View>;
+    </Pressable>
+  );
+  return (
+    <View style={styles.root}>
+      <FlatList
+        style={{ width: '100%' }}
+        data={loanees}
+        renderItem={renderCard}
+        keyExtractor={(item, index) => index.toString()}
+        onRefresh={fetchUsrDtls}
+        refreshing={loading}
+        showsVerticalScrollIndicator={false}
+        ListHeaderComponentStyle={{ alignItems: 'center' }}
+        ListHeaderComponent={() => <>
+          <Text style={styles.label}>{t.myCombContractsLabel }</Text>
+          <Text style={styles.label2}>{t.swipeDownLabel}</Text>
+        </>}
+      />
+    </View>
+  );
 };
 const styles = StyleSheet.create({
   root: {

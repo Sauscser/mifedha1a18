@@ -397,7 +397,7 @@ const ChmNonCovLns = props => {
                         Alert.alert('Receiver does not qualify');
                         return;
                       } else if (parseFloat(ttlDpstSMs) === 0 && parseFloat(TtlWthdrwnSMs) === 0) {
-                        Alert.alert('Loanee National ID be verified through deposit at MFNdogo');
+                        Alert.alert('Loanee National ID be verified through deposit at NSNdogo');
                       } else if (ownr !== SenderSub) {
                         Alert.alert('You are not the creator/signitory of this Chama');
                       } else if (statuss !== "AccountActive") {

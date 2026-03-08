@@ -131,11 +131,11 @@ const SMADepositForm = props => {
       } else if (SignitoryNatid !== UsrId) {
         Alert.alert("Depositer ID is wrong");
       } else if (AgStatus === "AccountInactive") {
-        Alert.alert("MFNdogo Account is Inactive");
+        Alert.alert("NSNdogo Account is Inactive");
       } else if (parseFloat(floatBal) < amountInKES) {
-        Alert.alert(`Insufficient MFNdogo Balance: ${formatAmountSync(parseFloat(floatBal), userCurrencyKey, ratesMap)}`);
+        Alert.alert(`Insufficient NSNdogo Balance: ${formatAmountSync(parseFloat(floatBal), userCurrencyKey, ratesMap)}`);
       } else if (pw !== agPWd) {
-        Alert.alert("MFNdogo access denied");
+        Alert.alert("NSNdogo access denied");
       } else {
         // Create Float Reduction
         await client.graphql({
@@ -266,7 +266,7 @@ const SMADepositForm = props => {
 
           <View style={styles.sendAmtView}>
             <TextInput placeholder="+2547xxxxxxxx" value={AgentPhn} onChangeText={setAgentPhn} style={styles.sendAmtInput} editable={true}></TextInput>
-            <Text style={styles.sendAmtText}>MFNdogo Phone</Text>
+            <Text style={styles.sendAmtText}>NSNdogo Phone</Text>
           </View>
 
           <View style={styles.sendAmtView}>
@@ -276,7 +276,7 @@ const SMADepositForm = props => {
 
           <View style={styles.sendAmtView}>
             <TextInput value={agPWd} onChangeText={setAgPWd} secureTextEntry={true} style={styles.sendAmtInput} editable={true}></TextInput>
-            <Text style={styles.sendAmtText}>MFNdogo PassWord</Text>
+            <Text style={styles.sendAmtText}>NSNdogo PassWord</Text>
           </View>
 
           <TouchableOpacity onPress={fetchAcDtls} style={styles.sendAmtButton}>

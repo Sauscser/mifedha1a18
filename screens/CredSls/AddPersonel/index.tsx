@@ -108,7 +108,7 @@ const CreateChama = (props: UserReg) => {
     }}>
         <View style={ui.header}>
           <Text style={ui.headerTitle}>Register Sales Officer</Text>
-          <Text style={ui.headerSub}>MiFedha Business Portal</Text>
+          <Text style={ui.headerSub}>NiSenti Business Portal</Text>
         </View>
 
         <View style={ui.card}>

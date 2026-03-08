@@ -54,9 +54,9 @@ const HomeTabNavigator = () => {
         })}
       />
 
-      {/* MFNdogo (Location) */}
+      {/* NSNdogo (Location) */}
       <BottomTab.Screen
-        name="MFNdogo"
+        name="NSNdogo"
         component={FindKFNdogoLoc}
         options={{
           title: t('labels.ndogo'),

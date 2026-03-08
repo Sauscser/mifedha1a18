@@ -225,7 +225,7 @@ const SMASendNonLns = props => {
                                         query: sendNotification,
                                         variables: {
                                           riderEmail: RecNatId,
-                                          title: 'MiFedha: Cash',
+                                          title: 'NiSenti: Cash',
                                           body: textMsg
                                         }
                                       });
@@ -341,7 +341,7 @@ const SMASendNonLns = props => {
                                         Alert.alert("Amount: " + formatUserInputAmount(amountForeign) + ". Transaction fee: " + formatAmountSync(UsrTransferFeeAmt, senderNat || nationality, ratesMap));
                                         
                                         // Send Firebase notification
-                                        const transferMessage = 'Hi ' + ReceiverName + ', ' + names + ' has sent you a non loan of ' + formatUserInputAmount(amountForeign) + '. For clarification call the sender ' + attributes.phone_number + '. Thank you. MiFedha';
+                                        const transferMessage = 'Hi ' + ReceiverName + ', ' + names + ' has sent you a non loan of ' + formatUserInputAmount(amountForeign) + '. For clarification call the sender ' + attributes.phone_number + '. Thank you. NiSenti';
                                         try {
                                           const msgRes: any = await client.graphql({
                                             query: createMessages,
@@ -357,7 +357,7 @@ const SMASendNonLns = props => {
                                               query: sendNotification,
                                               variables: {
                                                 riderEmail: phonecontact,
-                                                title: 'MiFedha: Non-Loan Transfer',
+                                                title: 'NiSenti: Non-Loan Transfer',
                                                 body: transferMessage
                                               }
                                             });
@@ -404,7 +404,7 @@ const SMASendNonLns = props => {
                                         query: sendNotification,
                                         variables: {
                                           riderEmail: RecNatId,
-                                          title: 'MiFedha: Cash',
+                                          title: 'NiSenti: Cash',
                                           body: textMsg
                                         }
                                       });
@@ -529,7 +529,7 @@ const SMASendNonLns = props => {
                                         Alert.alert("Amount: " + formatUserInputAmount(amountForeign) + ". Transaction fee: " + formatAmountSync(UsrTransferFeeAmt, senderNat || nationality, ratesMap));
                                         
                                         // Send Firebase notification
-                                        const transferMessage2 = 'Hi ' + ReceiverName + ', ' + names + ' has sent you a non loan of ' + formatUserInputAmount(amountForeign) + '. For clarification call the sender ' + attributes.phone_number + '. Thank you. MiFedha';
+                                        const transferMessage2 = 'Hi ' + ReceiverName + ', ' + names + ' has sent you a non loan of ' + formatUserInputAmount(amountForeign) + '. For clarification call the sender ' + attributes.phone_number + '. Thank you. NiSenti';
                                         try {
                                           const msgRes: any = await client.graphql({
                                             query: createMessages,
@@ -545,7 +545,7 @@ const SMASendNonLns = props => {
                                               query: sendNotification,
                                               variables: {
                                                 riderEmail: phonecontact,
-                                                title: 'MiFedha: Non-Loan Transfer',
+                                                title: 'NiSenti: Non-Loan Transfer',
                                                 body: transferMessage2
                                               }
                                             });
@@ -592,7 +592,7 @@ const SMASendNonLns = props => {
                                         query: sendNotification,
                                         variables: {
                                           riderEmail: RecNatId,
-                                          title: 'MiFedha: Cash',
+                                          title: 'NiSenti: Cash',
                                           body: textMsg
                                         }
                                       });
@@ -720,7 +720,7 @@ const SMASendNonLns = props => {
                                         Alert.alert("Amount: " + formatUserInputAmount(amountForeign) + ". Transaction fee: " + formatAmountSync(UsrTransferFeeAmt, senderNat || nationality, ratesMap));
                                         
                                         // Send Firebase notification
-                                        const transferMessage3 = 'Hi ' + ReceiverName + ', ' + names + ' has sent you a non loan of ' + formatUserInputAmount(amountForeign) + '. For clarification call the sender ' + attributes.phone_number + '. Thank you. MiFedha';
+                                        const transferMessage3 = 'Hi ' + ReceiverName + ', ' + names + ' has sent you a non loan of ' + formatUserInputAmount(amountForeign) + '. For clarification call the sender ' + attributes.phone_number + '. Thank you. NiSenti';
                                         try {
                                           const msgRes: any = await client.graphql({
                                             query: createMessages,
@@ -736,7 +736,7 @@ const SMASendNonLns = props => {
                                               query: sendNotification,
                                               variables: {
                                                 riderEmail: phonecontact,
-                                                title: 'MiFedha: Non-Loan Transfer',
+                                                title: 'NiSenti: Non-Loan Transfer',
                                                 body: transferMessage3
                                               }
                                             });
@@ -781,7 +781,7 @@ const SMASendNonLns = props => {
                                         query: sendNotification,
                                         variables: {
                                           riderEmail: RecNatId,
-                                          title: 'MiFedha: Cash',
+                                          title: 'NiSenti: Cash',
                                           body: textMsg
                                         }
                                       });
@@ -925,7 +925,7 @@ const SMASendNonLns = props => {
                                         Alert.alert("Amount: " + formatUserInputAmount(amountForeign) + ". Transaction fee: " + formatAmountSync(UsrTransferFeeAmt, senderNat || nationality, ratesMap));
                                         
                                         // Send Firebase notification
-                                        const transferMessage4 = 'Hi ' + ReceiverName + ', ' + names + ' has sent you a non loan of ' + formatUserInputAmount(amountForeign) + '. For clarification call the sender ' + attributes.phone_number + '. Thank you. MiFedha';
+                                        const transferMessage4 = 'Hi ' + ReceiverName + ', ' + names + ' has sent you a non loan of ' + formatUserInputAmount(amountForeign) + '. For clarification call the sender ' + attributes.phone_number + '. Thank you. NiSenti';
                                         try {
                                           const msgRes: any = await client.graphql({
                                             query: createMessages,
@@ -941,7 +941,7 @@ const SMASendNonLns = props => {
                                               query: sendNotification,
                                               variables: {
                                                 riderEmail: phonecontact,
-                                                title: 'MiFedha: Non-Loan Transfer',
+                                                title: 'NiSenti: Non-Loan Transfer',
                                                 body: transferMessage4
                                               }
                                             });
@@ -967,7 +967,7 @@ const SMASendNonLns = props => {
                                   } else if (SenderNatId === RecNatId) {
                                     Alert.alert('You cannot Send money to Yourself');
                                   } else if (parseFloat(ttlDpstSMs) === 0 && parseFloat(TtlWthdrwnSMs) === 0) {
-                                    Alert.alert('Receiver ID be verified through deposit at MFNdogo');
+                                    Alert.alert('Receiver ID be verified through deposit at NSNdogo');
                                   } else if (parseFloat(RecUsrBal) + amountKes > parseFloat(MaxAcBals)) {
                                     Alert.alert('Receiver Call customer care to have wallet capacity adjusted');
                                   } else if (usrPW !== SnderPW) {
@@ -989,7 +989,7 @@ const SMASendNonLns = props => {
                                   } else if (SenderbeneficiaryType === "Pal" && ReceiverbeneficiaryType === "Pal") {
                                     sendSMNonLn();
                                   } else {
-                                    Alert.alert("Call customer care or update up");
+                                    Alert.alert("Call customer care or update app");
                                   }
                                 } catch (e) {
                                   console.log(e);

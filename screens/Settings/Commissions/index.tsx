@@ -173,7 +173,7 @@ const UpdtSMPW = props => {
            
            <View style={styles.sendLoanView2}>
              <TextInput keyboardType={"decimal-pad"} value={CompPW1} onChangeText={setCompPW1} style={styles.sendLoanInput2} editable={true} multiline={true}></TextInput>
-             <Text style={styles.sendLoanText}>MFNdogo Com</Text>
+             <Text style={styles.sendLoanText}>NSNdogo Com</Text>
            </View>   
 
            
@@ -181,7 +181,7 @@ const UpdtSMPW = props => {
            <View style={styles.sendLoanView2}>
              <TextInput keyboardType={"decimal-pad"} value={CompPW2} onChangeText={setCompPW2} style={styles.sendLoanInput2} editable={true} multiline={true}></TextInput>
                
-             <Text style={styles.sendLoanText}>MFKubwa Comp</Text>
+             <Text style={styles.sendLoanText}>NSKubwa Comp</Text>
            </View>   
 
            <View style={styles.sendLoanView2}>

@@ -12,7 +12,7 @@ const SettinsHm = props => {
       color: '#0066CC',
       items: [
         { label: 'Create Bank Admin', onPress: () => navigation.navigate('RegBankAdmin') },
-        { label: 'Create MiFedha Admin', onPress: () => navigation.navigate('CrtAdmin') },
+        { label: 'Create NiSenti Admin', onPress: () => navigation.navigate('CrtAdmin') },
         { label: 'Deactivate Admin', onPress: () => navigation.navigate('DeactAdms') },
         { label: 'Group Control', onPress: () => navigation.navigate('GroupControlTable') },
       ],
@@ -42,7 +42,7 @@ const SettinsHm = props => {
       color: '#8E44AD',
       items: [
         { label: 'Update Policy', onPress: () => navigation.navigate('Policyss') },
-        { label: 'About MiFedha', onPress: () => navigation.navigate('Aboutss') },
+        { label: 'About NiSenti', onPress: () => navigation.navigate('Aboutss') },
         { label: 'Update Recommendations', onPress: () => navigation.navigate('Recommendationsss') },
         { label: 'Update Contact Info', onPress: () => navigation.navigate('Contactsss') },
       ],

@@ -293,7 +293,7 @@ const RepayCovLnsss = props => {
                       }
                     }
                     Alert.alert("Cleared.");
-                    const waiveMessage3 = 'MiFedha. Hi ' + names + ', your loan of ID ' + route.params.loanID + ' has been waived ' + formatAmountSync(amountKes, nationality, ratesMap) + ' by ' + busName + '. For clarification call the loaner: ' + loanerPhns + '. Thank you.';
+                    const waiveMessage3 = 'NiSenti. Hi ' + names + ', your loan of ID ' + route.params.loanID + ' has been waived ' + formatAmountSync(amountKes, nationality, ratesMap) + ' by ' + busName + '. For clarification call the loaner: ' + loanerPhns + '. Thank you.';
                     try {
                       const msgRes = await client.graphql({
                         query: createMessages,
@@ -302,7 +302,7 @@ const RepayCovLnsss = props => {
                       if (msgRes?.data?.createMessages) {
                         await client.graphql({
                           query: sendNotification,
-                          variables: { riderEmail: loaneePhns, title: 'MiFedha: Loan Waived', body: waiveMessage3 }
+                          variables: { riderEmail: loaneePhns, title: 'NiSenti: Loan Waived', body: waiveMessage3 }
                         });
                       }
                     } catch (notifErr) {
@@ -441,7 +441,7 @@ const RepayCovLnsss = props => {
                       }
                     }
                     Alert.alert("Partially Waived.");
-                    const waiveMessage4 = 'Hi ' + names + ', your loan of ID ' + route.params.loanID + ' has been partially waived ' + formatAmountSync(amountKes, nationality, ratesMap) + ' by ' + busName + '. For clarification call the loaner: ' + loanerPhns + '. Thank you. MiFedha';
+                    const waiveMessage4 = 'Hi ' + names + ', your loan of ID ' + route.params.loanID + ' has been partially waived ' + formatAmountSync(amountKes, nationality, ratesMap) + ' by ' + busName + '. For clarification call the loaner: ' + loanerPhns + '. Thank you. NiSenti';
                     try {
                       const msgRes = await client.graphql({
                         query: createMessages,
@@ -450,7 +450,7 @@ const RepayCovLnsss = props => {
                       if (msgRes?.data?.createMessages) {
                         await client.graphql({
                           query: sendNotification,
-                          variables: { riderEmail: loaneeEmail, title: 'MiFedha: Loan Partially Waived', body: waiveMessage4 }
+                          variables: { riderEmail: loaneeEmail, title: 'NiSenti: Loan Partially Waived', body: waiveMessage4 }
                         });
                       }
                     } catch (notifErr) {

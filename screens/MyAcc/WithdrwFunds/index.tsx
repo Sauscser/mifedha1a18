@@ -318,14 +318,14 @@ const SMADepositForm = props => {
                                         const attributes = await fetchUserAttributes();
                                         const nat = await getUserNationalityByEmail(attributes.email);
                                         const formatted = await formatAmountForUser(amountKes, nat);
-                                        Alert.alert(`${names} has withdrawn ${formatted} from ${namess} MFNdogo`);
+                                        Alert.alert(`${names} has withdrawn ${formatted} from ${namess} NSNdogo`);
                                       } catch(e) {
                                         try {
                                           const formatted = await formatAmount(amountKes);
-                                          Alert.alert(`${names} has withdrawn ${formatted} from ${namess} MFNdogo`);
+                                          Alert.alert(`${names} has withdrawn ${formatted} from ${namess} NSNdogo`);
                                         } catch (e) {
                                           const fallback = formatAmountSync(amountKes, nationality, ratesMap);
-                                          Alert.alert(`${names} has withdrawn ${fallback} from ${namess} MFNdogo`);
+                                          Alert.alert(`${names} has withdrawn ${fallback} from ${namess} NSNdogo`);
                                         }
                                       }
                                     } catch (error) {
@@ -354,7 +354,7 @@ const SMADepositForm = props => {
                                     return;
                                   }
                                   if (AgAcAct === "AccountInactive") {
-                                    Alert.alert("MFNdogo Account has been deactivated");
+                                    Alert.alert("NSNdogo Account has been deactivated");
                                     setIsLoading(false);
                                     return;
                                   }
@@ -486,7 +486,7 @@ const SMADepositForm = props => {
 
           <View style={styles.sendAmtView}>
             <TextInput placeholder="+2547xxxxxxxx" value={AgentPhn} onChangeText={setAgentPhn} style={styles.sendAmtInput} editable={true}></TextInput>
-            <Text style={styles.sendAmtText}>MFNdogo Phone</Text>
+            <Text style={styles.sendAmtText}>NSNdogo Phone</Text>
           </View>
 
           <View style={styles.sendAmtView}>

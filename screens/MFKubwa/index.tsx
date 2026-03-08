@@ -64,7 +64,7 @@ const KFKubwaScreen = () => {
 
         <LinearGradient colors={['#ffffff', 'skyblue']} style={styles.section}>
         
-          <CustomButton title="View My MiFedha Ndogos" onPress={MFKVwMFNSgnInsss} />
+          <CustomButton title="View My NiSenti Ndogos" onPress={MFKVwMFNSgnInsss} />
         </LinearGradient>
 
         {/* Section: My Account */}
