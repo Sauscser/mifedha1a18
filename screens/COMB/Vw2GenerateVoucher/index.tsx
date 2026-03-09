@@ -1,5 +1,8 @@
+
 import React, { useState, useEffect } from 'react';
 import { View, Text, FlatList, Alert, StyleSheet, Pressable } from 'react-native';
+import { useTranslation } from 'react-i18next';
+import translations from './translation';
 import { useNavigation } from '@react-navigation/native';
 import { byCOMBConsumer, byCOMBSeller } from '../../../src/graphql/queries';
 import { generateClient } from 'aws-amplify/api';
@@ -7,6 +10,9 @@ import { getCurrentUser, fetchUserAttributes } from 'aws-amplify/auth';
 
 const client = generateClient();
 const FetchSMNonCovLns = () => {
+  const { i18n } = useTranslation();
+  const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+  const t = translations[lang] || translations.en;
   const [loading, setLoading] = useState(false);
   const [loanees, setLoanees] = useState<any[]>([]);
   const navigation = useNavigation();
@@ -43,43 +49,52 @@ const FetchSMNonCovLns = () => {
     item
   }: {
     item: any;
-  }) => <Pressable style={styles.card} onPress={() => navigateTo('GenerateCOMBVoucher', {
-    id: item.id,
-    sellerAccount: item.sellerAccount
-  })}>
-      <Text style={styles.cardTitle}>Funder Name: {item.funderName || 'Contract'}</Text>
-      <Text style={styles.cardSubtitle}>Funder Contact {item.funderContact}</Text>
-      <Text style={styles.cardTitle}>Funder Type: {item.funderType || 'Contract'}</Text>
-      <Text style={styles.cardSubtitle}>Consumer Type: {item.consumerType}</Text>
-      <Text style={styles.cardTitle}>Consumer Name: {item.consumerName}</Text>
-      <Text style={styles.cardSubtitle}>Consumer Contact {item.consumerContact}</Text>
+  }) => (
+    <Pressable style={styles.card} onPress={() => navigateTo('GenerateCOMBVoucher', {
+      id: item.id,
+      sellerAccount: item.sellerAccount
+    })}>
+      <Text style={styles.cardTitle}>{t.funderName}: {item.funderName || t.contract}</Text>
+      <Text style={styles.cardSubtitle}>{t.funderContact} {item.funderContact}</Text>
+      <Text style={styles.cardTitle}>{t.funderType}: {item.funderType || t.contract}</Text>
+      <Text style={styles.cardSubtitle}>{t.consumerType}: {item.consumerType}</Text>
+      <Text style={styles.cardTitle}>{t.consumerName}: {item.consumerName}</Text>
+      <Text style={styles.cardSubtitle}>{t.consumerContact} {item.consumerContact}</Text>
 
-      <Text style={styles.cardTitle}>Prepaid|Postpaid: {item.prepostPay || 'Contract'}</Text>
+      <Text style={styles.cardTitle}>{t.prepostPay}: {item.prepostPay || t.contract}</Text>
       <Text style={styles.cardTitle}>
-        Voucher approval frequency:{' '}
-        {item.prepostPay === 'POSTPAID' ? item.updateFrequency : 'PREPAID'}
+        {t.updateFrequency}: {item.prepostPay === 'POSTPAID' ? item.updateFrequency : t.prepaid}
       </Text>
 
       <Text style={styles.cardTitle}>
-        Payment Period: {item.prepostPay === 'POSTPAID' ? item.repaymentPeriod : 'PREPAID'}
+        {t.repaymentPeriod}: {item.prepostPay === 'POSTPAID' ? item.repaymentPeriod : t.prepaid}
       </Text>
 
-      <Text style={styles.cardSubtitle}>Consumption Margin: {item.consumptionCapping}</Text>
+      <Text style={styles.cardSubtitle}>{t.consumptionCapping}: {item.consumptionCapping}</Text>
 
       <Text style={styles.cardDetail}>
-        {item.createdAt ? new Date(item.createdAt).toLocaleDateString() : 'N/A'}
+        {item.createdAt ? new Date(item.createdAt).toLocaleDateString() : t.n_a}
       </Text>
-    </Pressable>;
-  return <View style={styles.root}>
-      <FlatList style={{
-      width: '100%'
-    }} data={loanees} renderItem={renderCard} keyExtractor={(item, index) => index.toString()} onRefresh={fetchUsrDtls} refreshing={loading} showsVerticalScrollIndicator={false} ListHeaderComponentStyle={{
-      alignItems: 'center'
-    }} ListHeaderComponent={() => <>
-            <Text style={styles.label}>My COMB Contracts</Text>
-            <Text style={styles.label2}>(Please swipe down to load)</Text>
-          </>} />
-    </View>;
+    </Pressable>
+  );
+  return (
+    <View style={styles.root}>
+      <FlatList
+        style={{ width: '100%' }}
+        data={loanees}
+        renderItem={renderCard}
+        keyExtractor={(item, index) => index.toString()}
+        onRefresh={fetchUsrDtls}
+        refreshing={loading}
+        showsVerticalScrollIndicator={false}
+        ListHeaderComponentStyle={{ alignItems: 'center' }}
+        ListHeaderComponent={() => <>
+          <Text style={styles.label}>{t.myCombContracts}</Text>
+          <Text style={styles.label2}>{t.swipeToLoad}</Text>
+        </>}
+      />
+    </View>
+  );
 };
 const styles = StyleSheet.create({
   root: {

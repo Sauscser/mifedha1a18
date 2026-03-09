@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { useNavigation } from '@react-navigation/native';
 import { View, Text, Pressable, SafeAreaView, ScrollView } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useTranslation } from 'react-i18next';
+import translations from './translation';
 import styles from './styles';
 
 // Reusable Gradient Button
@@ -23,6 +25,9 @@ const MyLoanAccount = () => {
   const navigation = useNavigation();
   const [id, setID] = useState('');
   const [ChamaNMember, setChamaNMember] = useState('');
+  const { i18n } = useTranslation();
+  const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+  const t = translations[lang] || translations.en;
 
   // Navigation functions
   const navigateTo = (screen, params) => () => navigation.navigate(screen, params);
@@ -34,68 +39,67 @@ const MyLoanAccount = () => {
 
           {/* ------------------- Group Advance ------------------- */}
           <View style={styles.clientsView}>
-            <Text style={styles.salesText}>Group Advance</Text>
-            <GradientButton onPress={navigateTo('Vw2SelectChm2Req')} text="Request loan from group - member" />
-            <GradientButton onPress={navigateTo('ChamaVw2DelLnReqs')} text="Delete a loan request - member" />
-            <GradientButton onPress={navigateTo('VwGrp2LnCov')} text="Give Member Advance - Group Signatory" />
-            <GradientButton onPress={navigateTo('Vw2FloatGrpLoans')} text="Float Group Loans - Group signatory" />
-            <GradientButton onPress={navigateTo('Vw2SignLoanRequests')} text="Approve member loan - members" />
-            <GradientButton onPress={navigateTo('CreateChamaMinutes')} text="Group Minutes" />
-
+            <Text style={styles.salesText}>{t.groupAdvance}</Text>
+            <GradientButton onPress={navigateTo('Vw2SelectChm2Req')} text={t.requestLoan} />
+            <GradientButton onPress={navigateTo('ChamaVw2DelLnReqs')} text={t.deleteLoanRequest} />
+            <GradientButton onPress={navigateTo('VwGrp2LnCov')} text={t.giveMemberAdvance} />
+            <GradientButton onPress={navigateTo('Vw2FloatGrpLoans')} text={t.floatGroupLoans} />
+            <GradientButton onPress={navigateTo('Vw2SignLoanRequests')} text={t.approveMemberLoan} />
+            <GradientButton onPress={navigateTo('CreateChamaMinutes')} text={t.groupMinutes} />
           </View>
 
           {/* ------------------- Group Status ------------------- */}
           <View style={styles.clientsView}>
-            <Text style={styles.salesPressableText}>View Group Status</Text>
-            <GradientButton onPress={navigateTo('ChmSignInss')} text="View Group Debts Status: Blacklist, View Repayments, Waive" />
+            <Text style={styles.salesPressableText}>{t.viewGroupStatus}</Text>
+            <GradientButton onPress={navigateTo('ChmSignInss')} text={t.viewGroupDebtsStatus} />
           </View>
 
           {/* ------------------- Member Status ------------------- */}
           <View style={styles.clientsView}>
-            <Text style={styles.salesPressableText}>View Member Status</Text>
-            <GradientButton onPress={navigateTo('ChmLnsRec')} text="View Member Debts Status: View Repayments, Repay Debts" />
+            <Text style={styles.salesPressableText}>{t.viewMemberStatus}</Text>
+            <GradientButton onPress={navigateTo('ChmLnsRec')} text={t.viewMemberDebtsStatus} />
           </View>
 
           {/* ------------------- Registration ------------------- */}
           <View style={styles.clientsView}>
-            <Text style={styles.salesText}>Registration</Text>
-            <GradientButton onPress={navigateTo('AddChmMembrsss')} text="Register Member" />
+            <Text style={styles.salesText}>{t.registration}</Text>
+            <GradientButton onPress={navigateTo('AddChmMembrsss')} text={t.registerMember} />
             <GradientButton onPress={navigateTo('SgnIn2RemoveMmbrs', {
             id
-          })} text="Deregister Member" />
+          })} text={t.deregisterMember} />
           </View>
 
           {/* ------------------- Group Remittance ------------------- */}
           <View style={styles.clientsView}>
-            <Text style={styles.salesText}>Group Remittance</Text>
-            <GradientButton onPress={navigateTo('ViewGrp2ConfirmDividends')} text="View Group's remittances: confirm remittances (Signatories), View Remittances" />
-            <GradientButton onPress={navigateTo('ChamaMmbrRemts')} text="View My remittances" />
+            <Text style={styles.salesText}>{t.groupRemittance}</Text>
+            <GradientButton onPress={navigateTo('ViewGrp2ConfirmDividends')} text={t.viewGroupRemittances} />
+            <GradientButton onPress={navigateTo('ChamaMmbrRemts')} text={t.viewMyRemittances} />
           </View>
 
           {/* ------------------- Membership ------------------- */}
           <View style={styles.clientsView}>
-            <Text style={styles.salesText}>Membership</Text>
-            <GradientButton onPress={navigateTo('ViewGrp2ShareDividends')} text="View Members: Approve/disapprove Transport, Share dividends/Profits, View subscriptions, Penalise late Repayments" />
-            <GradientButton onPress={navigateTo('ChmMmbrMmbrss')} text="View my Groups: View my subscriptions, send my Subscriptions" />
+            <Text style={styles.salesText}>{t.membership}</Text>
+            <GradientButton onPress={navigateTo('ViewGrp2ShareDividends')} text={t.viewMembers} />
+            <GradientButton onPress={navigateTo('ChmMmbrMmbrss')} text={t.viewMyGroups} />
           </View>
 
           {/* ------------------- Group Account ------------------- */}
           <View style={styles.clientsView2}>
-            <Text style={styles.salesText}>Group Account</Text>
-            <GradientButton onPress={navigateTo('ViewGrpApplications')} text="Create" />
-            <GradientButton onPress={navigateTo('DissolveChms')} text="Dissolve" />
-            <GradientButton onPress={navigateTo('UpdateChmAc')} text="Update" />
-            <GradientButton onPress={navigateTo('ChamSignIn3s')} text="View Group Account" />
+            <Text style={styles.salesText}>{t.groupAccount}</Text>
+            <GradientButton onPress={navigateTo('ViewGrpApplications')} text={t.create} />
+            <GradientButton onPress={navigateTo('DissolveChms')} text={t.dissolve} />
+            <GradientButton onPress={navigateTo('UpdateChmAc')} text={t.update} />
+            <GradientButton onPress={navigateTo('ChamSignIn3s')} text={t.viewGroupAccount} />
           </View>
 
           {/* ------------------- Signatory Works ------------------- */}
           <View style={styles.clientsView2}>
-            <Text style={styles.salesText}>Signatory Works</Text>
-            <GradientButton onPress={navigateTo('Sgn2CnfrmWthdrwlsss')} text="Signatory 2 Confirm Group Withdrawals" />
-            <GradientButton onPress={navigateTo('SignitoryWthdrwFndsss')} text="Signatory 3 Confirm Group Withdrawals" />
-            <GradientButton onPress={navigateTo('SignitoryWthdrwFndsss')} text="Execute Group Withdrawls" />
-            <GradientButton onPress={navigateTo('SgnIn2VwChmDpstss')} text="View Group Deposits" />
-            <GradientButton onPress={navigateTo('SgnIn2VwChmWthdrwlss')} text="View Group Withdrawals" />
+            <Text style={styles.salesText}>{t.signatoryWorks}</Text>
+            <GradientButton onPress={navigateTo('Sgn2CnfrmWthdrwlsss')} text={t.signatory2ConfirmWithdrawals} />
+            <GradientButton onPress={navigateTo('SignitoryWthdrwFndsss')} text={t.signatory3ConfirmWithdrawals} />
+            <GradientButton onPress={navigateTo('SignitoryWthdrwFndsss')} text={t.executeGroupWithdrawals} />
+            <GradientButton onPress={navigateTo('SgnIn2VwChmDpstss')} text={t.viewGroupDeposits} />
+            <GradientButton onPress={navigateTo('SgnIn2VwChmWthdrwlss')} text={t.viewGroupWithdrawals} />
           </View>
 
         </View>

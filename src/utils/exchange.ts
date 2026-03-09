@@ -5,7 +5,37 @@ const client = generateClient();
 const countryToCurrency: Record<string, string> = {
   KE: 'KES', UG: 'UGX', TZ: 'TZS', RW: 'RWF', NG: 'NGN', ZA: 'ZAR',
   US: 'USD', GB: 'GBP', EU: 'EUR', IN: 'INR', CN: 'CNY', JP: 'JPY',
-  CA: 'CAD', AU: 'AUD', CH: 'CHF'
+  CA: 'CAD', AU: 'AUD', CH: 'CHF', AF: 'AFN', AL: 'ALL', DZ: 'DZD', AS: 'USD',
+  AD: 'EUR', AO: 'AOA', AI: 'XCD', AG: 'XCD', AR: 'ARS', AM: 'AMD', AW: 'AWG',
+  AT: 'EUR', AZ: 'AZN', BS: 'BSD', BH: 'BHD', BD: 'BDT', BB: 'BBD', BY: 'BYN',
+  BE: 'EUR', BZ: 'BZD', BJ: 'XOF', BM: 'BMD', BT: 'BTN', BO: 'BOB', BA: 'BAM',
+  BW: 'BWP', BR: 'BRL', BN: 'BND', BG: 'BGN', BF: 'XOF', BI: 'BIF', KH: 'KHR',
+  
+  CM: 'XAF', CV: 'CVE', KY: 'KYD', CF: 'XAF', TD: 'XAF', CL: 'CLP', CO: 'COP',
+  CR: 'CRC', HR: 'EUR', CU: 'CUP', CY: 'EUR', CZ: 'CZK', DK: 'DKK', DJ: 'DJF',
+  DO: 'DOP', EC: 'USD', EG: 'EGP', SV: 'USD', GQ: 'XAF', ER: 'ERN', EE: 'EUR',
+  ET: 'ETB', FJ: 'FJD', FI: 'EUR', FR: 'EUR', GA: 'XAF', GM: 'GMD', GE: 'GEL',
+  DE: 'EUR', GH: 'GHS', GR: 'EUR', GT: 'GTQ', HN: 'HNL', HK: 'HKD', HU: 'HUF',
+  IS: 'ISK', ID: 'IDR', IR: 'IRR', IQ: 'IQD', IE: 'EUR', IL: 'ILS', IT: 'EUR',
+  JM: 'JMD', JO: 'JOD', KZ: 'KZT', KI: 'AUD', KP: 'KPW', KR: 'KRW', KW: 'KWD',
+  KG: 'KGS', LA: 'LAK', LV: 'EUR', LB: 'LBP', LS: 'LSL', LR: 'LRD', LY: 'LYD',
+  LI: 'CHF', LT: 'EUR', LU: 'EUR', MO: 'MOP', MW: 'MWK', MY: 'MYR', MV: 'MVR',
+  ML: 'XOF', MT: 'EUR', MH: 'USD', MQ: 'EUR', MR: 'MRU', MU: 'MUR', MX: 'MXN',
+  FM: 'USD', MD: 'MDL', MC: 'EUR', MN: 'MNT', ME: 'EUR', MA: 'MAD', MZ: 'MZN',
+  MM: 'MMK', NA: 'NAD', NR: 'AUD', NP: 'NPR', NL: 'EUR', NZ: 'NZD', NI: 'NIO',
+  NE: 'XOF', NO: 'NOK', OM: 'OMR', PK: 'PKR', PA: 'PAB', PG: 'PGK', PY: 'PYG',
+  PE: 'PEN', PH: 'PHP', PL: 'PLN', PT: 'EUR', QA: 'QAR', RO: 'RON', RU: 'RUB',
+  SA: 'SAR', SN: 'XOF', RS: 'RSD', SG: 'SGD', SK: 'EUR', SI: 'EUR', ES: 'EUR',
+  LK: 'LKR', SD: 'SDG', SR: 'SRD', SZ: 'SZL', SE: 'SEK', SY: 'SYP', TW: 'TWD',
+  TJ: 'TJS', TH: 'THB', TL: 'USD', TG: 'XOF', TO: 'TOP', TT: 'TTD', TN: 'TND',
+  TR: 'TRY', TM: 'TMT', UA: 'UAH', AE: 'AED', UY: 'UYU', UZ: 'UZS', VU: 'VUV',
+  VE: 'VES', VN: 'VND', YE: 'YER', ZM: 'ZMW', ZW: 'ZWL', AX: 'EUR', BQ: 'USD',
+  CW: 'ANG', PS: 'ILS', SS: 'SSP', XK: 'EUR', GG: 'GBP', IM: 'GBP', JE: 'GBP',
+  SJ: 'NOK', BV: 'NOK', GS: 'GBP', PN: 'NZD', TK: 'NZD', WF: 'XPF', EH: 'MAD',
+  GI: 'GIP', PM: 'EUR', RE: 'EUR', YT: 'EUR', GP: 'EUR', BL: 'EUR', MF: 'EUR',
+  GF: 'EUR', PF: 'XPF', NC: 'XPF', SX: 'ANG', TC: 'USD', VG: 'USD', VI: 'USD',
+  GW: 'XOF', KN: 'XCD', LC: 'XCD', VC: 'XCD', DM: 'XCD', GD: 'XCD', FK: 'FKP',
+  GL: 'DKK', IO: 'USD', CC: 'AUD', CX: 'AUD'
 };
 
 const normalizeKey = (value: string) => value.trim().toLowerCase().replace(/\s+/g, '');

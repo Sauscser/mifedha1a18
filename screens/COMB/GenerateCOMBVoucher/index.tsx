@@ -685,13 +685,22 @@ const SellerConsumablesVoucherScreen = () => {
         }} renderItem={({
           item: v
         }) => (
-          <VoucherCartCard item={v.item} quantity={v.quantity} sellerNationality={sellerNationality} funderNationality={funderNationality} alert={priceAlerts[v.item.id]} parent={parent} onUpdateQuantity={(id: string, qty: number) => setVoucherItems(p => ({
-          ...p,
-          [id]: {
-            ...p[id],
-            quantity: qty
-          }
-        }))} onRemove={(id: string) => {
+          <VoucherCartCard item={v.item} quantity={v.quantity} sellerNationality={sellerNationality} funderNationality={funderNationality} alert={priceAlerts[v.item.id]} parent={parent} onUpdateQuantity={(id: string, qty: number) => {
+            // Calculate new total if this item's quantity is changed
+            const currentTotal = Object.values(voucherItems).reduce((sum, vv) => sum + (vv.item.id === id ? 0 : Number(vv.item.sokoprice) * Number(vv.quantity)), 0);
+            const itemPrice = Number(v.item.sokoprice) * qty;
+            if (isActiveCap && currentTotal + itemPrice > cap) {
+              Alert.alert(t.insufficientFunds, t.insufficientFundsDetail);
+              return;
+            }
+            setVoucherItems(p => ({
+              ...p,
+              [id]: {
+                ...p[id],
+                quantity: qty
+              }
+            }));
+          }} onRemove={(id: string) => {
           const copy = {
             ...voucherItems
           };
