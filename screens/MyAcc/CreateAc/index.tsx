@@ -495,7 +495,7 @@ const nationality =
       const countryDisplay = region ? (countryNamesByCode[region] || region) : 'Unknown';
       console.log('Validation result - Country:', countryDisplay, 'Valid:', isValid, 'Region code:', region);
 
-      // Display confirmation dialog
+      // cd..Display confirmation dialog
       Alert.alert(
         t.confirmPhoneDetails,
         t.confirmPhoneDetailsBody.replace('{{countryDisplay}}', countryDisplay).replace('{{phone}}', phone),
@@ -1266,7 +1266,7 @@ if (pword.length < 8) {
       t.confirmPhoneDetails,
       t.confirmPhoneDetailsBody.replace('{{countryDisplay}}', countryName || selectedCountryRegion || 'Unknown').replace('{{phone}}', formatted),
       [
-        { text: t.yesConfirm, onPress: async () => {
+        { text: t.yesCorrect, onPress: async () => {
             setPhoneConfirmedE164(formatted);
             setPhoneConfirmed(true);
             const region = displayRegion;
