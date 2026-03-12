@@ -6,7 +6,11 @@ import { getCurrentUser, fetchUserAttributes } from 'aws-amplify/auth';
 import LnerStts from "../../../components/Ads/VwBiz2AddItem";
 import styles from './styles';
 const client = generateClient();
+import { translations } from './translation';
+import { useTranslation } from 'react-i18next';
 const FetchSMCovLns = props => {
+  const { i18n } = useTranslation();
+  const t = translations[i18n.language] || translations.en;
   const [loading, setLoading] = useState(false);
   const [Loanees, setLoanees] = useState([]);
 
@@ -33,13 +37,13 @@ const FetchSMCovLns = props => {
       });
       const items = res.data.listPersonels.items;
       if (items.length === 0) {
-        Alert.alert("No Businesses you work at.");
+        Alert.alert(t.noBusinessesAlert);
       } else {
         setLoanees(items);
       }
     } catch (e) {
       console.error(e);
-      Alert.alert("Error", "Failed to fetch businesses.");
+      Alert.alert(t.error, t.failedToFetch);
     } finally {
       setLoading(false);
     }
@@ -53,8 +57,8 @@ const FetchSMCovLns = props => {
     }) => <LnerStts Loanee={item} />} keyExtractor={(item, index) => index.toString()} onRefresh={fetchUsrDtls} refreshing={loading} showsVerticalScrollIndicator={false} ListHeaderComponentStyle={{
       alignItems: 'center'
     }} ListHeaderComponent={() => <>
-            <Text style={styles.label}> Select Business to add item</Text>
-            <Text style={styles.label2}> (Please swipe down to load)</Text>
+            <Text style={styles.label}>{t.selectBusinessLabel}</Text>
+            <Text style={styles.label2}>{t.swipeToLoadLabel}</Text>
           </>} />
     </View>;
 };

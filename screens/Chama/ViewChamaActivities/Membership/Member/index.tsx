@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, FlatList, Alert } from 'react-native';
+import { useTranslation } from 'react-i18next';
+import { translations } from './translation';
 import LnerStts from "../../../../../components/Chama/ChmActivities/Membership/Member";
 import styles from './styles';
 import { listChamaMembers } from '../../../../../src/graphql/queries';
@@ -7,6 +9,10 @@ import { generateClient } from 'aws-amplify/api';
 import { getCurrentUser, fetchUserAttributes } from 'aws-amplify/auth';
 const client = generateClient();
 const FetchSMCovLns = props => {
+  // Translation pattern
+  const { i18n } = useTranslation();
+  const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+  const t = translations[lang] || translations.en;
   const [loading, setLoading] = useState(false);
   const [Loanees, setLoanees] = useState([]);
   const fetchLoanees = async () => {
@@ -27,7 +33,7 @@ const FetchSMCovLns = props => {
       setLoanees(Lonees.data.listChamaMembers.items);
     } catch (error) {
       console.log(error);
-      Alert.alert("Error fetching Chama memberships. Please retry.");
+      Alert.alert(t.errorFetchingChama);
     } finally {
       setLoading(false);
     }
@@ -43,7 +49,7 @@ const FetchSMCovLns = props => {
     }) => <LnerStts ChamaMmbrshpDtls={item} />} keyExtractor={(item, index) => index.toString()} onRefresh={fetchLoanees} refreshing={loading} showsVerticalScrollIndicator={false} ListHeaderComponentStyle={{
       alignItems: 'center'
     }} ListHeaderComponent={() => <>
-            <Text style={styles.label}>My Chamas</Text>
+            <Text style={styles.label}>{t.myChamas}</Text>
           </>} />
     </View>;
 };

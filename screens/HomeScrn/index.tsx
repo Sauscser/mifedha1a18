@@ -319,7 +319,7 @@ const HomeScreen = () => {
                     {/* ================= QUICK EXCHANGE RATES BUTTON ================= */}
                     <View style={styles.quickRatesButtonContainer}>
                         <LinearGradient colors={['#72ebd8', '#34a4a1']} style={styles.quickRatesButton}>
-                            <TouchableOpacity style={styles.quickRatesButton} onPress={() => navigateTo('UpdateExRates')}>
+                            <TouchableOpacity style={styles.quickRatesButton} onPress={() => navigateTo('UpdateExRates2')}>
                                 <FontAwesome name="exchange" size={16} color="#ffffff" style={styles.quickRatesIcon} />
                                 <Text style={styles.quickRatesButtonText}>{screenT.viewRates}</Text>
                             </TouchableOpacity>

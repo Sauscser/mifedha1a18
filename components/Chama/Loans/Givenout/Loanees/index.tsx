@@ -1,5 +1,7 @@
 import { useNavigation } from '@react-navigation/native';
-import {View, Text,    Pressable} from 'react-native';
+import {View, Text, Pressable} from 'react-native';
+import { useTranslation } from 'react-i18next';
+import translations from './translation';
 import styles from './styles';
 
 import React, {useEffect, useState} from 'react';
@@ -37,6 +39,9 @@ export interface ChmNonCvLnSttusSent {
 }
 
 const ChmNonCvLnSttsSent = (props: ChmNonCvLnSttusSent) => {
+    const { i18n } = useTranslation();
+    const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+    const t = translations[lang] || translations.en;
   const {
     Loaner: {
       loanID,
@@ -119,31 +124,31 @@ const ChmNonCvLnSttsSent = (props: ChmNonCvLnSttusSent) => {
     <View style={styles.pageContainer}>
       <Pressable onPress={SndChmMmbrMny} style={styles.card}>
         <Text style={styles.prodInfo}>
-          <Text style={styles.label}>Loanee Name:</Text> {loaneeName}
+          <Text style={styles.label}>{t.loaneeName}:</Text> {loaneeName}
         </Text>
         <Text style={styles.prodInfo}>
-          <Text style={styles.label}>Loan Id:</Text> {loanID}
+          <Text style={styles.label}>{t.loanId}:</Text> {loanID}
         </Text>
         <Text style={styles.prodInfo}>
-          <Text style={styles.label}>Loanee Contact:</Text> {loaneePhn}
+          <Text style={styles.label}>{t.loaneeContact}:</Text> {loaneePhn}
         </Text>
         <Text style={styles.prodInfo}>
-          <Text style={styles.label}>loan Balance with penalties:</Text>{' '}
+          <Text style={styles.label}>{t.loanBalanceWithPenalties}:</Text>{' '}
           {formatAmountSync(Math.floor(LonBal1), userCode, ratesMap)}
         </Text>
       </Pressable>
 
       <View style={styles.buttonRow}>
         <Pressable onPress={VwRpayments} style={styles.loanFriendButton}>
-          <Text style={styles.buttonText}>ViewRpymnts</Text>
+          <Text style={styles.buttonText}>{t.viewRepayments}</Text>
         </Pressable>
 
         <Pressable onPress={WaiveChmCov} style={styles.redeemButton}>
-          <Text style={styles.buttonText}>Waive</Text>
+          <Text style={styles.buttonText}>{t.waive}</Text>
         </Pressable>
 
         <Pressable onPress={Blacklist} style={styles.loanFriendButton}>
-          <Text style={styles.buttonText}>BL/Penalise</Text>
+          <Text style={styles.buttonText}>{t.blacklist}</Text>
         </Pressable>
       </View>
     </View>

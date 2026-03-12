@@ -36,7 +36,11 @@ const formatAndValidateUrl = url => {
     return null;
   }
 };
+import { translations } from './translation';
+import { useTranslation } from 'react-i18next';
 const CreateBiz = () => {
+  const { i18n } = useTranslation();
+  const t = translations[i18n.language] || translations.en;
   const [formData, setFormData] = useState({
     itemName: '',
     itemTown: '',
@@ -134,7 +138,7 @@ const CreateBiz = () => {
       status
     } = await Location.requestForegroundPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Permission Denied', 'Location access is required.');
+      Alert.alert(t.permissionDenied, t.locationRequired);
     }
   };
   const pickImage = async () => {
@@ -162,7 +166,7 @@ const CreateBiz = () => {
       const blob = await response.blob();
       const imageSizeMB = blob.size / (1024 * 1024);
       if (imageSizeMB > MAX_IMAGE_SIZE_MB) {
-        Alert.alert('Image too large', `Image is ${imageSizeMB.toFixed(2)}MB.`);
+        Alert.alert(t.imageTooLarge, `Image is ${imageSizeMB.toFixed(2)}MB.`);
         return;
       }
       const filename = `${Date.now()}_item.jpg`;
@@ -175,10 +179,10 @@ const CreateBiz = () => {
       }).result;
       setItemPhotoKey(filename);
       setItemPhotoUri(manipResult.uri);
-      Alert.alert('Success', 'Image uploaded successfully.');
+      Alert.alert(t.success, t.imageUploaded);
     } catch (err) {
       console.error('Image upload failed:', err);
-      Alert.alert('Error', 'Failed to upload image.');
+      Alert.alert(t.error, t.imageUploadFailed);
     }
   };
   const clearForm = () => {
@@ -216,13 +220,13 @@ const CreateBiz = () => {
     } = formData;
     const formattedUrl = formatAndValidateUrl(itemTown);
     if (formattedUrl === null) {
-      Alert.alert('Invalid URL', 'Please enter a valid link');
+      Alert.alert(t.invalidUrl, t.enterValidLink);
       setIsLoading(false);
       return;
     }
     const priceInKsh = parseFloat(PriceInKsh);
     if (!Number.isFinite(priceInKsh) || priceInKsh <= 0) {
-      Alert.alert('Error', 'Enter a valid item price.');
+      Alert.alert(t.error, t.enterValidPrice);
       setIsLoading(false);
       return;
     }
@@ -238,7 +242,7 @@ const CreateBiz = () => {
       });
       const account = accRes?.data?.getSMAccount;
       if (!account || bizPassword !== account.pw) {
-        Alert.alert('Error', 'Incorrect user password.');
+        Alert.alert(t.error, t.incorrectPassword);
         return;
       }
       const bizRes = await client.graphql({
@@ -262,7 +266,7 @@ const CreateBiz = () => {
         }
       });
       if (!personnelRes?.data?.listPersonels?.items?.length) {
-        Alert.alert('Access Denied', 'Not staff of this business.');
+        Alert.alert(t.accessDenied, t.notStaff);
         return;
       }
       await client.graphql({
@@ -334,11 +338,11 @@ const CreateBiz = () => {
 
         console.log(itemPrice);
       
-      Alert.alert('Success', `Item successfully advertised.\n\nPrice: ${priceInOwnerCurrency}\n\n(Stored in backend as: Ksh ${priceInKsh.toFixed(2)})`);
+      Alert.alert(t.success, `${t.itemAdvertised}\n\nPrice: ${priceInOwnerCurrency}\n\n(Stored in backend as: Ksh ${priceInKsh.toFixed(2)})`);
       clearForm();
     } catch (err) {
       console.error(err);
-      Alert.alert('Error', 'Failed to create ad.');
+      Alert.alert(t.error, t.failedToCreateAd);
     } finally {
       setIsLoading(false);
     }
@@ -347,53 +351,42 @@ const CreateBiz = () => {
     flex: 1
   }}>
       <ScrollView contentContainerStyle={styles.container}>
-        <Text style={styles.title}>Advertise New Item</Text>
+        <Text style={styles.title}>{t.advertiseNewItem}</Text>
 
-        <InputField label="Item Name" value={formData.itemName} onChange={v => updateForm('itemName', v)} />
-        <InputField label="Brand/Model/Type (Optional)" value={formData.brandName} onChange={v => updateForm('brandName', v)} />
+        <InputField label={t.itemNameLabel} value={formData.itemName} onChange={v => updateForm('itemName', v)} />
+        <InputField label={t.brandLabel} value={formData.brandName} onChange={v => updateForm('brandName', v)} />
         {businessOwnerNationality ? (
-          <InputField label={`Item Price (${ratesMap?.[nationalityToCode(businessOwnerNationality)]?.symbol || 'Ksh'})`} value={formData.itemPrice} onChange={v => updateForm('itemPrice', v)} keyboardType="numeric" />
+          <InputField label={`${t.itemPriceLabel} (${ratesMap?.[nationalityToCode(businessOwnerNationality)]?.symbol || 'Ksh'})`} value={formData.itemPrice} onChange={v => updateForm('itemPrice', v)} keyboardType="numeric" />
         ) : (
-          <InputField label="Item Price (Loading...)" value={formData.itemPrice} onChange={v => updateForm('itemPrice', v)} keyboardType="numeric" />
+          <InputField label={t.itemPriceLoading} value={formData.itemPrice} onChange={v => updateForm('itemPrice', v)} keyboardType="numeric" />
         )}
-        <InputField label="Unit of Measure (Optional)" value={formData.itemUnit} onChange={v => updateForm('itemUnit', v)} />
-        <InputField label="Quantity per Unit (Optional)" value={formData.unitQuantity} onChange={v => updateForm('unitQuantity', v)} keyboardType="numeric" />
-        <InputField label="Serial Number (Optional)" value={formData.ItemCode} onChange={v => updateForm('ItemCode', v)} />
-        <InputField label="Item Specifications (Optional)" value={formData.itemSpecifications} onChange={v => updateForm('itemSpecifications', v)} multiline height={80} />
+        <InputField label={t.unitLabel} value={formData.itemUnit} onChange={v => updateForm('itemUnit', v)} />
+        <InputField label={t.quantityLabel} value={formData.unitQuantity} onChange={v => updateForm('unitQuantity', v)} keyboardType="numeric" />
+        <InputField label={t.serialLabel} value={formData.ItemCode} onChange={v => updateForm('ItemCode', v)} />
+        <InputField label={t.specificationsLabel} value={formData.itemSpecifications} onChange={v => updateForm('itemSpecifications', v)} multiline height={80} />
         {/* URL with pulsing valid icon */}
         <View style={styles.inputContainer}>
-  <Text style={styles.label}>Ad Video URL (Optional)</Text>
-  <View style={{
-          flexDirection: 'row',
-          alignItems: 'center'
-        }}>
-    <TextInput style={[styles.input, {
-            flex: 1
-          }]} value={formData.itemTown} onChangeText={handleUrlChange} placeholder="e.g. youtube.com/watch?v=abc123" />
-    {isUrlValid && <Animated.View style={{
-            transform: [{
-              scale: pulseAnim
-            }],
-            marginLeft: 8
-          }}>
-        <Ionicons name="checkmark-circle" size={24} color="limegreen" />
-      </Animated.View>}
-  </View>
-      </View>
+          <Text style={styles.label}>{t.adVideoUrlLabel}</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <TextInput style={[styles.input, { flex: 1 }]} value={formData.itemTown} onChangeText={handleUrlChange} placeholder={t.adVideoUrlPlaceholder} />
+            {isUrlValid && (
+              <Animated.View style={{ transform: [{ scale: pulseAnim }], marginLeft: 8 }}>
+                <Ionicons name="checkmark-circle" size={24} color="limegreen" />
+              </Animated.View>
+            )}
+          </View>
+        </View>
 
 
-        <InputField label="Item Description" value={formData.itemDesc} onChange={v => updateForm('itemDesc', v)} multiline height={100} />
+        <InputField label={t.itemDescLabel} value={formData.itemDesc} onChange={v => updateForm('itemDesc', v)} multiline height={100} />
 
         <View style={{
         flexDirection: 'row',
         justifyContent: 'space-between'
       }}>
-          <TouchableOpacity onPress={pickImage} style={[styles.button, {
-          flex: 1,
-          marginRight: 10
-        }]}>
-            <Text style={styles.buttonText}>Attach Photo from Gallery</Text>
-          </TouchableOpacity>
+          <TouchableOpacity onPress={pickImage} style={[styles.button, { flex: 1, marginRight: 10 }]}> 
+              <Text style={styles.buttonText}>{t.attachPhotoButton}</Text>
+            </TouchableOpacity>
 
         </View>
 
@@ -402,17 +395,15 @@ const CreateBiz = () => {
       }} style={styles.imagePreview} />}
 
         <View style={styles.passwordContainer}>
-          <TextInput placeholder="User Main Account Password" style={styles.passwordInput} value={formData.bizPassword} onChangeText={v => updateForm('bizPassword', v)} secureTextEntry={!isPasswordVisible} placeholderTextColor="#ccc" />
+          <TextInput placeholder={t.userPasswordPlaceholder} style={styles.passwordInput} value={formData.bizPassword} onChangeText={v => updateForm('bizPassword', v)} secureTextEntry={!isPasswordVisible} placeholderTextColor="#ccc" />
           <TouchableOpacity onPress={() => setIsPasswordVisible(!isPasswordVisible)}>
             <Ionicons name={isPasswordVisible ? 'eye' : 'eye-off'} size={24} color="gray" />
           </TouchableOpacity>
         </View>
 
         <TouchableOpacity style={styles.button} onPress={handleAdCreation}>
-          <Text style={styles.buttonText}>Click to Add</Text>
-          {isLoading && <ActivityIndicator color="#fff" style={{
-          marginTop: 10
-        }} />}
+          <Text style={styles.buttonText}>{t.clickToAddButton}</Text>
+          {isLoading && <ActivityIndicator color="#fff" style={{ marginTop: 10 }} />}
         </TouchableOpacity>
       </ScrollView>
     </LinearGradient>;
@@ -422,12 +413,12 @@ const InputField = ({
   value,
   onChange,
   ...props
-}) => <View style={styles.inputContainer}>
+}) => (
+  <View style={styles.inputContainer}>
     <Text style={styles.label}>{label}</Text>
-    <TextInput style={[styles.input, props.multiline && {
-    height: props.height || 100
-  }]} value={value} onChangeText={onChange} {...props} />
-  </View>;
+    <TextInput style={[styles.input, props.multiline && { height: props.height || 100 }]} value={value} onChangeText={onChange} {...props} />
+  </View>
+);
 const styles = StyleSheet.create({
   container: {
     padding: 20

@@ -1,5 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { View, Text, ImageBackground, Pressable, FlatList, Alert } from 'react-native';
+import { useTranslation } from 'react-i18next';
+import translations from './translation';
 import { generateClient } from 'aws-amplify/api';
 import { getCompany, getGroup, listCvrdGroupLoans } from '../../../../../src/graphql/queries';
 import { useRoute } from '@react-navigation/native';
@@ -8,6 +10,9 @@ import LnerStts from "../../../../../components/Chama/Loans/Givenout/LoaneesDtls
 import styles from './styles';
 const graphqlClient = generateClient();
 const FetchSMCovLns = props => {
+  const { i18n } = useTranslation();
+  const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+  const t = translations[lang] || translations.en;
   const [LnerPhn, setLnerPhn] = useState(null);
   const [loading, setLoading] = useState(false);
   const [Loanees, setLoanees] = useState([]);
@@ -40,16 +45,22 @@ const FetchSMCovLns = props => {
   useEffect(() => {
     fetchLoanees();
   }, []);
-  return <View style={styles.root}>
-            <FlatList style={{
-      width: "100%"
-    }} data={Loanees} renderItem={({
-      item
-    }) => <LnerStts Loaner={item} />} keyExtractor={(item, index) => index.toString()} onRefresh={fetchLoanees} refreshing={loading} showsVerticalScrollIndicator={false} ListHeaderComponentStyle={{
-      alignItems: 'center'
-    }} ListHeaderComponent={() => <>
-                        <Text style={styles.label}> Group Loanees</Text>
-                    </>} />
-        </View>;
+  return (
+    <View style={styles.root}>
+      <FlatList
+        style={{ width: '100%' }}
+        data={Loanees}
+        renderItem={({ item }) => <LnerStts Loaner={item} />}
+        keyExtractor={(item, index) => index.toString()}
+        onRefresh={fetchLoanees}
+        refreshing={loading}
+        showsVerticalScrollIndicator={false}
+        ListHeaderComponentStyle={{ alignItems: 'center' }}
+        ListHeaderComponent={() => (
+          <Text style={styles.label}>{t.groupLoanees}</Text>
+        )}
+      />
+    </View>
+  );
 };
 export default FetchSMCovLns;

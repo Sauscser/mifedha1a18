@@ -1,97 +1,52 @@
 import { StyleSheet, Dimensions } from 'react-native';
 const styles = StyleSheet.create({
-  image: {
-    width: '100%',
-    height: "100%",
-    resizeMode: 'cover',
-    justifyContent: 'center',
+  container: {
+    flexGrow: 1,
+    backgroundColor: '#f7f7f7',
+    padding: 20,
     alignItems: 'center',
-    flexDirection: 'column',
-    marginTop: 1,
-    flexWrap: "wrap"
+    justifyContent: 'center',
   },
   title: {
-    fontSize: 20,
+    fontSize: 24,
     fontWeight: 'bold',
-    color: 'black'
+    color: '#222',
+    marginBottom: 24,
+    textAlign: 'center',
   },
-  amountTitleView: {
+  input: {
     backgroundColor: 'white',
-    marginHorizontal: 10,
-    width: Dimensions.get('screen').width - 20,
-    borderRadius: 5,
-    marginTop: "5%",
+    width: '100%',
+    minHeight: 44,
+    borderRadius: 8,
+    marginBottom: 18,
+    paddingHorizontal: 14,
+    fontSize: 16,
+    color: '#0a0a0a',
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+  },
+  inputDesc: {
+    minHeight: 70,
+    textAlignVertical: 'top',
+  },
+  button: {
+    backgroundColor: '#1e90ff',
+    borderRadius: 24,
+    width: '100%',
     justifyContent: 'center',
     alignItems: 'center',
-    flexDirection: 'column'
+    paddingVertical: 16,
+    marginTop: 8,
+    marginBottom: 24,
+    elevation: 2,
+    flexDirection: 'row',
   },
-  sendAmtView: {
-    backgroundColor: '#72ebd8',
-    marginHorizontal: 10,
-    width: Dimensions.get('screen').width - 20,
-    height: "8%",
-    borderRadius: 20,
-    marginTop: "20%",
-    justifyContent: 'center',
-    alignItems: 'center',
-    flexDirection: 'column',
-    padding: "1%"
-  },
-  sendAmtText: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: 'white',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginLeft: 30
-  },
-  sendAmtButton: {
-    backgroundColor: '#fff',
-    height: "3%",
-    borderRadius: 30,
-    marginHorizontal: 10,
-    width: Dimensions.get('screen').width - 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: "5%",
-    marginBottom: "95%"
-  },
-  sendAmtButtonText: {
+  buttonText: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: 'black'
+    color: 'white',
+    textAlign: 'center',
   },
-  sendAmtInput: {
-    backgroundColor: 'white',
-    marginHorizontal: 15,
-    width: Dimensions.get('screen').width - 30,
-    height: "60%",
-    borderRadius: 10,
-    marginTop: "2%",
-    justifyContent: 'center',
-    alignItems: 'center'
-  },
-  sendAmtViewDesc: {
-    backgroundColor: '#72ebd8',
-    marginHorizontal: 10,
-    width: Dimensions.get('screen').width - 20,
-    height: "15%",
-    borderRadius: 20,
-    marginTop: "20%",
-    justifyContent: 'center',
-    alignItems: 'center',
-    flexDirection: 'column',
-    padding: "1%"
-  },
-  sendAmtInputDesc: {
-    backgroundColor: 'white',
-    marginHorizontal: 15,
-    width: Dimensions.get('screen').width - 30,
-    height: "60%",
-    borderRadius: 10,
-    marginTop: "2%",
-    justifyContent: 'center',
-    alignItems: 'center'
-  }
 });
 export default styles;

@@ -18,8 +18,11 @@ import {useExchange} from '../../../../src/contexts/ExchangeContext';
 import { generateClient } from 'aws-amplify/api';  
 import { getSMAccount } from '../../../../src/graphql/queries';
 
+
 import styles from './styles';
 import { getReqLoanChama } from '../../../../src/graphql/queries';
+import translations from './translation';
+import { useTranslation } from 'react-i18next';
 
 export interface SMAccount {
   SMAc: {
@@ -69,18 +72,23 @@ const SMCvLnStts = (props: SMAccount) => {
   const [Uzer, setUzer] = useState<string>(null);
   const [userNationality, setUserNationality] = useState<string>(null);
   const userCode = nationalityToCode(userNationality);
-  const {ratesMap} = useExchange();
+  const { ratesMap } = useExchange();
+
+  // Translation wiring
+  const { i18n } = useTranslation();
+  const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+  const t = translations[lang] || translations.en;
 
   useEffect(() => {
     const fetchUserData = async () => {
       const user = await fetchUserAttributes();
       setUzer(user.email);
       try {
-        const userData = await client.graphql({
+        const userData: any = await client.graphql({
           query: getSMAccount,
           variables: { awsemail: user.email },
         });
-        setUserNationality(userData.data.getSMAccount.nationality);
+        setUserNationality(userData?.data?.getSMAccount?.nationality);
         console.log('User Data:', userData);
       } catch (error) {
         console.error('Error fetching user data:', error);
@@ -102,11 +110,11 @@ const SMCvLnStts = (props: SMAccount) => {
       const { signatory2, confirm1, confirm2, owner, signatory3 } = result.data.getReqLoanChama;
 
       if (confirm1 !== 'YES') {
-        Alert.alert('Info', 'Signatory 2 has not yet confirmed');
+        Alert.alert('Info', t.alertInfoSign2NotConfirmed);
       } else if (confirm2 !== 'YES') {
-        Alert.alert('Info', 'Signatory 2 has not yet confirmed');
+        Alert.alert('Info', t.alertInfoSign2NotConfirmed);
       } else if (owner !== attributes.email) {
-        Alert.alert('Info', 'You are not the group main admin');
+        Alert.alert('Info', t.alertErrorNotGroupAdmin);
       } else {
         SndChmMmbrMny();
       }
@@ -129,15 +137,15 @@ const SMCvLnStts = (props: SMAccount) => {
       const { signatory2, confirm1 } = result.data.getReqLoanChama;
 
       if (attributes.email !== signatory2) {
-        Alert.alert('Error', 'You are not signatory 2');
+        Alert.alert('Error', t.alertErrorNotSignatory2);
       } else if (confirm1 === 'YES') {
-        Alert.alert('Info', 'You have already confirmed');
+        Alert.alert('Info', t.alertInfoAlreadyConfirmed);
       } else {
         await client.graphql({
           query: updateReqLoanChama,
           variables: { input: { id, confirm1: 'YES' } }
         });
-        Alert.alert('Success', 'Signatory 2 has confirmed successfully.');
+        Alert.alert('Success', t.alertSuccessSign2);
       }
     } catch (error) {
       console.error(error);
@@ -158,17 +166,17 @@ const SMCvLnStts = (props: SMAccount) => {
       const { signatory3, confirm1, confirm2 } = result.data.getReqLoanChama;
 
       if (attributes.email !== signatory3) {
-        Alert.alert('Error', 'You are not signatory 3');
+        Alert.alert('Error', t.alertErrorNotSignatory3);
       } else if (confirm1 !== 'YES') {
-        Alert.alert('Info', 'The second signatory has not confirmed');
+        Alert.alert('Info', t.alertInfoSign3NotConfirmed);
       } else if (confirm2 === 'YES') {
-        Alert.alert('Info', 'You have already confirmed this one');
+        Alert.alert('Info', t.alertInfoAlreadyConfirmed3);
       } else {
         await client.graphql({
           query: updateReqLoanChama,
           variables: { input: { id, confirm2: 'YES' } }
         });
-        Alert.alert('Success', 'Signatory 3 has confirmed successfully.');
+        Alert.alert('Success', t.alertSuccessSign3);
       }
     } catch (error) {
       console.error(error);
@@ -185,7 +193,7 @@ const SMCvLnStts = (props: SMAccount) => {
         query: updateReqLoanChama,
         variables: { input: { id, WithdrawCnfrmtn2: 'YES' } }
       });
-      Alert.alert('Success', 'Withdraw confirmation 2 submitted.');
+      Alert.alert('Success', t.alertSuccessWithdraw2);
     } catch (error) {
       console.error(error);
       Alert.alert('Error', 'Something went wrong.');
@@ -201,7 +209,7 @@ const SMCvLnStts = (props: SMAccount) => {
         query: updateReqLoanChama,
         variables: { input: { id, WithdrawCnfrmtn3: 'YES' } }
       });
-      Alert.alert('Success', 'Withdraw confirmation 3 submitted.');
+      Alert.alert('Success', t.alertSuccessWithdraw3);
     } catch (error) {
       console.error(error);
       Alert.alert('Error', 'Something went wrong.');
@@ -209,20 +217,24 @@ const SMCvLnStts = (props: SMAccount) => {
     setIsLoading(false);
   };
 
+  // Interpolate variables into the translation string
+  const loanerDetails = t.loanerDetails
+    .replace('{name}', loaneeName)
+    .replace('{amount}', formatAmountSync(Math.floor(amount), userCode, ratesMap))
+    .replace('{interest}', repaymentAmt)
+    .replace('{days}', repaymentPeriod)
+    .replace('{installment}', installmentAmount)
+    .replace('{frequency}', paymentFrequency)
+    .replace('{phone}', loaneePhone);
+  const confirmation1 = t.confirmation1.replace('{confirm1}', confirm1);
+  const confirmation2 = t.confirmation2.replace('{confirm2}', confirm2);
+
   return (
     <View style={styles.pageContainer}>
       <View style={styles.card}>
-        <Text style={styles.prodInfo}>
-          Hi! it's {loaneeName}. Kindly Loan me {formatAmountSync(Math.floor(amount), userCode, ratesMap)}. I commit to repay
-          at a compound interest of {repaymentAmt}% per year within {repaymentPeriod} days. Each Installment is {installmentAmount} after
-          every {paymentFrequency} days. You can reach me through {loaneePhone}.
-        </Text>
-        <Text style={styles.prodInfo}>
-          Confirmation 1: {confirm1}
-        </Text>
-        <Text style={styles.prodInfo}>
-          Confirmation 2: {confirm2}
-        </Text>
+        <Text style={styles.prodInfo}>{loanerDetails}</Text>
+        <Text style={styles.prodInfo}>{confirmation1}</Text>
+        <Text style={styles.prodInfo}>{confirmation2}</Text>
         {isLoading && (
           <ActivityIndicator
             size="small"
@@ -234,23 +246,25 @@ const SMCvLnStts = (props: SMAccount) => {
 
       <View style={styles.buttonRow}>
         <Pressable onPress={FetchSign4} style={styles.loanFriendButton}>
-          <Text>Accept</Text>
+          <Text>{t.accept}</Text>
         </Pressable>
 
         <Pressable onPress={SndChmMmbrMny2} style={styles.redeemButton}>
-          <Text>Decline</Text>
+          <Text>{t.decline}</Text>
         </Pressable>
 
         <Pressable onPress={FetchSign2} style={styles.loanFriendButton}>
-          <Text>Signatory 2 Confirm</Text>
+          <Text>{t.confirmation1.replace('{confirm1}', '2')}</Text>
         </Pressable>
 
         <Pressable onPress={FetchSign3} style={styles.redeemButton}>
-          <Text>Signatory 3 Confirm</Text>
+          <Text>{t.confirmation1.replace('{confirm1}', '3')}</Text>
         </Pressable>
       </View>
+
+
     </View>
   );
-};
+}
 
 export default SMCvLnStts;

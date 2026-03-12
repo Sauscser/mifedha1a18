@@ -53,6 +53,8 @@ const ExRateRow = ({ rate, onUpdate, isUpdating }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [buyingPrice, setBuyingPrice] = useState(String(rate.buyingPrice || ''));
   const [sellingPrice, setSellingPrice] = useState(String(rate.sellingPrice || ''));
+  // Show symbol and country in the first column
+  const currencySymbol = rate.symbol || '';
   const countryName = countryNamesByCode[rate.cur] || rate.cur;
 
   const handleChange = () => {
@@ -71,7 +73,9 @@ const ExRateRow = ({ rate, onUpdate, isUpdating }) => {
   return (
     <View style={localStyles.row}>
       <View style={localStyles.cellCountry}>
-        <Text style={localStyles.textLabel}>{countryName}</Text>
+        <Text style={localStyles.textLabel}>
+          {currencySymbol} {countryName ? `(${countryName})` : ''}
+        </Text>
         <Text style={localStyles.textCode}>{rate.cur}</Text>
       </View>
 
@@ -102,8 +106,6 @@ const ExRateRow = ({ rate, onUpdate, isUpdating }) => {
           </View>
         </>
       )}
-
-     
     </View>
   );
 };
@@ -221,7 +223,7 @@ const UpdateExRates = () => {
 
       {/* Header Row */}
       <View style={[localStyles.row, localStyles.headerRow]}>
-        <Text style={[localStyles.cellCountry, localStyles.headerText]}>Country</Text>
+        <Text style={[localStyles.cellCountry, localStyles.headerText]}>Symbol</Text>
         <Text style={[localStyles.cell, localStyles.headerText]}>Buying </Text>
         <Text style={[localStyles.cell, localStyles.headerText]}>Selling</Text>
       </View>

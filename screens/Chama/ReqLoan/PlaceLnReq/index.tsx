@@ -33,9 +33,12 @@ import { generateClient } from 'aws-amplify/api';
 import { getCurrentUser, fetchUserAttributes } from 'aws-amplify/auth';
 import { getUrl } from 'aws-amplify/storage';
 
+
 import { useExchange } from '../../../../src/contexts/ExchangeContext';
 import { convertForeignToKsh, formatAmountSync } from '../../../../src/utils/exchange';
 import { nationalityToCode } from '../../../../src/utils/nationalityToCode';
+import { useTranslation } from 'react-i18next';
+import translations from './translation';
 
 const client = generateClient();
 
@@ -50,6 +53,9 @@ const SafeImage = ({ uri, style }: { uri?: string; style: any }) => {
 };
 
 const CreateBiz = () => {
+  const { i18n } = useTranslation();
+  const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+  const t = translations[lang] || translations.en;
   const [Sign2Phn, setSign2Phn] = useState('');
   const [itemPrys, setitemPrys] = useState('');
   const [lnPrsntg, setlnPrsntg] = useState('');
@@ -108,7 +114,7 @@ const CreateBiz = () => {
           query: getSMAccount,
           variables: { awsemail: attributes.email },
         });
-        setUserNationality(userData.data.getSMAccount.nationality);
+        setUserNationality(userData?.data?.getSMAccount?.nationality);
 
         const appRes: any = await client.graphql({
           query: getChamaAdminLnApply,
@@ -133,7 +139,7 @@ const CreateBiz = () => {
      ========================= */
   const fetchMinutesForLoan = async (loanMinutesId: string) => {
     if (!loanMinutesId) {
-      Alert.alert('No minutes linked');
+      Alert.alert(t.noMinutesLinked);
       return;
     }
     setLoadingMinutes(true);
@@ -144,16 +150,16 @@ const CreateBiz = () => {
       });
       const minutes = res?.data?.getChamaMinutes;
       if (!minutes) {
-        Alert.alert('Minutes not found');
+        Alert.alert(t.minutesNotFound);
         setLoadingMinutes(false);
         return;
       }
       if (minutes.status !== 'FINALIZED') {
-        Alert.alert('The secretary has not yet signed these minutes');
+        Alert.alert(t.secretaryNotSigned);
         return;
       }
       if (minutes.status !== 'LOCKED') {
-        Alert.alert('The chair has not yet signed these minutes');
+        Alert.alert(t.chairNotSigned);
         return;
       }
       const [itemsRes, attendanceRes] = await Promise.all([
@@ -182,7 +188,7 @@ const CreateBiz = () => {
       });
     } catch (err) {
       console.error(err);
-      Alert.alert('Error', 'Failed to fetch minutes');
+      Alert.alert(t.errorFetchingMinutes, t.failedFetchMinutes || '');
     } finally {
       setLoadingMinutes(false);
     }
@@ -210,35 +216,35 @@ const CreateBiz = () => {
           img { max-height: 80px; }
         </style></head>
         <body>
-          <h1>${min.grpName} — Official Minutes</h1>
-          <p><strong>Date:</strong> ${min.meetingDate}</p>
-          <p><strong>Venue:</strong> ${min.venue || "-"}</p>
-          <p><strong>Attendance:</strong> ${present.length}</p>
+          <h1>${min.grpName} — ${t.minutes}</h1>
+          <p><strong>${t.date}:</strong> ${min.meetingDate}</p>
+          <p><strong>${t.venue}:</strong> ${min.venue || "-"}</p>
+          <p><strong>${t.attendance}:</strong> ${present.length}</p>
 
-          <h2>Minute Items</h2>
+          <h2>${t.minuteItems}</h2>
           ${(min.items || []).map((i: any) => `
             <div class="item">
               <strong>${i.entryOrder}. ${i.minuteRef}</strong>
               <p>${i.content}</p>
-              ${i.decision ? `<div class="decision">Decision: ${i.decision}</div>` : ""}
+              ${i.decision ? `<div class="decision">${t.decision}: ${i.decision}</div>` : ""}
             </div>
           `).join("")}
 
-          <h2>Attendance List</h2>
+          <h2>${t.attendanceList}</h2>
           <table>
-            <tr><th>Name</th><th>Status</th></tr>
+            <tr><th>${t.attendanceList}</th><th>Status</th></tr>
             ${(min.attendance || []).map((a: any) => `<tr><td>${a.memberName}</td><td>${a.attendanceStatus}</td></tr>`).join("")}
           </table>
 
-          <h2>Signatures</h2>
+          <h2>${t.signatures}</h2>
           <div class="signatures">
             <div>
-              <strong>Chairperson</strong><br/>
-              ${min.chairSignUrl ? `<img src="${min.chairSignUrl}" />` : "Not signed"}
+              <strong>${t.chairperson}</strong><br/>
+              ${min.chairSignUrl ? `<img src="${min.chairSignUrl}" />` : t.notSigned}
             </div>
             <div>
-              <strong>Secretary</strong><br/>
-              ${min.secSignUrl ? `<img src="${min.secSignUrl}" />` : "Not signed"}
+              <strong>${t.secretary}</strong><br/>
+              ${min.secSignUrl ? `<img src="${min.secSignUrl}" />` : t.notSigned}
             </div>
           </div>
         </body>
@@ -247,7 +253,7 @@ const CreateBiz = () => {
       await printAsync({ html });
     } catch (err) {
       console.error(err);
-      Alert.alert('PDF Error', 'Failed to export minutes PDF');
+      Alert.alert(t.pdfError, t.failedExportPDF);
     }
   };
 
@@ -269,7 +275,7 @@ const CreateBiz = () => {
         !InstFreq.trim() ||
         !pword.trim()
       ) {
-        Alert.alert('Please fill in all required fields.');
+        Alert.alert(t.fillAllFields);
         return;
       }
 
@@ -286,19 +292,19 @@ const CreateBiz = () => {
 
       // validate password
       if (pword !== pws) {
-        Alert.alert("Wrong User password");
+        Alert.alert(t.wrongPassword);
         return;
       }
 
       // validate repayment period
       if (parseFloat(rpymntPrd) < 1) {
-        Alert.alert("Enter repayment Period greater than 1 day");
+        Alert.alert(t.enterRepaymentPeriod);
         return;
       }
 
       // validate interest
       if (parseFloat(lnPrsntg) > 100) {
-        Alert.alert("Interest exploits you; enter lesser repayment amount");
+        Alert.alert(t.interestExploits);
         return;
       }
 
@@ -311,7 +317,7 @@ const CreateBiz = () => {
       });
       const memberData = memberRes.data.getChamaMembers;
       if (!memberData) {
-        Alert.alert("Chama member not found");
+        Alert.alert(t.memberNotFound);
         setIsLoading(false);
         return;
       }
@@ -338,8 +344,8 @@ const CreateBiz = () => {
       const loanAmountForeign = parseAmountInput(itemPrys);
       const installmentAmtForeign = parseAmountInput(InstAmt);
 
-      const loanAmountInKES = convertForeignToKsh(loanAmountForeign, userCurrencyKey, ratesMap);
-      const installmentAmtInKES = convertForeignToKsh(installmentAmtForeign, userCurrencyKey, ratesMap);
+      const loanAmountInKES = await convertForeignToKsh(loanAmountForeign, userCurrencyKey);
+      const installmentAmtInKES = await convertForeignToKsh(installmentAmtForeign, userCurrencyKey);
 
       // Confirmation prompt
       const confirmed = await new Promise<boolean>((resolve) => {
@@ -361,7 +367,7 @@ const CreateBiz = () => {
       // validate installment amount
       const ExpInstmnt = loanAmountInKES / parseFloat(rpymntPrd);
       if (ExpInstmnt > installmentAmtInKES) {
-        Alert.alert("Enter Installment greater than " + (ExpInstmnt + 1).toFixed(0));
+        Alert.alert(t.enterInstallment + ' ' + (ExpInstmnt + 1).toFixed(0));
         return;
       }
 
@@ -379,7 +385,7 @@ const CreateBiz = () => {
           advocateEmail = advRes.data.getAdvocate.email;
           advocateLicense = Sign2Phn.trim();
         } else {
-          Alert.alert("Advocate not found. Proceeding without advocate.");
+          Alert.alert(t.advocateNotFound);
         }
       }
 
@@ -394,7 +400,7 @@ const CreateBiz = () => {
             confirm1: "NO",
             confirm2: "NO",
             loaneePhone: phonecontacts,
-            amount: loanAmountInKES.toFixed(0),
+            amount: Math.round(loanAmountInKES).toString(),
             repaymentAmt: lnPrsntg,
             repaymentPeriod: rpymntPrd,
             loaneeMemberId: MembaId,
@@ -408,7 +414,7 @@ const CreateBiz = () => {
             loanerPhone: signitoryContact,
             description: ChmNm ? ChmNm : "No description",
             defaultPenalty: ChmDesc,
-            installmentAmount: installmentAmtInKES.toFixed(0),
+            installmentAmount: Math.round(installmentAmtInKES).toString(),
             paymentFrequency: InstFreq,
             signatory2: signitory2Sub,
             signatory3: Signatory3Email,
@@ -462,11 +468,11 @@ const CreateBiz = () => {
         }
       });
 
-      Alert.alert("Loan request submitted successfully");
+      Alert.alert(t.loanRequestSuccess);
       navigation.goBack();
     } catch (e) {
       console.error(e);
-      Alert.alert("Error! Please check details or contact support.");
+      Alert.alert(t.errorSupport);
     } finally {
       setIsLoading(false);
     }
@@ -486,9 +492,9 @@ const CreateBiz = () => {
       >
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>Loan Request</Text>
+          <Text style={styles.headerTitle}>{t.loanRequest}</Text>
           <Text style={styles.headerSubtitle}>
-            Please fill in all required details carefully
+            {t.fillDetails}
           </Text>
 
           {!!appDetails?.grpMinutes && (
@@ -496,7 +502,7 @@ const CreateBiz = () => {
               style={styles.viewMinutesBtn}
               onPress={() => fetchMinutesForLoan(appDetails.grpMinutes)}
             >
-              <Text style={styles.viewMinutesText}>View linked minutes</Text>
+              <Text style={styles.viewMinutesText}>{t.viewLinkedMinutes}</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -505,42 +511,42 @@ const CreateBiz = () => {
         <View style={styles.formCard}>
           <View style={styles.inputGroup}>
             <TextInput
-              placeholder="Advocate License Number (Optional)"
+              placeholder={t.advocateLicensePlaceholder}
               placeholderTextColor="#333"
               value={Sign2Phn}
               onChangeText={setSign2Phn}
               style={styles.input}
             />
-            <Text style={styles.helperText}>Advocate License</Text>
+            <Text style={styles.helperText}>{t.advocateLicense}</Text>
           </View>
 
           <View style={styles.inputGroup}>
             <TextInput
-              placeholder="Loan Description (Optional)"
+              placeholder={t.loanDescriptionPlaceholder}
               placeholderTextColor="#333"
               value={ChmNm}
               onChangeText={setChmNm}
               multiline
               style={[styles.input, { height: 80 }]}
             />
-            <Text style={styles.helperText}>Loan Purpose / Description</Text>
+            <Text style={styles.helperText}>{t.loanPurpose}</Text>
           </View>
 
           <View style={styles.inputGroup}>
             <TextInput
-              placeholder="Default Penalty"
+              placeholder={t.defaultPenaltyPlaceholder}
               placeholderTextColor="#333"
               keyboardType="decimal-pad"
               value={ChmDesc}
               onChangeText={setChmDesc}
               style={styles.input}
             />
-            <Text style={styles.helperText}>Penalty on default</Text>
+            <Text style={styles.helperText}>{t.penaltyOnDefault}</Text>
           </View>
 
           <View style={styles.inputGroup}>
             <TextInput
-              placeholder="Installment Days"
+              placeholder={t.installmentDaysPlaceholder}
               placeholderTextColor="#333"
               keyboardType="decimal-pad"
               value={InstFreq}
@@ -551,7 +557,7 @@ const CreateBiz = () => {
 
           <View style={styles.inputGroup}>
             <TextInput
-              placeholder="Installment Amount"
+              placeholder={t.installmentAmountPlaceholder}
               placeholderTextColor="#333"
               keyboardType="decimal-pad"
               value={InstAmt}
@@ -563,7 +569,7 @@ const CreateBiz = () => {
 
           <View style={styles.inputGroup}>
             <TextInput
-              placeholder="Loan Amount"
+              placeholder={t.loanAmountPlaceholder}
               placeholderTextColor="#333"
               keyboardType="decimal-pad"
               value={itemPrys}
@@ -571,12 +577,12 @@ const CreateBiz = () => {
               onBlur={() => formatMoneyOnBlur(itemPrys, setitemPrys)}
               style={styles.input}
             />
-            <Text style={styles.helperText}>Principal Amount</Text>
+            <Text style={styles.helperText}>{t.principalAmount}</Text>
           </View>
 
           <View style={styles.inputGroup}>
             <TextInput
-              placeholder="Annual Interest Rate (e.g. 8)"
+              placeholder={t.interestRatePlaceholder}
               placeholderTextColor="#333"
               keyboardType="decimal-pad"
               value={lnPrsntg}
@@ -584,24 +590,24 @@ const CreateBiz = () => {
               onBlur={() => formatMoneyOnBlur(lnPrsntg, setlnPrsntg)}
               style={styles.input}
             />
-            <Text style={styles.helperText}>Interest % per year</Text>
+            <Text style={styles.helperText}>{t.interestPerYear}</Text>
           </View>
 
           <View style={styles.inputGroup}>
             <TextInput
-              placeholder="Repayment Period (Days)"
+              placeholder={t.repaymentPeriodPlaceholder}
               placeholderTextColor="#333"
               keyboardType="decimal-pad"
               value={rpymntPrd}
               onChangeText={setrpymntPrd}
               style={styles.input}
             />
-            <Text style={styles.helperText}>Total repayment duration</Text>
+            <Text style={styles.helperText}>{t.totalRepaymentDuration}</Text>
           </View>
 
           <View style={{ position: 'relative' }}>
             <TextInput
-              placeholder="User Password"
+              placeholder={t.userPasswordPlaceholder}
               placeholderTextColor="#333"
               secureTextEntry={!showPassword}
               value={pword}
@@ -613,7 +619,7 @@ const CreateBiz = () => {
               onPress={() => setShowPassword(!showPassword)}
             >
               <Text style={{ color: '#6b7280', fontSize: 14 }}>
-                {showPassword ? 'Hide' : 'Show'}
+                {showPassword ? t.hide : t.show}
               </Text>
             </TouchableOpacity>
           </View>
@@ -625,7 +631,7 @@ const CreateBiz = () => {
           onPress={submitLoanRequest}
           activeOpacity={0.85}
         >
-          <Text style={styles.submitButtonText}>Request Loan</Text>
+          <Text style={styles.submitButtonText}>{t.requestLoan}</Text>
           {isLoading && (
             <ActivityIndicator color="#fff" style={{ marginLeft: 10 }} />
           )}
@@ -650,14 +656,14 @@ const CreateBiz = () => {
               <ScrollView style={styles.minutesModal}>
                 <View style={styles.minutesCard}>
                   <Text style={styles.groupTitle}>
-                    {selectedMinutes?.grpName} — Minutes
+                    {selectedMinutes?.grpName} — {t.minutes}
                   </Text>
                   <Text style={styles.date}>📅 {selectedMinutes?.meetingDate}</Text>
                   <Text style={styles.meta}>
-                    Venue: {selectedMinutes?.venue || '-'}
+                    {t.venue}: {selectedMinutes?.venue || '-'}
                   </Text>
                   <Text style={styles.meta}>
-                    Attendance:{' '}
+                    {t.attendance}: {' '}
                     {(selectedMinutes?.attendance || []).filter(
                       (a: any) => a.attendanceStatus === 'PRESENT'
                     ).length}
@@ -667,10 +673,10 @@ const CreateBiz = () => {
                     style={styles.exportBtn}
                     onPress={() => exportMinutesToPDF(selectedMinutes)}
                   >
-                    <Text style={styles.exportText}>Export to PDF</Text>
+                    <Text style={styles.exportText}>{t.exportToPDF}</Text>
                   </TouchableOpacity>
 
-                  <Text style={styles.section}>Minute Items</Text>
+                  <Text style={styles.section}>{t.minuteItems}</Text>
                   {(selectedMinutes?.items || [])
                     .sort(
                       (a: any, b: any) =>
@@ -684,13 +690,13 @@ const CreateBiz = () => {
                         <Text>{item.content}</Text>
                         {item.decision && (
                           <Text style={styles.decision}>
-                            Decision: {item.decision}
+                            {t.decision}: {item.decision}
                           </Text>
                         )}
                       </View>
                     ))}
 
-                  <Text style={styles.section}>Attendance List</Text>
+                  <Text style={styles.section}>{t.attendanceList}</Text>
                   {(selectedMinutes?.attendance || []).map(
                     (a: any, idx: number) => (
                       <View key={idx} style={styles.memberRow}>
@@ -701,17 +707,17 @@ const CreateBiz = () => {
                     )
                   )}
 
-                  <Text style={styles.section}>Signatures</Text>
+                  <Text style={styles.section}>{t.signatures}</Text>
                   <View style={styles.signatures}>
                     <View style={styles.signatureBlock}>
-                      <Text style={styles.signatureLabel}>Chairperson</Text>
+                      <Text style={styles.signatureLabel}>{t.chairperson}</Text>
                       <SafeImage
                         uri={selectedMinutes?.chairSignUrl}
                         style={styles.signature}
                       />
                     </View>
                     <View style={styles.signatureBlock}>
-                      <Text style={styles.signatureLabel}>Secretary</Text>
+                      <Text style={styles.signatureLabel}>{t.secretary}</Text>
                       <SafeImage
                         uri={selectedMinutes?.secSignUrl}
                         style={styles.signature}
@@ -723,7 +729,7 @@ const CreateBiz = () => {
                     style={styles.closeBtn}
                     onPress={() => setSelectedMinutes(null)}
                   >
-                    <Text style={{ color: '#fff' }}>Close</Text>
+                    <Text style={{ color: '#fff' }}>{t.close}</Text>
                   </TouchableOpacity>
                 </View>
               </ScrollView>

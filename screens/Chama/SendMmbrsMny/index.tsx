@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
+import { translations } from './translation';
 import { View, Text, TextInput, ScrollView, TouchableOpacity, StyleSheet, Alert, ActivityIndicator } from 'react-native';
 import { useRoute } from '@react-navigation/native';
 import { getChamaMembers, getGroup, getCompany, getSMAccount, getMiFedhaBankAdmin, getChamaControlTable } from '../../../src/graphql/queries';
@@ -13,6 +15,10 @@ import { nationalityToCode } from '../../../src/utils/nationalityToCode';
 const client = generateClient();
 const themeColor = '#e29d59';
 const SMASendNonLns = () => {
+  // i18n translation pattern
+  const { i18n } = useTranslation();
+  const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+  const t = translations[lang] || translations.en;
   const [senderNatId, setSenderNatId] = useState('');
   const [senderPW, setSenderPW] = useState('');
   const [amount, setAmount] = useState('');
@@ -22,7 +28,13 @@ const SMASendNonLns = () => {
   const route = useRoute();
   
   const { ratesMap } = useExchange();
-  const userCurrencyKey = nationalityToCode(userNationality);
+  const userCode = nationalityToCode(userNationality);
+  const userCurrencyKey = userCode || userNationality || undefined;
+  const currencySymbol =
+    (userCurrencyKey && ratesMap?.[userCurrencyKey]?.symbol) ||
+    (userCode && ratesMap?.[userCode]?.symbol) ||
+    (userNationality && ratesMap?.[userNationality]?.symbol) ||
+    'KSh';
 
   // Parse amount input
   const parseAmountInput = (value: string): number => {
@@ -68,25 +80,29 @@ const SMASendNonLns = () => {
   };
   const showAlert = (message: string) => Alert.alert(message);
   const fetchChamaMemberDetails = async () => {
+        // Validate ChamaNMember param
+        if (!route.params || !('ChamaNMember' in route.params) || !route.params.ChamaNMember) {
+          showAlert('Member ID is missing. Please retry from the previous screen.');
+          return;
+        }
     if (isLoading) return;
     
-    // Convert amount to KES
+    // Parse amount input
     const amountForeign = parseAmountInput(amount);
-    const amountInKES = convertForeignToKsh(amountForeign, userCurrencyKey, ratesMap);
-
-    // Confirmation prompt
+    // Show confirmation dialog with user-input amount and currency symbol
     const confirmed = await new Promise<boolean>((resolve) => {
       Alert.alert(
-        'Confirm Send Money',
-        `You are about to send ${formatAmountSync(amountInKES, userCurrencyKey, ratesMap)} to this member. Continue?`,
+        t.confirmSendMoney,
+        t.confirmSendMoneyBody.replace('{amount}', `${currencySymbol} ${amountForeign.toFixed(2)}`),
         [
-          { text: 'Cancel', style: 'cancel', onPress: () => resolve(false) },
-          { text: 'Send', onPress: () => resolve(true) }
+          { text: t.cancel, style: 'cancel', onPress: () => resolve(false) },
+          { text: t.send, onPress: () => resolve(true) }
         ]
       );
     });
-
     if (!confirmed) return;
+    // Convert amount to KES for backend processing
+    const amountInKES = await convertForeignToKsh(amountForeign, userCurrencyKey);
 
     setIsLoading(true);
     try {
@@ -114,7 +130,7 @@ const SMASendNonLns = () => {
       });
       const group = groupData.data.getGroup;
       if (group.status !== 'AccountActive') {
-        showAlert('Sender account is inactive');
+        showAlert(t.senderInactive);
         setIsLoading(false);
         return;
       }
@@ -128,24 +144,61 @@ const SMASendNonLns = () => {
       });
       const receiver = receiverData.data.getSMAccount;
       if (receiver.acStatus !== 'AccountActive') {
-        showAlert('Receiver account is inactive');
+        showAlert(t.receiverInactive);
         setIsLoading(false);
         return;
       }
       if (parseFloat(receiver.balance) + amountInKES > parseFloat(receiver.MaxAcBal)) {
-        showAlert('Receiver wallet capacity exceeded. Contact customer care.');
+        showAlert(t.receiverWalletExceeded);
         setIsLoading(false);
         return;
       }
       const totalTransaction = amountInKES; // Simplified; add fees if needed
 
       if (parseFloat(group.grpBal) < totalTransaction) {
-        showAlert(`Insufficient group balance. Available: ${formatAmountSync(parseFloat(group.grpBal), userCurrencyKey, ratesMap)}`);
+        showAlert(
+          t.insufficientGroupBalance.replace('{amount}', formatAmountSync(parseFloat(group.grpBal), userCurrencyKey, ratesMap))
+        );
         setIsLoading(false);
         return;
       }
 
       // Create Non-Loan transaction
+            // Log all required fields before mutation
+            console.log('Mutation input check:', {
+              grpContact: groupContact,
+              recipientPhn: memberContact,
+              receiverName: receiver.name,
+              SenderName: group.grpName,
+              ReceiverEmail: receiver.memberContact,
+              amountSent: Math.round(amountInKES),
+              description: description || 'No description provided',
+              memberId: route.params.ChamaNMember,
+              senderEmail: attributes.email,
+              confirm1: 'NO',
+              confirm2: 'NO',
+              signatory2: group.signatory2Email,
+              signatory3: group.Signatory3Email,
+              status: 'AccountActive',
+              owner: user.userId
+            });
+            // Validate required fields
+            const requiredFields = [
+              { key: 'grpContact', value: groupContact },
+              { key: 'recipientPhn', value: memberContact },
+              { key: 'receiverName', value: receiver.name },
+              { key: 'SenderName', value: group.grpName },
+              { key: 'amountSent', value: Math.round(amountInKES) },
+              { key: 'memberId', value: route.params.ChamaNMember },
+              { key: 'senderEmail', value: attributes.email },
+              { key: 'owner', value: user.userId }
+            ];
+            const missing = requiredFields.filter(f => f.value === null || f.value === undefined || f.value === '');
+            if (missing.length > 0) {
+              showAlert('Missing required field(s): ' + missing.map(f => f.key).join(', '));
+              setIsLoading(false);
+              return;
+            }
       await client.graphql({
         query: createGroupNonLoans,
         variables: {
@@ -154,8 +207,8 @@ const SMASendNonLns = () => {
             recipientPhn: memberContact,
             receiverName: receiver.name,
             SenderName: group.grpName,
-            amountSent: amountInKES.toFixed(0),
-            description,
+            amountSent: Math.round(amountInKES),
+            description: description || 'No description provided',
             memberId: route.params.ChamaNMember,
             senderEmail: attributes.email,
             confirm1: 'NO',
@@ -170,13 +223,17 @@ const SMASendNonLns = () => {
 
       // Notify receiver
       const formattedAmount = formatAmountSync(amountInKES, userCurrencyKey, ratesMap);
-      const notificationBody = `Hi ${receiver.name}, ${group.grpName} has sent you ${formattedAmount}. Contact ${attributes.phone_number} for clarification.`;
+      const notificationBody = t.notificationBody
+        .replace('{receiverName}', receiver.name)
+        .replace('{groupName}', group.grpName)
+        .replace('{amount}', formattedAmount)
+        .replace('{phone}', attributes.phone_number);
       
       await client.graphql({
         query: createMessages,
         variables: {
           input: {
-            senderEmail: receiver.memberContact,
+            senderEmail: receiver.awsemail,
             messageBody: notificationBody
           }
         }
@@ -185,17 +242,19 @@ const SMASendNonLns = () => {
       await client.graphql({
         query: sendNotification,
         variables: {
-          riderEmail: receiver.memberContact,
-          title: 'NiSenti: Money Received from Group',
+          riderEmail: receiver.awsemail,
+          title: t.notificationTitle,
           body: notificationBody
         }
       });
       
-      showAlert(`Remittance of ${formattedAmount} successfully booked`);
+      showAlert(
+        t.remittanceSuccess.replace('{amount}', `${currencySymbol} ${amountForeign.toFixed(2)}`)
+      );
       resetForm();
     } catch (error) {
       console.log(error);
-      showAlert('Error! Retry or update app.');
+      showAlert(t.errorRetry);
     }
     setIsLoading(false);
   };
@@ -212,29 +271,35 @@ const SMASendNonLns = () => {
         marginBottom: 20,
         color: themeColor
       }}>
-          Fill Account Details Below
+          {t.fillAccountDetails}
         </Text>
 
         <View style={{
         marginBottom: 15
       }}>
-          <TextInput keyboardType="decimal-pad" value={amount} onChangeText={handleMoneyInput(setAmount)} onBlur={() => formatMoneyOnBlur(amount, setAmount)} placeholder="Enter Amount" style={{
-          borderWidth: 1,
-          borderColor: themeColor,
-          borderRadius: 8,
-          padding: 12,
-          fontSize: 16
-        }} />
-          <Text style={{
-          color: '#555',
-          marginTop: 5
-        }}>Amount Sent</Text>
+          <TextInput
+            keyboardType="decimal-pad"
+            value={amount}
+            onChangeText={handleMoneyInput(setAmount)}
+            onBlur={() => formatMoneyOnBlur(amount, setAmount)}
+            placeholder={t.enterAmount}
+            style={{
+              borderWidth: 1,
+              borderColor: themeColor,
+              borderRadius: 8,
+              padding: 12,
+              fontSize: 16
+            }}
+          />
+          <Text style={{ color: '#555', marginTop: 5 }}>
+            {currencySymbol} {amount || '0.00'}
+          </Text>
         </View>
 
         <View style={{
         marginBottom: 25
       }}>
-          <TextInput multiline value={description} onChangeText={setDescription} placeholder="Enter Description" style={{
+          <TextInput multiline value={description} onChangeText={setDescription} placeholder={t.enterDescription} style={{
           borderWidth: 1,
           borderColor: themeColor,
           borderRadius: 8,
@@ -246,7 +311,7 @@ const SMASendNonLns = () => {
           <Text style={{
           color: '#555',
           marginTop: 5
-        }}>Description</Text>
+        }}>{t.description}</Text>
         </View>
 
         <TouchableOpacity onPress={fetchChamaMemberDetails} style={{
@@ -260,7 +325,7 @@ const SMASendNonLns = () => {
           color: '#fff',
           fontSize: 16,
           fontWeight: 'bold'
-        }}>Send</Text>}
+        }}>{t.send}</Text>}
         </TouchableOpacity>
       </ScrollView>
     </View>;

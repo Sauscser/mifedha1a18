@@ -2,7 +2,9 @@ import React, { useState } from 'react';
 import { updateCompany, updateGroup } from '../../../../src/graphql/mutations';
 import { getCompany, getGroup, getSMAccount } from '../../../../src/graphql/queries';
 import { useNavigation } from '@react-navigation/native';
-import { View, Text, TextInput, ScrollView, ActivityIndicator, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, TextInput, ScrollView, ActivityIndicator, TouchableOpacity, Alert, KeyboardAvoidingView, Platform, Dimensions } from 'react-native';
+import { useTranslation } from 'react-i18next';
+import { translations } from './translation';
 import styles from './styles';
 import { updateBankAdmin } from '../../../../src/graphql/mutations';
 import { generateClient } from 'aws-amplify/api';
@@ -10,6 +12,9 @@ import { getCurrentUser, fetchUserAttributes } from 'aws-amplify/auth';
 const client = generateClient();
 const UpdtChm = props => {
   const navigation = useNavigation();
+  const { i18n } = useTranslation();
+  const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+  const t = translations[lang] || translations.en;
   const [SigntryPW, setSigntryPW] = useState("");
   const [groupCnt, setgroupCnt] = useState("");
   const [LnAcCod, setLnAcCod] = useState("");
@@ -48,22 +53,22 @@ const UpdtChm = props => {
             }
           }
         });
-        Alert.alert(user.username + " has updated " + grpNames + "'s Chama password");
+        Alert.alert(user.username + ' ' + t.updated + ' ' + grpNames + t.chamaPassword);
       };
       if (SMPW !== pws) {
-        Alert.alert("Wrong Main A/C PW; Prove authorship of Chama");
+        Alert.alert(t.wrongMainPW);
       } else if (user.userId !== owners) {
-        Alert.alert("You are not the author of the Chama");
+        Alert.alert(t.notAuthor);
       } else if (statuss !== "AccountActive") {
-        Alert.alert("This Chama Account is inactive");
+        Alert.alert(t.inactiveAccount);
       } else if (user.userId !== owner) {
-        Alert.alert("Please first create main account");
+        Alert.alert(t.createMainAccount);
       } else {
         await updtChmDtls();
       }
     } catch (error) {
       console.log(error);
-      Alert.alert("Check internet; otherwise Chama doesn't exist");
+      Alert.alert(t.checkInternet);
     } finally {
       setIsLoading(false);
       setgroupCnt("");
@@ -72,34 +77,142 @@ const UpdtChm = props => {
       setLnAcCod("");
     }
   };
-  return <View>
-      <View style={styles.image}>
-        <ScrollView>
-          <View style={styles.loanTitleView}>
-            <Text style={styles.title}>Fill Group Details Below</Text>
+  const { height, width } = Dimensions.get('window');
+  return (
+    <KeyboardAvoidingView
+      style={{ flex: 1, backgroundColor: 'skyblue' }}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 40 : 0}
+    >
+      <ScrollView
+        contentContainerStyle={{
+          flexGrow: 1,
+          justifyContent: 'center',
+          alignItems: 'center',
+          paddingVertical: Math.max(20, height * 0.04),
+          minHeight: height
+        }}
+        keyboardShouldPersistTaps="handled"
+      >
+        <View style={{
+          backgroundColor: '#fff',
+          borderRadius: 20,
+          padding: width < 350 ? 14 : 28,
+          width: width > 500 ? 420 : '94%',
+          maxWidth: 500,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.10,
+          shadowRadius: 8,
+          elevation: 5,
+          alignItems: 'center',
+        }}>
+          <Text style={{
+            fontSize: width < 350 ? 18 : 24,
+            fontWeight: 'bold',
+            color: '#e29d58',
+            textAlign: 'center',
+            marginBottom: 24,
+            letterSpacing: 0.5,
+          }}>{t.fillGroupDetails}</Text>
+          <View style={{ width: '100%', marginBottom: 18 }}>
+            <Text style={{ fontSize: 15, color: '#1a237e', marginBottom: 6, marginLeft: 4 }}>{t.groupPhone}</Text>
+            <TextInput
+              placeholder="+2547xxxxxxxx"
+              value={groupCnt}
+              onChangeText={setgroupCnt}
+              style={{
+                backgroundColor: '#f0f4ff',
+                borderRadius: 10,
+                height: width < 350 ? 40 : 48,
+                paddingHorizontal: 16,
+                fontSize: 16,
+                color: '#222',
+                borderWidth: 1,
+                borderColor: '#e29d58',
+                marginBottom: 2
+              }}
+              editable={!isLoading}
+              keyboardType="phone-pad"
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
           </View>
-
-          <View style={styles.sendLoanView}>
-            <TextInput placeholder="+2547xxxxxxxx" value={groupCnt} onChangeText={setgroupCnt} style={styles.sendLoanInput} editable={true} />
-            <Text style={styles.sendLoanText}>Group Phone</Text>
+          <View style={{ width: '100%', marginBottom: 18 }}>
+            <Text style={{ fontSize: 15, color: '#1a237e', marginBottom: 6, marginLeft: 4 }}>{t.signitoryUserPW}</Text>
+            <TextInput
+              value={SMPW}
+              onChangeText={setSMPW}
+              secureTextEntry
+              style={{
+                backgroundColor: '#f0f4ff',
+                borderRadius: 10,
+                height: width < 350 ? 40 : 48,
+                paddingHorizontal: 16,
+                fontSize: 16,
+                color: '#222',
+                borderWidth: 1,
+                borderColor: '#e29d58',
+                marginBottom: 2
+              }}
+              editable={!isLoading}
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
           </View>
-
-          <View style={styles.sendLoanView}>
-            <TextInput value={SMPW} onChangeText={setSMPW} secureTextEntry={true} style={styles.sendLoanInput} editable={true} />
-            <Text style={styles.sendLoanText}>Signitory User PW</Text>
+          <View style={{ width: '100%', marginBottom: 18 }}>
+            <Text style={{ fontSize: 15, color: '#1a237e', marginBottom: 6, marginLeft: 4 }}>{t.newGroupPassword}</Text>
+            <TextInput
+              value={SigntryPW}
+              onChangeText={setSigntryPW}
+              secureTextEntry
+              style={{
+                backgroundColor: '#f0f4ff',
+                borderRadius: 10,
+                height: width < 350 ? 40 : 48,
+                paddingHorizontal: 16,
+                fontSize: 16,
+                color: '#222',
+                borderWidth: 1,
+                borderColor: '#e29d58',
+                marginBottom: 2
+              }}
+              editable={!isLoading}
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
           </View>
-
-          <View style={styles.sendLoanView}>
-            <TextInput value={SigntryPW} onChangeText={setSigntryPW} secureTextEntry={true} style={styles.sendLoanInput} editable={true} />
-            <Text style={styles.sendLoanText}>New Group PassWord</Text>
-          </View>
-
-          <TouchableOpacity onPress={fetchChmAuthorDtls} style={styles.sendLoanButton}>
-            <Text style={styles.sendLoanButtonText}>Click to Update Group Details</Text>
-            {isLoading && <ActivityIndicator color={'Blue'} size="large" />}
+          <TouchableOpacity
+            onPress={fetchChmAuthorDtls}
+            style={{
+              backgroundColor: isLoading ? '#b0bec5' : '#e29d58',
+              borderRadius: 30,
+              minHeight: 48,
+              justifyContent: 'center',
+              alignItems: 'center',
+              marginTop: 10,
+              paddingHorizontal: 16,
+              paddingVertical: 12,
+              marginBottom: 6,
+              shadowColor: '#e29d58',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.15,
+              shadowRadius: 4,
+              elevation: 2,
+              width: '100%'
+            }}
+            disabled={isLoading}
+            activeOpacity={0.85}
+          >
+            {isLoading ? (
+              <ActivityIndicator color="#fff" size="small" />
+            ) : (
+              <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 17, textAlign: 'center' }} numberOfLines={2} adjustsFontSizeToFit>{t.clickToUpdate}</Text>
+            )}
           </TouchableOpacity>
-        </ScrollView>
-      </View>
-    </View>;
+        </View>
+      </ScrollView>
+    </KeyboardAvoidingView>
+  );
 };
 export default UpdtChm;

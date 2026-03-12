@@ -95,12 +95,12 @@ const DeregMFKForm = props => {
                 <ScrollView>
            
                   <View style={styles.loanTitleView}>
-                    <Text style={styles.title}>Fill MFKubwa Details Below</Text>
+                    <Text style={styles.title}>Fill NSKubwa Details Below</Text>
                   </View>
         
                   <View style={styles.sendLoanView}>
                     <TextInput value={MFKID} onChangeText={setMFKID} style={styles.sendLoanInput} editable={true}></TextInput>
-                    <Text style={styles.sendLoanText}>MFKubwa Phone Number</Text>
+                    <Text style={styles.sendLoanText}>NSKubwa Phone Number</Text>
                   </View>
         
                   

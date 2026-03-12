@@ -8,7 +8,8 @@ import { getSMAccount } from '../../../../src/graphql/queries';
 import {fetchUserAttributes} from 'aws-amplify/auth';
 import { generateClient } from 'aws-amplify/api';
 import styles from './styles';
-
+import { useTranslation } from 'react-i18next';
+import translations from '../../../../screens/Chama/ReqLoan/Vw2SelectChm2Req/translation';
 
 export interface ChamaMmbrshpInfo {
     ChamaMmbrshpDtls: {
@@ -54,7 +55,7 @@ const ChmMbrShpInfo = (props:ChamaMmbrshpInfo) => {
    }} = props ;
 
    const navigation = useNavigation();
-
+   
  
    const VwFloatedLoans = () => {
       navigation.navigate("VwFloatedLoans", {groupContact, MembaId})
@@ -64,6 +65,9 @@ const ChmMbrShpInfo = (props:ChamaMmbrshpInfo) => {
        const [Uzer, setUzer] = useState<string>(null);
        const [userNationality, setUserNationality] = useState<string>(null);
        const userCode = nationalityToCode(userNationality);
+       const { i18n } = useTranslation();
+   const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+   const t = translations[lang] || translations.en;
        const {ratesMap} = useExchange();
          
       
@@ -79,8 +83,12 @@ const ChmMbrShpInfo = (props:ChamaMmbrshpInfo) => {
                              query: getSMAccount,
                              variables: { awsemail: user.email },
                          });
-                         setUserNationality(userData.data.getSMAccount.nationality);
-                         console.log('User Data:', userData);
+                         if (userData && userData.data && userData.data.getSMAccount) {
+                             setUserNationality(userData.data.getSMAccount.nationality);
+                             console.log('User Data:', userData);
+                         } else {
+                             console.error('GraphQL result missing data:', userData);
+                         }
                      } catch (error) {
                          console.error('Error fetching user data:', error);
                      }
@@ -90,19 +98,13 @@ const ChmMbrShpInfo = (props:ChamaMmbrshpInfo) => {
 
     return (
       <View style = {styles.pageContainer}>              
-            
       <Pressable style = {styles.card}
       onPress={VwFloatedLoans}>
-
-         <Text style={styles.prodInfo}><Text style={styles.label}>Group Name:</Text> {groupName}</Text>           
-           <Text style={styles.prodInfo}><Text style={styles.label}>Group Contact:</Text> {groupContact}</Text>           
-           <Text style={styles.prodInfo}><Text style={styles.label}>Membership number:</Text> {MembaId}</Text>
-            
-              </Pressable>
-
-              
+         <Text style={styles.prodInfo}><Text style={styles.label}>{t.groupName}</Text> {groupName}</Text>           
+         <Text style={styles.prodInfo}><Text style={styles.label}>{t.groupContact}</Text> {groupContact}</Text>           
+         <Text style={styles.prodInfo}><Text style={styles.label}>{t.membershipNumber}</Text> {MembaId}</Text>
+      </Pressable>
   </View>
-        
     );
 }; 
 

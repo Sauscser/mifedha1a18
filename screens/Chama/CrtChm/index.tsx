@@ -15,6 +15,10 @@ import { useExchange } from '../../../src/contexts/ExchangeContext';
 import { convertForeignToKsh, formatAmountSync } from '../../../src/utils/exchange';
 import { nationalityToCode } from '../../../src/utils/nationalityToCode';
 
+
+import translations from './translation';
+import { useTranslation } from 'react-i18next';
+
 export type UserReg = {
   usr: string;
 };
@@ -23,16 +27,13 @@ const MAX_IMAGE_SIZE_MB = 5;
 const client = generateClient();
 
 const CreateChama = (props: UserReg) => {
-  const {
-    usr
-  } = props;
+  const { usr } = props;
   const navigation = useNavigation();
   const route = useRoute<any>();
-  const {
-    id,
-    bankAdminEmail,
-    ChamaAcNu
-  } = route.params;
+  const { id, bankAdminEmail, ChamaAcNu } = route.params;
+  const { i18n } = useTranslation();
+  const lang = i18n.language || 'en';
+  const t = translations[lang] || translations.en;
   const [ChmPhn, setChmPhn] = useState('');
   const [awsEmail, setAWSEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -177,21 +178,22 @@ const CreateChama = (props: UserReg) => {
     // Confirmation prompt
     const confirmed = await new Promise<boolean>((resolve) => {
       Alert.alert(
-        'Confirm Chama Creation',
-        `Subscription Amount: ${formatAmountSync(subAmtInKES, userCurrencyKey, ratesMap)}\nLate Penalty: ${formatAmountSync(lateSubInKES, userCurrencyKey, ratesMap)}\nLoan Threshold: ${formatAmountSync(loanThresholdInKES, userCurrencyKey, ratesMap)}\n\nProceed?`,
+        t.confirmGroupCreation,
+        `${t.subscriptionAmount}: ${formatAmountSync(subAmtInKES, userCurrencyKey, ratesMap)}\n${t.latePenalty}: ${formatAmountSync(lateSubInKES, userCurrencyKey, ratesMap)}\n${t.loanThreshold}: ${formatAmountSync(loanThresholdInKES, userCurrencyKey, ratesMap)}\n\n${t.proceed}`,
         [
-          { text: 'Cancel', style: 'cancel', onPress: () => resolve(false) },
-          { text: 'Confirm', onPress: () => resolve(true) }
+          { text: t.cancel, style: 'cancel', onPress: () => resolve(false) },
+          { text: t.confirm, onPress: () => resolve(true) }
         ]
       );
     });
     
+
     if (!confirmed) return;
 
     setIsLoading(true);
     try {
       if (!MmbaID || !ChmNm || !Sign2Phn || !Sign3Phn || !loanApprovalThreshHold || !pword || !SubFreq || !SubAmt || !lateSub || !ventures || !ChmDesc) {
-        Alert.alert('Missing required parameters. Cannot proceed.');
+        Alert.alert(t.missingRequired);
         setIsLoading(false);
         return;
       }
@@ -220,7 +222,7 @@ const CreateChama = (props: UserReg) => {
       const namess = userRes.data.getSMAccount.name;
       const owner = userRes.data.getSMAccount.owner;
       if (attributes.sub !== owner) {
-        Alert.alert('Please first create main account');
+        Alert.alert(t.pleaseCreateMainAccount);
         setIsLoading(false);
         return;
       }
@@ -243,12 +245,12 @@ const CreateChama = (props: UserReg) => {
       const curMnths = (today.getMonth() + 1) * 30.4375;
       const daysUpToDate = curYrs + curMnths + today.getDate();
       if (pword.length < 8) {
-        Alert.alert('Password is too short; at least eight characters');
+        Alert.alert(t.passwordTooShort);
         setIsLoading(false);
         return;
       }
       if (parseFloat(lateSub) > parseFloat(SubAmt)) {
-        Alert.alert('Too high late subscription penalty');
+        Alert.alert(t.tooHighLatePenalty);
         setIsLoading(false);
         return;
       }
@@ -395,7 +397,7 @@ const CreateChama = (props: UserReg) => {
           }
         }
       });
-      Alert.alert(`Congrats ${namess}, You have created ${ChmNm} Chama`);
+      Alert.alert(t.success, t.congratsCreated.replace('{name}', namess).replace('{group}', ChmNm));
       // Reset form
       setChmPhn('');
       setPW('');
@@ -416,7 +418,7 @@ const CreateChama = (props: UserReg) => {
       clearSignature('sec');
     } catch (error) {
       console.log(error);
-      Alert.alert('An error occurred. Retry or contact customer care.');
+      Alert.alert(t.errorOccurred);
     } finally {
       setIsLoading(false);
     }
@@ -432,127 +434,75 @@ const CreateChama = (props: UserReg) => {
         <Text style={[styles.title, {
           textAlign: 'center',
           marginBottom: 16
-        }]}>
-          Fill Chama Details Below
+        }]}> 
+          {t.fillGroupDetails}
         </Text>
 
-        {[{
-          placeholder: 'Signitory Chama Number',
-          value: MmbaID,
-          setter: setMmbaID
-        }, {
-          placeholder: 'Chama Registration Number (Optional)',
-          value: ChmRegNo,
-          setter: setChmRegNo
-        }, {
-          placeholder: 'Enter Chama Name',
-          value: ChmNm,
-          setter: setChmNm
-        }, {
-          placeholder: 'Enter Chama Email (Optional)',
-          value: awsEmail,
-          setter: setAWSEmail
-        }, {
-          placeholder: 'Enter Signatory 2 Email',
-          value: Sign2Phn,
-          setter: setSign2Phn
-        }, {
-          placeholder: 'Enter Signatory 3 Email',
-          value: Sign3Phn,
-          setter: setSign3Phn
-        }, {
-          placeholder: 'Chama Region (Optional)',
-          value: oprtnAreas,
-          setter: setoprtnAreas
-        }, {
-          placeholder: 'Enter Chama Venture',
-          value: ventures,
-          setter: setventures
-        }, {
-          placeholder: 'Enter Chama Description',
-          value: ChmDesc,
-          setter: setChmDesc,
-          multiline: true
-        }, {
-          placeholder: 'Enter Loan Approval Threshold %',
-          value: loanApprovalThreshHold,
-          setter: handleMoneyInput(setloanApprovalThreshHold),
-          onBlur: () => formatMoneyOnBlur(loanApprovalThreshHold, setloanApprovalThreshHold),
-          keyboardType: 'decimal-pad'
-        }, {
-          placeholder: 'Signatory Subscription Amount',
-          value: SubAmt,
-          setter: handleMoneyInput(setSubAmt),
-          onBlur: () => formatMoneyOnBlur(SubAmt, setSubAmt),
-          keyboardType: 'decimal-pad'
-        }, {
-          placeholder: 'Signatory Subscription Frequency (Days)',
-          value: SubFreq,
-          setter: setSubFreq,
-          keyboardType: 'numeric'
-        }, {
-          placeholder: 'Signatory Late Subscription Penalty',
-          value: lateSub,
-          setter: handleMoneyInput(setlateSub),
-          onBlur: () => formatMoneyOnBlur(lateSub, setlateSub),
-          keyboardType: 'decimal-pad'
-        }, {
-          placeholder: 'Enter Chama PassWord',
-          value: pword,
-          setter: setPW,
-          secureTextEntry: true
-        }].map((item, index) => {
-          if (item.secureTextEntry) {
-            return <View key={index} style={[styles.sendLoanView, {
-              position: 'relative'
-            }]}>
-                <TextInput placeholder={item.placeholder} value={item.value} onChangeText={item.setter} style={styles.sendLoanInput} secureTextEntry={!showPassword} editable />
-                <TouchableOpacity style={{
-                position: 'absolute',
-                right: 12,
-                top: 12
-              }} onPress={() => setShowPassword(!showPassword)}>
-                  <Text style={{
-                  color: '#e58d29',
-                  fontWeight: 'bold'
-                }}>
-                    {showPassword ? 'Hide' : 'Show'}
-                  </Text>
-                </TouchableOpacity>
-              </View>;
-          }
-          return <View key={index} style={styles.sendLoanView}>
-              <TextInput 
-                placeholder={item.placeholder} 
-                value={item.value} 
-                onChangeText={item.setter} 
-                onBlur={item.onBlur} 
-                style={item.multiline ? styles.sendAmtInputDesc : styles.sendLoanInput} 
-                multiline={item.multiline || false} 
-                editable 
-                keyboardType={item.keyboardType || 'default'} 
-              />
-            </View>;
-        })}
+        {(() => {
+          const inputConfigs = [
+            { placeholder: t.signitoryGroupNumber, value: MmbaID, setter: setMmbaID },
+            { placeholder: t.groupRegistrationNumber, value: ChmRegNo, setter: setChmRegNo },
+            { placeholder: t.enterGroupName, value: ChmNm, setter: setChmNm },
+            { placeholder: t.enterGroupEmail, value: awsEmail, setter: setAWSEmail },
+            { placeholder: t.enterSignatory2Email, value: Sign2Phn, setter: setSign2Phn },
+            { placeholder: t.enterSignatory3Email, value: Sign3Phn, setter: setSign3Phn },
+            { placeholder: t.groupRegion, value: oprtnAreas, setter: setoprtnAreas },
+            { placeholder: t.enterGroupVenture, value: ventures, setter: setventures },
+            { placeholder: t.enterGroupDescription, value: ChmDesc, setter: setChmDesc, multiline: true },
+            { placeholder: t.enterLoanApprovalThreshold, value: loanApprovalThreshHold, setter: handleMoneyInput(setloanApprovalThreshHold), onBlur: () => formatMoneyOnBlur(loanApprovalThreshHold, setloanApprovalThreshHold), keyboardType: 'decimal-pad' },
+            { placeholder: t.signatorySubscriptionAmount, value: SubAmt, setter: handleMoneyInput(setSubAmt), onBlur: () => formatMoneyOnBlur(SubAmt, setSubAmt), keyboardType: 'decimal-pad' },
+            { placeholder: t.signatorySubscriptionFrequency, value: SubFreq, setter: setSubFreq, keyboardType: 'numeric' },
+            { placeholder: t.signatoryLateSubscriptionPenalty, value: lateSub, setter: handleMoneyInput(setlateSub), onBlur: () => formatMoneyOnBlur(lateSub, setlateSub), keyboardType: 'decimal-pad' },
+            { placeholder: t.enterGroupPassword, value: pword, setter: setPW, secureTextEntry: true }
+          ];
+          return inputConfigs.map((item, index) => {
+            if (item.secureTextEntry) {
+              return (
+                <View key={index} style={[styles.sendLoanView, { position: 'relative' }]}> 
+                  <TextInput placeholder={item.placeholder} value={item.value} onChangeText={item.setter} style={styles.sendLoanInput} secureTextEntry={!showPassword} editable />
+                  <TouchableOpacity style={{ position: 'absolute', right: 12, top: 12 }} onPress={() => setShowPassword(!showPassword)}>
+                    <Text style={{ color: '#e58d29', fontWeight: 'bold' }}>
+                      {showPassword ? 'Hide' : t.show}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              );
+            }
+            return (
+              <View key={index} style={styles.sendLoanView}>
+                <TextInput 
+                  placeholder={item.placeholder} 
+                  value={item.value} 
+                  onChangeText={item.setter} 
+                  onBlur={item.onBlur} 
+                  style={item.multiline ? styles.sendAmtInputDesc : styles.sendLoanInput} 
+                  multiline={item.multiline || false} 
+                  editable 
+                  keyboardType={item.keyboardType || 'default'} 
+                />
+              </View>
+            );
+          });
+        })()}
 
         {/* Chair Signature Upload */}
         <View style={styles.sendLoanView}>
           <TouchableOpacity onPress={() => pickSignature('chair')} style={styles.sendLoanButton}>
             <Text style={styles.sendLoanButtonText}>
-              {chairSignUri ? 'Change Chair Signature' : 'Upload Chair Signature'}
+              {chairSignUri ? t.changeChairSignature : t.uploadChairSignature}
             </Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={() => takeSignature('chair')} style={[styles.sendLoanButton, {
             marginTop: 10
           }]}>
-            <Text style={styles.sendLoanButtonText}>Take Chair Signature Photo</Text>
+            <Text style={styles.sendLoanButtonText}>{t.takeChairSignaturePhoto}</Text>
           </TouchableOpacity>
           {chairSignUri && <View style={styles.previewContainer}>
               <Image source={{
               uri: chairSignUri
             }} style={styles.previewImage} />
               <TouchableOpacity onPress={() => clearSignature('chair')} style={styles.removeButton}>
-                <Text style={styles.removeButtonText}>Remove Chair Signature</Text>
+                <Text style={styles.removeButtonText}>{t.removeChairSignature}</Text>
               </TouchableOpacity>
             </View>}
         </View>
@@ -561,27 +511,27 @@ const CreateChama = (props: UserReg) => {
         <View style={styles.sendLoanView}>
           <TouchableOpacity onPress={() => pickSignature('sec')} style={styles.sendLoanButton}>
             <Text style={styles.sendLoanButtonText}>
-              {secSignUri ? 'Change Secretary Signature' : 'Upload Secretary Signature'}
+              {secSignUri ? t.changeSecretarySignature : t.uploadSecretarySignature}
             </Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={() => takeSignature('sec')} style={[styles.sendLoanButton, {
             marginTop: 10
           }]}>
-            <Text style={styles.sendLoanButtonText}>Take Secretary Signature Photo</Text>
+            <Text style={styles.sendLoanButtonText}>{t.takeSecretarySignaturePhoto}</Text>
           </TouchableOpacity>
           {secSignUri && <View style={styles.previewContainer}>
               <Image source={{
               uri: secSignUri
             }} style={styles.previewImage} />
               <TouchableOpacity onPress={() => clearSignature('sec')} style={styles.removeButton}>
-                <Text style={styles.removeButtonText}>Remove Secretary Signature</Text>
+                <Text style={styles.removeButtonText}>{t.removeSecretarySignature}</Text>
               </TouchableOpacity>
             </View>}
         </View>
 
         {/* Submit Button */}
         <TouchableOpacity onPress={handleCreateChama} style={styles.sendLoanButton}>
-          <Text style={styles.sendLoanButtonText}>Click to Create Chama</Text>
+          <Text style={styles.sendLoanButtonText}>{t.clickToCreateGroup}</Text>
           {isLoading && <ActivityIndicator size="large" color="blue" style={{
             marginTop: 8
           }} />}

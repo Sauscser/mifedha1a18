@@ -5,8 +5,13 @@ import styles from './styles';
 import { getSMAccount, listSMAccounts } from '../../../src/graphql/queries';
 import { getCurrentUser, fetchUserAttributes } from "aws-amplify/auth";
 import { generateClient } from "aws-amplify/api";
+import { useTranslation } from 'react-i18next';
+import translations from './translation';
 const client = generateClient();
 const FetchSMNonCovLns = props => {
+    const { i18n } = useTranslation();
+    const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+    const t = translations[lang] || translations.en;
   const [LneePhn, setLneePhn] = useState(null);
   const [loading, setLoading] = useState(false);
   const [Loanees, setLoanees] = useState([]);
@@ -50,7 +55,7 @@ const FetchSMNonCovLns = props => {
         }
       };
       if (userInfo.userId !== owner) {
-        Alert.alert("Please first create a main account");
+        Alert.alert(t.createMainAccount);
         return;
       } else {
         await fetchLoanees();
@@ -58,7 +63,7 @@ const FetchSMNonCovLns = props => {
     } catch (e) {
       console.log(e);
       if (e) {
-        Alert.alert("Please first create a main account on home page");
+        Alert.alert(t.createMainAccountHome);
       }
       return;
     } finally {
@@ -69,18 +74,20 @@ const FetchSMNonCovLns = props => {
     fetchUsrDtls();
   }, []);
   return <View style={styles.root}>
-      <FlatList style={{
-      width: "100%"
-    }} data={Loanees} renderItem={({
-      item
-    }) => <LnerStts SMAc={item} />} keyExtractor={(item, index) => index.toString()} onRefresh={fetchUsrDtls} refreshing={loading} showsVerticalScrollIndicator={false} ListHeaderComponentStyle={{
-      alignItems: 'center'
-    }} ListHeaderComponent={() => <>
-            
-            <Text style={styles.label}> My Account</Text>
-            <Text style={styles.label2}> 
-              (Please swipe down to load)</Text>
-          </>} />
+      <FlatList
+        style={{ width: "100%" }}
+        data={Loanees}
+        renderItem={({ item }) => <LnerStts SMAc={item} />}
+        keyExtractor={(item, index) => index.toString()}
+        onRefresh={fetchUsrDtls}
+        refreshing={loading}
+        showsVerticalScrollIndicator={false}
+        ListHeaderComponentStyle={{ alignItems: 'center' }}
+        ListHeaderComponent={() => <>
+          <Text style={styles.label}>{t.myAccount}</Text>
+          <Text style={styles.label2}>{t.swipeDownToLoad}</Text>
+        </>}
+      />
     </View>;
 };
 export default FetchSMNonCovLns;

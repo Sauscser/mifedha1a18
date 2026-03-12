@@ -2,16 +2,21 @@ import React, { useState, useRef, useEffect } from 'react';
 import { View, Text, ImageBackground, Pressable, FlatList, Alert } from 'react-native';
 import LnerStts from "../../../../components/MyAc/LoanReq/VwChama2Req";
 import styles from './styles';
-import { getCompany, getSMAccount, listChamaMembers, listGroups, vwMyChamas } from '../../../../src/graphql/queries';
+import { getCompany, getSMAccount, listChamaMembers, listGroups, } from '../../../../src/graphql/queries';
 import { updateCompany, updateSMAccount } from '../../../../src/graphql/mutations';
 import { useNavigation } from '@react-navigation/native';
 import { generateClient } from 'aws-amplify/api';
 import { getCurrentUser, fetchUserAttributes } from 'aws-amplify/auth';
+import { useTranslation } from 'react-i18next';
+import translations from './translation';
 const client = generateClient();
 const FetchSMCovLns = props => {
   const [loading, setLoading] = useState(false);
   const [Loanees, setLoanees] = useState([]);
   const navigation = useNavigation();
+  const { i18n } = useTranslation();
+  const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+  const t = translations[lang] || translations.en;
   const fetchUsrDtls = async () => {
     const user = await getCurrentUser();
     const attributes = await fetchUserAttributes();
@@ -41,11 +46,11 @@ const FetchSMCovLns = props => {
           });
           setLoanees(Lonees.data.listChamaMembers.items);
           if (Lonees.data.listChamaMembers.items.length < 1) {
-            Alert.alert("You dont belong to any group");
+            Alert.alert(t.notInGroup);
           }
         } catch (e) {
           if (e) {
-            Alert.alert("Retry or update app or call customer care");
+            Alert.alert(t.retryOrUpdate);
             return;
           }
         } finally {
@@ -53,7 +58,7 @@ const FetchSMCovLns = props => {
         }
       };
       if (user.userId !== owner) {
-        Alert.alert("Please first create main account");
+        Alert.alert(t.pleaseCreateMainAccount);
       } else {
         await fetchLoanees();
       }
@@ -74,7 +79,7 @@ const FetchSMCovLns = props => {
     }) => <LnerStts ChamaMmbrshpDtls={item} />} keyExtractor={(item, index) => index.toString()} onRefresh={fetchUsrDtls} refreshing={loading} showsVerticalScrollIndicator={false} ListHeaderComponentStyle={{
       alignItems: 'center'
     }} ListHeaderComponent={() => <>
-            <Text style={styles.label}> Select group to Request loan</Text>
+            <Text style={styles.label}>{t.selectGroup}</Text>
           </>} />
     </View>;
 };

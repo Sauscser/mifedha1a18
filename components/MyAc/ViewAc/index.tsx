@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useExchange } from '../../../src/contexts/ExchangeContext';
 import { formatAmountSync } from '../../../src/utils/exchange';
+import { useTranslation } from 'react-i18next';
+import translations from './translation';
 
 // Static mapping from CreateAllExRates (should be kept in sync)
 const countryNamesByCode: Record<string, string> = {
@@ -69,6 +71,9 @@ export interface SMAccount {
 }
 
 const SMCvLnStts = (props: SMAccount) => {
+    const { i18n } = useTranslation();
+    const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+    const t = translations[lang] || translations.en;
   const {
     SMAc: { name, balance, ttlDpstSM, TtlWthdrwnSM, benefitsAmount, MaxTymsBL, photoPassport, idFront, idBack },
   } = props;
@@ -122,26 +127,26 @@ const SMCvLnStts = (props: SMAccount) => {
 
       {/* Account Info Card */}
       <View style={styles.card}>
-        <Text style={styles.sectionTitle}>Account Overview</Text>
+        <Text style={styles.sectionTitle}>{t.accountOverview}</Text>
         <Text style={styles.infoRow}>
-          <Text style={styles.label}>Balance: </Text>{formatAmountSync(balance, nationalityCode, ratesMapSafe)}
+          <Text style={styles.label}>{t.balance} </Text>{formatAmountSync(balance, nationalityCode, ratesMapSafe)}
         </Text>
         <Text style={styles.infoRow}>
-          <Text style={styles.label}>Times Blacklisted: </Text>{MaxTymsBL}
+          <Text style={styles.label}>{t.timesBlacklisted} </Text>{MaxTymsBL}
         </Text>
         <Text style={styles.infoRow}>
-          <Text style={styles.label}>Secured Benefits Pooled: </Text>{formatAmountSync(benefitsAmount, nationalityCode, ratesMapSafe)}
+          <Text style={styles.label}>{t.securedBenefitsPooled} </Text>{formatAmountSync(benefitsAmount, nationalityCode, ratesMapSafe)}
         </Text>
       </View>
 
       {/* Cash Flow Card */}
       <View style={styles.card}>
-        <Text style={styles.sectionTitle}>Cash Flow</Text>
+        <Text style={styles.sectionTitle}>{t.cashFlow}</Text>
         <Text style={styles.infoRow}>
-          <Text style={styles.label}>Total Deposits: </Text>{formatAmountSync(ttlDpstSM, nationalityCode, ratesMapSafe)}
+          <Text style={styles.label}>{t.totalDeposits} </Text>{formatAmountSync(ttlDpstSM, nationalityCode, ratesMapSafe)}
         </Text>
         <Text style={styles.infoRow}>
-          <Text style={styles.label}>Total Withdrawn: </Text>{formatAmountSync(TtlWthdrwnSM, nationalityCode, ratesMapSafe)}
+          <Text style={styles.label}>{t.totalWithdrawn} </Text>{formatAmountSync(TtlWthdrwnSM, nationalityCode, ratesMapSafe)}
         </Text>
       </View>
     </ScrollView>

@@ -1,15 +1,15 @@
-import { useNavigation } from '@react-navigation/native';
-import {View, Text, ScrollView} from 'react-native';
-import styles from './styles';
 
-import React, {useEffect, useState} from 'react';
+import { View, Text } from 'react-native';
+import styles from './styles';
+import React, { useEffect, useState } from 'react';
 import { formatAmountSync } from '../../../../../src/utils/exchange';
 import { nationalityToCode } from '../../../../../src/utils/nationalityToCode';
-import {useExchange} from '../../../../../src/contexts/ExchangeContext';
-import {fetchUserAttributes} from 'aws-amplify/auth';
+import { useExchange } from '../../../../../src/contexts/ExchangeContext';
+import { fetchUserAttributes } from 'aws-amplify/auth';
 import { getSMAccount } from '../../../../../src/graphql/queries';
-
 import { generateClient } from 'aws-amplify/api';
+import { translations } from './translation';
+import { useTranslation } from 'react-i18next';
 
 
 export interface MmbrContriInfo {
@@ -43,13 +43,17 @@ const MmbrContriInfo = (props:MmbrContriInfo) => {
       
   }} = props ;
 
-  const navigation = useNavigation();
 
   const client = generateClient();
   const [Uzer, setUzer] = useState<string>(null);
   const [userNationality, setUserNationality] = useState<string>(null);
   const userCode = nationalityToCode(userNationality);
-  const {ratesMap} = useExchange();
+  const { ratesMap } = useExchange();
+
+  // --- TRANSLATION PATTERN ---
+  const { i18n } = useTranslation();
+  const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+  const t = translations[lang] || translations.en;
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -61,28 +65,25 @@ const MmbrContriInfo = (props:MmbrContriInfo) => {
           variables: { awsemail: user.email },
         });
         setUserNationality(userData.data.getSMAccount.nationality);
-        console.log('User Data:', userData);
       } catch (error) {
-        console.error('Error fetching user data:', error);
+        // handle error if needed
       }
     };
     fetchUserData();
   }, [Uzer]);
 
   return (
-      <View style = {styles.pageContainer}>              
+    <View style={styles.pageContainer}>
       <View style={styles.card}>
-       <Text style={styles.prodInfo}><Text style={styles.label}>Transaction ID: </Text> {id}</Text>
-       <Text style={styles.prodInfo}><Text style={styles.label}> Member Chama ID: </Text> {memberId}</Text>
-       <Text style={styles.prodInfo}><Text style={styles.label}> Chama Name:</Text> {SenderName}</Text>
-       <Text style={styles.prodInfo}><Text style={styles.label}> Amount: </Text> {formatAmountSync(Math.floor(amountSent), userCode, ratesMap)}</Text>
-       <Text style={styles.prodInfo}><Text style={styles.label}> Time Sent :</Text> {createdAt}</Text>
-       <Text style={styles.prodDesc}>{description}</Text>
-     </View>
-     </View>
-               
-       
-   );
+        <Text style={styles.prodInfo}><Text style={styles.label}>{t.transactionId} </Text>{id}</Text>
+        <Text style={styles.prodInfo}><Text style={styles.label}>{t.memberChamaId} </Text>{memberId}</Text>
+        <Text style={styles.prodInfo}><Text style={styles.label}>{t.chamaName} </Text>{SenderName}</Text>
+        <Text style={styles.prodInfo}><Text style={styles.label}>{t.amount} </Text>{formatAmountSync(Math.floor(amountSent), userCode, ratesMap)}</Text>
+        <Text style={styles.prodInfo}><Text style={styles.label}>{t.timeSent} </Text>{createdAt}</Text>
+        <Text style={styles.prodDesc}>{description}</Text>
+      </View>
+    </View>
+  );
 }; 
 
 export default MmbrContriInfo;

@@ -108,9 +108,11 @@ const ChmMbrShpInfo = (props:ChamaMmbrshpInfo) => {
   
    const curYrs = parseFloat(years)*365;
    const curMnths = (months2)*30.4375;
-   const daysUpToDate = curYrs + curMnths + parseFloat(days)          
-   const tmDif = daysUpToDate - timeCrtd;
-   const subFreq = tmDif/subscriptionFrequency
+   const daysUpToDate = curYrs + curMnths + parseFloat(days)  
+   const daysCrtd = Math.floor(timeCrtd / (1000 * 60 * 60 * 24));
+   const tmDif = daysUpToDate - daysCrtd;
+   const subFreq = tmDif/subscriptionFrequency        
+ 
    const Amt2HvBnSub = subFreq*subscriptionAmt
    const subPnlties = totalSubAmt - subscribedAmt
    const ttlArrears = (ttlLateSubs + Amt2HvBnSub).toFixed(0)

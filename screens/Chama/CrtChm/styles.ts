@@ -71,8 +71,7 @@ const styles = StyleSheet.create({
   },
   sendLoanButton: {
     backgroundColor: '#fff',
-    height: 45,
-    borderRadius: 30,
+      height: 60, // Increased height
     marginHorizontal: 10,
     width: Dimensions.get('screen').width - 20,
     justifyContent: 'center',
@@ -82,13 +81,13 @@ const styles = StyleSheet.create({
   },
   sendLoanButtonText: {
     fontSize: 15,
-    fontWeight: 'bold',
+      minHeight: 100, // Increased minHeight for multiline
     color: 'black'
   },
   sendLoanInput: {
     backgroundColor: 'white',
     width: 300,
-    height: 45,
+    height: 100,
     borderRadius: 10,
     marginTop: 15,
     justifyContent: 'center',

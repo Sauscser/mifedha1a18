@@ -11,6 +11,8 @@ import {useExchange} from '../../../../src/contexts/ExchangeContext';
 import {fetchUserAttributes} from 'aws-amplify/auth';
 import { generateClient } from 'aws-amplify/api';  
 import { getSMAccount } from '../../../../src/graphql/queries';
+import translations from './translation';
+import { useTranslation } from 'react-i18next';
 
 
 export interface SMAccount {
@@ -85,14 +87,22 @@ const SMCvLnStts = (props: SMAccount) => {
     setIsLoading(false);
   };
 
+  const { i18n } = useTranslation();
+  const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+  const t = translations[lang] || translations.en;
+
+  // Interpolate variables into the translation string
+  const loanerDetails = t.loanerDetails
+    .replace('{name}', loaneeName)
+    .replace('{amount}', formatAmountSync(Math.floor(amount), userCode, ratesMap))
+    .replace('{interest}', repaymentAmt)
+    .replace('{days}', repaymentPeriod)
+    .replace('{phone}', loaneePhone)
+    .replace('{status}', status);
+
   return (
     <Pressable onPress={SndChmMmbrMny} style={styles.pageContainer}>
-      <Text style={styles.prodInfo}>
-        {/*loaner details */}
-        Hi! it's {loaneeName}. Kindly Loan me {formatAmountSync(Math.floor(amount), userCode, ratesMap)}. I
-        commit to repay at a compound interest of {repaymentAmt}% per year within {repaymentPeriod} days.
-        You can reach me through {loaneePhone}. {status}
-      </Text>
+      <Text style={styles.prodInfo}>{loanerDetails}</Text>
     </Pressable>
   );
 };

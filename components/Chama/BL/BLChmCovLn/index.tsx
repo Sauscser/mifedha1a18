@@ -2,6 +2,8 @@ import { useNavigation } from '@react-navigation/native';
 import { Alert, Text, TouchableOpacity, Pressable } from 'react-native';
 
 import React, {useEffect, useState} from 'react';
+import { useTranslation } from 'react-i18next';
+import translations from './translation';
 import styles from './styles';
 import { formatAmountSync } from '../../../../src/utils/exchange';
 import { nationalityToCode } from '../../../../src/utils/nationalityToCode';
@@ -27,6 +29,9 @@ export interface ChamaMmbrshpInfo {
     }}
 
 const ChmMbrShpInfo = (props:ChamaMmbrshpInfo) => {
+   const { i18n } = useTranslation();
+   const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+   const t = translations[lang] || translations.en;
    const {
       ChamaMmbrshpDtls: {
          loanID,
@@ -96,20 +101,16 @@ const ChmMbrShpInfo = (props:ChamaMmbrshpInfo) => {
               ((Math.pow(1 + interest/36500, dayselapsed) ))
     )
    
-    return (
-       <Pressable 
-       onPress={SndChmMmbrMny}
-       style = {styles.pageContainer}>          
-          
-        <Text style={styles.prodInfo}><Text style={styles.label}>Loan ID: </Text> {loanID}</Text>
-        <Text style={styles.prodInfo}><Text style={styles.label}>member Name: </Text> {loaneeName}</Text>
-        <Text style={styles.prodInfo}><Text style={styles.label}>Time loan was taken: </Text> {createdAt}</Text>
-        <Text style={styles.prodInfo}><Text style={styles.label}>loan Balance with penalties: </Text> {formatAmountSync((lonBalance), userCode, ratesMap)}</Text>
-      
-
-               
-        </Pressable>
-    );
+   return (
+      <Pressable 
+      onPress={SndChmMmbrMny}
+      style = {styles.pageContainer}>          
+        <Text style={styles.prodInfo}><Text style={styles.label}>{t.loanId}: </Text> {loanID}</Text>
+        <Text style={styles.prodInfo}><Text style={styles.label}>{t.memberName}: </Text> {loaneeName}</Text>
+        <Text style={styles.prodInfo}><Text style={styles.label}>{t.timeLoanTaken}: </Text> {createdAt}</Text>
+        <Text style={styles.prodInfo}><Text style={styles.label}>{t.loanBalanceWithPenalties}: </Text> {formatAmountSync((lonBalance), userCode, ratesMap)}</Text>
+      </Pressable>
+   );
 }; 
 
 export default ChmMbrShpInfo

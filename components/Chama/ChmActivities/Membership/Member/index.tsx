@@ -1,15 +1,17 @@
 import { useNavigation } from '@react-navigation/core';
-import {View, Text,  ScrollView, Pressable} from 'react-native';
+import {View, Text,  ScrollView, Pressable, Alert} from 'react-native';
 
 import styles from './styles';
 
 import React, {useEffect, useState} from 'react';
 import { formatAmountSync } from '../../../../../src/utils/exchange';
 import { nationalityToCode } from '../../../../../src/utils/nationalityToCode';
-import {useExchange} from '../../../../../src/contexts/ExchangeContext';
-import {fetchUserAttributes} from 'aws-amplify/auth';
-import { generateClient } from 'aws-amplify/api';  
+import { useExchange } from '../../../../../src/contexts/ExchangeContext';
+import { fetchUserAttributes } from 'aws-amplify/auth';
+import { generateClient } from 'aws-amplify/api';
 import { getSMAccount } from '../../../../../src/graphql/queries';
+import { useTranslation } from 'react-i18next';
+import { translations } from './translation';
 
 
 export interface ChamaMmbrshpInfo {
@@ -68,11 +70,15 @@ const ChmMbrShpInfo = (props:ChamaMmbrshpInfo) => {
          
    }} = props ;
 
-   const client = generateClient();
-   const [Uzer, setUzer] = useState<string>(null);
-   const [userNationality, setUserNationality] = useState<string>(null);
-   const userCode = nationalityToCode(userNationality);
-   const {ratesMap} = useExchange();
+  const client = generateClient();
+  const [Uzer, setUzer] = useState<string>(null);
+  const [userNationality, setUserNationality] = useState<string>(null);
+  const userCode = nationalityToCode(userNationality);
+  const { ratesMap } = useExchange();
+  // Translation pattern
+  const { i18n } = useTranslation();
+  const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+  const t = translations[lang] || translations.en;
 
    useEffect(() => {
      const fetchUserData = async () => {
@@ -86,7 +92,7 @@ const ChmMbrShpInfo = (props:ChamaMmbrshpInfo) => {
          setUserNationality(userData.data.getSMAccount.nationality);
          console.log('User Data:', userData);
        } catch (error) {
-         console.error('Error fetching user data:', error);
+         Alert.alert(t.errorFetchingUser);
        }
      };
      fetchUserData();
@@ -107,9 +113,11 @@ const ChmMbrShpInfo = (props:ChamaMmbrshpInfo) => {
              
               const curYrs = parseFloat(years)*365;
               const curMnths = (months2)*30.4375;
-              const daysUpToDate = curYrs + curMnths + parseFloat(days)          
-              const tmDif = daysUpToDate - timeCrtd;
-              const subFreq = tmDif/subscriptionFrequency
+              const daysUpToDate = curYrs + curMnths + parseFloat(days)  
+              const daysCrtd = Math.floor(timeCrtd / (1000 * 60 * 60 * 24));
+              const tmDif = daysUpToDate - daysCrtd;
+              const subFreq = tmDif/subscriptionFrequency        
+            
               const Amt2HvBnSub = subFreq*subscriptionAmt
               const subPnlties = totalSubAmt - subscribedAmt
               const ttlArrears = (ttlLateSubs + Amt2HvBnSub).toFixed(0)
@@ -124,7 +132,7 @@ const ChmMbrShpInfo = (props:ChamaMmbrshpInfo) => {
    }
 
    const ViewSubs = () => {
-      navigation.navigate ("ChmMmbrContriss", {ChamaNMember})
+      navigation.navigate ("VwMbrSubsDirectly", {ChamaNMember})
    }
    
     return (
@@ -133,9 +141,9 @@ const ChmMbrShpInfo = (props:ChamaMmbrshpInfo) => {
       <Pressable onPress={ViewMmberDtls} style = {styles.card}>
       <Text style={styles.prodName}>{groupName}</Text>
 
-<Text style={styles.prodInfo}><Text style={styles.label}>Member Chama Number:</Text> {MembaId}</Text>
-<Text style={styles.prodInfo}><Text style={styles.label}>Subscription done up to date:</Text> {formatAmountSync(Math.floor(subscribedAmt), userCode, ratesMap)}</Text>
-<Text style={styles.prodInfo}><Text style={styles.label}>Subscription due with Penalties:</Text> {formatAmountSync(Math.floor(parseFloat(ttlArrears)), userCode, ratesMap)}</Text>
+  <Text style={styles.prodInfo}><Text style={styles.label}>{t.memberChamaNumber}:</Text> {MembaId}</Text>
+  <Text style={styles.prodInfo}><Text style={styles.label}>{t.subscriptionUpToDate}:</Text> {formatAmountSync(Math.floor(subscribedAmt), userCode, ratesMap)}</Text>
+  <Text style={styles.prodInfo}><Text style={styles.label}>{t.subscriptionWithPenalties}:</Text> {formatAmountSync(Math.floor(parseFloat(ttlArrears)), userCode, ratesMap)}</Text>
 
               </Pressable>
 
@@ -144,15 +152,13 @@ const ChmMbrShpInfo = (props:ChamaMmbrshpInfo) => {
                 onPress={ViewSubs}
                 style = {styles.loanFriendButton}
                 >            
-                  <Text style = {styles.buttonText}>Subscriptions</Text>            
+                  <Text style = {styles.buttonText}>{t.subscriptions}</Text>            
               </Pressable>
-              
-              
               <Pressable
                 onPress={SndChmMmbrMny}
                 style = {styles.loanFriendButton}>            
-                  <Text style = {styles.buttonText}>Subscribe</Text>            
-              </Pressable>  
+                  <Text style = {styles.buttonText}>{t.subscribe}</Text>            
+              </Pressable>
              
             
              

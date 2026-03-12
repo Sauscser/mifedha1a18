@@ -9,6 +9,8 @@ import {useExchange} from '../../../../../src/contexts/ExchangeContext';
 import { generateClient } from 'aws-amplify/api';  
 import { getSMAccount } from '../../../../../src/graphql/queries';
 import {fetchUserAttributes} from 'aws-amplify/auth';
+import { useTranslation } from 'react-i18next';
+import translations from './translation';
 
 export interface ChmCvLnSttusRec {
   Loanee: {
@@ -34,6 +36,9 @@ export interface ChmCvLnSttusRec {
 }
 
 const ChmCvLnSttsRec = (props: ChmCvLnSttusRec) => {
+  const { i18n } = useTranslation();
+  const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+  const t = translations[lang] || translations.en;
   const {
     Loanee: {
       loanID,
@@ -111,24 +116,24 @@ const ChmCvLnSttsRec = (props: ChmCvLnSttusRec) => {
     <View style={styles.pageContainer}>
       <Pressable onPress={SndChmMmbrMny} style={styles.card}>
         <Text style={styles.prodInfo}>
-          <Text style={styles.label}>Group Name:</Text> {LoanerName}
+          <Text style={styles.label}>{t.groupName}</Text> {LoanerName}
         </Text>
         <Text style={styles.prodInfo}>
-          <Text style={styles.label}>Loan Id:</Text> {loanID}
+          <Text style={styles.label}>{t.loanId}</Text> {loanID}
         </Text>
         <Text style={styles.prodInfo}>
-          <Text style={styles.label}>Loan Balance with penalties:</Text>{' '}
+          <Text style={styles.label}>{t.loanBalanceWithPenalties}</Text>{' '}
           {formatAmountSync(Math.floor(LonBal1), userCode, ratesMap)}
         </Text>
       </Pressable>
 
       <View style={styles.buttonRow}>
         <Pressable onPress={VwRpayments} style={styles.loanFriendButton}>
-          <Text>View Rpymnts</Text>
+          <Text>{t.viewRepayments}</Text>
         </Pressable>
 
         <Pressable onPress={Repay} style={styles.loanFriendButton}>
-          <Text>Repay</Text>
+          <Text>{t.repay}</Text>
         </Pressable>
       </View>
     </View>

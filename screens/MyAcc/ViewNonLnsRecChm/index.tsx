@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, FlatList, Alert } from 'react-native';
 import RecNonLns from "../../../components/MyAc/ViewRecNonLns";
 import styles from './styles';
+import { useTranslation } from 'react-i18next';
+import translations from './translation';
 import { getCompany, getGroup, listLoanRepayments, listNonLoans, VwMyRecMny } from '../../../src/graphql/queries';
 import { updateCompany, updateGroup } from '../../../src/graphql/mutations';
 import { useRoute } from '@react-navigation/core';
@@ -13,6 +15,9 @@ const FetchSMNonLnsRec = props => {
   const [loading, setLoading] = useState(false);
   const [Loanees, setLoanees] = useState([]);
   const route = useRoute();
+  const { i18n } = useTranslation();
+  const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+  const t = translations[lang] || translations.en;
   const fetchUser = async () => {
     const userInfo = await getCurrentUser();
     const attributes = await fetchUserAttributes();
@@ -45,17 +50,20 @@ const FetchSMNonLnsRec = props => {
     fetchLoanees();
   }, []);
   return <View style={styles.root}>
-      <FlatList style={{
-      width: "100%"
-    }} data={Loanees} renderItem={({
-      item
-    }) => <RecNonLns SMAc={item} />} keyExtractor={(item, index) => index.toString()} onRefresh={fetchLoanees} refreshing={loading} showsVerticalScrollIndicator={false} ListHeaderComponentStyle={{
-      alignItems: 'center'
-    }} ListHeaderComponent={() => <>
-            
-            <Text style={styles.label}>Received Chama LP</Text>
-            <Text style={styles.label2}> (Please swipe down to load)</Text>
-          </>} />
+      <FlatList
+        style={{ width: "100%" }}
+        data={Loanees}
+        renderItem={({ item }) => <RecNonLns SMAc={item} />}
+        keyExtractor={(item, index) => index.toString()}
+        onRefresh={fetchLoanees}
+        refreshing={loading}
+        showsVerticalScrollIndicator={false}
+        ListHeaderComponentStyle={{ alignItems: 'center' }}
+        ListHeaderComponent={() => <>
+          <Text style={styles.label}>{t.receivedLP}</Text>
+          <Text style={styles.label2}>{t.swipeToLoad}</Text>
+        </>}
+      />
     </View>;
 };
 export default FetchSMNonLnsRec;

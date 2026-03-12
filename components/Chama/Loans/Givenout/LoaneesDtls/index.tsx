@@ -3,6 +3,8 @@ import { View, Text, ScrollView } from 'react-native';
 import styles from './styles';
 
 import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import translations from './translation';
 import { formatAmountSync } from '../../../../../src/utils/exchange';
 import { nationalityToCode } from '../../../../../src/utils/nationalityToCode';
 import { useExchange } from '../../../../../src/contexts/ExchangeContext';
@@ -36,6 +38,9 @@ export interface ChmCvLnSttusSent {
 }
 
 const ChmCvLnSttsSent = (props: ChmCvLnSttusSent) => {
+  const { i18n } = useTranslation();
+  const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+  const t = translations[lang] || translations.en;
   const {
     Loaner: {
       loanID,
@@ -94,47 +99,20 @@ const ChmCvLnSttsSent = (props: ChmCvLnSttusSent) => {
   const LonBal1 = netLnBal2 + clearanceAmt + DefaultPenaltyChm2;
 
   return (
-    <ScrollView style={styles.pageContainer}>
       <View style={styles.card}>
-        <Text style={styles.prodName}>{loaneeName}</Text>
-        <Text style={styles.prodInfo}>
-          <Text style={styles.label}>Loan Id:</Text> {loanID}
-        </Text>
-        <Text style={styles.prodInfo}>
-          <Text style={styles.label}>Member Chama ID:</Text> {memberId}
-        </Text>
-        <Text style={styles.prodInfo}>
-          <Text style={styles.label}>Amount Given:</Text>{' '}
-          {formatAmountSync(amountGiven, userCode, ratesMap)}
-        </Text>
-        <Text style={styles.prodInfo}>
-          <Text style={styles.label}>Amount Repaid:</Text>{' '}
-          {formatAmountSync(amountRepaid, userCode, ratesMap)}
-        </Text>
-        <Text style={styles.prodInfo}>
-          <Text style={styles.label}>Loan Balance with penalties:</Text>{' '}
-          {formatAmountSync(Math.floor(LonBal1), userCode, ratesMap)}
-        </Text>
-        <Text style={styles.prodInfo}>
-          <Text style={styles.label}>Repayment Period in days:</Text>{' '}
-          {repaymentPeriod}
-        </Text>
-        <Text style={styles.prodInfo}>
-          <Text style={styles.label}>Member Contact:</Text> {loaneePhn}
-        </Text>
-        <Text style={styles.prodInfo}>
-          <Text style={styles.label}>Advocate Registration Number:</Text>{' '}
-          {advRegNu}
-        </Text>
-        <Text style={styles.prodInfo}>
-          <Text style={styles.label}>Loan Status:</Text> {status}
-        </Text>
-        <Text style={styles.prodInfo}>
-          <Text style={styles.label}>Time Loan was taken:</Text> {createdAt}
-        </Text>
-        <Text style={styles.prodDesc}>{description}</Text>
+        <Text style={styles.prodName}>{t.loaneeName}: {loaneeName}</Text>
+        <Text style={styles.prodInfo}><Text style={styles.label}>{t.loanId}:</Text> {loanID}</Text>
+        <Text style={styles.prodInfo}><Text style={styles.label}>{t.memberChamaId}:</Text> {memberId}</Text>
+        <Text style={styles.prodInfo}><Text style={styles.label}>{t.amountGiven}:</Text> {formatAmountSync(amountGiven, userCode, ratesMap)}</Text>
+        <Text style={styles.prodInfo}><Text style={styles.label}>{t.amountRepaid}:</Text> {formatAmountSync(amountRepaid, userCode, ratesMap)}</Text>
+        <Text style={styles.prodInfo}><Text style={styles.label}>{t.loanBalanceWithPenalties}:</Text> {formatAmountSync(Math.floor(LonBal1), userCode, ratesMap)}</Text>
+        <Text style={styles.prodInfo}><Text style={styles.label}>{t.repaymentPeriod}:</Text> {repaymentPeriod}</Text>
+        <Text style={styles.prodInfo}><Text style={styles.label}>{t.memberContact}:</Text> {loaneePhn}</Text>
+        <Text style={styles.prodInfo}><Text style={styles.label}>{t.advocateRegNum}:</Text> {advRegNu}</Text>
+        <Text style={styles.prodInfo}><Text style={styles.label}>{t.loanStatus}:</Text> {status}</Text>
+        <Text style={styles.prodInfo}><Text style={styles.label}>{t.timeLoanTaken}:</Text> {createdAt}</Text>
+        <Text style={styles.prodDesc}>{t.description}: {description}</Text>
       </View>
-    </ScrollView>
   );
 };
 

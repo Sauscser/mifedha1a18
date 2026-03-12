@@ -6,8 +6,13 @@ import { listReqLoans } from '../../../src/graphql/queries';
 import { listCompanies } from '../../../src/graphql/queries';
 import { getCurrentUser, fetchUserAttributes } from "aws-amplify/auth";
 import { generateClient } from "aws-amplify/api";
+import { useTranslation } from 'react-i18next';
+import translations from './translation';
 const client = generateClient();
 const FetchSMNonCovLns = props => {
+    const { i18n } = useTranslation();
+    const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+    const t = translations[lang] || translations.en;
   const [LneePhn, setLneePhn] = useState(null);
   const [loading, setLoading] = useState(false);
   const [Loanees, setLoanees] = useState([]);
@@ -63,17 +68,20 @@ const FetchSMNonCovLns = props => {
     fetchLoanees();
   }, []);
   return <View style={styles.root}>
-      <FlatList style={{
-      width: "100%"
-    }} data={Loanees} renderItem={({
-      item
-    }) => <LnerStts SMAc={item} />} keyExtractor={(item, index) => index.toString()} onRefresh={fetchLoanees} refreshing={loading} showsVerticalScrollIndicator={false} ListHeaderComponentStyle={{
-      alignItems: 'center'
-    }} ListHeaderComponent={() => <>
-            
-            <Text style={styles.label}> Swipe down to load</Text>
-            <Text style={styles.label2}> (Accept/Decline at the End of the Read)</Text>
-          </>} />
+      <FlatList
+        style={{ width: "100%" }}
+        data={Loanees}
+        renderItem={({ item }) => <LnerStts SMAc={item} />}
+        keyExtractor={(item, index) => index.toString()}
+        onRefresh={fetchLoanees}
+        refreshing={loading}
+        showsVerticalScrollIndicator={false}
+        ListHeaderComponentStyle={{ alignItems: 'center' }}
+        ListHeaderComponent={() => <>
+          <Text style={styles.label}>{t.swipeDownToLoad}</Text>
+          <Text style={styles.label2}>{t.acceptDeclineAtEnd}</Text>
+        </>}
+      />
 
   </View>;
 };

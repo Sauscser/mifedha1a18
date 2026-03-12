@@ -115,7 +115,7 @@ const RegKFKubwa = props => {
           onPress: ClearGroupMemberLoan,
           style: styles.ClientsPressables
         }, {
-          label: 'Apply MFKubwa Account',
+          label: 'Apply NSKubwa Account',
           onPress: ApplyMFKubwa,
           style: styles.ClientsPressables
         }, {

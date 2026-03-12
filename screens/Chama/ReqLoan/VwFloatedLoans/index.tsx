@@ -13,15 +13,11 @@ import {
 import { useRoute, useNavigation } from '@react-navigation/native';
 import { printAsync } from '../../../../src/utils/print';
 import ImageViewer from 'react-native-image-zoom-viewer';
+import { listChamaAdminLnApplies, listChamaMinutes, listMinuteItemsByMinutes, listAttendanceByMinutes } from '../../../../src/graphql/queries';
 import { LinearGradient } from 'expo-linear-gradient';
-
-import {
-  listChamaAdminLnApplies,
-  listChamaMinutes,
-  listMinuteItemsByMinutes,
-  listAttendanceByMinutes
-} from '../../../../src/graphql/queries';
-import { generateClient } from 'aws-amplify/api';
+import { useTranslation } from 'react-i18next';
+import translations from './translation';
+import {generateClient} from 'aws-amplify/api';
 import { getUrl } from 'aws-amplify/storage';
 
 const client = generateClient();
@@ -46,6 +42,10 @@ const FloatedLoansList = () => {
   const [selectedMinutes, setSelectedMinutes] = useState<any | null>(null);
   const [loadingMinutes, setLoadingMinutes] = useState(false);
 
+  const { i18n } = useTranslation();
+  const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+  const t = translations[lang] || translations.en;
+
   // Fetch floated loans
   const fetchLoans = async () => {
     setLoading(true);
@@ -62,7 +62,7 @@ const FloatedLoansList = () => {
       setLoans(res?.data?.listChamaAdminLnApplies?.items || []);
     } catch (err) {
       console.error(err);
-      Alert.alert('Error', 'Failed to fetch floated loans.');
+      Alert.alert(t.errorFetchLoans, t.failedFetchLoans);
     } finally {
       setLoading(false);
     }
@@ -71,7 +71,7 @@ const FloatedLoansList = () => {
   // Fetch detailed minutes by ID
   const fetchMinutesForLoan = async (loan: any) => {
     if (!loan?.grpMinutes || loan.grpMinutes === 'NoMinutesProvided') {
-      Alert.alert('No minutes', 'This loan has no linked minutes record');
+      Alert.alert(t.noMinutes, t.noLinkedMinutes);
       return;
     }
     setLoadingMinutes(true);
@@ -82,7 +82,7 @@ const FloatedLoansList = () => {
       });
       const minutes = res?.data?.listChamaMinutes?.items?.[0];
       if (!minutes) {
-        Alert.alert('Minutes not found');
+        Alert.alert(t.minutesNotFound);
         return;
       }
       const [itemsRes, attendanceRes] = await Promise.all([
@@ -104,7 +104,7 @@ const FloatedLoansList = () => {
       });
     } catch (err) {
       console.error(err);
-      Alert.alert('Error', 'Failed to fetch minutes');
+      Alert.alert(t.errorFetchMinutes, t.failedFetchMinutes);
     } finally {
       setLoadingMinutes(false);
     }
@@ -131,7 +131,7 @@ const FloatedLoansList = () => {
       await printAsync({ html });
     } catch (err) {
       console.error(err);
-      Alert.alert('Error', 'Failed to export minutes PDF');
+      Alert.alert(t.errorExportPDF, t.failedExportPDF);
     }
   };
 
@@ -146,19 +146,19 @@ const FloatedLoansList = () => {
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.header}>Floated Loans</Text>
+      <Text style={styles.header}>{t.floatedLoans}</Text>
       {loading && <ActivityIndicator size="large" color="#e58d29" />}
       {loans.map((loan) => (
         <View key={loan.id} style={styles.card}>
           <Text style={styles.title}>{loan.grpName}</Text>
-          <Text style={styles.subtitle}>Floated by: {loan.ChamaAdminEmail}</Text>
+          <Text style={styles.subtitle}>{t.floatedBy}: {loan.ChamaAdminEmail}</Text>
           <View style={styles.buttonRow}>
             {loan.MemberEmail && loan.MemberEmail !== 'NoMinutesUploaded' && (
               <TouchableOpacity
                 style={styles.button}
                 onPress={() => setSelectedImageUrl(loan.MemberEmail)}
               >
-                <Text style={styles.buttonText}>View Uploaded Minutes</Text>
+                <Text style={styles.buttonText}>{t.viewUploadedMinutes}</Text>
               </TouchableOpacity>
             )}
             {loan.grpMinutes && loan.grpMinutes !== 'NoMinutesProvided' && (
@@ -166,14 +166,14 @@ const FloatedLoansList = () => {
                 style={[styles.button, { backgroundColor: '#6b7280' }]}
                 onPress={() => fetchMinutesForLoan(loan)}
               >
-                <Text style={styles.buttonText}>Read Detailed Minutes</Text>
+                <Text style={styles.buttonText}>{t.readDetailedMinutes}</Text>
               </TouchableOpacity>
             )}
             <TouchableOpacity
               style={[styles.button, { backgroundColor: 'skyblue' }]}
               onPress={() => proceedToApply(groupContact, MembaId, loan.id)}
             >
-              <Text style={styles.buttonText}>Apply</Text>
+              <Text style={styles.buttonText}>{t.apply}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -183,6 +183,9 @@ const FloatedLoansList = () => {
       <Modal visible={!!selectedImageUrl} transparent animationType="slide">
         <LinearGradient colors={['skyblue', '#e58d29']} style={styles.modalContainer}>
           <View style={styles.modalContent}>
+            <TouchableOpacity style={styles.closeBtn} onPress={() => setSelectedImageUrl(null)}>
+              <Text style={styles.closeText}>{t.close}</Text>
+            </TouchableOpacity>
             {selectedImageUrl && (
               <ImageViewer
                 imageUrls={[{ url: selectedImageUrl }]}
@@ -191,9 +194,6 @@ const FloatedLoansList = () => {
                 backgroundColor="transparent"
               />
             )}
-            <TouchableOpacity style={styles.closeButton} onPress={() => setSelectedImageUrl(null)}>
-              <Text style={styles.closeText}>Close</Text>
-            </TouchableOpacity>
           </View>
         </LinearGradient>
       </Modal>
@@ -206,50 +206,45 @@ const FloatedLoansList = () => {
           ) : (
             <ScrollView style={styles.minutesModal}>
               <View style={styles.minutesCard}>
-                <Text style={styles.groupTitle}>Minutes</Text>
+                <Text style={styles.groupTitle}>{t.minutes}</Text>
                 <Text style={styles.date}>📅 {selectedMinutes?.meetingDate}</Text>
-                <Text style={styles.meta}>Venue: {selectedMinutes?.venue || '-'}</Text>
-                <Text style={styles.meta}>
-                  Attendance: {selectedMinutes?.attendance?.filter((a: any) => a.attendanceStatus === 'PRESENT').length}
-                </Text>
+                <Text style={styles.meta}>{t.venue}: {selectedMinutes?.venue || '-'}</Text>
+                <Text style={styles.meta}>{t.attendance}: {selectedMinutes?.attendance?.filter((a: any) => a.attendanceStatus === 'PRESENT').length}</Text>
                 <TouchableOpacity style={styles.exportBtn} onPress={() => exportMinutesToPDF(selectedMinutes)}>
-                  <Text style={styles.exportText}>Export to PDF</Text>
+                  <Text style={styles.exportText}>{t.exportToPDF}</Text>
                 </TouchableOpacity>
-                <Text style={styles.section}>Minute Items</Text>
+                <Text style={styles.section}>{t.minuteItems}</Text>
                 {selectedMinutes?.items?.map((item: any) => (
                   <View key={item.id} style={styles.minuteItem}>
                     <Text style={styles.minuteTitle}>{item.entryOrder}. {item.minuteRef}</Text>
                     <Text>{item.content}</Text>
                     {item.decision && (
-                      <Text style={styles.decision}>Decision: {item.decision}</Text>
+                      <Text style={styles.decision}>{t.decision}: {item.decision}</Text>
                     )}
                   </View>
                 ))}
-
-                <Text style={styles.section}>Attendance List</Text>
+                <Text style={styles.section}>{t.attendanceList}</Text>
                 {selectedMinutes?.attendance?.map((a: any, idx: number) => (
                   <View key={idx} style={styles.memberRow}>
                     <Text>{a.memberName} — {a.attendanceStatus}</Text>
                   </View>
                 ))}
-
-                <Text style={styles.section}>Signatures</Text>
+                <Text style={styles.section}>{t.signatures}</Text>
                 <View style={styles.signatures}>
                   <View style={styles.signatureBlock}>
-                    <Text style={styles.signatureLabel}>Chairperson</Text>
+                    <Text style={styles.signatureLabel}>{t.chairperson}</Text>
                     <SafeImage uri={selectedMinutes?.chairSignUrl} style={styles.signature} />
                   </View>
                   <View style={styles.signatureBlock}>
-                    <Text style={styles.signatureLabel}>Secretary</Text>
+                    <Text style={styles.signatureLabel}>{t.secretary}</Text>
                     <SafeImage uri={selectedMinutes?.secSignUrl} style={styles.signature} />
                   </View>
                 </View>
-
                 <TouchableOpacity
                   style={styles.closeBtn}
                   onPress={() => setSelectedMinutes(null)}
                 >
-                  <Text style={{ color: '#fff' }}>Close</Text>
+                  <Text style={{ color: '#fff' }}>{t.close}</Text>
                 </TouchableOpacity>
               </View>
             </ScrollView>

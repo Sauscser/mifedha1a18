@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, StyleSheet, Alert } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
+import { useTranslation } from 'react-i18next';
+import translations from './translation';
 import { listGroups } from '../../../../src/graphql/queries';
 import { generateClient } from 'aws-amplify/api';
 import { getCurrentUser, fetchUserAttributes } from 'aws-amplify/auth';
@@ -45,11 +47,14 @@ const ChmSignIn = () => {
       grpContact
     });
   };
+  // Translation wiring (agreed pattern)
+  const { i18n } = useTranslation();
+  const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+  const t = translations[lang] || translations.en;
+
   return <View style={styles.container}>
-      <Text style={styles.header}>Your Chamas</Text>
-      <Text style={styles.subHeader}>
-        Select the Chama you manage to view loans
-      </Text>
+      <Text style={styles.header}>{t.header}</Text>
+      <Text style={styles.subHeader}>{t.subHeader}</Text>
 
       {isLoading && <ActivityIndicator size="large" color="#e29d58" />}
 
@@ -66,9 +71,7 @@ const ChmSignIn = () => {
             </LinearGradient>
           </TouchableOpacity>)}
 
-        {!isLoading && chamaGroups.length === 0 && <Text style={styles.noGroupsText}>
-            You are not an admin or signatory in any Chama
-          </Text>}
+        {!isLoading && chamaGroups.length === 0 && <Text style={styles.noGroupsText}>{t.noGroupsText}</Text>}
       </ScrollView>
     </View>;
 };

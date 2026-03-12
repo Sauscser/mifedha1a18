@@ -52,7 +52,7 @@ const ViewSMDeposts = (props:SMAccount) => {
              <Text style={styles.prodInfo}><Text style={styles.label}>Float Balance:</Text> KES {floatBal.toFixed(2)}</Text>
              <Text style={styles.prodInfo}><Text style={styles.label}>Total Earnings:</Text> KES {ttlEarnings.toFixed(2)}</Text>
              <Text style={styles.prodInfo}><Text style={styles.label}>Earning Balance:</Text> KES {agentEarningBal.toFixed(2)}</Text>
-             <Text style={styles.prodInfo}><Text style={styles.label}>MFKubwa Number:</Text> {sagentregno}</Text>
+             <Text style={styles.prodInfo}><Text style={styles.label}>NSKubwa Number:</Text> {sagentregno}</Text>
              <Text style={styles.prodInfo}><Text style={styles.label}>Created At:</Text> {createdAt}</Text>
                   
         </View>

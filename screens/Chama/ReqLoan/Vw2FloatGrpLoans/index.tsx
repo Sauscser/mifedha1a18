@@ -4,8 +4,14 @@ import { listGroups } from '../../../../src/graphql/queries';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import { generateClient } from 'aws-amplify/api';
 import { getCurrentUser, fetchUserAttributes } from 'aws-amplify/auth';
+import translations from './translation';
+import { useTranslation } from 'react-i18next';
 const client = generateClient();
 const FetchSMNonCovLns = () => {
+  // Translation wiring
+  const { i18n } = useTranslation();
+  const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+  const t = translations[lang] || translations.en;
   const [loanees, setLoanees] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const route = useRoute();
@@ -49,19 +55,17 @@ const FetchSMNonCovLns = () => {
   useEffect(() => {
     fetchLoanees();
   }, []);
-  const GroupCard = ({
-    item
-  }) => <Pressable style={styles.card} onPress={navigateTo('FloatLnReq', {
-    grpContact: item?.grpContact
-  })}>
+  const GroupCard = ({ item }) => (
+    <Pressable style={styles.card} onPress={navigateTo('FloatLnReq', { grpContact: item?.grpContact })}>
       <View style={styles.cardHeader}>
-        <Text style={styles.groupName}>{item?.grpName || "Unnamed Group"}</Text>
+        <Text style={styles.groupName}>{item?.grpName || t.unnamedGroup}</Text>
       </View>
       <View style={styles.cardBody}>
-        <Text style={styles.label}>Account Number</Text>
-        <Text style={styles.accountNumber}>{item?.grpContact || "N/A"}</Text>
+        <Text style={styles.label}>{t.accountNumber}</Text>
+        <Text style={styles.accountNumber}>{item?.grpContact || 'N/A'}</Text>
       </View>
-    </Pressable>;
+    </Pressable>
+  );
   return <KeyboardAvoidingView style={{
     flex: 1
   }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>

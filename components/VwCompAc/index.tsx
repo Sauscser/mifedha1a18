@@ -321,8 +321,8 @@ export interface SMAccount {
                         <Text style={styles.ownerName}>Ac Balance: {formatAmountSync(companyEarningBal, nationality)}</Text>
                         <Text style={styles.ownerContact}>Total Agent Earning: {formatAmountSync(agentEarning, nationality)}</Text>
                         <Text style={styles.amountoffered}>Total Agent Balance: {formatAmountSync(agentEarningBal, nationality)}</Text>
-                        <Text style={styles.repaymentPeriod}>Total MFKubwa Earning: {formatAmountSync(saEarning, nationality)}</Text>
-                        <Text style={styles.interest}>Total MFKubwa Balance: {formatAmountSync(saEarningBal, nationality)}</Text>
+                        <Text style={styles.repaymentPeriod}>Total NSKubwa Earning: {formatAmountSync(saEarning, nationality)}</Text>
+                        <Text style={styles.interest}>Total NSKubwa Balance: {formatAmountSync(saEarningBal, nationality)}</Text>
                         <Text style={styles.ownerContact}>Total Advocate Earning: {formatAmountSync(AdvEarning, nationality)}</Text>
                         <Text style={styles.amountoffered}>Total Advocate Balance: {formatAmountSync(AdvEarningBal, nationality)}</Text>
                         <Text style={styles.ownerName}>Total Loans Recovered: {formatAmountSync(totalLnsRecovered, nationality)}</Text>
@@ -488,16 +488,16 @@ export interface SMAccount {
                     </Text>                     
                     <Text style = {styles.interest}>                       
                        {/* interest*/}
-                      Total Active MFKubwa: {ttlKFKbwActv}                    
+                      Total Active NSKubwa: {ttlKFKbwActv}                    
                     </Text> 
                     <Text style = {styles.interest}>                       
                        {/* interest*/}
-                   Total Inactive MFKubwa: {ttlKFKbwInActv}                    
+                   Total Inactive NSKubwa: {ttlKFKbwInActv}                    
                     </Text> 
 
                     <Text style = {styles.interest}>                       
                        {/* interest*/}
-                       Total BListed MFKubwa: {ttlKKbwBLStts}                    
+                       Total BListed NSKubwa: {ttlKKbwBLStts}                    
                     </Text>                     
                     <Text style = {styles.interest}>                       
                        {/* interest*/}

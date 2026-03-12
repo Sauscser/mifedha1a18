@@ -1,0 +1,80 @@
+export const translations = {
+  en: {
+    chamaMembers: 'Chama Members',
+    memberName: 'Member Name',
+    memberChamaId: 'Member Chama ID',
+    memberContact: 'Member Contact',
+  },
+  ar: {
+    chamaMembers: 'أعضاء جماعة شاما',
+    memberName: 'اسم العضو',
+    memberChamaId: 'معرف جماعة العضو',
+    memberContact: 'تواصل العضو',
+  },
+  zh: {
+    chamaMembers: 'Chama成员',
+    memberName: '成员姓名',
+    memberChamaId: '成员Chama编号',
+    memberContact: '成员联系方式',
+  },
+  ru: {
+    chamaMembers: 'Члены Чама',
+    memberName: 'Имя участника',
+    memberChamaId: 'ID участника Чама',
+    memberContact: 'Контакт участника',
+  },
+  sw: {
+    chamaMembers: 'Wanachama wa Chama',
+    memberName: 'Jina la Mwanachama',
+    memberChamaId: 'ID ya Mwanachama',
+    memberContact: 'Mawasiliano ya Mwanachama',
+  },
+  fr: {
+    chamaMembers: 'Membres du Chama',
+    memberName: 'Nom du membre',
+    memberChamaId: 'ID du membre Chama',
+    memberContact: 'Contact du membre',
+  },
+  es: {
+    chamaMembers: 'Miembros de Chama',
+    memberName: 'Nombre del miembro',
+    memberChamaId: 'ID de miembro de Chama',
+    memberContact: 'Contacto del miembro',
+  },
+  de: {
+    chamaMembers: 'Chama-Mitglieder',
+    memberName: 'Mitgliedsname',
+    memberChamaId: 'Chama-Mitglieds-ID',
+    memberContact: 'Mitglied Kontakt',
+  },
+  pt: {
+    chamaMembers: 'Membros do Chama',
+    memberName: 'Nome do membro',
+    memberChamaId: 'ID do membro Chama',
+    memberContact: 'Contato do membro',
+  },
+  it: {
+    chamaMembers: 'Membri del Chama',
+    memberName: 'Nome del membro',
+    memberChamaId: 'ID membro Chama',
+    memberContact: 'Contatto del membro',
+  },
+  he: {
+    chamaMembers: 'חברי צ׳אמה',
+    memberName: 'שם החבר',
+    memberChamaId: 'מספר חבר צ׳אמה',
+    memberContact: 'איש קשר של החבר',
+  },
+  hi: {
+    chamaMembers: 'चामा सदस्य',
+    memberName: 'सदस्य का नाम',
+    memberChamaId: 'चामा सदस्य आईडी',
+    memberContact: 'सदस्य संपर्क',
+  },
+  am: {
+    chamaMembers: 'ቻማ አባላት',
+    memberName: 'አባላት ስም',
+    memberChamaId: 'የቻማ አባላት መታወቂያ',
+    memberContact: 'የአባላት አገናኝ',
+  },
+};

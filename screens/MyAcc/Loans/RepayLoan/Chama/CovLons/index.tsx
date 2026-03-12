@@ -9,8 +9,13 @@ import { useExchange } from '../../../../../../src/contexts/ExchangeContext';
 import { convertForeignToKsh, formatAmountSync } from '../../../../../../src/utils/exchange';
 import { nationalityToCode } from '../../../../../../src/utils/nationalityToCode';
 import { generateClient } from "aws-amplify/api";
+import { useTranslation } from 'react-i18next';
+import translations from './translation';
 const client = generateClient();
 const RepayCovChmLnsss = () => {
+  const { i18n } = useTranslation();
+  const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+  const t = translations[lang] || translations.en;
   const [SenderNatId, setSenderNatId] = useState('');
   const [SnderPW, setSnderPW] = useState('');
   const [amounts, setAmount] = useState('');
@@ -58,14 +63,14 @@ const RepayCovChmLnsss = () => {
     setIsLoading(true);
     const amountForeign = parseFloat(amounts);
     if (!Number.isFinite(amountForeign) || amountForeign <= 0) {
-      Alert.alert('Enter a valid amount');
+      Alert.alert(t.enterValidAmount);
       setIsLoading(false);
       return;
     }
     const currencyKey = nationalityToCode(nationality);
     const amountKes = await convertForeignToKsh(amountForeign, currencyKey);
     if (!Number.isFinite(amountKes) || amountKes <= 0) {
-      Alert.alert('Unable to convert amount. Please try again.');
+      Alert.alert(t.unableToConvert);
       setIsLoading(false);
       return;
     }
@@ -160,27 +165,27 @@ const RepayCovChmLnsss = () => {
 
       // 6️⃣ All conditional checks
       if (senderStatus === 'AccountInactive') {
-        Alert.alert('Sender account is inactive');
+        Alert.alert(t.senderInactive);
         return;
       }
       if (groupStatus === 'AccountInactive') {
-        Alert.alert('Receiver account is inactive');
+        Alert.alert(t.receiverInactive);
         return;
       }
       if (parseFloat(senderBal) < totalTransacted) {
-        Alert.alert('Requested amount is more than your account balance');
+        Alert.alert(t.requestedAmountTooHigh);
         return;
       }
       if (parseFloat(nonLonLimit) < amountKes) {
-        Alert.alert(`Call ${phoneContact} to adjust your send amount limit`);
+        Alert.alert(t.callToAdjustLimit.replace('{phoneContact}', phoneContact));
         return;
       }
       if (ClranceAmt > amountKes) {
-        Alert.alert(`At least pay clearance fee + default penalty: ${ClranceAmt}`);
+        Alert.alert(t.payClearanceAndPenalty.replace('{ClranceAmt}', String(ClranceAmt)));
         return;
       }
       if (amountKes > parseFloat(LonBal1)) {
-        Alert.alert(`Your loan balance is lesser: ${LonBal1}`);
+        Alert.alert(t.loanBalanceLesser.replace('{LonBal1}', String(LonBal1)));
         return;
       }
 
@@ -298,55 +303,50 @@ const RepayCovChmLnsss = () => {
         amountPaid: amountKes.toFixed(0),
         loanBalanceAfter: LonBalAfter.toFixed(0)
       });
-      Alert.alert('Payment Successful', isFullRepayment ? `Loan fully repaid.\nClearance Fee: ${formatAmountSync(Number(ClranceAmt), nationality || undefined, ratesMap)}\nTransaction Fee: ${formatAmountSync(parseFloat(chmLnRpymntFee) * amountKes, nationality || undefined, ratesMap)}` : `Partial repayment successful.\nRemaining balance: ${formatAmountSync(Number(LonBalAfter), nationality || undefined, ratesMap)}`);
+      Alert.alert(
+        t.paymentSuccessful,
+        isFullRepayment
+          ? t.loanFullyRepaid.replace('{fee}', formatAmountSync(Number(ClranceAmt), nationality || undefined, ratesMap)).replace('{fee}', formatAmountSync(parseFloat(chmLnRpymntFee) * amountKes, nationality || undefined, ratesMap))
+          : t.partialRepayment.replace('{balance}', formatAmountSync(Number(LonBalAfter), nationality || undefined, ratesMap))
+      );
       resetForm();
     } catch (error) {
       console.log(error);
-      Alert.alert('Retry or update app or call customer care');
+      Alert.alert(t.retryOrUpdate);
     } finally {
       setIsLoading(false);
     }
   };
-  return <LinearGradient colors={['#4B9CD3', '#1C1C1E']} // NiSenti gradient
-  style={{
-    flex: 1
-  }}>
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{
-      flex: 1
-    }}>
-        <ScrollView contentContainerStyle={{
-        padding: 20,
-        flexGrow: 1,
-        justifyContent: 'center'
-      }}>
+  return (
+    <LinearGradient colors={['#4B9CD3', '#1C1C1E']} style={{ flex: 1 }}>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+        <ScrollView contentContainerStyle={{ padding: 20, flexGrow: 1, justifyContent: 'center' }}>
           {/* Header */}
           <View style={styles.headerContainer}>
-            <Text style={styles.headerText}>NiSenti Loan Repayment</Text>
-            <Text style={styles.subHeaderText}>Fill account details below</Text>
+            <Text style={styles.headerText}>{t.loanRepaymentHeader}</Text>
+            <Text style={styles.subHeaderText}>{t.fillAccountDetails}</Text>
           </View>
 
           {/* Amount Input */}
           <View style={styles.inputContainer}>
-            <Text style={styles.inputLabel}>Amount Sent</Text>
-            <TextInput style={styles.input} keyboardType="decimal-pad" placeholder="Enter amount" value={amounts} onChangeText={setAmount} editable={!isLoading} />
+            <Text style={styles.inputLabel}>{t.amountSent}</Text>
+            <TextInput style={styles.input} keyboardType="decimal-pad" placeholder={t.enterAmount} value={amounts} onChangeText={setAmount} editable={!isLoading} />
           </View>
 
           {/* Description Input */}
           <View style={styles.inputContainer}>
-            <Text style={styles.inputLabel}>Description</Text>
-            <TextInput style={[styles.input, {
-            height: 100,
-            textAlignVertical: 'top'
-          }]} placeholder="Enter description" multiline numberOfLines={4} value={Desc} onChangeText={setDesc} editable={!isLoading} />
+            <Text style={styles.inputLabel}>{t.description}</Text>
+            <TextInput style={[styles.input, { height: 100, textAlignVertical: 'top' }]} placeholder={t.enterDescription} multiline numberOfLines={4} value={Desc} onChangeText={setDesc} editable={!isLoading} />
           </View>
 
           {/* Send Button */}
           <TouchableOpacity style={styles.button} onPress={ftchCvdSMLn} disabled={isLoading}>
-            {isLoading ? <ActivityIndicator size="small" color="#FFD700" /> : <Text style={styles.buttonText}>Send Payment</Text>}
+            {isLoading ? <ActivityIndicator size="small" color="#FFD700" /> : <Text style={styles.buttonText}>{t.sendPayment}</Text>}
           </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
-    </LinearGradient>;
+    </LinearGradient>
+  );
 };
 export default RepayCovChmLnsss;
 const styles = StyleSheet.create({

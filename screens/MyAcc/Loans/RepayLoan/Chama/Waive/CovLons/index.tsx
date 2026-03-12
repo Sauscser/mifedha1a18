@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import translations from './translation';
 import { View, Text, ScrollView, TextInput, TouchableOpacity, ActivityIndicator, KeyboardAvoidingView, Platform, Alert } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { StyleSheet, Dimensions } from 'react-native';
@@ -12,6 +14,9 @@ import { nationalityToCode } from '../../../../../../../src/utils/nationalityToC
 import { generateClient } from "aws-amplify/api";
 const client = generateClient();
 const WaiverScreen = () => {
+  const { i18n } = useTranslation();
+  const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+  const t = translations[lang] || translations.en;
   const [amounts, setAmount] = useState('');
   const [Desc, setDesc] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -22,14 +27,14 @@ const WaiverScreen = () => {
     setIsLoading(true);
     const amountForeign = parseFloat(amounts);
     if (!Number.isFinite(amountForeign) || amountForeign <= 0) {
-      Alert.alert('Enter a valid amount');
+      Alert.alert(t.enterValidAmount);
       setIsLoading(false);
       return;
     }
     const currencyKey = nationalityToCode(nationality);
     const amountKes = await convertForeignToKsh(amountForeign, currencyKey);
     if (!Number.isFinite(amountKes) || amountKes <= 0) {
-      Alert.alert('Unable to convert amount. Please try again.');
+      Alert.alert(t.unableToConvert);
       setIsLoading(false);
       return;
     }
@@ -78,7 +83,7 @@ const WaiverScreen = () => {
       });
       const senderAcc = accountRes.data.getSMAccount;
       if (senderAcc.acStatus === 'AccountInactive') {
-        Alert.alert('Sender account is inactive');
+        Alert.alert(t.senderInactive);
         setIsLoading(false);
         return;
       }
@@ -92,19 +97,19 @@ const WaiverScreen = () => {
       });
       const recGrp = groupRes.data.getGroup;
       if (recGrp.status === 'AccountInactive') {
-        Alert.alert('Receiver account is inactive');
+        Alert.alert(t.receiverInactive);
         setIsLoading(false);
         return;
       }
 
       // Validation checks
       if (ClranceAmt > amountKes) {
-        Alert.alert(`Too little amount waived: at least ${ClranceAmt}`);
+        Alert.alert(`${t.tooLittleAmount} ${ClranceAmt}`);
         setIsLoading(false);
         return;
       }
       if (amountKes > parseFloat(LonBal1)) {
-        Alert.alert(`The Loan Balance is lesser: ${formatAmountSync(Number(lonBala), nationality || undefined, ratesMap)}`);
+        Alert.alert(`${t.loanBalanceLesser} ${formatAmountSync(Number(lonBala), nationality || undefined, ratesMap)}`);
         setIsLoading(false);
         return;
       }
@@ -162,12 +167,12 @@ const WaiverScreen = () => {
           }
         }
       });
-      Alert.alert('Waived successfully!');
+      Alert.alert(t.waivedSuccessfully);
       setAmount('');
       setDesc('');
     } catch (e) {
       console.log(e);
-      Alert.alert('Error! Retry or contact support.');
+      Alert.alert(t.errorRetry);
     }
     setIsLoading(false);
   };
@@ -182,28 +187,28 @@ const WaiverScreen = () => {
         padding: 20
       }}>
           <View style={styles.headerContainer}>
-            <Text style={styles.headerText}>Waive Loan</Text>
-            <Text style={styles.subHeaderText}>Fill account details below</Text>
+            <Text style={styles.headerText}>{t.waiveLoan}</Text>
+            <Text style={styles.subHeaderText}>{t.fillAccountDetails}</Text>
           </View>
 
           {/* Amount */}
           <View style={styles.inputContainer}>
-            <Text style={styles.inputLabel}>Amount Waived</Text>
-            <TextInput style={styles.input} keyboardType="decimal-pad" placeholder="Enter amount" value={amounts} onChangeText={setAmount} editable={!isLoading} />
+            <Text style={styles.inputLabel}>{t.amountWaived}</Text>
+            <TextInput style={styles.input} keyboardType="decimal-pad" placeholder={t.enterAmount} value={amounts} onChangeText={setAmount} editable={!isLoading} />
           </View>
 
           {/* Description */}
           <View style={styles.inputContainer}>
-            <Text style={styles.inputLabel}>Description</Text>
+            <Text style={styles.inputLabel}>{t.description}</Text>
             <TextInput style={[styles.input, {
             height: 100,
             textAlignVertical: 'top'
-          }]} placeholder="Enter description" multiline numberOfLines={4} value={Desc} onChangeText={setDesc} editable={!isLoading} />
+          }]} placeholder={t.enterDescription} multiline numberOfLines={4} value={Desc} onChangeText={setDesc} editable={!isLoading} />
           </View>
 
           {/* Waive Button */}
           <TouchableOpacity style={styles.button} onPress={ftchCvdSMLn} disabled={isLoading}>
-            {isLoading ? <ActivityIndicator size="small" color="#fff" /> : <Text style={styles.buttonText}>Waive</Text>}
+            {isLoading ? <ActivityIndicator size="small" color="#fff" /> : <Text style={styles.buttonText}>{t.waive}</Text>}
           </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>

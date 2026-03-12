@@ -8,6 +8,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import MapView, { Marker } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { getDistance } from 'geolib';
+import {useTranslation} from 'react-i18next';
+import { translations } from './translation';
 import { generateClient } from 'aws-amplify/api';
 import { getCurrentUser, fetchUserAttributes } from 'aws-amplify/auth';
 import { remove } from 'aws-amplify/storage';
@@ -38,6 +40,10 @@ export default function SalesItemMapScreen({
   navigation
 }: { navigation: any }) {
   // Dynamic currency context
+  // i18n translation
+    const { i18n } = useTranslation();
+    const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+    const t = translations[lang] || translations.en;
   const { nationality, ratesMap } = useExchange();
   // Defensive: ensure nationality is a simple string (some flows return null or an object)
   const safeNationality = typeof nationality === 'string' ? nationality : (nationality && typeof nationality === 'object' && 'nationality' in nationality ? (nationality as any).nationality : null);
@@ -413,7 +419,7 @@ export default function SalesItemMapScreen({
         const compEarnings = fee - 2 * benefit;
         if (parseFloat(sender.balance) < totalDebit) {
           setIsLoading2(false);
-          Alert.alert("Insufficient Funds");
+          Alert.alert(t.insufficientFunds);
           return;
         }
         await client.graphql({
@@ -442,7 +448,7 @@ export default function SalesItemMapScreen({
         const biz = bizResult.data.getBizna;
         if (!biz) {
           setIsLoading2(false);
-          Alert.alert(`Could not find Account for business ${item.bizName}`);
+          Alert.alert(`${t.couldNotFindAccount} ${item.bizName}`);
           return;
         }
         const description = `${qty} ${item.itemUnit} of ${item.sokoname} @ ${item.sokoprice} = ${itemCost} bought at ${item.bizName} ${item.businessType}`;
@@ -537,13 +543,14 @@ export default function SalesItemMapScreen({
         }
       });
       Alert.alert("Success", "Transaction completed successfully.");
+        Alert.alert(t.success, t.transactionCompleted);
       setCart([]);
       setQuantities({});
       setPassword('');
       VwSalesDtls4Transport();
     } catch (err) {
       console.error("Transaction error:", err);
-      Alert.alert("Error", "Something went wrong during the transaction.");
+      Alert.alert(t.error, t.somethingWentWrong);
     } finally {
       setIsLoading2(false);
     }
@@ -555,12 +562,12 @@ export default function SalesItemMapScreen({
     const attributes = await fetchUserAttributes();
     if (cart.length === 0) {
       setIsLoading(false);
-      Alert.alert("Error", "Add items to cart.");
+      Alert.alert(t.error, t.addItemsToCart);
       return;
     }
     if (!password) {
       setIsLoading(false);
-      Alert.alert("Error", "Enter your password to proceed.");
+      Alert.alert(t.error, t.enterPasswordToProceed);
       return;
     }
     try {
@@ -638,7 +645,7 @@ export default function SalesItemMapScreen({
       const sender = userResult.data.getSMAccount;
       if (!sender || sender.pw !== password) {
         setIsLoading(false);
-        Alert.alert("Authentication Failed", "Incorrect password.");
+        Alert.alert(t.authenticationFailed, t.incorrectPassword);
         return;
       }
       const companyResult: any = await client.graphql({
@@ -691,7 +698,8 @@ export default function SalesItemMapScreen({
         const biz = bizResult.data.getBizna;
         if (!biz) {
           setIsLoading(false);
-          Alert.alert(`Could not find Account for business ${item.bizName}`);
+          Alert.alert(`${t.couldNotFindAccount} ${item.bizName}`);
+            Alert.alert(t.success, t.transactionCompleted);
           return;
         }
         const description = `${qty} ${item.itemUnit} of ${item.sokoname} @ ${item.sokoprice} = ${itemCost} bought at ${item.bizName} ${item.businessType}`;
@@ -827,7 +835,7 @@ export default function SalesItemMapScreen({
       Alert.alert("Success", "Transaction completed successfully.");
     } catch (err) {
       console.error("Transaction error:", err);
-      Alert.alert("Error", "Something went wrong during the transaction.");
+      Alert.alert(t.error, t.somethingWentWrong);
     } finally {
       setIsLoading(false);
     }
@@ -837,7 +845,7 @@ export default function SalesItemMapScreen({
   if (!userLocation) {
     return <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" />
-        <Text>Locating you now…</Text>
+        <Text>{t.locating}</Text>
       </View>;
   }
   return <View style={{
@@ -868,10 +876,25 @@ export default function SalesItemMapScreen({
           width: INPUT_WIDTH,
           marginRight: idx < INPUT_KEYS.length - 1 ? GAP : 0
         }}>
-              <TextInput placeholder={(PLACEHOLDERS as any)[key]} keyboardType={['radius', 'cheapestRank'].includes(key) ? 'numeric' : 'default'} style={styles.input} placeholderTextColor="#999" value={(filters as any)[key]} onChangeText={text => setFilters(f => ({
-            ...f,
-            [key]: text
-          }))} />
+              <TextInput
+                placeholder={
+                  key === 'radius' ? t.radiusPlaceholder :
+                  key === 'brand' ? t.brandPlaceholder :
+                  key === 'business' ? t.businessPlaceholder :
+                  key === 'itemName' ? t.itemNamePlaceholder :
+                  key === 'cheapestRank' ? t.cheapestRankPlaceholder :
+                  key === 'bizName' ? t.bizNamePlaceholder :
+                  (PLACEHOLDERS as any)[key]
+                }
+                keyboardType={['radius', 'cheapestRank'].includes(key) ? 'numeric' : 'default'}
+                style={styles.input}
+                placeholderTextColor="#999"
+                value={(filters as any)[key]}
+                onChangeText={text => setFilters(f => ({
+                  ...f,
+                  [key]: text
+                }))}
+              />
             </View>)}
         </View>
         <View style={styles.handleWrapper}><View style={styles.handleLine} /></View>
@@ -906,7 +929,7 @@ export default function SalesItemMapScreen({
           }}>
                   <Text style={styles.text}>
                     [{qty}×{item.unitQuantity}] {item.itemUnit} {item.itemBrand} {item.sokoname} @ {formatAmountSync(Number(item.sokoprice), natCode, ratesMap)}{item.sellerNationality ? ` (${formatAmountSync(Number(item.sokoprice), nationalityToCode(item.sellerNationality), ratesMap)})` : ''} at {item.bizName} ({item.businessType}) = {formatAmountSync(Number(total), natCode, ratesMap)}
-                    {'\n'}{item.bizContact} | Long press to add to cart
+                    {'\n'}{item.bizContact} | {t.longPressToAdd}
                   </Text>
 
                   <View style={styles.buttonRow}>
@@ -920,9 +943,9 @@ export default function SalesItemMapScreen({
                 backgroundColor: '#e58d29'
               }]}> 
                       <Text style={{
-                  color: 'white',
-                  fontSize: 12
-                }}>View Details</Text>
+                          color: 'white',
+                          fontSize: 12
+                        }}>{t.viewDetails}</Text>
                     </TouchableOpacity>
 
                     <TouchableOpacity onPress={() => updateQuantity(item.id, 1)} style={styles.btn}>
@@ -939,7 +962,7 @@ export default function SalesItemMapScreen({
         <TouchableOpacity onPress={() => setCartExpanded(!cartExpanded)}>
           <Text style={{
           fontWeight: 'bold'
-        }}>{cartExpanded ? 'Hide' : 'Show'} Cart ({cart.length})</Text>
+        }}>{cartExpanded ? t.hideCart : t.showCart} ({cart.length})</Text>
         </TouchableOpacity>
         {cartExpanded && <ScrollView>
             {cart.map(item => <View key={item.id} style={{
@@ -949,25 +972,26 @@ export default function SalesItemMapScreen({
                 <TouchableOpacity onPress={() => removeFromCart(item.id)}>
                   <Text style={{
               color: 'red'
-            }}>Remove</Text>
+            }}>{t.remove}</Text>
                 </TouchableOpacity>
               </View>)}
             <Text style={{
           fontWeight: 'bold',
           marginTop: 10
-        }}>{`Total: ${formatAmountSync(Number(OverallTotalDebit), natCode, ratesMap)}`}</Text>
+        }}>{`${t.total}: ${formatAmountSync(Number(OverallTotalDebit), natCode, ratesMap)}`}</Text>
             <TextInput placeholder="Enter Password" secureTextEntry={!isPasswordVisible} value={password} onChangeText={setPassword} style={styles.passwordInput} />
+                        <TextInput placeholder={t.enterPassword} secureTextEntry={!isPasswordVisible} value={password} onChangeText={setPassword} style={styles.passwordInput} />
             <TouchableOpacity onPress={validateAndTransact2} style={styles.checkoutBtn}>
               {isLoading2 ? <ActivityIndicator color="white" /> : <Text style={{
             color: 'white'
-          }}>Quick Checkout</Text>}
+          }}>{t.quickCheckout}</Text>}
             </TouchableOpacity>
             <TouchableOpacity onPress={validateAndTransact} style={[styles.checkoutBtn, {
           backgroundColor: '#34a4a1'
         }]}>
               {isLoading ? <ActivityIndicator color="white" /> : <Text style={{
             color: 'white'
-          }}>Full Checkout</Text>}
+          }}>{t.fullCheckout}</Text>}
             </TouchableOpacity>
           </ScrollView>}
       </View>

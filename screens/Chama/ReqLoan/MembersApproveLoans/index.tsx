@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet, ActivityIndicator, Alert, Modal, Image } from 'react-native';
+import translations from './translation';
+import { useTranslation } from 'react-i18next';
 import { useRoute } from '@react-navigation/native';
 import { printAsync } from '../../../../src/utils/print';
 import { listReqLoanChamas, listChamaMembers, listChamaLnApprovals, listChamaMinutes, listMinuteItemsByMinutes, listAttendanceByMinutes } from '../../../../src/graphql/queries';
@@ -10,6 +12,9 @@ import { getUrl } from 'aws-amplify/storage';
 const client = generateClient();
 
 const FloatedLoansList = () => {
+  const { i18n } = useTranslation();
+  const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+  const t = translations[lang] || translations.en;
   const route = useRoute<any>();
   const { memberDetails } = route.params;
   const groupContact = memberDetails.groupContact;
@@ -50,7 +55,7 @@ const FloatedLoansList = () => {
       });
       setLoans(res.data.listReqLoanChamas.items);
     } catch {
-      Alert.alert('Error', 'Failed to fetch loans');
+      Alert.alert(t.error, t.failedFetchLoans);
     } finally {
       setLoading(false);
     }
@@ -96,14 +101,14 @@ const FloatedLoansList = () => {
       });
       fetchLoans();
     } catch {
-      Alert.alert('Error', 'Approval failed');
+      Alert.alert(t.error, t.approvalFailed);
     }
   };
 
   /* ---------------- FETCH MINUTES ---------------- */
   const fetchMinutesForLoan = async (loan: any) => {
     if (!loan?.loanMinutes) {
-      Alert.alert('No minutes', 'This loan has no linked minutes record');
+      Alert.alert(t.noMinutes, t.noLinkedMinutes);
       return;
     }
     setLoadingMinutes(true);
@@ -114,7 +119,7 @@ const FloatedLoansList = () => {
       });
       const minutes = res?.data?.listChamaMinutes?.items?.[0];
       if (!minutes) {
-        Alert.alert('Minutes not found');
+        Alert.alert(t.minutesNotFound);
         return;
       }
       const [itemsRes, attendanceRes] = await Promise.all([
@@ -136,7 +141,7 @@ const FloatedLoansList = () => {
       });
     } catch (err) {
       console.error(err);
-      Alert.alert('Error', 'Failed to fetch minutes');
+      Alert.alert(t.error, t.failedFetchMinutes);
     } finally {
       setLoadingMinutes(false);
     }
@@ -197,7 +202,7 @@ const FloatedLoansList = () => {
       await printAsync({ html });
     } catch (err) {
       console.error(err);
-      Alert.alert("PDF Error", "Failed to export minutes PDF");
+      Alert.alert(t.pdfError, t.failedExportPDF);
     }
   };
 
@@ -213,7 +218,7 @@ const FloatedLoansList = () => {
   /* ---------------- UI ---------------- */
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.header}>Chama Loan Applications</Text>
+      <Text style={styles.header}>{t.header}</Text>
 
       {loading && <ActivityIndicator size="large" color="#e58d29" />}
 
@@ -225,7 +230,7 @@ const FloatedLoansList = () => {
         return (
                     <View key={loan.id} style={styles.card}>
             <Text style={styles.amount}>
-              KES {Number(loan.amount).toLocaleString()}
+              {t.amount} {Number(loan.amount).toLocaleString()}
             </Text>
 
             <Text style={styles.amount}>
@@ -233,43 +238,43 @@ const FloatedLoansList = () => {
             </Text>
 
             <Text style={styles.purpose}>
-              {loan.description || 'No description'}
+              {loan.description || t.noDescription}
             </Text>
 
             <View style={styles.row}>
-              <Text style={styles.detail}>Interest:</Text>
+              <Text style={styles.detail}>{t.interest}</Text>
               <Text style={styles.value}>{loan.repaymentAmt}%</Text>
             </View>
 
             <View style={styles.row}>
-              <Text style={styles.detail}>Repayment Period:</Text>
-              <Text style={styles.value}>{loan.repaymentPeriod} days</Text>
+              <Text style={styles.detail}>{t.repaymentPeriod}</Text>
+              <Text style={styles.value}>{loan.repaymentPeriod} {t.repaymentPeriodDays}</Text>
             </View>
 
             <View style={styles.row}>
-              <Text style={styles.detail}>Installment:</Text>
+              <Text style={styles.detail}>{t.installment}</Text>
               <Text style={styles.value}>
-                KES {Number(loan.installmentAmount).toLocaleString()}
+                {t.amount} {Number(loan.installmentAmount).toLocaleString()}
               </Text>
             </View>
 
             <View style={styles.row}>
-              <Text style={styles.detail}>Installment Frequency:</Text>
-              <Text style={styles.value}>{loan.paymentFrequency} days</Text>
+              <Text style={styles.detail}>{t.paymentFrequency}</Text>
+              <Text style={styles.value}>{loan.paymentFrequency} {t.paymentFrequencyDays}</Text>
             </View>
 
             <View style={styles.row}>
-              <Text style={styles.detail}>Default Penalty:</Text>
+              <Text style={styles.detail}>{t.defaultPenalty}</Text>
               <Text style={styles.value}>{loan.defaultPenalty}</Text>
             </View>
 
             {loan.AdvEmail !== 'None' && (
-              <Text style={styles.advocate}>Advocate: {loan.advLicNo}</Text>
+              <Text style={styles.advocate}>{t.advocate} {loan.advLicNo}</Text>
             )}
 
             {/* Approval text + progress bar */}
             <Text style={styles.approvalText}>
-              {approved}/{groupSize} approvals ({percent}%)
+              {approved}/{groupSize} {t.approvals} ({percent}%)
             </Text>
             <View style={styles.progressBg}>
               <View style={[styles.progressFill, { width: `${percent}%` }]} />
@@ -281,7 +286,7 @@ const FloatedLoansList = () => {
                 style={styles.approveBtn}
                 onPress={() => approveLoan(loan)}
               >
-                <Text style={styles.approveText}>Approve Loan</Text>
+                <Text style={styles.approveText}>{t.approveLoan}</Text>
               </TouchableOpacity>
             )}
 
@@ -290,7 +295,7 @@ const FloatedLoansList = () => {
               style={styles.secondaryBtn}
               onPress={() => fetchMinutesForLoan(loan)}
             >
-              <Text>Read Detailed Minutes</Text>
+              <Text>{t.readDetailedMinutes}</Text>
             </TouchableOpacity>
           </View>
         );
@@ -314,13 +319,13 @@ const FloatedLoansList = () => {
           ) : (
             <ScrollView style={styles.minutesModal}>
               <View style={styles.minutesCard}>
-                <Text style={styles.groupTitle}>{groupName} — Minutes</Text>
+                <Text style={styles.groupTitle}>{groupName} — {t.minutesHeader}</Text>
                 <Text style={styles.date}>📅 {selectedMinutes?.meetingDate}</Text>
                 <Text style={styles.meta}>
-                  Venue: {selectedMinutes?.venue || '-'}
+                  {t.venue} {selectedMinutes?.venue || '-'}
                 </Text>
                 <Text style={styles.meta}>
-                  Attendance:{' '}
+                  {t.attendance} {' '}
                   {selectedMinutes?.attendance?.filter(
                     (a: any) => a.attendanceStatus === 'PRESENT'
                   ).length}
@@ -331,10 +336,10 @@ const FloatedLoansList = () => {
                   style={styles.exportBtn}
                   onPress={() => exportMinutesToPDF(selectedMinutes)}
                 >
-                  <Text style={styles.exportText}>Export to PDF</Text>
+                  <Text style={styles.exportText}>{t.exportToPDF}</Text>
                 </TouchableOpacity>
 
-                <Text style={styles.section}>Minute Items</Text>
+                <Text style={styles.section}>{t.minuteItems}</Text>
                 {selectedMinutes?.items
                   ?.sort((a: any, b: any) => a.entryOrder - b.entryOrder)
                   .map((item: any) => (
@@ -345,13 +350,13 @@ const FloatedLoansList = () => {
                       <Text>{item.content}</Text>
                       {item.decision && (
                         <Text style={styles.decision}>
-                          Decision: {item.decision}
+                          {t.decision} {item.decision}
                         </Text>
                       )}
                     </View>
                   ))}
 
-                <Text style={styles.section}>Attendance List</Text>
+                <Text style={styles.section}>{t.attendanceList}</Text>
                 {selectedMinutes?.attendance?.map((a: any, idx: number) => (
                   <View key={idx} style={styles.memberRow}>
                     <Text>
@@ -360,10 +365,10 @@ const FloatedLoansList = () => {
                   </View>
                 ))}
 
-                <Text style={styles.section}>Signatures</Text>
+                <Text style={styles.section}>{t.signatures}</Text>
                 <View style={styles.signatures}>
                   <View style={styles.signatureBlock}>
-                    <Text style={styles.signatureLabel}>Chairperson</Text>
+                    <Text style={styles.signatureLabel}>{t.chairperson}</Text>
                     {selectedMinutes?.chairSignUrl &&
                     typeof selectedMinutes.chairSignUrl === 'string' &&
                     selectedMinutes.chairSignUrl.trim() !== '' ? (
@@ -372,11 +377,11 @@ const FloatedLoansList = () => {
                         style={styles.signature}
                       />
                     ) : (
-                      <Text style={styles.signatureMissing}>Not signed</Text>
+                      <Text style={styles.signatureMissing}>{t.notSigned}</Text>
                     )}
                   </View>
                   <View style={styles.signatureBlock}>
-                    <Text style={styles.signatureLabel}>Secretary</Text>
+                    <Text style={styles.signatureLabel}>{t.secretary}</Text>
                     {selectedMinutes?.secSignUrl &&
                     typeof selectedMinutes.secSignUrl === 'string' &&
                     selectedMinutes.secSignUrl.trim() !== '' ? (
@@ -385,7 +390,7 @@ const FloatedLoansList = () => {
                         style={styles.signature}
                       />
                     ) : (
-                      <Text style={styles.signatureMissing}>Not signed</Text>
+                      <Text style={styles.signatureMissing}>{t.notSigned}</Text>
                     )}
                   </View>
                 </View>
@@ -394,7 +399,7 @@ const FloatedLoansList = () => {
                   style={[styles.closeBtn, { backgroundColor: 'skyblue' }]}
                   onPress={() => setSelectedMinutes(null)}
                 >
-                  <Text style={{ color: '#fff' }}>Close</Text>
+                  <Text style={{ color: '#fff' }}>{t.close}</Text>
                 </TouchableOpacity>
               </View>
             </ScrollView>

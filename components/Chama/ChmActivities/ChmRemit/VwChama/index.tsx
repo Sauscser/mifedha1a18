@@ -1,4 +1,8 @@
 import { View, Text, Pressable, Alert, ActivityIndicator } from 'react-native';
+import { translations } from './translation';
+import { useTranslation } from 'react-i18next';
+import { useMemo } from 'react';
+import useColorScheme from '../../../../../hooks/useColorScheme';
 import { LinearGradient } from 'expo-linear-gradient';
 import Communications from 'react-native-communications';
 import { useNavigation } from '@react-navigation/core';
@@ -55,6 +59,12 @@ export interface ChamaRemitInfo {
 const client = generateClient();
 
 const ChmRemitInfo = ({ ChamaRemitDtls }: ChamaRemitInfo) => {
+  const colorScheme = useColorScheme();
+  
+    const { i18n } = useTranslation();
+    const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+    const t = translations[lang] || translations.en;
+
   const {
     id,
     confirm1,
@@ -108,19 +118,19 @@ const ChmRemitInfo = ({ ChamaRemitDtls }: ChamaRemitInfo) => {
     const attributes = await fetchUserAttributes();
 
     if (attributes.email !== signatory2) {
-      Alert.alert("Unauthorised! You are not Signatory 2");
+      Alert.alert(t.unauthSignatory2);
     } else if (confirm1 === "YES") {
-      Alert.alert("You have already confirmed");
+      Alert.alert(t.alreadyConfirmed);
     } else {
       try {
         await client.graphql({
           query: updateGroupNonLoans,
           variables: { input: { id, confirm1: "YES" } }
         });
-        Alert.alert("Signatory 2 confirmation successful!");
+        Alert.alert(t.signatory2Success);
       } catch (error) {
         console.log(error);
-        Alert.alert("Confirmation failed. Retry or update app");
+        Alert.alert(t.signatory2Fail);
       }
     }
     setIsLoading(false);
@@ -132,15 +142,15 @@ const ChmRemitInfo = ({ ChamaRemitDtls }: ChamaRemitInfo) => {
     const attributes = await fetchUserAttributes();
 
     if (attributes.email !== signatory3) {
-      Alert.alert("Unauthorised! You are not Signatory 3");
+      Alert.alert(t.unauthSignatory3);
       setIsLoading2(false);
       return;
     } else if (confirm2 === "YES") {
-      Alert.alert("You have already confirmed");
+      Alert.alert(t.alreadyConfirmed);
       setIsLoading2(false);
       return;
     } else if (confirm1 === "NO") {
-      Alert.alert("Signatory 2 should first confirm");
+      Alert.alert(t.signatory2First);
       setIsLoading2(false);
       return;
     }
@@ -190,10 +200,10 @@ const ChmRemitInfo = ({ ChamaRemitDtls }: ChamaRemitInfo) => {
       const totalTransaction = grossEarning + amountSent;
 
       // Validation checks
-      if (group.status !== "AccountActive") { Alert.alert('Sender account is inactive'); setIsLoading2(false); return; }
-      if (receiver.acStatus !== "AccountActive") { Alert.alert('Receiver account is inactive'); setIsLoading2(false); return; }
-      if ((parseFloat(receiver.balance) + amountSent) > parseFloat(receiver.MaxAcBal)) { Alert.alert('Receiver wallet full'); setIsLoading2(false); return; }
-      if (parseFloat(group.grpBal) < totalTransaction) { Alert.alert('Insufficient group balance'); setIsLoading2(false); return; }
+      if (group.status !== "AccountActive") { Alert.alert(t.senderInactive); setIsLoading2(false); return; }
+      if (receiver.acStatus !== "AccountActive") { Alert.alert(t.receiverInactive); setIsLoading2(false); return; }
+      if ((parseFloat(receiver.balance) + amountSent) > parseFloat(receiver.MaxAcBal)) { Alert.alert(t.receiverWalletFull); setIsLoading2(false); return; }
+      if (parseFloat(group.grpBal) < totalTransaction) { Alert.alert(t.insufficientGroupBalance); setIsLoading2(false); return; }
 
       // Update confirmation
       await client.graphql({
@@ -272,12 +282,12 @@ const ChmRemitInfo = ({ ChamaRemitDtls }: ChamaRemitInfo) => {
         }
       });
 
-      Alert.alert(`Amount ${formatAmountSync(Math.floor(amountSent), userCode, ratesMap)} sent successfully!`);
+      Alert.alert(`${t.amountSentSuccess}`);
       Communications.textWithoutEncoding(receiver.phonecontact, `Hi ${receiver.name}, ${group.grpName} has sent you KES ${amountSent}. Contact the group admin if unclear.`);
 
     } catch (error) {
       console.log("Error!", error);
-      Alert.alert("Error! Retry or update app");
+      Alert.alert(t.signatory3Fail);
     }
 
     setIsLoading2(false);
@@ -287,25 +297,25 @@ const ChmRemitInfo = ({ ChamaRemitDtls }: ChamaRemitInfo) => {
   return (
     <View style={styles.pageContainer}>
       <View style={styles.card}>
-        <Text style={styles.prodInfo}><Text style={styles.label}>Member Name: </Text>{receiverName}</Text>
-        <Text style={styles.prodInfo}><Text style={styles.label}>Transaction ID: </Text>{id}</Text>
-        <Text style={styles.prodInfo}><Text style={styles.label}>Amount: </Text> {formatAmountSync((amountSent), userCode, ratesMap)}</Text>
-        <Text style={styles.prodInfo}><Text style={styles.label}>Time Sent: </Text>{createdAt}</Text>
-        <Text style={styles.prodInfo}><Text style={styles.label}>Signatory 1 confirmation: </Text>{confirm1}</Text>
-        <Text style={styles.prodInfo}><Text style={styles.label}>Signatory 2 confirmation: </Text>{confirm2}</Text>
+        <Text style={styles.prodInfo}><Text style={styles.label}>{t.memberName} </Text>{receiverName}</Text>
+        <Text style={styles.prodInfo}><Text style={styles.label}>{t.transactionId} </Text>{id}</Text>
+        <Text style={styles.prodInfo}><Text style={styles.label}>{t.amount} </Text> {formatAmountSync((amountSent), userCode, ratesMap)}</Text>
+        <Text style={styles.prodInfo}><Text style={styles.label}>{t.timeSent} </Text>{createdAt}</Text>
+        <Text style={styles.prodInfo}><Text style={styles.label}>{t.signatory1} </Text>{confirm1}</Text>
+        <Text style={styles.prodInfo}><Text style={styles.label}>{t.signatory2} </Text>{confirm2}</Text>
         <Text style={styles.prodDesc}>{description}</Text>
       </View>
 
       <View style={styles.buttonRow}>
         <LinearGradient colors={['#e29d59', '#d18b4d']} style={styles.gradientButton}>
           <Pressable onPress={handleSignatory2} style={styles.pressableContent} disabled={isLoading}>
-            {isLoading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Signatory 2 Confirm</Text>}
+            {isLoading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>{t.signatory2Confirm}</Text>}
           </Pressable>
         </LinearGradient>
 
         <LinearGradient colors={['#e29d59', '#d18b4d']} style={styles.gradientButton}>
           <Pressable onPress={handleSignatory3} style={styles.pressableContent} disabled={isLoading2}>
-            {isLoading2 ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Signatory 3 Confirm</Text>}
+            {isLoading2 ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>{t.signatory3Confirm}</Text>}
           </Pressable>
         </LinearGradient>
       </View>

@@ -6,8 +6,14 @@ import { listChamaMembers } from '../../../../../src/graphql/queries';
 import { useRoute } from '@react-navigation/native';
 import { generateClient } from 'aws-amplify/api';
 import { getCurrentUser, fetchUserAttributes } from 'aws-amplify/auth';
+import { useTranslation } from 'react-i18next';
+import translations from './translation';
 const client = generateClient();
+
 const FetchSMCovLns = props => {
+  const { i18n } = useTranslation();
+  const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+  const t = translations[lang] || translations.en;
   const [LneePhn, setLneePhn] = useState(null);
   const [loading, setLoading] = useState(false);
   const [Loanees, setLoanees] = useState([]);
@@ -19,7 +25,7 @@ const FetchSMCovLns = props => {
       setLneePhn(attributes.email);
     } catch (error) {
       console.log(error);
-      Alert.alert("Error fetching user details");
+      Alert.alert(t.errorFetchingUser);
     }
   };
   useEffect(() => {
@@ -28,7 +34,7 @@ const FetchSMCovLns = props => {
   const fetchLoanees = async () => {
     setLoading(true);
     try {
-      const Lonees: any = await client.graphql({
+      const Lonees = await client.graphql({
         query: listChamaMembers,
         variables: {
           filter: {
@@ -40,12 +46,12 @@ const FetchSMCovLns = props => {
       });
       const grps = Lonees.data.listChamaMembers.items;
       if (grps.length < 1) {
-        Alert.alert("You don't belong to any group");
+        Alert.alert(t.noGroups);
       }
       setLoanees(grps);
     } catch (error) {
       console.log(error);
-      Alert.alert("Error fetching Chama members. Please retry.");
+      Alert.alert(t.errorFetchingMembers);
     } finally {
       setLoading(false);
     }
@@ -54,15 +60,18 @@ const FetchSMCovLns = props => {
     fetchLoanees();
   }, []);
   return <View style={styles.root}>
-      <FlatList style={{
-      width: "100%"
-    }} data={Loanees} renderItem={({
-      item
-    }) => <LnerStts ChamaMmbrshpDtls={item} />} keyExtractor={(item, index) => index.toString()} onRefresh={fetchLoanees} refreshing={loading} showsVerticalScrollIndicator={false} ListHeaderComponentStyle={{
-      alignItems: 'center'
-    }} ListHeaderComponent={() => <>
-            <Text style={styles.label}>Chama Members</Text>
-          </>} />
+      <FlatList style={{ width: "100%" }}
+        data={Loanees}
+        renderItem={({ item }) => <LnerStts ChamaMmbrshpDtls={item} />}
+        keyExtractor={(item, index) => index.toString()}
+        onRefresh={fetchLoanees}
+        refreshing={loading}
+        showsVerticalScrollIndicator={false}
+        ListHeaderComponentStyle={{ alignItems: 'center' }}
+        ListHeaderComponent={() => <>
+          <Text style={styles.label}>{t.groupMembers}</Text>
+        </>}
+      />
     </View>;
 };
 export default FetchSMCovLns;

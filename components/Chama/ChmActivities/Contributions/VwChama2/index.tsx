@@ -1,6 +1,8 @@
 import { useNavigation } from '@react-navigation/core';
 import React, {useEffect, useState} from 'react';
 import {View, Text, ScrollView} from 'react-native';
+import { useTranslation } from 'react-i18next';
+import { translations } from './translation';
 
 import styles from './styles';
 
@@ -11,7 +13,6 @@ import {fetchUserAttributes} from 'aws-amplify/auth';
 import { getSMAccount } from '../../../../../src/graphql/queries';
 
 import { generateClient } from 'aws-amplify/api';
-
 
 export interface ChamaContriInfo {
    ChamaContriDtls: {
@@ -46,6 +47,9 @@ const ChmContriInfo = (props:ChamaContriInfo) => {
   }} = props ;
 
   const navigation = useNavigation();
+  const { i18n } = useTranslation();
+  const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+  const t = translations[lang] || translations.en;
 
   const TryChmLn = () => {
     navigation.navigate("ChmLnsGvnOuts", {grpContact});
@@ -79,12 +83,12 @@ const ChmContriInfo = (props:ChamaContriInfo) => {
        <View style = {styles.pageContainer}>              
            <View style={styles.card}>
 
-       <Text style={styles.prodInfo}><Text style={styles.label}>Transaction ID: </Text> {id}</Text>
-       <Text style={styles.prodInfo}><Text style={styles.label}> Member Name: </Text> {mmberNme}</Text>
-       <Text style={styles.prodInfo}><Text style={styles.label}> Member Chama ID:</Text> {memberId}</Text>
-       <Text style={styles.prodInfo}><Text style={styles.label}> Amount: </Text> {formatAmountSync(Math.floor(contriAmount), userCode, ratesMap)}</Text>
-       <Text style={styles.prodInfo}><Text style={styles.label}> Member Contact :</Text> {memberPhn}</Text>
-       <Text style={styles.prodInfo}><Text style={styles.label}> Time Sent :</Text> {createdAt}</Text>
+       <Text style={styles.prodInfo}><Text style={styles.label}>{t.transactionId}: </Text> {id}</Text>
+       <Text style={styles.prodInfo}><Text style={styles.label}> {t.memberName}: </Text> {mmberNme}</Text>
+       <Text style={styles.prodInfo}><Text style={styles.label}> {t.memberChamaId}:</Text> {memberId}</Text>
+       <Text style={styles.prodInfo}><Text style={styles.label}> {t.amount}: </Text> {formatAmountSync(Math.floor(contriAmount), userCode, ratesMap)}</Text>
+       <Text style={styles.prodInfo}><Text style={styles.label}> {t.memberContact} :</Text> {memberPhn}</Text>
+       <Text style={styles.prodInfo}><Text style={styles.label}> {t.timeSent} :</Text> {createdAt}</Text>
        
                   
        </View>

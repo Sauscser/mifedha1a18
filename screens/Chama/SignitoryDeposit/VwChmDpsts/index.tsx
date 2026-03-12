@@ -1,131 +1,131 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, FlatList, Alert } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, ActivityIndicator, Alert, StyleSheet } from 'react-native';
 import NonLnSent from "../../../../components/Chama/VwDepositsChm";
-import styles from './styles';
-import { getCompany, getSMAccount, VwMFNFltDeductns } from '../../../../src/graphql/queries';
-import { updateCompany, updateSMAccount } from '../../../../src/graphql/mutations';
-import { useRoute } from '@react-navigation/native';
+import { listChamaMembers, VwMFNFltDeductns } from '../../../../src/graphql/queries';
+import { fetchUserAttributes } from 'aws-amplify/auth';
 import { generateClient } from 'aws-amplify/api';
-import { getCurrentUser, fetchUserAttributes } from 'aws-amplify/auth';
+import translations from './translation';
 const client = generateClient();
-const FetchSMNonLnsSnt = props => {
-  const [loading, setLoading] = useState(false);
-  const [Recvrs, setRecvrs] = useState([]);
-  const route = useRoute();
-  const fetchUsrDtls = async () => {
-    const user = await getCurrentUser();
-    const attributes = await fetchUserAttributes();
+
+const VwChmDpsts = () => {
+  const [loading, setLoading] = useState(true);
+  const [groups, setGroups] = useState([]);
+  const [selectedGroup, setSelectedGroup] = useState(null);
+  const [deposits, setDeposits] = useState([]);
+  const [depositsLoading, setDepositsLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [email, setEmail] = useState('');
+  const t = translations['en']; // Replace with i18n if needed
+
+  useEffect(() => {
+    const fetchGroups = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const attributes = await fetchUserAttributes();
+        setEmail(attributes.email);
+        const res = await client.graphql({
+          query: listChamaMembers,
+          variables: {
+            filter: { memberContact: { eq: attributes.email } }
+          }
+        });
+        setGroups(res.data.listChamaMembers.items || []);
+      } catch (e) {
+        setError('Failed to load groups');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchGroups();
+  }, []);
+
+  const fetchDeposits = async (groupContact) => {
+    setDepositsLoading(true);
+    setError(null);
     try {
-      const MFNDtls: any = await client.graphql({
-        query: getSMAccount,
+      const res = await client.graphql({
+        query: VwMFNFltDeductns,
         variables: {
-          awsemail: attributes.email
+          depositerid: groupContact,
+          sortDirection: 'DESC',
+          limit: 100
         }
       });
-      const balances = MFNDtls.data.getSMAccount.balance;
-      const owner = MFNDtls.data.getSMAccount.owner;
-      const fetchLoanees = async () => {
-        setLoading(true);
-        try {
-          const Lonees: any = await client.graphql({
-            query: VwMFNFltDeductns,
-            variables: {
-              depositerid: route.params.grpContact,
-              sortDirection: "DESC",
-              limit: 100
-            }
-          });
-          setRecvrs(Lonees.data.VwMFNFltDeductns.items);
-          const fetchCompDtls = async () => {
-            try {
-              const MFNDtls: any = await client.graphql({
-                query: getCompany,
-                variables: {
-                  AdminId: "BaruchHabaB'ShemAdonai2"
-                }
-              });
-              const companyEarningBals = MFNDtls.data.getCompany.companyEarningBal;
-              const companyEarnings = MFNDtls.data.getCompany.companyEarning;
-              const enquiryFees = MFNDtls.data.getCompany.enquiryFee;
-              const updtUsrAc = async () => {
-                try {
-                  await client.graphql({
-                    query: updateSMAccount,
-                    variables: {
-                      input: {
-                        awsemail: attributes.email,
-                        balance: parseFloat(balances) - parseFloat(enquiryFees)
-                      }
-                    }
-                  });
-                } catch (error) {
-                  Alert.alert("Retry or update app or call customer care");
-                  return;
-                }
-              };
-              const updtActAdm = async () => {
-                try {
-                  await client.graphql({
-                    query: updateCompany,
-                    variables: {
-                      input: {
-                        AdminId: "BaruchHabaB'ShemAdonai2",
-                        companyEarningBal: parseFloat(companyEarningBals) + parseFloat(enquiryFees),
-                        companyEarning: parseFloat(companyEarnings) + parseFloat(enquiryFees)
-                      }
-                    }
-                  });
-                } catch (error) {
-                  Alert.alert("Check your internet connection");
-                  return;
-                }
-                await updtUsrAc();
-              };
-              if (parseFloat(balances) < parseFloat(enquiryFees)) {
-                Alert.alert("Account Balance is very little");
-              } else {
-                await updtActAdm();
-              }
-            } catch (e) {
-              Alert.alert("Chama does not exist; otherwise check internet connection");
-              console.log(e);
-              return;
-            }
-          };
-          await fetchCompDtls();
-        } catch (e) {
-          Alert.alert("Chama does not exist; otherwise check internet connection");
-          console.log(e);
-          return;
-        } finally {
-          setLoading(false);
-        }
-      };
-      if (user.userId !== owner) {
-        Alert.alert("Please first create main account");
-      } else {
-        await fetchLoanees();
-      }
+      setDeposits(res.data.VwMFNFltDeductns.items || []);
     } catch (e) {
-      console.log(e);
+      setError('Failed to load deposits');
     } finally {
-      setLoading(false);
+      setDepositsLoading(false);
     }
   };
-  useEffect(() => {
-    fetchUsrDtls();
-  }, []);
-  return <View style={styles.root}>
-      <FlatList style={{
-      width: "100%"
-    }} data={Recvrs} renderItem={({
-      item
-    }) => <NonLnSent SMAc={item} />} keyExtractor={(item, index) => index.toString()} onRefresh={fetchUsrDtls} refreshing={loading} showsVerticalScrollIndicator={false} ListHeaderComponentStyle={{
-      alignItems: 'center'
-    }} ListHeaderComponent={() => <>
-            <Text style={styles.label}> Chama Deposits</Text>
-            <Text style={styles.label2}> (Please swipe down to load)</Text>
-          </>} />
-    </View>;
+
+  const handleSelectGroup = (group) => {
+    setSelectedGroup(group);
+    fetchDeposits(group.groupContact);
+  };
+
+  const handleBackToGroups = () => {
+    setSelectedGroup(null);
+    setDeposits([]);
+  };
+
+  if (loading) {
+    return <View style={styles.center}><ActivityIndicator size="large" /><Text>{t.loading || 'Loading...'}</Text></View>;
+  }
+  if (error) {
+    return <View style={styles.center}><Text style={{ color: 'red' }}>{error}</Text></View>;
+  }
+
+  if (!selectedGroup) {
+    return (
+      <View style={styles.container}>
+        <Text style={styles.header}>{t.selectGroup || 'Select a Group'}</Text>
+        <FlatList
+          data={groups}
+          keyExtractor={(item) => item.MembaId}
+          renderItem={({ item }) => (
+            <TouchableOpacity style={styles.card} onPress={() => handleSelectGroup(item)}>
+              <Text style={styles.groupName}>{item.groupName}</Text>
+              <Text style={styles.groupId}>{t.memberId || 'Member ID'}: {item.MembaId}</Text>
+            </TouchableOpacity>
+          )}
+          ListEmptyComponent={<Text style={styles.center}>{t.noGroups || 'No groups found.'}</Text>}
+        />
+      </View>
+    );
+  }
+
+  return (
+    <View style={styles.container}>
+      <TouchableOpacity onPress={handleBackToGroups} style={styles.backButton}>
+        <Text style={styles.backButtonText}>{t.backToGroups || 'Back to Groups'}</Text>
+      </TouchableOpacity>
+      <Text style={styles.header}>{selectedGroup.groupName}</Text>
+      <Text style={styles.groupId}>{t.memberId || 'Member ID'}: {selectedGroup.MembaId}</Text>
+      {depositsLoading ? (
+        <ActivityIndicator size="large" />
+      ) : (
+        <FlatList
+          data={deposits}
+          keyExtractor={(item, index) => item.id || index.toString()}
+          renderItem={({ item }) => <NonLnSent SMAc={item} />}
+          ListEmptyComponent={<Text style={styles.center}>{t.noDeposits || 'No deposits found.'}</Text>}
+        />
+      )}
+    </View>
+  );
 };
-export default FetchSMNonLnsSnt;
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: '#fff', padding: 16 },
+  header: { fontSize: 22, fontWeight: 'bold', marginBottom: 16, textAlign: 'center' },
+  card: { backgroundColor: '#f0f8ff', padding: 18, borderRadius: 10, marginBottom: 12, elevation: 2 },
+  groupName: { fontSize: 18, fontWeight: '600', color: '#2471a3' },
+  groupId: { fontSize: 14, color: '#888', marginTop: 4 },
+  backButton: { marginBottom: 16, alignSelf: 'flex-start', backgroundColor: '#2471a3', padding: 10, borderRadius: 6 },
+  backButtonText: { color: '#fff', fontWeight: 'bold' },
+  center: { textAlign: 'center', marginTop: 24, fontSize: 16 },
+});
+
+export default VwChmDpsts;

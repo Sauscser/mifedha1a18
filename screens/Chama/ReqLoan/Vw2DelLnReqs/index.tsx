@@ -5,8 +5,13 @@ import styles from './styles';
 import { getSMAccount, listReqLoanChamas, listReqLoans } from '../../../../src/graphql/queries';
 import { generateClient } from 'aws-amplify/api';
 import { getCurrentUser, fetchUserAttributes } from 'aws-amplify/auth';
+import translations from './translation';
+import { useTranslation } from 'react-i18next';
 const client = generateClient();
 const FetchSMNonCovLns = props => {
+  const { i18n } = useTranslation();
+  const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+  const t = translations[lang] || translations.en;
   const [loading, setLoading] = useState(false);
   const [Loanees, setLoanees] = useState([]);
   const [ChmPhn, setChmPhn] = useState('');
@@ -60,7 +65,7 @@ const FetchSMNonCovLns = props => {
         }
       };
       if (user.userId !== owner) {
-        Alert.alert("Please first create main account");
+        Alert.alert(t.pleaseCreateMainAccount);
         return;
       } else {
         await fetchLoanees();
@@ -74,17 +79,25 @@ const FetchSMNonCovLns = props => {
   useEffect(() => {
     gtBizna();
   }, []);
-  return <View style={styles.root}>
-      <FlatList style={{
-      width: "100%"
-    }} data={Loanees} renderItem={({
-      item
-    }) => <LnerStts SMAc={item} />} keyExtractor={(item, index) => index.toString()} onRefresh={gtBizna} refreshing={loading} showsVerticalScrollIndicator={false} ListHeaderComponentStyle={{
-      alignItems: 'center'
-    }} ListHeaderComponent={() => <>
-            <Text style={styles.label}> Swipe to View My Loan Requests</Text>
-            <Text style={styles.label2}> (Select to Delete)</Text>
-          </>} />
-    </View>;
+  return (
+    <View style={styles.root}>
+      <FlatList
+        style={{ width: '100%' }}
+        data={Loanees}
+        renderItem={({ item }) => <LnerStts SMAc={item} />}
+        keyExtractor={(item, index) => index.toString()}
+        onRefresh={gtBizna}
+        refreshing={loading}
+        showsVerticalScrollIndicator={false}
+        ListHeaderComponentStyle={{ alignItems: 'center' }}
+        ListHeaderComponent={() => (
+          <>
+            <Text style={styles.label}>{t.swipeToView}</Text>
+            <Text style={styles.label2}>{t.selectToDelete}</Text>
+          </>
+        )}
+      />
+    </View>
+  );
 };
 export default FetchSMNonCovLns;

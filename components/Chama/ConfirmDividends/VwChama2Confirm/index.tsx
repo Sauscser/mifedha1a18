@@ -3,6 +3,8 @@ import React from 'react';
 import { View, Text, ScrollView, Pressable } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import styles from './styles';
+import { translations } from './translation';
+import { useTranslation } from 'react-i18next';
 
 export interface ChamaMmbrshpInfo {
   ChamaMmbrshpDtls: {
@@ -30,25 +32,24 @@ const ChmMbrShpInfo = (props: ChamaMmbrshpInfo) => {
   
 
   const navigation = useNavigation();
+  const { i18n } = useTranslation();
+  const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+  const t = translations[lang] || translations.en;
   const Vw2Confirm = () => navigation.navigate('ChamaRemts', { groupContact });
-  
   return (
     <View style={styles.pageContainer}>
       <Pressable onPress={Vw2Confirm} style={styles.card}>
         <Text style={styles.prodName}>{memberName}</Text>
         <Text style={styles.prodInfo}>
-          <Text style={styles.label}>Group Name:</Text> {groupName}
+          <Text style={styles.label}>{t.groupName}</Text> {groupName}
         </Text>
         <Text style={styles.prodInfo}>
-          <Text style={styles.label}>Member Name:</Text> {memberName}
+          <Text style={styles.label}>{t.memberName}</Text> {memberName}
         </Text>
         <Text style={styles.prodInfo}>
-          <Text style={styles.label}>Click to proceed:</Text>
+          <Text style={styles.label}>{t.clickToProceed}</Text>
         </Text>
-        
       </Pressable>
-
-   
     </View>
   );
 };

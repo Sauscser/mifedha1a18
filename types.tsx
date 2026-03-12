@@ -135,6 +135,7 @@ ViewMinutes: {
         sellerAccount:string
       };
       consumerApproveVoucher: undefined;
+      SignitoryWthdrwFndss3:undefined;
 
       LinkCOMBSeller: {id:string};
       CreateCOMBContract: undefined;

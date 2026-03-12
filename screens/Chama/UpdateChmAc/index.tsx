@@ -1,9 +1,13 @@
 import React, { useState } from 'react';
 import { useNavigation } from '@react-navigation/native';
 import { View, Text, Pressable, SafeAreaView, ScrollView } from 'react-native';
-import styles from './styles';
+import { useTranslation } from 'react-i18next';
+import translations from './translation';
 const MyLoanAccount = props => {
   const navigation = useNavigation();
+  const { i18n } = useTranslation();
+  const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+  const t = translations[lang] || translations.en;
   const [id, setID] = useState("");
   const [ChamaNMember, setChamaNMember] = useState("");
   const ItemAds = () => {
@@ -90,54 +94,123 @@ const MyLoanAccount = props => {
   const ChmAddAdmin = () => {
     navigation.navigate('ChmAddAdmin');
   };
-  return <SafeAreaView>
-      <ScrollView>
- 
-
-
-
-            <View style={styles.clientsView}>
-              <Text style={styles.salesText}>Update Group Account</Text>
-
-              <View style={styles.viewForClientsAndTitle}>
-              <View style={styles.viewForClientsCategories7}>
-                  
-                  <Pressable onPress={ChmAddAdmin} style={styles.viewForClientsPressables}>
-                  <Text style={styles.salesPressableText}>Add Admin</Text>
-                  </Pressable>
-                </View>
-
-            
-
-                
-
-                <View style={styles.viewForClientsCategories7}>
-                <Pressable onPress={ChmObject} style={styles.viewForClientsPressables}>
-                  <Text style={styles.salesPressableText}>Stop Operations</Text>
-
-                  </Pressable>
-                </View>
-
-                <View style={styles.viewForClientsCategories7}>
-                <Pressable onPress={ChmCancelObjection} style={styles.viewForClientsPressables}>
-                  <Text style={styles.salesPressableText}>Allow Operations</Text>
-
-                  </Pressable>
-                </View>
-
-                <View style={styles.viewForClientsCategories7}>
-                <Pressable onPress={ChmUpdate} style={styles.viewForClientsPressables}>
-                  <Text style={styles.salesPressableText}>Change PassWord</Text>
-
-                  </Pressable>
-                </View>
-
-              </View>
-            </View>
-
-       
-
-    </ScrollView>
-    </SafeAreaView>;
+  return (
+    <SafeAreaView style={{ flex: 1, backgroundColor: 'skyblue' }}>
+      <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: 32 }}>
+        <View
+          style={{
+            backgroundColor: '#fff',
+            borderRadius: 20,
+            padding: 28,
+            width: '92%',
+            maxWidth: 480,
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.10,
+            shadowRadius: 8,
+            elevation: 5,
+            alignItems: 'center',
+          }}
+        >
+          <Text
+            style={{
+              fontSize: 26,
+              fontWeight: 'bold',
+              color: '#e29d58',
+              textAlign: 'center',
+              marginBottom: 28,
+              letterSpacing: 0.5,
+            }}
+          >
+            {t.updateGroupAccount}
+          </Text>
+          <View style={{ width: '100%', flexDirection: 'row', justifyContent: 'space-between', gap: 12 }}>
+            <Pressable
+              onPress={ChmAddAdmin}
+              style={({ pressed }) => ({
+                backgroundColor: pressed ? '#e29d58' : 'skyblue',
+                borderRadius: 14,
+                paddingVertical: 22,
+                paddingHorizontal: 10,
+                flex: 1,
+                marginHorizontal: 4,
+                alignItems: 'center',
+                justifyContent: 'center',
+                shadowColor: '#e29d58',
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.12,
+                shadowRadius: 4,
+                elevation: 2,
+              })}
+            >
+              <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 15, letterSpacing: 0.2 }}>{t.addAdmin}</Text>
+            </Pressable>
+            <Pressable
+              onPress={ChmObject}
+              style={({ pressed }) => ({
+                backgroundColor: pressed ? '#e29d58' : 'skyblue',
+                borderRadius: 14,
+                paddingVertical: 22,
+                paddingHorizontal: 10,
+                flex: 1,
+                marginHorizontal: 4,
+                alignItems: 'center',
+                justifyContent: 'center',
+                shadowColor: '#e29d58',
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.12,
+                shadowRadius: 4,
+                elevation: 2,
+              })}
+            >
+              <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 15, letterSpacing: 0.2 }}>{t.stopOperations}</Text>
+            </Pressable>
+          </View>
+          <View style={{ width: '100%', flexDirection: 'row', justifyContent: 'space-between', gap: 12, marginTop: 18 }}>
+            <Pressable
+              onPress={ChmCancelObjection}
+              style={({ pressed }) => ({
+                backgroundColor: pressed ? '#e29d58' : 'skyblue',
+                borderRadius: 14,
+                paddingVertical: 22,
+                paddingHorizontal: 10,
+                flex: 1,
+                marginHorizontal: 4,
+                alignItems: 'center',
+                justifyContent: 'center',
+                shadowColor: '#e29d58',
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.12,
+                shadowRadius: 4,
+                elevation: 2,
+              })}
+            >
+              <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 15, letterSpacing: 0.2 }}>{t.allowOperations}</Text>
+            </Pressable>
+            <Pressable
+              onPress={ChmUpdate}
+              style={({ pressed }) => ({
+                backgroundColor: pressed ? '#e29d58' : 'skyblue',
+                borderRadius: 14,
+                paddingVertical: 22,
+                paddingHorizontal: 10,
+                flex: 1,
+                marginHorizontal: 4,
+                alignItems: 'center',
+                justifyContent: 'center',
+                shadowColor: '#e29d58',
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.12,
+                shadowRadius: 4,
+                elevation: 2,
+              })}
+            >
+              <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 15, letterSpacing: 0.2 }}>{t.changePassword}</Text>
+            </Pressable>
+          </View>
+        </View>
+      </ScrollView>
+    </SafeAreaView>
+  );
 };
 export default MyLoanAccount;

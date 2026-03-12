@@ -10,6 +10,8 @@ import {
   Alert,
 } from "react-native";
 import { printAsync } from "../../../../src/utils/print";
+import translations from './translation';
+import { useTranslation } from 'react-i18next';
 import { generateClient } from "aws-amplify/api";
 import { getCurrentUser, fetchUserAttributes } from "aws-amplify/auth";
 import { getUrl } from "aws-amplify/storage";
@@ -35,6 +37,9 @@ const SafeImage = ({ uri, style }: { uri?: string; style: any }) => {
 
 const ViewMinutesScreen = ({ route }) => {
   const { grpContact, groupName } = route.params;
+  const { i18n } = useTranslation();
+  const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+  const t = translations[lang] || translations.en;
   const [minutesList, setMinutesList] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -82,7 +87,7 @@ const ViewMinutesScreen = ({ route }) => {
       setMinutesList(enriched);
     } catch (error) {
       console.log("Error loading minutes:", error);
-      Alert.alert("Error", "Unable to load minutes");
+      Alert.alert(t.error, t.unableToLoad);
     } finally {
       setLoading(false);
     }
@@ -101,9 +106,9 @@ const ViewMinutesScreen = ({ route }) => {
         variables: { grpContact: min.grpContact },
       });
       const group = groupRes?.data?.getGroup;
-      if (!group) return Alert.alert("Error", "Group not found");
+      if (!group) return Alert.alert(t.error, t.groupNotFound);
       if (group.Admin2 !== email) {
-        return Alert.alert("Not authorized", "Only the secretary can sign.");
+        return Alert.alert(t.notAuthorized, t.onlySecretary);
       }
       await client.graphql({
         query: updateChamaMinutes,
@@ -130,17 +135,17 @@ const ViewMinutesScreen = ({ route }) => {
             : m
         )
       );
-      Alert.alert("Signed", "Minutes finalized by secretary.");
+      Alert.alert(t.signed, t.finalizedBySecretary);
     } catch (err) {
       console.error(err);
-      Alert.alert("Error", "Unable to sign as secretary.");
+      Alert.alert(t.error, t.unableToLoad);
     }
   };
 
   const signAsChair = async (min: any) => {
     try {
       if (min.status !== "FINALIZED") {
-        return Alert.alert("Not allowed", "Secretary must sign first.");
+        return Alert.alert(t.notAllowed, t.secretaryFirst);
       }
       const user = await getCurrentUser();
       const attributes = await fetchUserAttributes();
@@ -150,9 +155,9 @@ const ViewMinutesScreen = ({ route }) => {
         variables: { grpContact: min.grpContact },
       });
       const group = groupRes?.data?.getGroup;
-      if (!group) return Alert.alert("Error", "Group not found");
+      if (!group) return Alert.alert(t.error, t.groupNotFound);
       if (group.Admin1 !== email) {
-        return Alert.alert("Not authorized", "Only the chair can sign.");
+        return Alert.alert(t.notAuthorized, t.onlyChair);
       }
       await client.graphql({
         query: updateChamaMinutes,
@@ -179,10 +184,10 @@ const ViewMinutesScreen = ({ route }) => {
             : m
         )
       );
-      Alert.alert("Signed", "Minutes locked by chair.");
+      Alert.alert(t.signed, t.lockedByChair);
     } catch (err) {
       console.error(err);
-      Alert.alert("Error", "Unable to sign as chair.");
+      Alert.alert(t.error, t.unableToLoad);
     }
   };
 
@@ -261,7 +266,7 @@ const ViewMinutesScreen = ({ route }) => {
       `;
       await printAsync({ html });
     } catch (err) {
-      Alert.alert("PDF Error", "Unable to export minutes");
+      Alert.alert(t.pdfError, t.unableToExport);
     }
   };
 
@@ -278,7 +283,7 @@ const ViewMinutesScreen = ({ route }) => {
 
   return (
     <ScrollView style={styles.container}>
-      <Text style={styles.groupTitle}>{groupName} — Minutes</Text>
+      <Text style={styles.groupTitle}>{groupName} — {t.minutes}</Text>
 
       {minutesList.map((min) => {
         const presentCount = (min.attendance || []).filter(
@@ -286,18 +291,18 @@ const ViewMinutesScreen = ({ route }) => {
         ).length;
         return (
           <View key={min.id} style={styles.card}>
-            <Text style={styles.date}>📅 {min.meetingDate}</Text>
-            <Text style={styles.meta}>Venue: {min.venue || "-"}</Text>
-            <Text style={styles.meta}>Attendance: {presentCount}</Text>
+            <Text style={styles.date}>📅 {t.date}: {min.meetingDate}</Text>
+            <Text style={styles.meta}>{t.venue}: {min.venue || "-"}</Text>
+            <Text style={styles.meta}>{t.attendance}: {presentCount}</Text>
 
             <TouchableOpacity
               style={styles.exportBtn}
               onPress={() => exportToPDF(min)}
             >
-              <Text style={styles.exportText}>Export PDF</Text>
+              <Text style={styles.exportText}>{t.exportPDF}</Text>
             </TouchableOpacity>
 
-            <Text style={styles.section}>Minutes</Text>
+            <Text style={styles.section}>{t.minutes}</Text>
             {(min.items || [])
               .sort(
                 (a: any, b: any) => (a.entryOrder || 0) - (b.entryOrder || 0)
@@ -310,13 +315,13 @@ const ViewMinutesScreen = ({ route }) => {
                   <Text>{item.content}</Text>
                   {item.decision && (
                     <Text style={styles.decision}>
-                      Decision: {item.decision}
+                      {t.decision}: {item.decision}
                     </Text>
                   )}
                 </View>
               ))}
 
-            <Text style={styles.section}>Signatures</Text>
+            <Text style={styles.section}>{t.signatures}</Text>
             <View style={styles.signatures}>
               <SafeImage uri={min.chairSignUrl} style={styles.signature} />
               <SafeImage uri={min.secSignUrl} style={styles.signature} />
@@ -327,13 +332,13 @@ const ViewMinutesScreen = ({ route }) => {
                 style={styles.signBtn}
                 onPress={() => signAsSecretary(min)}
               >
-                <Text style={styles.signText}>Secretary Sign</Text>
+                <Text style={styles.signText}>{t.secretarySign}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.signBtn, { backgroundColor: "skyblue" }]}
                 onPress={() => signAsChair(min)}
               >
-                <Text style={styles.signText}>Chair Sign</Text>
+                <Text style={styles.signText}>{t.chairSign}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -445,6 +450,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 6,
     alignItems: "center",
+    padding: 10
   },
   signText: {
     color: "#fff",

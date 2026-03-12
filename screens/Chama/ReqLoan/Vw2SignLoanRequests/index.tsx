@@ -4,11 +4,16 @@ import { useNavigation } from '@react-navigation/native';
 import { getSMAccount, listChamaMembers } from '../../../../src/graphql/queries';
 import { generateClient } from 'aws-amplify/api';
 import { getCurrentUser, fetchUserAttributes } from 'aws-amplify/auth';
+import translations from './translation';
+import { useTranslation } from 'react-i18next';
 const client = generateClient();
 const FetchSMCovLns = () => {
   const [loading, setLoading] = useState(false);
   const [members, setMembers] = useState<any[]>([]);
   const navigation = useNavigation<any>();
+  const { i18n } = useTranslation();
+  const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+  const t = translations[lang] || translations.en;
   const fetchUsrDtls = async () => {
     setLoading(true);
     try {
@@ -22,7 +27,7 @@ const FetchSMCovLns = () => {
       });
       const owner = account.data.getSMAccount.owner;
       if (user.userId !== owner) {
-        Alert.alert('Please first create main account');
+        Alert.alert(t.pleaseCreateMainAccount);
         return;
       }
       const res: any = await client.graphql({
@@ -37,11 +42,11 @@ const FetchSMCovLns = () => {
       });
       const items = res.data.listChamaMembers.items;
       if (items.length < 1) {
-        Alert.alert('You do not belong to any group');
+        Alert.alert(t.notInGroup);
       }
       setMembers(items);
     } catch (e) {
-      Alert.alert('Retry or update app or call customer care');
+      Alert.alert(t.retryOrUpdate);
     } finally {
       setLoading(false);
     }
@@ -54,21 +59,21 @@ const FetchSMCovLns = () => {
   }: any) => <Pressable style={styles.card} onPress={() => navigation.navigate('MembersApproveLoans', {
     memberDetails: item
   })}>
-      <Text style={styles.groupName}>{item.groupName}</Text>
+      <Text style={styles.groupName}>{t.groupName} {item.groupName}</Text>
 
       <View style={styles.row}>
-        <Text style={styles.label}>Member Name:</Text>
+        <Text style={styles.label}>{t.memberName}</Text>
         <Text style={styles.value}>{item.memberName}</Text>
       </View>
 
       <View style={styles.row}>
-        <Text style={styles.label}>Group Account:</Text>
+        <Text style={styles.label}>{t.groupAccount}</Text>
         <Text style={styles.value}>{item.groupContact}</Text>
       </View>
     </Pressable>;
   return <View style={styles.root}>
       <FlatList data={members} renderItem={renderMemberCard} keyExtractor={item => item.ChamaNMember} refreshing={loading} onRefresh={fetchUsrDtls} showsVerticalScrollIndicator={false} ListHeaderComponent={<Text style={styles.headerText}>
-            Select Group to Approve Loan
+            {t.selectGroupToApprove}
           </Text>} />
     </View>;
 };

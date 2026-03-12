@@ -47,12 +47,17 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     height: 45,
     borderRadius: 30,
-    marginHorizontal: 10,
-    width: Dimensions.get('screen').width - 20,
+    width: 220,
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: 30,
-    marginBottom: 400
+    marginBottom: 40,
+    alignSelf: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2
   },
   sendLoanButtonText: {
     fontSize: 20,

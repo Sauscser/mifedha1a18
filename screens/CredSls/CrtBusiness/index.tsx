@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { View, Text, TextInput, TouchableOpacity, Alert, ActivityIndicator, ScrollView, StyleSheet } from "react-native";
+import { translations } from "./translation";
+import { useTranslation } from "react-i18next";
 import { Ionicons } from '@expo/vector-icons';
 import * as Location from "expo-location";
 import { LinearGradient } from "expo-linear-gradient";
@@ -10,6 +12,8 @@ import { getCurrentUser, fetchUserAttributes } from "aws-amplify/auth";
 import { generateClient } from "aws-amplify/api";
 const client = generateClient();
 const CreateBiz = () => {
+  const { i18n } = useTranslation();
+  const t = translations[i18n.language] || translations.en;
   const navigation = useNavigation();
   const [isLoading, setIsLoading] = useState(false);
   const [businessName, setBusinessName] = useState("");
@@ -34,12 +38,12 @@ const CreateBiz = () => {
           status
         } = await Location.requestForegroundPermissionsAsync();
         if (status !== "granted") {
-          Alert.alert("Permission to access location was denied.");
+          Alert.alert(t.permissionDenied || "Permission to access location was denied.");
           return;
         }
         const locationServicesEnabled = await Location.hasServicesEnabledAsync();
         if (!locationServicesEnabled) {
-          Alert.alert("Location services are disabled. Please enable GPS.");
+          Alert.alert(t.locationDisabled || "Location services are disabled. Please enable GPS.");
           return;
         }
         const loc = await Location.getCurrentPositionAsync({
@@ -50,7 +54,7 @@ const CreateBiz = () => {
           longitude: loc.coords.longitude
         };
         if (loc.coords.accuracy && loc.coords.accuracy > 30) {
-          Alert.alert("Low GPS Accuracy", `Location accuracy is about ${Math.round(loc.coords.accuracy)} meters. Try moving near a window or outside.`);
+          Alert.alert(t.lowGPSAccuracy || "Low GPS Accuracy", `${t.locationAccuracy || "Location accuracy is about"} ${Math.round(loc.coords.accuracy)} ${t.meters || "meters"}. ${t.tryWindow || "Try moving near a window or outside."}`);
         }
         setLocation(coords);
       } catch (error) {
@@ -91,7 +95,7 @@ const CreateBiz = () => {
       });
       const account = accountData.data.getSMAccount;
       if (sub !== account.owner) {
-        Alert.alert("Please first create main account");
+        Alert.alert(t.createMainAccount || "Please first create main account");
         setIsLoading(false);
         return;
       }
@@ -118,7 +122,7 @@ const CreateBiz = () => {
         }
       });
       if (existingByLicense.data.listBiznas.items.length > 0) {
-        Alert.alert("This license number is blacklisted by one of your clients");
+        Alert.alert(t.licenseBlacklisted || "This license number is blacklisted by one of your clients");
         setIsLoading(false);
         return;
       }
@@ -145,19 +149,19 @@ const CreateBiz = () => {
         }
       });
       if (existingByUser.data.listBiznas.items.length > 0) {
-        Alert.alert("You have a business blacklisted by one of your clients");
+        Alert.alert(t.userBlacklisted || "You have a business blacklisted by one of your clients");
         setIsLoading(false);
         return;
       }
 
       // Password checks
       if (password.length < 8) {
-        Alert.alert("Password must be at least 8 characters.");
+        Alert.alert(t.passwordLength || "Password must be at least 8 characters.");
         setIsLoading(false);
         return;
       }
       if (password !== confirmPassword) {
-        Alert.alert("Passwords do not match.");
+        Alert.alert(t.passwordsMismatch || "Passwords do not match.");
         setIsLoading(false);
         return;
       }
@@ -271,53 +275,108 @@ const CreateBiz = () => {
           }
         }
       });
-      Alert.alert("Business and owner accounts successfully created");
+      Alert.alert(t.successAlert);
       resetForm();
     } catch (error) {
       console.error("Error creating business:", error);
-      Alert.alert("An error occurred. Please try again or contact support.");
+      Alert.alert(t.errorAlert);
     } finally {
       setIsLoading(false);
     }
   };
-  return <LinearGradient colors={['#e58d29', 'skyblue']} start={[0, 0]} end={[1, 1]} style={{
-    flex: 1
-  }}>
-                <View style={styles.container}>
-                  <ScrollView>
-                  
-                    <View style={styles.formContainer}>
-                      <TextInput placeholder="Business Phone Number" value={businessPhone} onChangeText={setBusinessPhone} style={styles.input} />
-                      <TextInput placeholder="Business Name" value={businessName} onChangeText={setBusinessName} style={styles.input} />
-                      <TextInput placeholder="Registration Number" value={licenseNumber} onChangeText={setLicenseNumber} style={styles.input} />
-                      <TextInput placeholder="Business Contact" value={bizContact} onChangeText={setbizContact} style={styles.input} />
-                      <TextInput placeholder="Business Type" value={businessType} onChangeText={setbusinessType} style={styles.input} />
-                      <TextInput placeholder="Bank Name" value={bankType} onChangeText={setbankType} style={styles.input} />
-                      <TextInput placeholder="Bank Account Number" value={bankAccount} onChangeText={setbankAccount} style={styles.input} />
-                      <TextInput placeholder="Business Description" value={description} onChangeText={setDescription} style={styles.input} multiline={true} // Enables multi-line input
-          textAlignVertical="top" />
-
-                      <View style={styles.passwordContainer}>
-                                                                 <TextInput placeholder="Biz Account Password" style={styles.passwordInput} value={password} onChangeText={setPassword} secureTextEntry={!isPasswordVisible} placeholderTextColor="#ccc" />
-                                                               <TouchableOpacity onPress={() => setIsPasswordVisible(!isPasswordVisible)}>
-                                                              <Ionicons name={isPasswordVisible ? 'eye' : 'eye-off'} size={24} color="gray" />
-                                                               </TouchableOpacity>
-                                                               </View>
-                     
-                                                               <View style={styles.passwordContainer}>
-                                                                 <TextInput placeholder="Confirm Biz Account Password" style={styles.passwordInput} value={confirmPassword} onChangeText={setConfirmPassword} secureTextEntry={!isPasswordVisible} placeholderTextColor="#ccc" />
-                                                               <TouchableOpacity onPress={() => setIsPasswordVisible(!isPasswordVisible)}>
-                                                              <Ionicons name={isPasswordVisible ? 'eye' : 'eye-off'} size={24} color="gray" />
-                                                               </TouchableOpacity>
-                                                              </View>
-                      
-                      <TouchableOpacity onPress={handleCreateBusiness} style={styles.button}>
-                        {isLoading ? <ActivityIndicator color="#fff" /> : <Text style={styles.locationText}>Submit</Text>}
-                      </TouchableOpacity>
-                    </View>
-                  </ScrollView>
-                </View>
-              </LinearGradient>;
+  return (
+    <LinearGradient colors={["#e58d29", "skyblue"]} start={[0, 0]} end={[1, 1]} style={{ flex: 1 }}>
+      <View style={styles.container}>
+        <ScrollView>
+          <View style={styles.formContainer}>
+            <TextInput
+              placeholder={t.businessPhonePlaceholder}
+              value={businessPhone}
+              onChangeText={setBusinessPhone}
+              style={styles.input}
+            />
+            <TextInput
+              placeholder={t.businessNamePlaceholder}
+              value={businessName}
+              onChangeText={setBusinessName}
+              style={styles.input}
+            />
+            <TextInput
+              placeholder={t.licenseNumberPlaceholder}
+              value={licenseNumber}
+              onChangeText={setLicenseNumber}
+              style={styles.input}
+            />
+            <TextInput
+              placeholder={t.bizContactPlaceholder}
+              value={bizContact}
+              onChangeText={setbizContact}
+              style={styles.input}
+            />
+            <TextInput
+              placeholder={t.businessTypePlaceholder}
+              value={businessType}
+              onChangeText={setbusinessType}
+              style={styles.input}
+            />
+            <TextInput
+              placeholder={t.bankTypePlaceholder}
+              value={bankType}
+              onChangeText={setbankType}
+              style={styles.input}
+            />
+            <TextInput
+              placeholder={t.bankAccountPlaceholder}
+              value={bankAccount}
+              onChangeText={setbankAccount}
+              style={styles.input}
+            />
+            <TextInput
+              placeholder={t.descriptionPlaceholder}
+              value={description}
+              onChangeText={setDescription}
+              style={styles.input}
+              multiline={true}
+              textAlignVertical="top"
+            />
+            <View style={styles.passwordContainer}>
+              <TextInput
+                placeholder={t.passwordPlaceholder}
+                style={styles.passwordInput}
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry={!isPasswordVisible}
+                placeholderTextColor="#ccc"
+              />
+              <TouchableOpacity onPress={() => setIsPasswordVisible(!isPasswordVisible)}>
+                <Ionicons name={isPasswordVisible ? "eye" : "eye-off"} size={24} color="gray" />
+              </TouchableOpacity>
+            </View>
+            <View style={styles.passwordContainer}>
+              <TextInput
+                placeholder={t.confirmPasswordPlaceholder}
+                style={styles.passwordInput}
+                value={confirmPassword}
+                onChangeText={setConfirmPassword}
+                secureTextEntry={!isPasswordVisible}
+                placeholderTextColor="#ccc"
+              />
+              <TouchableOpacity onPress={() => setIsPasswordVisible(!isPasswordVisible)}>
+                <Ionicons name={isPasswordVisible ? "eye" : "eye-off"} size={24} color="gray" />
+              </TouchableOpacity>
+            </View>
+            <TouchableOpacity onPress={handleCreateBusiness} style={styles.button}>
+              {isLoading ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={styles.locationText}>{t.submitButton}</Text>
+              )}
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+      </View>
+    </LinearGradient>
+  );
 };
 export default CreateBiz;
 const styles = StyleSheet.create({

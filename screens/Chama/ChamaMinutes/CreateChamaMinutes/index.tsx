@@ -8,10 +8,15 @@ import { getCurrentUser, fetchUserAttributes } from "aws-amplify/auth";
 import { getUrl } from "aws-amplify/storage";
 import { createChamaMinutes, createChamaMinutesItem, createChamaMeetingAttendance } from "../../../../src/graphql/mutations";
 import { listChamaMembers, getGroup } from "../../../../src/graphql/queries";
+import translations from './translation';
+import { useTranslation } from 'react-i18next';
 const client = generateClient();
 const MinutesCreationScreen = ({
   userEmail
 }) => {
+  const { i18n } = useTranslation();
+  const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+  const t = translations[lang] || translations.en;
   const [groups, setGroups] = useState<any[]>([]);
   const [selectedMemberGroup, setSelectedMemberGroup] = useState<any | null>(null);
   const [groupDetails, setGroupDetails] = useState<any | null>(null);
@@ -62,7 +67,7 @@ const MinutesCreationScreen = ({
         }
       });
       const grp = res.data.getGroup;
-      if (!grp) return Alert.alert("Error", "Group details not found");
+      if (!grp) return Alert.alert(t.error, t.groupDetailsNotFound);
       const adminEmails = [grp.Admin1, grp.Admin2, grp.Admin3, grp.Admin4, grp.Admin5, grp.Admin6, grp.Admin7, grp.Admin8, grp.Admin9, grp.Admin10, grp.Admin11, grp.Admin12, grp.Admin13, grp.Admin14, grp.Admin15, grp.Admin16, grp.Admin17, grp.Admin18, grp.Admin19, grp.Admin20].filter(Boolean);
       setIsGroupAdmin(adminEmails.includes(attributes.email));
       setSelectedMemberGroup(memberRecord);
@@ -108,7 +113,7 @@ const MinutesCreationScreen = ({
       })));
     } catch (err) {
       console.log("Error fetching group details:", err);
-      Alert.alert("Error", "Could not load group details");
+      Alert.alert(t.error, t.couldNotLoadGroup);
     }
   };
   const getSittingNumber = () => attendanceList.filter(m => m.attendanceStatus === "PRESENT").length || 1;
@@ -138,9 +143,9 @@ const MinutesCreationScreen = ({
     setIsGroupAdmin(false);
   };
   const saveMinutes = async () => {
-    if (!selectedMemberGroup || !groupDetails) return Alert.alert("Error", "Select a group!");
-    if (!venue.trim()) return Alert.alert("Error", "Enter venue!");
-    if (minutesEntries.some(e => !e.minuteContent.trim())) return Alert.alert("Error", "Fill all minute contents!");
+    if (!selectedMemberGroup || !groupDetails) return Alert.alert(t.error, t.selectGroupFirst);
+    if (!venue.trim()) return Alert.alert(t.error, t.enterVenueFirst);
+    if (minutesEntries.some(e => !e.minuteContent.trim())) return Alert.alert(t.error, t.fillMinuteContents);
     try {
       const sittingNumber = getSittingNumber();
       const minutesInput = {
@@ -189,11 +194,11 @@ const MinutesCreationScreen = ({
           }
         });
       }
-      Alert.alert("Success", "Minutes saved successfully!");
+      Alert.alert(t.success, t.minutesSaved);
       resetForm();
     } catch (err) {
       console.log(err);
-      Alert.alert("Error", "Error saving minutes.");
+      Alert.alert(t.error, t.errorSavingMinutes);
     }
   };
   const presentCount = attendanceList.filter(m => m.attendanceStatus === "PRESENT").length;
@@ -202,8 +207,8 @@ const MinutesCreationScreen = ({
 
   // …render JSX here (unchanged)
 
-  return <ScrollView style={styles.container} ref={scrollRef}>
-      <Text style={styles.header}>Select Group</Text>
+    return <ScrollView style={styles.container} ref={scrollRef}>
+      <Text style={styles.header}>{t.selectGroup}</Text>
       {groups.map(memberGroup => {
       const isSelected = selectedMemberGroup?.groupContact === memberGroup.groupContact;
       return <View key={memberGroup.groupContact} style={styles.groupCard}>
@@ -215,50 +220,50 @@ const MinutesCreationScreen = ({
             grpContact: memberGroup.groupContact,
             groupName: memberGroup.groupName
           })}>
-                <Text style={styles.actionText}>📄 View Minutes</Text>
+                <Text style={styles.actionText}>📄 {t.viewMinutes}</Text>
               </TouchableOpacity>
 
               {/* CREATE MINUTES */}
               {isSelected ? <TouchableOpacity style={[styles.createBtn, !isGroupAdmin && styles.disabledBtn]} disabled={!isGroupAdmin}>
                   <Text style={styles.actionText}>
-                    {isGroupAdmin ? "➕ Create Minutes" : "🔒 Create Minutes"}
+                    {isGroupAdmin ? `➕ ${t.createMinutes}` : t.lockedCreateMinutes}
                   </Text>
                 </TouchableOpacity> : <TouchableOpacity style={styles.createBtn} onPress={() => fetchGroupDetails(memberGroup.groupContact, memberGroup)}>
-                  <Text style={styles.actionText}>Select Group</Text>
+                  <Text style={styles.actionText}>{t.selectGroup}</Text>
                 </TouchableOpacity>}
             </View>
           </View>;
     })}
 
       {selectedMemberGroup && groupDetails && isGroupAdmin && <>
-          <Text style={styles.header}>Meeting Date & Time</Text>
-          <Button title={`Select Date: ${meetingDate.toLocaleDateString()} ${meetingDate.toLocaleTimeString()}`} color="#e29d58" onPress={() => setShowDatePicker(true)} />
+          <Text style={styles.header}>{t.meetingDate}</Text>
+          <Button title={`${t.selectDate}: ${meetingDate.toLocaleDateString()} ${meetingDate.toLocaleTimeString()}`} color="#e29d58" onPress={() => setShowDatePicker(true)} />
           {showDatePicker && <DateTimePicker value={meetingDate} mode="date" display="default" onChange={onChangeDate} />}
 
-          <Text style={styles.header}>Venue</Text>
-          <TextInput style={styles.input} value={venue} onChangeText={setVenue} placeholder="Enter venue" />
+          <Text style={styles.header}>{t.venue}</Text>
+          <TextInput style={styles.input} value={venue} onChangeText={setVenue} placeholder={t.enterVenue} />
 
          
-          <Text style={styles.header}>Minutes Entries</Text>
+          <Text style={styles.header}>{t.minutesEntries}</Text>
           {minutesEntries.map((entry, idx) => <View key={idx} style={styles.entryContainer}>
-              <Text style={styles.subHeader}>Entry {entry.entryNumber}</Text>
-              <TextInput style={styles.input} placeholder="Minute Number (e.g., AK234)" value={entry.minuteNumber} onChangeText={text => {
+              <Text style={styles.subHeader}>{t.entry} {entry.entryNumber}</Text>
+              <TextInput style={styles.input} placeholder={t.minuteNumberPlaceholder} value={entry.minuteNumber} onChangeText={text => {
           const updated = [...minutesEntries];
           updated[idx].minuteNumber = text;
           setMinutesEntries(updated);
         }} />
               <TextInput style={[styles.input, {
           height: 80
-        }]} placeholder="Minute Content" value={entry.minuteContent} onChangeText={text => {
+        }]} placeholder={t.minuteContentPlaceholder} value={entry.minuteContent} onChangeText={text => {
           const updated = [...minutesEntries];
           updated[idx].minuteContent = text;
           setMinutesEntries(updated);
         }} multiline />
-              {minutesEntries.length > 1 && <Button title="Remove Entry" color="#e29d58" onPress={() => removeMinuteEntry(idx)} />}
+              {minutesEntries.length > 1 && <Button title={t.removeMinute} color="#e29d58" onPress={() => removeMinuteEntry(idx)} />}
             </View>)}
-          <Button title="Add Minute Entry" color="#e29d58" onPress={addMinuteEntry} />
+          <Button title={t.addMinute} color="#e29d58" onPress={addMinuteEntry} />
 
-          <Text style={styles.header}>Attendance</Text>
+          <Text style={styles.header}>{t.attendance}</Text>
           {attendanceList.map((member, idx) => <View key={idx} style={styles.attendanceRow}>
               <Text style={{
           flex: 1
@@ -270,23 +275,23 @@ const MinutesCreationScreen = ({
           updated[idx].attendanceStatus = val;
           setAttendanceList(updated);
         }}>
-                <Picker.Item label="Present" value="PRESENT" />
-                <Picker.Item label="Absent" value="ABSENT" />
-                <Picker.Item label="Apology" value="APOLOGY" />
+                <Picker.Item label={t.present} value="PRESENT" />
+                <Picker.Item label={t.absent} value="ABSENT" />
+                <Picker.Item label={t.apology} value="APOLOGY" />
               </Picker>
             </View>)}
 
-          <Text style={styles.header}>Attendance Summary</Text>
+          <Text style={styles.header}>{t.attendanceSummary}</Text>
           <View style={styles.summaryRow}>
-            <Text style={styles.summaryText}>Present: {presentCount}</Text>
-            <Text style={styles.summaryText}>Absent: {absentCount}</Text>
-            <Text style={styles.summaryText}>Apology: {apologyCount}</Text>
+            <Text style={styles.summaryText}>{t.present}: {presentCount}</Text>
+            <Text style={styles.summaryText}>{t.absent}: {absentCount}</Text>
+            <Text style={styles.summaryText}>{t.apology}: {apologyCount}</Text>
           </View>
 
           <View style={{
         marginVertical: 20
       }}>
-            <Button title="Save Minutes" color="#e29d58" onPress={saveMinutes} />
+            <Button title={t.saveMinutes} color="#e29d58" onPress={saveMinutes} />
           </View>
         </>}
     </ScrollView>;
@@ -387,7 +392,8 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 20,
     marginLeft: 8,
-    alignItems: "center"
+    alignItems: "center",
+    padding: 10
   },
   disabledBtn: {
     backgroundColor: "#adb5bd"

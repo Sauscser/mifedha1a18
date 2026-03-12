@@ -7,16 +7,21 @@ import { updateCompany, updateSMAccount } from '../../../src/graphql/mutations';
 import { useRoute } from '@react-navigation/native';
 import { getCurrentUser, fetchUserAttributes } from "aws-amplify/auth";
 import { generateClient } from "aws-amplify/api";
+import { useTranslation } from 'react-i18next';
+import translations from './translation';
 const client = generateClient();
 const FetchSMNonLnsSnt = props => {
   const [loading, setLoading] = useState(false);
   const [Recvrs, setRecvrs] = useState([]);
   const route = useRoute();
+  const { i18n } = useTranslation();
+  const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+  const t = translations[lang] || translations.en;
   const fetchUsrDtls = async () => {
     const userInfo = await getCurrentUser();
     const attributes = await fetchUserAttributes();
     try {
-      const MFNDtls: any = await client.graphql({
+      const MFNDtls = await client.graphql({
         query: getSMAccount,
         variables: {
           awsemail: attributes.email
@@ -27,7 +32,7 @@ const FetchSMNonLnsSnt = props => {
       const fetchLoanees = async () => {
         setLoading(true);
         try {
-          const Lonees: any = await client.graphql({
+          const Lonees = await client.graphql({
             query: listLoanRepayments,
             variables: {
               filter: {
@@ -40,7 +45,7 @@ const FetchSMNonLnsSnt = props => {
           setRecvrs(Lonees.data.listLoanRepayments.items);
           const fetchCompDtls = async () => {
             try {
-              const MFNDtls: any = await client.graphql({
+              const MFNDtls = await client.graphql({
                 query: getCompany,
                 variables: {
                   AdminId: "BaruchHabaB'ShemAdonai2"
@@ -63,7 +68,7 @@ const FetchSMNonLnsSnt = props => {
                   });
                 } catch (error) {
                   if (error) {
-                    Alert.alert("Check your internet connection");
+                    Alert.alert(t.checkInternet);
                     return;
                   }
                 }
@@ -82,20 +87,20 @@ const FetchSMNonLnsSnt = props => {
                   });
                 } catch (error) {
                   if (error) {
-                    Alert.alert("Retry or update app or call customer care");
+                    Alert.alert(t.retryOrUpdate);
                     return;
                   }
                 }
               };
               if (parseFloat(balances) < parseFloat(enquiryFees)) {
-                Alert.alert("Account Balance is very little");
+                Alert.alert(t.accountBalanceLow);
                 return;
               } else {
                 updtActAdm();
               }
             } catch (e) {
               if (e) {
-                Alert.alert("User does not exist does not exist; otherwise check internet connection");
+                Alert.alert(t.userNotExist);
                 return;
               }
               console.log(e);
@@ -104,14 +109,14 @@ const FetchSMNonLnsSnt = props => {
           await fetchCompDtls();
         } catch (e) {
           if (e) {
-            Alert.alert("Retry or update app or call customer care");
+            Alert.alert(t.retryOrUpdate);
             return;
           }
           console.log(e);
         }
       };
       if (userInfo.userId !== owner) {
-        Alert.alert("Please first create a main account");
+        Alert.alert(t.pleaseCreateAccount);
         return;
       } else {
         await fetchLoanees();
@@ -125,18 +130,26 @@ const FetchSMNonLnsSnt = props => {
   useEffect(() => {
     fetchUsrDtls();
   }, []);
-  return <View style={styles.root}>
-      <FlatList style={{
-      width: "100%"
-    }} data={Recvrs} renderItem={({
-      item
-    }) => <NonLnSent SMAc={item} />} keyExtractor={(item, index) => index.toString()} onRefresh={fetchUsrDtls} refreshing={loading} showsVerticalScrollIndicator={false} ListHeaderComponentStyle={{
-      alignItems: 'center'
-    }} ListHeaderComponent={() => <>
-            
-            <Text style={styles.label}> Sent Chama Loan LP</Text>
-            <Text style={styles.label2}> (Please swipe down to load)</Text>
-          </>} />
-    </View>;
+  return (
+    <View style={styles.root}>
+      <FlatList
+        style={{ width: "100%" }}
+        data={Recvrs}
+        renderItem={({ item }) => <NonLnSent SMAc={item} />}
+        keyExtractor={(item, index) => index.toString()}
+        onRefresh={fetchUsrDtls}
+        refreshing={loading}
+        showsVerticalScrollIndicator={false}
+        ListHeaderComponentStyle={{ alignItems: 'center' }}
+        ListHeaderComponent={() => (
+          <>
+            <Text style={styles.label}>{t.sentChamaLoan}</Text>
+            <Text style={styles.label2}>{t.swipeToLoad}</Text>
+          </>
+        )}
+      />
+    </View>
+  );
 };
+
 export default FetchSMNonLnsSnt;

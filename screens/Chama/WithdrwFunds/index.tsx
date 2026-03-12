@@ -9,12 +9,17 @@ import styles from './styles';
 import { useExchange } from '../../../src/contexts/ExchangeContext';
 import { formatAmountSync, convertForeignToKsh } from '../../../src/utils/exchange';
 import { nationalityToCode } from '../../../src/utils/nationalityToCode';
+import { useTranslation } from 'react-i18next';
+import translations from './translation';
 const SMADepositForm = props => {
   const [UsrPWd, setUsrPWd] = useState('');
   const [AgentPhn, setAgentPhn] = useState('');
   const [amount, setAmount] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const { nationality, ratesMap } = useExchange();
+  const { i18n } = useTranslation();
+  const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+  const t = translations[lang] || translations.en;
 
   const parseAmountInput = (value: string) => {
     const trimmed = value.trim();
@@ -45,11 +50,11 @@ const SMADepositForm = props => {
   const confirmWithdrawal = (displayAmount: string, agentLabel: string) => {
     return new Promise((resolve) => {
       Alert.alert(
-        'Confirm Withdrawal',
-        `Withdraw ${displayAmount} from ${agentLabel}?`,
+        t.confirmWithdrawal,
+        t.withdrawPrompt.replace('{amount}', displayAmount).replace('{agent}', agentLabel),
         [
-          { text: 'Cancel', style: 'cancel', onPress: () => resolve(false) },
-          { text: 'Proceed', onPress: () => resolve(true) }
+          { text: t.cancel, style: 'cancel', onPress: () => resolve(false) },
+          { text: t.proceed, onPress: () => resolve(true) }
         ],
         {
           cancelable: true,
@@ -76,12 +81,11 @@ const SMADepositForm = props => {
       const userCurrencyKey = nationalityToCode(userNationality) || userNationality || nationality || undefined;
       const amountForeign = parseAmountInput(amount);
       if (amountForeign === null || amountForeign <= 0) {
-        Alert.alert('Enter a valid amount');
+        Alert.alert(t.enterValidAmount);
         return;
       }
-      const amountInKES = await convertForeignToKsh(amountForeign, userCurrencyKey);
       if (!Number.isFinite(amountInKES) || amountInKES <= 0) {
-        Alert.alert('Unable to convert amount. Please try again.');
+        Alert.alert(t.unableToConvert);
         return;
       }
       const TtlWthdrwnSMs = accountDtl.data.getSMAccount.TtlWthdrwnSM;
@@ -91,7 +95,7 @@ const SMADepositForm = props => {
       const owners = accountDtl.data.getSMAccount.owner;
       const names = accountDtl.data.getSMAccount.name;
       if (user.userId !== owners) {
-        Alert.alert('Please create main account');
+        Alert.alert(t.pleaseCreateMainAccount);
         return;
       }
       const AgentBal = await client.graphql({
@@ -109,7 +113,7 @@ const SMADepositForm = props => {
       const namess = AgentBal.data.getAgent.name;
       const MFNWithdrwlFees = AgentBal.data.getAgent.MFNWithdrwlFee;
       if (AgAcAct === 'AccountInactive') {
-        Alert.alert('NSNdogo Account has been deactivated');
+        Alert.alert(t.accountDeactivated);
         return;
       }
       const compDtls = await client.graphql({
@@ -147,19 +151,19 @@ const SMADepositForm = props => {
       const UsrWithdrawalFee = AgentCommission + saCommission + compCommission;
       const TTlAmtTrnsctd = amountInKES + UsrWithdrawalFee;
       if (TTlAmtTrnsctd > parseFloat(usrBala)) {
-        Alert.alert('Cancelled.' + 'Bal: ' + formatAmountSync(parseFloat(usrBala), userCurrencyKey, ratesMap) + '. Deductable: ' + formatAmountSync(TTlAmtTrnsctd, userCurrencyKey, ratesMap));
+        Alert.alert(t.cancelled + ' ' + t.bal + ': ' + formatAmountSync(parseFloat(usrBala), userCurrencyKey, ratesMap) + '. ' + t.deductable + ': ' + formatAmountSync(TTlAmtTrnsctd, userCurrencyKey, ratesMap));
         return;
       }
       if (usrStts === 'AccountInactive') {
-        Alert.alert('User Account has been deactivated');
+        Alert.alert(t.userAccountDeactivated);
         return;
       }
       if (amountInKES > parseFloat(withdrawalLimits)) {
-        Alert.alert('Withdrawal limit exceeded');
+        Alert.alert(t.withdrawalLimitExceeded);
         return;
       }
       if (UsrPWd !== pws) {
-        Alert.alert('User credentials are wrong; access denied');
+        Alert.alert(t.wrongCredentials);
         return;
       }
       const accepted = await confirmWithdrawal(
@@ -234,40 +238,40 @@ const SMADepositForm = props => {
           }
         }
       });
-      Alert.alert(names + ' has withdrawn ' + formatAmountSync(amountInKES, userCurrencyKey, ratesMap) + ' from ' + namess + ' NSNdogo');
+      Alert.alert(t.withdrawn.replace('{name}', names).replace('{amount}', formatAmountSync(amountInKES, userCurrencyKey, ratesMap)).replace('{agent}', namess));
       setAmount('');
       setUsrPWd('');
       setAgentPhn('');
     } catch (e) {
       console.log(e);
-      Alert.alert('Check your internet connection');
+      Alert.alert(t.checkInternet);
     } finally {
       setIsLoading(false);
     }
   };
   return <ScrollView>
       <View style={styles.amountTitleView}>
-        <Text style={styles.title}>Fill Details Below</Text>
+        <Text style={styles.title}>{t.fillDetails}</Text>
       </View>
 
       <View style={styles.sendAmtView}>
         <TextInput placeholder="+2547xxxxxxxx" value={AgentPhn} onChangeText={setAgentPhn} style={styles.sendAmtInput} />
-        <Text style={styles.sendAmtText}>Agent Phone</Text>
+        <Text style={styles.sendAmtText}>{t.agentPhone}</Text>
       </View>
 
       <View style={styles.sendAmtView}>
         <TextInput keyboardType="decimal-pad" value={amount} onChangeText={handleAmountChange} onBlur={formatAmountOnBlur} style={styles.sendAmtInput} />
-        <Text style={styles.sendAmtText}>Amount</Text>
+        <Text style={styles.sendAmtText}>{t.amount}</Text>
       </View>
 
       <View style={styles.sendAmtView}>
         <TextInput value={UsrPWd} onChangeText={setUsrPWd} secureTextEntry={true} style={styles.sendAmtInput} />
-        <Text style={styles.sendAmtText}>User PW</Text>
+        <Text style={styles.sendAmtText}>{t.userPW}</Text>
       </View>
 
       <TouchableOpacity onPress={fetchAcDtls} style={styles.sendAmtButton}>
         <Text style={styles.sendAmtButtonText}>
-          Click to Withdraw
+          {t.clickToWithdraw}
         </Text>
         {isLoading && <ActivityIndicator size="large" color="blue" />}
       </TouchableOpacity>

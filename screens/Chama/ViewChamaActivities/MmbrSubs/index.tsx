@@ -6,12 +6,17 @@ import { listGrpMembersContributions } from '../../../../src/graphql/queries';
 import { useRoute } from '@react-navigation/core';
 import { generateClient } from 'aws-amplify/api';
 import { getCurrentUser, fetchUserAttributes } from 'aws-amplify/auth';
+import { useTranslation } from 'react-i18next';
+import { translations } from './translation';
 const client = generateClient();
 const FetchSMCovLns = props => {
   const [LneePhn, setLneePhn] = useState(null);
   const [loading, setLoading] = useState(false);
   const [Loanees, setLoanees] = useState([]);
   const route = useRoute();
+  const { i18n } = useTranslation();
+  const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+  const t = translations[lang] || translations.en;
   const fetchUser = async () => {
     try {
       const user = await getCurrentUser();
@@ -19,7 +24,7 @@ const FetchSMCovLns = props => {
       setLneePhn(attributes.phone_number);
     } catch (error) {
       console.log(error);
-      Alert.alert("Error fetching user details");
+      Alert.alert(t.errorFetchingUser);
     }
   };
   useEffect(() => {
@@ -41,7 +46,7 @@ const FetchSMCovLns = props => {
       setLoanees(Lonees.data.listGrpMembersContributions.items);
     } catch (error) {
       console.log(error);
-      Alert.alert("Error fetching contributions. Please retry.");
+      Alert.alert(t.errorFetchingContributions);
     } finally {
       setLoading(false);
     }
@@ -57,7 +62,7 @@ const FetchSMCovLns = props => {
     }) => <ChmMbrContr ChamaContriDtls={item} />} keyExtractor={(item, index) => index.toString()} onRefresh={fetchLoanees} refreshing={loading} showsVerticalScrollIndicator={false} ListHeaderComponentStyle={{
       alignItems: 'center'
     }} ListHeaderComponent={() => <>
-            <Text style={styles.label}>Member Contributions</Text>
+            <Text style={styles.label}>{t.memberContributions}</Text>
           </>} />
     </View>;
 };

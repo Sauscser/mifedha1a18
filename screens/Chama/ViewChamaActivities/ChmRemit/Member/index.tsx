@@ -6,8 +6,15 @@ import { getCompany, getSMAccount, listGroupNonLoans } from '../../../../../src/
 import { updateCompany, updateSMAccount } from '../../../../../src/graphql/mutations';
 import { generateClient } from 'aws-amplify/api';
 import { getCurrentUser, fetchUserAttributes } from 'aws-amplify/auth';
+import { translations } from './translation';
+import { useTranslation } from 'react-i18next';
 const client = generateClient();
 const FetchSMCovLns = props => {
+  // --- TRANSLATION PATTERN ---
+  const { i18n } = useTranslation();
+  const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+  const t = translations[lang] || translations.en;
+
   const [loading, setLoading] = useState(false);
   const [Loanees, setLoanees] = useState([]);
   const fetchUsrDtls = async () => {
@@ -15,40 +22,32 @@ const FetchSMCovLns = props => {
     try {
       const user = await getCurrentUser();
       const attributes = await fetchUserAttributes();
-      const MFNDtls: any = await client.graphql({
+      const MFNDtls = await client.graphql({
         query: getSMAccount,
-        variables: {
-          awsemail: attributes.email
-        }
+        variables: { awsemail: attributes.email }
       });
       const balances = MFNDtls.data.getSMAccount.balance;
       const owner = MFNDtls.data.getSMAccount.owner;
       if (user.userId !== owner) {
-        Alert.alert("Please first create main account");
+        Alert.alert(t.pleaseCreateMainAccount);
         return;
       }
-      const Lonees: any = await client.graphql({
+      const Lonees = await client.graphql({
         query: listGroupNonLoans,
         variables: {
-          filter: {
-            recipientPhn: {
-              eq: attributes.email
-            }
-          }
+          filter: { recipientPhn: { eq: attributes.email } }
         }
       });
       setLoanees(Lonees.data.listGroupNonLoans.items);
-      const compDtls: any = await client.graphql({
+      const compDtls = await client.graphql({
         query: getCompany,
-        variables: {
-          AdminId: "BaruchHabaB'ShemAdonai2"
-        }
+        variables: { AdminId: "BaruchHabaB'ShemAdonai2" }
       });
       const companyEarningBals = compDtls.data.getCompany.companyEarningBal;
       const companyEarnings = compDtls.data.getCompany.companyEarning;
       const enquiryFees = compDtls.data.getCompany.enquiryFee;
       if (parseFloat(balances) < parseFloat(enquiryFees)) {
-        Alert.alert("Account Balance is very little");
+        Alert.alert(t.accountBalanceLow);
       } else {
         await client.graphql({
           query: updateCompany,
@@ -72,7 +71,7 @@ const FetchSMCovLns = props => {
       }
     } catch (error) {
       console.log(error);
-      Alert.alert("Error fetching data. Please retry or check your internet connection.");
+      Alert.alert(t.errorFetching);
     } finally {
       setLoading(false);
     }
@@ -80,16 +79,24 @@ const FetchSMCovLns = props => {
   useEffect(() => {
     fetchUsrDtls();
   }, []);
-  return <View style={styles.root}>
-      <FlatList style={{
-      width: "100%"
-    }} data={Loanees} renderItem={({
-      item
-    }) => <MmbrChmRemInfo memberContriDtls={item} />} keyExtractor={(item, index) => index.toString()} onRefresh={fetchUsrDtls} refreshing={loading} showsVerticalScrollIndicator={false} ListHeaderComponentStyle={{
-      alignItems: 'center'
-    }} ListHeaderComponent={() => <>
-            <Text style={styles.label}>Remittance from My Chamas</Text>
-          </>} />
-    </View>;
+  return (
+    <View style={styles.root}>
+      <FlatList
+        style={{ width: '100%' }}
+        data={Loanees}
+        renderItem={({ item }) => <MmbrChmRemInfo memberContriDtls={item} />}
+        keyExtractor={(item, index) => index.toString()}
+        onRefresh={fetchUsrDtls}
+        refreshing={loading}
+        showsVerticalScrollIndicator={false}
+        ListHeaderComponentStyle={{ alignItems: 'center' }}
+        ListHeaderComponent={() => (
+          <>
+            <Text style={styles.label}>{t.remittanceHeader}</Text>
+          </>
+        )}
+      />
+    </View>
+  );
 };
 export default FetchSMCovLns;

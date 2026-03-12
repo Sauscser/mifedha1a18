@@ -5,13 +5,19 @@ import { getAgent, getCompany, getGroup, getSAgent, getSMAccount } from '../../.
 import { generateClient } from 'aws-amplify/api';
 import { getCurrentUser, fetchUserAttributes } from 'aws-amplify/auth';
 import { ActivityIndicator, Alert, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, SafeAreaView } from 'react-native';
 
 import { useExchange } from '../../../src/contexts/ExchangeContext';
 import { convertForeignToKsh, formatAmountSync } from '../../../src/utils/exchange';
 import { nationalityToCode } from '../../../src/utils/nationalityToCode';
+import { useTranslation } from 'react-i18next';
+import translations from './translation';
 
 const client = generateClient();
 const SMADepositForm = props => {
+    const { i18n } = useTranslation();
+    const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+    const t = translations[lang] || translations.en;
   const [WthDrwrPhn, setWthDrwrPhn] = useState(null);
   const [ChmKntct, setChmKntct] = useState("");
   const [UsrPWd, setUsrPWd] = useState("");
@@ -53,7 +59,9 @@ const SMADepositForm = props => {
           query: getSMAccount,
           variables: { awsemail: attributes.email },
         });
-        setUserNationality(userData.data.getSMAccount.nationality);
+        if ('data' in userData && userData.data && userData.data.getSMAccount) {
+          setUserNationality(userData.data.getSMAccount.nationality);
+        }
       } catch (error) {
         console.error('Error fetching user data:', error);
       }
@@ -62,19 +70,22 @@ const SMADepositForm = props => {
   }, []);
   const fetchChmDtls = async () => {
     if (isLoading) return;
-    
-    // Convert amount to KES
+
+    // Convert amount to KES (await if async)
     const amountForeign = parseAmountInput(amount);
-    const amountInKES = convertForeignToKsh(amountForeign, userCurrencyKey, ratesMap);
+    // convertForeignToKsh expects 1-2 args, not 3
+    const amountInKES = typeof convertForeignToKsh === 'function' && convertForeignToKsh.length >= 2
+      ? await convertForeignToKsh(amountForeign, userCurrencyKey)
+      : await convertForeignToKsh(amountForeign);
 
     // Confirmation prompt
     const confirmed = await new Promise<boolean>((resolve) => {
       Alert.alert(
-        'Confirm Withdrawal',
-        `You are about to withdraw ${formatAmountSync(amountInKES, userCurrencyKey, ratesMap)} from the chama account. Continue?`,
+        t.confirmWithdrawal,
+        t.confirmWithdrawalBody.replace('{{amount}}', formatAmountSync(amountInKES, userCurrencyKey)),
         [
-          { text: 'Cancel', style: 'cancel', onPress: () => resolve(false) },
-          { text: 'Withdraw', onPress: () => resolve(true) }
+          { text: t.cancel, style: 'cancel', onPress: () => resolve(false) },
+          { text: t.withdraw, onPress: () => resolve(true) }
         ]
       );
     });
@@ -140,11 +151,12 @@ const SMADepositForm = props => {
       const saBalances = saDtls.data.getSAgent.saBalance;
       const namessssssss = saDtls.data.getSAgent.name;
       const MFKWithdrwlFees = saDtls.data.getSAgent.MFKWithdrwlFee;
-      const AgentCommission = parseFloat(MFNWithdrwlFees) * amountInKES * parseFloat(UsrWthdrwlFeess);
-      const saCommission = parseFloat(MFKWithdrwlFees) * amountInKES * parseFloat(UsrWthdrwlFeess);
-      const compCommission = parseFloat(companyComs) * amountInKES * parseFloat(UsrWthdrwlFeess);
+      const numAmountInKES = typeof amountInKES === 'number' ? amountInKES : parseFloat(amountInKES);
+      const AgentCommission = parseFloat(MFNWithdrwlFees) * numAmountInKES * parseFloat(UsrWthdrwlFeess);
+      const saCommission = parseFloat(MFKWithdrwlFees) * numAmountInKES * parseFloat(UsrWthdrwlFeess);
+      const compCommission = parseFloat(companyComs) * numAmountInKES * parseFloat(UsrWthdrwlFeess);
       const UsrWithdrawalFee = AgentCommission + saCommission;
-      const TTlAmtTrnsctd = amountInKES + UsrWithdrawalFee;
+      const TTlAmtTrnsctd = numAmountInKES + UsrWithdrawalFee;
       const acChamp = saDtls.data.getSAgent.acChamp;
       const ChampCommission = parseFloat(ChampCom) * amountInKES * parseFloat(UsrWthdrwlFeess);
       const compDtlsx: any = await client.graphql({
@@ -157,23 +169,23 @@ const SMADepositForm = props => {
 
       // Validation checks
       if (WithdrawCnfrmtns === "NO") {
-        Alert.alert("Let signatory 2 confirm withdrawal first");
-      } else if (parseFloat(WithdrawCnfrmtnAmt) !== amountInKES) {
-        Alert.alert(`Enter amount agreed with signatory 2. Expected: ${formatAmountSync(parseFloat(WithdrawCnfrmtnAmt), userCurrencyKey, ratesMap)}`);
+        Alert.alert(t.letSignatory2Confirm);
+      } else if (parseFloat(WithdrawCnfrmtnAmt) !== numAmountInKES) {
+        Alert.alert(t.enterAmountAgreed2.replace('{{expected}}', formatAmountSync(parseFloat(WithdrawCnfrmtnAmt), userCurrencyKey)));
       } else if (WithdrawCnfrmtn2 === "NO") {
-        Alert.alert("Let signatory 3 confirm withdrawal first");
-      } else if (parseFloat(WithdrawCnfrmtnAmt2) !== amountInKES) {
-        Alert.alert(`Enter amount agreed with signatory 3. Expected: ${formatAmountSync(parseFloat(WithdrawCnfrmtnAmt2), userCurrencyKey, ratesMap)}`);
+        Alert.alert(t.letSignatory3Confirm);
+      } else if (parseFloat(WithdrawCnfrmtnAmt2) !== numAmountInKES) {
+        Alert.alert(t.enterAmountAgreed3.replace('{{expected}}', formatAmountSync(parseFloat(WithdrawCnfrmtnAmt2), userCurrencyKey)));
       } else if (TTlAmtTrnsctd > parseFloat(grpBals)) {
-        Alert.alert(`Insufficient Chama Balance. Available: ${formatAmountSync(parseFloat(grpBals), userCurrencyKey, ratesMap)}`);
+        Alert.alert(t.insufficientChamaBalance.replace('{{available}}', formatAmountSync(parseFloat(grpBals), userCurrencyKey)));
       } else if (usrStts === "AccountInactive") {
-        Alert.alert("Chama Account has been deactivated");
+        Alert.alert(t.chamaDeactivated);
       } else if (user.userId !== owners) {
-        Alert.alert("You are not the main chama signitory");
+        Alert.alert(t.notMainSignatory);
       } else if (AgAcAct === "AccountInactive") {
-        Alert.alert("NSNdogo Account has been deactivated");
+        Alert.alert(t.nsndogoDeactivated);
       } else if (UsrPWd !== pws) {
-        Alert.alert("User credentials are wrong; access denied");
+        Alert.alert(t.credentialsWrong);
       } else {
         // Create Float Add
         await client.graphql({
@@ -184,7 +196,7 @@ const SMADepositForm = props => {
               agentPhonecontact: AgentPhn,
               sagentId: sagentregnos,
               owner: user.userId,
-              amount: amountInKES.toFixed(0),
+              amount: Math.floor(numAmountInKES),
               agentName: namess,
               userName: names,
               saName: namessssssss,
@@ -200,9 +212,9 @@ const SMADepositForm = props => {
           variables: {
             input: {
               grpContact: ChmKntct,
-              WithdrawalSync: (parseFloat(WithdrawalSync) + TTlAmtTrnsctd).toFixed(0),
-              grpBal: (parseFloat(grpBals) - TTlAmtTrnsctd).toFixed(0),
-              ttlWthdrwn: (parseFloat(ttlWthdrwns) + amountInKES).toFixed(0),
+              WithdrawalSync: Math.floor(parseFloat(WithdrawalSync) + TTlAmtTrnsctd),
+              grpBal: Math.floor(parseFloat(grpBals) - TTlAmtTrnsctd),
+              ttlWthdrwn: Math.floor(parseFloat(ttlWthdrwns) + numAmountInKES),
               WithdrawCnfrmtn: "NO",
               WithdrawCnfrmtn2: "NO"
             }
@@ -215,10 +227,10 @@ const SMADepositForm = props => {
           variables: {
             input: {
               phonecontact: AgentPhn,
-              ttlEarnings: (parseFloat(ttlEarningssss) + AgentCommission).toFixed(0),
-              agentEarningBal: (parseFloat(agentEarningBalsss) + AgentCommission).toFixed(0),
-              floatBal: (parseFloat(floatBals) + amountInKES).toFixed(0),
-              TtlFltIn: (parseFloat(TtlFltInsss) + amountInKES).toFixed(0)
+              ttlEarnings: Math.floor(parseFloat(ttlEarningssss) + AgentCommission),
+              agentEarningBal: Math.floor(parseFloat(agentEarningBalsss) + AgentCommission),
+              floatBal: Math.floor(parseFloat(floatBals) + numAmountInKES),
+              TtlFltIn: Math.floor(parseFloat(TtlFltInsss) + numAmountInKES)
             }
           }
         });
@@ -229,8 +241,8 @@ const SMADepositForm = props => {
           variables: {
             input: {
               saPhoneContact: sagentregnos,
-              TtlEarnings: (parseFloat(TtlEarningss) + saCommission).toFixed(0),
-              saBalance: (parseFloat(saBalances) + saCommission).toFixed(0)
+              TtlEarnings: Math.floor(parseFloat(TtlEarningss) + saCommission),
+              saBalance: Math.floor(parseFloat(saBalances) + saCommission)
             }
           }
         });
@@ -241,12 +253,12 @@ const SMADepositForm = props => {
           variables: {
             input: {
               AdminId: "BaruchHabaB'ShemAdonai2",
-              agentEarningBal: parseFloat(agentEarningBals) + AgentCommission,
-              agentEarning: parseFloat(agentEarnings) + AgentCommission,
-              saEarningBal: parseFloat(saEarningBals) + saCommission,
-              saEarning: parseFloat(saEarnings) + saCommission,
-              ttlUserWthdrwl: parseFloat(ttlUserWthdrwls) + amountInKES,
-              agentFloatIn: parseFloat(agentFloatIns) + amountInKES
+              agentEarningBal: Math.floor(parseFloat(agentEarningBals) + AgentCommission),
+              agentEarning: Math.floor(parseFloat(agentEarnings) + AgentCommission),
+              saEarningBal: Math.floor(parseFloat(saEarningBals) + saCommission),
+              saEarning: Math.floor(parseFloat(saEarnings) + saCommission),
+              ttlUserWthdrwl: Math.floor(parseFloat(ttlUserWthdrwls) + numAmountInKES),
+              agentFloatIn: Math.floor(parseFloat(agentFloatIns) + numAmountInKES)
             }
           }
         });
@@ -257,16 +269,16 @@ const SMADepositForm = props => {
           variables: {
             input: {
               awsemail: acChamp,
-              balance: (ChampCommission + balancesx).toFixed(0)
+              balance: Math.floor(ChampCommission + balancesx)
             }
           }
         });
         
-        Alert.alert(`${names} has withdrawn ${formatAmountSync(amountInKES, userCurrencyKey, ratesMap)} from ${namess} NSNdogo`);
+        Alert.alert(t.withdrawnSuccess.replace('{{name}}', names).replace('{{amount}}', formatAmountSync(numAmountInKES, userCurrencyKey)).replace('{{nsndogo}}', namess));
       }
     } catch (error) {
       console.log(error);
-      Alert.alert("Check your internet connection");
+      Alert.alert(t.checkYourInternet);
     } finally {
       setIsLoading(false);
       setAmount("");
@@ -275,36 +287,82 @@ const SMADepositForm = props => {
       setChmKntct("");
     }
   };
-  return <ScrollView>
+  return (
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#f0f8ff' }}>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 64 : 0}
+      >
+        <ScrollView contentContainerStyle={{ padding: 24, flexGrow: 1 }} keyboardShouldPersistTaps="handled">
           <View style={styles.amountTitleView}>
-            <Text style={styles.title}>Fill Details Below</Text>
-          </View>
-      
-
-          <View style={styles.sendAmtView}>
-            <TextInput placeholder="+2547xxxxxxxx" value={AgentPhn} onChangeText={setAgentPhn} style={styles.sendAmtInput} editable={true}></TextInput>
-            <Text style={styles.sendAmtText}>NSNdogo Number</Text>
+            <Text style={styles.title}>{t.fillDetailsBelow}</Text>
           </View>
 
           <View style={styles.sendAmtView}>
-            <TextInput value={ChmKntct} onChangeText={setChmKntct} style={styles.sendAmtInput} editable={true}></TextInput>
-            <Text style={styles.sendAmtText}>Chama Account</Text>
+            <Text style={styles.sendAmtText}>{t.nsndogoNumber}</Text>
+            <TextInput
+              placeholder={t.nsndogoNumberPlaceholder}
+              value={AgentPhn}
+              onChangeText={setAgentPhn}
+              style={styles.sendAmtInput}
+              editable={!isLoading}
+              autoCapitalize="none"
+            />
           </View>
 
           <View style={styles.sendAmtView}>
-            <TextInput keyboardType={"decimal-pad"} value={amount} onChangeText={handleMoneyInput(setAmount)} onBlur={() => formatMoneyOnBlur(amount, setAmount)} style={styles.sendAmtInput} editable={true}></TextInput>
-            <Text style={styles.sendAmtText}>Amount</Text>
+            <Text style={styles.sendAmtText}>{t.chamaAccount}</Text>
+            <TextInput
+              placeholder={t.chamaAccountPlaceholder}
+              value={ChmKntct}
+              onChangeText={setChmKntct}
+              style={styles.sendAmtInput}
+              editable={!isLoading}
+              autoCapitalize="none"
+            />
           </View>
 
           <View style={styles.sendAmtView}>
-            <TextInput value={UsrPWd} onChangeText={setUsrPWd} secureTextEntry={true} style={styles.sendAmtInput} editable={true}></TextInput>
-            <Text style={styles.sendAmtText}>Chama PassWord</Text>
+            <Text style={styles.sendAmtText}>{t.amount}</Text>
+            <TextInput
+              keyboardType={"decimal-pad"}
+              placeholder={t.amountPlaceholder}
+              value={amount}
+              onChangeText={handleMoneyInput(setAmount)}
+              onBlur={() => formatMoneyOnBlur(amount, setAmount)}
+              style={styles.sendAmtInput}
+              editable={!isLoading}
+            />
           </View>
 
-          <TouchableOpacity onPress={fetchChmDtls} style={styles.sendAmtButton}>
-            <Text style={styles.sendAmtButtonText}>Click to Withdraw</Text>
-            {isLoading && <ActivityIndicator size="large" color="blue" />}
+          <View style={styles.sendAmtView}>
+            <Text style={styles.sendAmtText}>{t.chamaPassword}</Text>
+            <TextInput
+              placeholder={t.chamaPasswordPlaceholder}
+              value={UsrPWd}
+              onChangeText={setUsrPWd}
+              secureTextEntry={true}
+              style={styles.sendAmtInput}
+              editable={!isLoading}
+              autoCapitalize="none"
+            />
+          </View>
+
+          <TouchableOpacity
+            onPress={fetchChmDtls}
+            style={[styles.sendAmtButton, isLoading && { opacity: 0.6 }]}
+            disabled={isLoading || !AgentPhn || !ChmKntct || !amount || !UsrPWd}
+          >
+            {isLoading ? (
+              <ActivityIndicator size="small" color="#fff" />
+            ) : (
+              <Text style={styles.sendAmtButtonText}>{t.clickToWithdraw}</Text>
+            )}
           </TouchableOpacity>
-        </ScrollView>;
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
+  );
 };
 export default SMADepositForm;

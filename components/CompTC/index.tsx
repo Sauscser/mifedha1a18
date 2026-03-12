@@ -12,10 +12,15 @@ import { generateClient } from 'aws-amplify/api';
 import { signOut } from 'aws-amplify/auth';
 import { useNavigation } from '@react-navigation/native';
 import { listCompanies } from '../../src/graphql/queries';
+import { useTranslation } from 'react-i18next';
+import translations from './translation';
 
 const client = generateClient();
 
 const FetchSMNonCovLns = () => {
+    const { i18n } = useTranslation();
+    const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+    const t = translations[lang] || translations.en;
   const [loading, setLoading] = useState(false);
   const [loanees, setLoanees] = useState<any[]>([]);
   const navigation = useNavigation();
@@ -61,11 +66,11 @@ const FetchSMNonCovLns = () => {
       {/* Buttons below the scrollable window */}
       <View style={styles.buttonRow}>
         <Pressable onPress={acceptTerms} style={styles.acceptButton}>
-          <Text style={styles.buttonText}>Accept</Text>
+          <Text style={styles.buttonText}>{t.accept}</Text>
         </Pressable>
 
         <Pressable onPress={declineTerms} style={styles.declineButton}>
-          <Text style={styles.buttonText}>Decline</Text>
+          <Text style={styles.buttonText}>{t.decline}</Text>
         </Pressable>
       </View>
     </View>
@@ -84,9 +89,9 @@ const FetchSMNonCovLns = () => {
         contentContainerStyle={{ paddingBottom: 20 }}
         ListHeaderComponent={() => (
           <View style={styles.header}>
-            <Text style={styles.headerText}>Swipe down to load</Text>
+            <Text style={styles.headerText}>{t.swipeDownToLoad}</Text>
             <Text style={styles.headerSubText}>
-              (Read terms, then Accept or Decline)
+              {t.readTermsThenAcceptDecline}
             </Text>
           </View>
         )}

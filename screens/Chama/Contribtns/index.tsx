@@ -1,17 +1,21 @@
 import React, { useEffect, useState } from 'react';
-import { useRoute } from '@react-navigation/native';
+import { useRoute, RouteProp } from '@react-navigation/native';
 import { updateCompany, updateSMAccount, updateGroup, createGrpMembersContribution, updateChamaMembers } from '../../../src/graphql/mutations';
 import { generateClient } from 'aws-amplify/api';
 import { getCurrentUser, fetchUserAttributes } from 'aws-amplify/auth';
 import { getChamaMembers, getCompany, getGroup, getSMAccount } from '../../../src/graphql/queries';
-import { View, Text, TextInput, ScrollView, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, ScrollView, TouchableOpacity, Alert, ActivityIndicator, KeyboardAvoidingView, Platform } from 'react-native';
+import { useTranslation } from 'react-i18next';
+import { translations } from './translation';
+import { Ionicons } from '@expo/vector-icons';
 
 import { useExchange } from '../../../src/contexts/ExchangeContext';
-import { convertForeignToKsh, formatAmountSync } from '../../../src/utils/exchange';
+import { formatAmountSync, convertForeignToKsh } from '../../../src/utils/exchange';
 import { nationalityToCode } from '../../../src/utils/nationalityToCode';
 
 import styles from './styles';
 const client = generateClient();
+// Use any for route.params to avoid TS error, fallback to empty string if missing
 const SMASendChmNonLns = props => {
   const [MmbrId, setMmbrId] = useState('');
   const [RecNatId, setRecNatId] = useState('');
@@ -20,46 +24,58 @@ const SMASendChmNonLns = props => {
   const [Desc, setDesc] = useState('');
   const [ownr, setownr] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [userNationality, setUserNationality] = useState<string>(null);
+  const [userNationality, setUserNationality] = useState<string | null>(null);
   const route = useRoute();
-  const MembaId = route.params.ChamaNMember;
+  const MembaId = (route as any)?.params?.ChamaNMember || '';
   
-  const { ratesMap } = useExchange();
-  const userCurrencyKey = nationalityToCode(userNationality);
+  const { ratesMap, nationality } = useExchange();
+  // Use nationalityToCode to get userCode
+  const userCode = nationalityToCode(userNationality || nationality);
+  const userCurrencyKey = userCode || userNationality || nationality || undefined;
+  const currencySymbol =
+    (userCurrencyKey && ratesMap?.[userCurrencyKey]?.symbol) ||
+    (userCode && ratesMap?.[userCode]?.symbol) ||
+    (userNationality && ratesMap?.[userNationality]?.symbol) ||
+    'KSh';
 
-  // Parse amount input
-  const parseAmountInput = (value: string): number => {
-    if (!value || value.trim() === '') return 0;
-    const num = parseFloat(value);
-    return isNaN(num) ? 0 : num;
+  // Parse and sanitize input
+  const parseAmountInput = (value: string): number | null => {
+    const trimmed = value.trim();
+    if (!trimmed) return null;
+    const normalized = trimmed.replace(/,/g, '');
+    const parsed = Number(normalized);
+    return Number.isFinite(parsed) ? parsed : null;
   };
 
-  // Handle money input with 2-decimal enforcement
-  const handleMoneyInput = (setter: (value: string) => void) => (value: string) => {
-    if (/^\d*(\.\d{0,2})?$/.test(value) || value === '') {
-      setter(value);
+  const handleAmountChange = (value: string) => {
+    const sanitized = value.replace(/,/g, '');
+    if (sanitized === '') {
+      setAmount('');
+      return;
+    }
+    if (/^\d*(\.\d{0,2})?$/.test(sanitized)) {
+      setAmount(sanitized);
     }
   };
 
-  // Format to exactly 2 decimals on blur
-  const formatMoneyOnBlur = (value: string, setter: (value: string) => void) => {
-    const num = parseAmountInput(value);
-    if (num > 0) {
-      setter(num.toFixed(2));
-    }
+  const formatAmountOnBlur = () => {
+    if (!amounts.trim()) return;
+    const parsed = parseAmountInput(amounts);
+    if (parsed === null) return;
+    setAmount(parsed.toFixed(2));
   };
 
   const fetchUser = async () => {
     const user = await getCurrentUser();
     const attributes = await fetchUserAttributes();
     setownr(attributes.sub);
-    
     try {
       const userData = await client.graphql({
         query: getSMAccount,
         variables: { awsemail: attributes.email },
       });
-      setUserNationality(userData.data.getSMAccount.nationality);
+      const data = (userData as any)?.data || (userData as any)?.payload;
+      setUserNationality(data?.getSMAccount?.nationality);
     } catch (error) {
       console.error('Error fetching user data:', error);
     }
@@ -68,18 +84,38 @@ const SMASendChmNonLns = props => {
     fetchUser();
   }, []);
 
-  // Confirmation prompt
-  const confirmContribution = (): Promise<boolean> => {
+  const { i18n } = useTranslation();
+  const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+  const t = translations[lang] || translations.en;
+
+  // Confirmation prompt (BenefitChm pattern)
+  const confirmContribution = async (): Promise<boolean> => {
+    const amountForeign = parseAmountInput(amounts);
+    if (amountForeign === null || amountForeign <= 0) {
+      Alert.alert(t.amountSent, t.confirmContributionMsg.replace('{amount}', '0'));
+      return false;
+    }
+    const amountInKES = await convertForeignToKsh(amountForeign, userCurrencyKey);
+    // Fetch transaction fee
+    let userTransferFees = 0;
+    try {
+      const CompDtls: any = await client.graphql({
+        query: getCompany,
+        variables: { AdminId: "BaruchHabaB'ShemAdonai2" }
+      });
+      userTransferFees = CompDtls.data.getCompany.chmMmbrTransferFee || 0;
+    } catch {}
+    const feeInKES = userTransferFees * amountInKES;
+    // Format the original entered amount and fee for display (user currency)
+    const formattedEnteredAmount = `${currencySymbol} ${amountForeign}`;
+    const formattedFee = `${currencySymbol} ${(userTransferFees * amountForeign).toFixed(2)}`;
     return new Promise((resolve) => {
-      const amountForeign = parseAmountInput(amounts);
-      const amountInKES = convertForeignToKsh(amountForeign, userCurrencyKey, ratesMap);
-      
       Alert.alert(
-        'Confirm Contribution',
-        `You are about to contribute ${formatAmountSync(amountInKES, userCurrencyKey, ratesMap)} to the group. Continue?`,
+        t.confirmContribution,
+        `${t.confirmContributionMsg.replace('{amount}', formattedEnteredAmount)}\n${t.transactionFee || 'Transaction fee'}: ${formattedFee}`,
         [
-          { text: 'Cancel', style: 'cancel', onPress: () => resolve(false) },
-          { text: 'Confirm', onPress: () => resolve(true) }
+          { text: t.cancel, style: 'cancel', onPress: () => resolve(false) },
+          { text: t.confirm, onPress: () => resolve(true) }
         ]
       );
     });
@@ -91,11 +127,24 @@ const SMASendChmNonLns = props => {
     if (!confirmed) {
       return;
     }
-
     // Convert amount to KES once
     const amountForeign = parseAmountInput(amounts);
-    const amountInKES = convertForeignToKsh(amountForeign, userCurrencyKey, ratesMap);
-
+    const amountInKES = await convertForeignToKsh(amountForeign, userCurrencyKey);
+    if (!Number.isFinite(amountInKES) || amountInKES <= 0) {
+      Alert.alert(t.amountSent, t.confirmContributionMsg.replace('{amount}', '0'));
+      return;
+    }
+    // Fetch transaction fee
+    let userTransferFees = 0;
+    try {
+      const CompDtls: any = await client.graphql({
+        query: getCompany,
+        variables: { AdminId: "BaruchHabaB'ShemAdonai2" }
+      });
+      userTransferFees = CompDtls.data.getCompany.chmMmbrTransferFee || 0;
+    } catch {}
+    const feeInKES = userTransferFees * amountInKES;
+    const totalToDeduct = amountInKES + feeInKES;
     if (isLoading) return;
     setIsLoading(true);
     try {
@@ -137,13 +186,10 @@ const SMASendChmNonLns = props => {
               });
               const userTransferFees = CompDtls.data.getCompany.chmMmbrTransferFee;
               const UsrTransferFeeAmt = userTransferFees * amountInKES;
-              const UsrTransferFee2 = parseFloat(SenderUsrBal) - amountInKES;
-              const TotalTransacted2 = amountInKES + UsrTransferFee2;
               const companyEarningBals = CompDtls.data.getCompany.companyEarningBal;
               const companyEarnings = CompDtls.data.getCompany.companyEarning;
               const CompPhoneContact = CompDtls.data.getCompany.phoneContact;
-              const TotalTransacted = amountInKES + parseFloat(userTransferFees) * amountInKES;
-              const TransferFee = amountInKES + parseFloat(userTransferFees) * amountInKES;
+              const TotalTransacted = amountInKES + UsrTransferFeeAmt; // Deduct this from sender
               const ttlNonLonssRecChmss = CompDtls.data.getCompany.ttlNonLonssRecChm;
               const fetchRecUsrDtls = async () => {
                 if (isLoading) return;
@@ -180,7 +226,7 @@ const SMASendChmNonLns = props => {
                         }
                       });
                     } catch (error) {
-                      Alert.alert("Subscription unsuccessful; enter details correctly");
+                      Alert.alert(t.contributionUnsuccessful);
                       return;
                     }
                     setIsLoading(false);
@@ -200,7 +246,7 @@ const SMASendChmNonLns = props => {
                         }
                       });
                     } catch (error) {
-                      Alert.alert("Check your internet connection");
+                      Alert.alert(t.checkInternetConnection);
                       return;
                     }
                     setIsLoading(false);
@@ -222,7 +268,7 @@ const SMASendChmNonLns = props => {
                         }
                       });
                     } catch (error) {
-                      Alert.alert("Check your internet connection");
+                      Alert.alert(t.checkInternetConnection);
                       return;
                     }
                     setIsLoading(false);
@@ -237,8 +283,8 @@ const SMASendChmNonLns = props => {
                         variables: {
                           input: {
                             AdminId: "BaruchHabaB'ShemAdonai2",
-                            companyEarningBal: parseFloat(companyEarningBals) + TransferFee,
-                            companyEarning: parseFloat(companyEarnings) + TransferFee,
+                            companyEarningBal: parseFloat(companyEarningBals) + UsrTransferFeeAmt,
+                            companyEarning: parseFloat(companyEarnings) + UsrTransferFeeAmt,
                             ttlNonLonssRecChm: (amountInKES + parseFloat(ttlNonLonssRecChmss)).toFixed(2)
                           }
                         }
@@ -265,10 +311,12 @@ const SMASendChmNonLns = props => {
                         }
                       });
                     } catch (error) {
-                      Alert.alert("Check your internet connection");
+                      Alert.alert(t.checkInternetConnection);
                       return;
                     }
-                    Alert.alert(formatAmountSync(amountInKES, userCurrencyKey, ratesMap) + " sent to " + grpNames + " Transaction fee " + formatAmountSync(Math.floor(UsrTransferFeeAmt), userCurrencyKey, ratesMap));
+                    Alert.alert(
+                      `${amountForeign} sent to ${grpNames}\nTransaction fee: ${formatAmountSync(UsrTransferFeeAmt, userCurrencyKey, ratesMap)}`
+                    );
                     setIsLoading(false);
                   };
 
@@ -293,7 +341,7 @@ const SMASendChmNonLns = props => {
                         }
                       });
                     } catch (error) {
-                      Alert.alert("Contribution unsuccessful; Retry");
+                      Alert.alert(t.contributionUnsuccessful);
                       return;
                     }
                     setIsLoading(false);
@@ -303,17 +351,18 @@ const SMASendChmNonLns = props => {
                     if (isLoading) return;
                     setIsLoading(true);
                     try {
+                      // Fallback: if insufficient fees, just deduct sender's balance by amountInKES (no fee)
                       await client.graphql({
                         query: updateSMAccount,
                         variables: {
                           input: {
                             awsemail: memberContacts,
-                            balance: (parseFloat(SenderUsrBal) - TotalTransacted2).toFixed(0)
+                            balance: (parseFloat(SenderUsrBal) - amountInKES).toFixed(0)
                           }
                         }
                       });
                     } catch (error) {
-                      Alert.alert("Check your internet connection");
+                      Alert.alert(t.checkInternetConnection);
                       return;
                     }
                     setIsLoading(false);
@@ -335,7 +384,7 @@ const SMASendChmNonLns = props => {
                         }
                       });
                     } catch (error) {
-                      Alert.alert("Check your internet connection");
+                      Alert.alert(t.checkInternetConnection);
                       return;
                     }
                     setIsLoading(false);
@@ -345,13 +394,14 @@ const SMASendChmNonLns = props => {
                     if (isLoading) return;
                     setIsLoading(true);
                     try {
+                      // Fallback: if insufficient fees, do not add fee to company earning
                       await client.graphql({
                         query: updateCompany,
                         variables: {
                           input: {
                             AdminId: "BaruchHabaB'ShemAdonai2",
-                            companyEarningBal: parseFloat(companyEarningBals) + UsrTransferFee2,
-                            companyEarning: parseFloat(companyEarnings) + UsrTransferFee2,
+                            companyEarningBal: parseFloat(companyEarningBals),
+                            companyEarning: parseFloat(companyEarnings),
                             ttlNonLonssRecChm: (amountInKES + parseFloat(ttlNonLonssRecChmss)).toFixed(2)
                           }
                         }
@@ -377,34 +427,34 @@ const SMASendChmNonLns = props => {
                         }
                       });
                     } catch (error) {
-                      Alert.alert("Check your internet connection");
+                      Alert.alert(t.checkInternetConnection);
                       return;
                     }
-                    Alert.alert("Insufficient transaction fees? No worries! " + formatAmountSync(amountInKES, userCurrencyKey, ratesMap) + " sent!");
+                    Alert.alert(t.insufficientTransactionFees + " " + formatAmountSync(amountInKES, userCurrencyKey, ratesMap) + " " + t.sent);
                     setIsLoading(false);
                   };
 
                   // Validation checks before deciding which path to take
                   if (usrAcActvStts !== "AccountActive") {
-                    Alert.alert("Sender account is inactive");
+                    Alert.alert(t.senderAccountInactive);
                   } else if (statuss !== "AccountActive") {
-                    Alert.alert("Chama account is inactive");
-                  } else if (UsrTransferFee2 < 0) {
-                    Alert.alert("Requested amount is more than you have in your account");
+                    Alert.alert(t.chamaAccountInactive);
+                  } else if ((parseFloat(SenderUsrBal) - amountInKES) < 0) {
+                    Alert.alert(t.requestedAmountExceedsBalance);
                   } else if (usrPW !== SnderPW) {
-                    Alert.alert("Wrong password");
+                    Alert.alert(t.wrongPassword);
                   } else if (ownr !== SenderSub) {
-                    Alert.alert("Please send from your own account");
+                    Alert.alert(t.sendFromOwnAccount);
                   } else if (parseFloat(loanLimits) < amountInKES) {
-                    Alert.alert("Call " + CompPhoneContact + " to have your send Amount limit adjusted");
-                  } else if (UsrTransferFeeAmt > UsrTransferFee2) {
+                    Alert.alert(t.callToAdjustSendAmountLimit + " " + CompPhoneContact);
+                  } else if (UsrTransferFeeAmt > (parseFloat(SenderUsrBal) - amountInKES)) {
                     await CrtChmMbrContri2();
                   } else {
                     await CrtChmMbrContri();
                   }
                 } catch (e) {
                   console.log(e);
-                  Alert.alert("Receiver does not exist");
+                  Alert.alert(t.receiverDoesNotExist);
                   return;
                 }
                 setIsLoading(false);
@@ -412,14 +462,14 @@ const SMASendChmNonLns = props => {
               await fetchRecUsrDtls();
             } catch (e) {
               console.log(e);
-              Alert.alert("Check your internet connection");
+              Alert.alert(t.checkInternetConnection);
               return;
             }
             setIsLoading(false);
           };
           await fetchCompDtls();
         } catch (e) {
-          Alert.alert("Sender does not exist");
+          Alert.alert(t.senderDoesNotExist);
           return;
         }
         setIsLoading(false);
@@ -427,7 +477,7 @@ const SMASendChmNonLns = props => {
       await fetchSenderUsrDtls();
     } catch (e) {
       console.log(e);
-      Alert.alert("Check your internet connection");
+      Alert.alert(t.checkInternetConnection);
       return;
     }
     setMmbrId('');
@@ -477,51 +527,58 @@ const SMASendChmNonLns = props => {
     }
     setSnderPW(SnderPWss);
   }, [SnderPW]);
-  return <View>
-      <View style={styles.image}>
-        <ScrollView>
-         
-          <View style={styles.amountTitleView}>
-            <Text style={styles.title}>Fill account Details Below</Text>
-          </View>
-
-          
-
-        
-
-          <View style={styles.sendAmtView}>
-            <TextInput 
-              keyboardType="decimal-pad" 
-              value={amounts} 
-              onChangeText={handleMoneyInput(setAmount)} 
-              onBlur={() => formatMoneyOnBlur(amounts, setAmount)} 
-              style={styles.sendAmtInput} 
-              editable={true} 
-            />
-            <Text style={styles.sendAmtText}>Amount Sent</Text>
-          </View>
-
-
-          <View style={styles.sendAmtView}>
-            <TextInput value={SnderPW} onChangeText={setSnderPW} secureTextEntry={true} style={styles.sendAmtInput} editable={true}></TextInput>
-            <Text style={styles.sendAmtText}>Sender PassWord</Text>
-          </View>
-
-          
-
-          <View style={styles.sendAmtViewDesc}>
-            <TextInput multiline={true} value={Desc} onChangeText={setDesc} style={styles.sendAmtInputDesc} editable={true}></TextInput>
-            <Text style={styles.sendAmtText}>Description</Text>
-          </View>
-
-          <TouchableOpacity onPress={fetchChmMbrDtls} style={styles.sendAmtButton}>
-            <Text style={styles.sendAmtButtonText}>Send</Text>
-            {isLoading && <ActivityIndicator size="large" color="blue" />}
+  const [isPasswordVisible, setIsPasswordVisible] = useState(false);
+  return (
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 64 : 0}
+    >
+      <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
+        <Text style={styles.title}>{t.fillAccountDetails}</Text>
+        <Text>{t.amountSent + ' (' + currencySymbol + ')'}</Text>
+        <TextInput 
+          keyboardType="decimal-pad" 
+          value={amounts} 
+          onChangeText={handleAmountChange} 
+          onBlur={formatAmountOnBlur} 
+          style={styles.input} 
+          placeholder={t.amountSent + ' (' + currencySymbol + ')'}
+          editable={!isLoading}
+        />
+        <View style={{ width: '100%', position: 'relative', marginBottom: 18 }}>
+          <Text>{t.senderPassword}</Text>
+          <TextInput
+            value={SnderPW}
+            onChangeText={setSnderPW}
+            secureTextEntry={!isPasswordVisible}
+            style={styles.input}
+            placeholder={t.senderPassword}
+            editable={!isLoading}
+          />
+          <TouchableOpacity
+            onPress={() => setIsPasswordVisible(v => !v)}
+            style={{ position: 'absolute', right: 16, top: 12 }}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <Ionicons name={isPasswordVisible ? 'eye-off' : 'eye'} size={22} color="#888" />
           </TouchableOpacity>
-
-          
-        </ScrollView>
-      </View>
-    </View>;
+        </View>
+        <Text>{t.description}</Text>
+        <TextInput
+          multiline={true}
+          value={Desc}
+          onChangeText={setDesc}
+          style={[styles.input, styles.inputDesc]}
+          placeholder={t.description}
+          editable={!isLoading}
+        />
+        <TouchableOpacity onPress={fetchChmMbrDtls} style={styles.button} disabled={isLoading}>
+          <Text style={styles.buttonText}>{t.send}</Text>
+          {isLoading && <ActivityIndicator size="small" color="#fff" style={{ marginLeft: 8 }} />}
+        </TouchableOpacity>
+      </ScrollView>
+    </KeyboardAvoidingView>
+  );
 };
 export default SMASendChmNonLns;

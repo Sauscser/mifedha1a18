@@ -6,12 +6,17 @@ import LnerStts from "../../../../components/Chama/ConfirmDividends/VwChama2Conf
 import styles from './styles';
 import { listChamaMembers } from '../../../../src/graphql/queries';
 import { useRoute } from '@react-navigation/native';
+import { translations } from './translation';
+import { useTranslation } from 'react-i18next';
 const client = generateClient();
 const FetchSMCovLns = props => {
   const [LneePhn, setLneePhn] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [Loanees, setLoanees] = useState<any[]>([]);
   const route = useRoute();
+  const { i18n } = useTranslation();
+  const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+  const t = translations[lang] || translations.en;
   const fetchUser = async () => {
     const user = await getCurrentUser();
     const attributes = await fetchUserAttributes();
@@ -37,7 +42,7 @@ const FetchSMCovLns = props => {
       const fetchedGrps = Lonees.data.listChamaMembers.items;
       setLoanees(fetchedGrps);
       if (fetchedGrps.length < 1) {
-        Alert.alert("You don't belong to any group");
+        Alert.alert(t.noGroups);
       }
     } catch (e) {
       console.log(e);
@@ -55,9 +60,10 @@ const FetchSMCovLns = props => {
       item
     }) => <LnerStts ChamaMmbrshpDtls={item} />} keyExtractor={(item, index) => index.toString()} onRefresh={fetchLoanees} refreshing={loading} showsVerticalScrollIndicator={false} ListHeaderComponentStyle={{
       alignItems: 'center'
-    }} ListHeaderComponent={() => <>
-            <Text style={styles.label}> Groups</Text>
-          </>} />
+    }} ListHeaderComponent={() => (
+      <Text style={styles.label}>{t.groups}</Text>
+    )} />
     </View>;
 };
+
 export default FetchSMCovLns;

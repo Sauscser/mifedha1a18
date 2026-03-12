@@ -272,6 +272,8 @@ import ViewNonLnsSent from "../../screens/MyAcc/ViewNonLnsSent";
 import AddMFNdogo from "../../screens/MFNdogo/AddMFNdogo";
 import AddMFKubwa from "../../screens/MFKubwa/AddMFKubwa";
 import SignitoryWthdrwFndss from "../../screens/Chama/SignitoryWthdrwFnds";
+import SignitoryWthdrwFndss3 from "../../screens/Chama/Sgn2CnfrmWthdrwls/Signatory2";
+
 import SignitoryDeposits from "../../screens/Chama/SignitoryDeposit";
 import Sgn2CnfrmWthdrwlss from "../../screens/Chama/Sgn2CnfrmWthdrwls";
 import Vw2CredSellCov from "../../screens/CredSls/Vw2GrntCrdSls/Biz2Pal";
@@ -672,6 +674,7 @@ const HomeNavigator = ({ navigation }: any) => {
       <Stack.Screen name={'Homeie'} component={Homeie} /> 
       <Stack.Screen name={'Auditor'} component={Auditor} />
       <Stack.Screen name={'ViewMinutes'} component={ViewMinutes} />
+      <Stack.Screen name={'SignitoryWthdrwFndss3'} component={SignitoryWthdrwFndss3} />
 
       <Stack.Screen name={'CreateChamaMinutes'} component={CreateChamaMinutes} />     
      
@@ -723,7 +726,6 @@ const HomeNavigator = ({ navigation }: any) => {
       <Stack.Screen name={'TransportDetails'} component={TransportDetails} />
       <Stack.Screen name={'AcceptTransportRequest'} component={AcceptTransportRequest} />
       <Stack.Screen name={'ViewChama2CommitTransport'} component={ViewChama2CommitTransport} />
-     
      
       <Stack.Screen name={'VwBeneficiaryContriDtls'} component={VwBeneficiaryContriDtls} />
       <Stack.Screen name={'WithdrawFundsFromMap'} component={WithdrawFundsFromMap} />

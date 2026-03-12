@@ -1,4 +1,6 @@
 import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { translations } from './translation';
 import { updateCompany, updateSMAccount, updateCvrdGroupLoans, updateGroup, updateChamaMembers, createMessages, sendNotification } from '../../../src/graphql/mutations';
 import { getCompany, getSMAccount, getCvrdGroupLoans, getGroup, getChamaMembers } from '../../../src/graphql/queries';
 import { useNavigation, useRoute } from '@react-navigation/native';
@@ -13,6 +15,10 @@ import { nationalityToCode } from '../../../src/utils/nationalityToCode';
 
 const client = generateClient();
 const BLChmCovLoanee = props => {
+  // i18n translation pattern
+  const { i18n } = useTranslation();
+  const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+  const t = translations[lang] || translations.en;
   const navigation = useNavigation();
   const [LonId, setLonId] = useState("");
   const [ChmMbrId, setChmMbrId] = useState("");
@@ -131,13 +137,20 @@ const BLChmCovLoanee = props => {
                 } catch (error) {
                   console.log(error);
                   if (error) {
-                    Alert.alert("Retry or update app or call customer care");
+                    Alert.alert(t.retryUpdateCall);
                     return;
                   }
                 }
-                Alert.alert("You have Penalised " + memberName + " for late payment ");
+                Alert.alert(
+                  t.penalisedLatePayment.replace('{memberName}', memberName)
+                );
                 
-                const notificationBody = 'NiSenti: Hi ' + memberName + ', you have been penalised for late subscription by ' + grpName + ' group. The following is a breakdown of your subscription arrears and penalties: ' + '. subscription you have done up to date are ' + formatAmountSync(parseFloat(subscribedAmt), userCurrencyKey, ratesMap) + ' instead of ' + formatAmountSync(parseFloat(Amt2HvBnSub), userCurrencyKey, ratesMap) + '. For clarification call the group Admin: ' + attributes.phone_number + '. Thank you.';
+                const notificationBody = t.notificationBody
+                  .replace('{memberName}', memberName)
+                  .replace('{grpName}', grpName)
+                  .replace('{amountDone}', formatAmountSync(parseFloat(subscribedAmt), userCurrencyKey, ratesMap))
+                  .replace('{amountExpected}', formatAmountSync(Amt2HvBnSub, userCurrencyKey, ratesMap))
+                  .replace('{phone}', attributes.phone_number);
                 
                 await client.graphql({
                   query: createMessages,
@@ -153,7 +166,7 @@ const BLChmCovLoanee = props => {
                   query: sendNotification,
                   variables: {
                     riderEmail: memberContact,
-                    title: 'NiSenti: Late Subscription Penalty',
+                    title: t.notificationTitle,
                     body: notificationBody
                   }
                 });
@@ -161,18 +174,18 @@ const BLChmCovLoanee = props => {
                 setIsLoading(false);
               };
               if (parseFloat(subscriptionFrequency) > tmDif) {
-                Alert.alert(" Time to penalise is not yet");
+                Alert.alert(t.timeToPenaliseNotYet);
               } else if (Amt2HvBnSub + parseFloat(ttlLateSubs) < subscribedAmt) {
-                Alert.alert(" Member subscription is upto date");
+                Alert.alert(t.subscriptionUpToDate);
               } else if (objectionStatus === "Objected") {
-                Alert.alert("Sorry account operations have been stopped by an Admin");
+                Alert.alert(t.accountStoppedByAdmin);
               } else {
                 updateMmbrDtls3();
               }
             } catch (error) {
               if (error) {
                 console.log(error);
-                Alert.alert("Retry or update app or call customer care");
+                Alert.alert(t.retryUpdateCall);
                 return;
               }
             }
@@ -182,7 +195,7 @@ const BLChmCovLoanee = props => {
         } catch (error) {
           console.log(error);
           if (error) {
-            Alert.alert("Retry or update app or call customer care");
+            Alert.alert(t.retryUpdateCall);
             return;
           }
         }
@@ -192,7 +205,7 @@ const BLChmCovLoanee = props => {
     } catch (error) {
       console.log(error);
       if (error) {
-        Alert.alert("Retry or update app or call customer care");
+        Alert.alert(t.retryUpdateCall);
         return;
       }
     }
@@ -231,7 +244,7 @@ const BLChmCovLoanee = props => {
            
                   <TouchableOpacity onPress={gtCompDtls} style={styles.sendLoanButton}>
                     <Text style={styles.sendLoanButtonText}>
-                      Click to Penalise 
+                      {t.clickToPenalise}
                     </Text>
                     {isLoading && <ActivityIndicator size="large" color="blue" />}
                   </TouchableOpacity>

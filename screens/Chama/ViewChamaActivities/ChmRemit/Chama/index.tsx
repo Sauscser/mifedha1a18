@@ -5,12 +5,19 @@ import styles from './styles';
 import { useRoute } from '@react-navigation/native';
 import { VwChamaMemberssss } from '../../../../../src/graphql/queries';
 import { generateClient } from 'aws-amplify/api';
+import { translations } from './translation';
+import { useTranslation } from 'react-i18next';
 const client = generateClient();
 const FetchSMCovLns = props => {
   const [LnerPhn, setLnerPhn] = useState(null);
   const [loading, setLoading] = useState(false);
   const [Chm, setChm] = useState([]);
   const route = useRoute();
+
+    const { i18n } = useTranslation();
+    const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+    const t = translations[lang] || translations.en;
+    
   const fetchChm = async () => {
     setLoading(true);
     try {
@@ -25,11 +32,11 @@ const FetchSMCovLns = props => {
       const nonLns = Lonees.data.VwChamaMemberssss.items;
       setChm(nonLns);
       if (nonLns.length < 1) {
-        Alert.alert("No member remittances");
+        Alert.alert(t.noRemittances);
       }
     } catch (error) {
       console.log(error);
-      Alert.alert("Error fetching remittances. Please retry.");
+      Alert.alert(t.errorFetching);
     } finally {
       setLoading(false);
     }
@@ -45,7 +52,7 @@ const FetchSMCovLns = props => {
     }) => <ChamReminfo ChamaRemitDtls={item} />} keyExtractor={(item, index) => index.toString()} onRefresh={fetchChm} refreshing={loading} showsVerticalScrollIndicator={false} ListHeaderComponentStyle={{
       alignItems: 'center'
     }} ListHeaderComponent={() => <>
-            <Text style={styles.label}>Chama Remittance to Members</Text>
+            <Text style={styles.label}>{t.chamaRemittance}</Text>
           </>} />
     </View>;
 };

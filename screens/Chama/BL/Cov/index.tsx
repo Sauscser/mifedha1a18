@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
+import translations from './translation';
 import Communications from 'react-native-communications';
 import { updateCompany, updateSMAccount, updateCvrdGroupLoans, updateGroup, updateChamaMembers, createMessages, sendNotification } from '../../../../src/graphql/mutations';
 import { getCompany, getSMAccount, getCvrdGroupLoans, getGroup, getChamaMembers } from '../../../../src/graphql/queries';
@@ -14,6 +16,9 @@ import {useExchange} from '../../../../src/contexts/ExchangeContext';
 import styles from './styles';
 const client = generateClient();
 const BLChmCovLoanee = () => {
+  const { i18n } = useTranslation();
+  const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+  const t = translations[lang] || translations.en;
   const navigation = useNavigation();
   const route = useRoute();
   const [isLoading, setIsLoading] = useState(false);
@@ -144,19 +149,19 @@ const BLChmCovLoanee = () => {
 
       // 8️⃣ Validation checks
       if (parseFloat(lonBala) === 0) {
-        Alert.alert("Loanee has cleared this loan");
+        Alert.alert(t.loaneeCleared);
         return;
       }
       if (acStatus === "AccountInactive") {
-        Alert.alert("Loanee account has been deactivated");
+        Alert.alert(t.loaneeDeactivated);
         return;
       }
       if (objectionStatus === "Objected") {
-        Alert.alert("Operations on this group have been stopped");
+        Alert.alert(t.groupStopped);
         return;
       }
       if (tmDif < parseFloat(paymentFrequency)) {
-        Alert.alert("Time to Blacklist is not yet");
+        Alert.alert(t.timeToBlacklist);
         return;
       }
 
@@ -183,7 +188,7 @@ const BLChmCovLoanee = () => {
           blOfficer: attrs.email,
           DefaultPenaltyChm2: DefaultPenaltyChm.toFixed(0)
         });
-        Alert.alert(`${grpName}, you have penalised ${loaneeName}`);
+        Alert.alert(t.penalised.replace('{group}', grpName).replace('{loanee}', loaneeName));
 
         await client.graphql({
                 query: createMessages,
@@ -277,7 +282,7 @@ const BLChmCovLoanee = () => {
             body: `Hi ${loaneeName}, your loan of ID ${route.params.loanID} has been blacklisted by ${grpName}. Total repayable: Ksh. ${formatAmountSync(Math.floor(LonBal4), userCode, ratesMap)}.`
           }
         });
-        Alert.alert(`${grpName}, you have blacklisted ${loaneeName}`);
+        Alert.alert(t.blacklisted.replace('{group}', grpName).replace('{loanee}', loaneeName));
       }
       async function updateBlacklistedLoan() {
         await updateCvrdGroupLoansAPI({
@@ -310,7 +315,7 @@ const BLChmCovLoanee = () => {
             }
           }
         });
-        Alert.alert(`${grpName}, you have penalised after blacklisting ${loaneeName}`);
+        Alert.alert(t.penalisedAfterBlacklist.replace('{group}', grpName).replace('{loanee}', loaneeName));
         
         const notificationBody = `NiSenti: Hi ${loaneeName}, your loan of ID ${route.params.loanID} has been penalised after blacklisting by ${grpName}. Total repayable: ${formatAmountSync(Math.floor(LonBal5), userCode, ratesMap)}.`;
         
@@ -348,18 +353,20 @@ const BLChmCovLoanee = () => {
       }
     } catch (error) {
       console.log(error);
-      Alert.alert("Error! Access denied!");
+      Alert.alert(t.errorAccessDenied);
     } finally {
       setIsLoading(false);
     }
   };
-  return <View style={styles.image}>
-      <ScrollView>
-        <TouchableOpacity onPress={gtCompDtls} style={styles.sendLoanButton}>
-          <Text style={styles.sendLoanButtonText}>Click to Black List</Text>
+  return (
+    <View style={[styles.image, { justifyContent: 'center', alignItems: 'center' }]}> 
+      <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <TouchableOpacity onPress={gtCompDtls} style={[styles.sendLoanButton, { alignSelf: 'center' }]}> 
+          <Text style={styles.sendLoanButtonText}>{t.clickToBlacklist}</Text>
           {isLoading && <ActivityIndicator size="large" color="blue" />}
         </TouchableOpacity>
       </ScrollView>
-    </View>;
+    </View>
+  );
 };
 export default BLChmCovLoanee;

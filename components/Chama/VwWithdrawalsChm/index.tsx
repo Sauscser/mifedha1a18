@@ -9,6 +9,8 @@ import {useExchange} from '../../../src/contexts/ExchangeContext';
 import { generateClient } from 'aws-amplify/api';  
 import { getSMAccount } from '../../../src/graphql/queries';
 import {fetchUserAttributes} from 'aws-amplify/auth';
+import { useTranslation } from 'react-i18next';
+import translations from './translation';
 
 
 export interface SMAccount {
@@ -61,20 +63,19 @@ const ViewSMWithdrwls = (props:SMAccount) => {
      };
      fetchUserData();
    }, [Uzer]);
+   const { i18n } = useTranslation();
+   const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+   const t = translations[lang] || translations.en;
    return (
-
       <View style={styles.pageContainer}>
         <View style={styles.card}>
-        <Text style={styles.prodName}>{agentName}</Text>
-
-        <Text style={styles.prodInfo}><Text style={styles.label}>Transaction ID:</Text> {id}</Text>
-        <Text style={styles.prodInfo}><Text style={styles.label}>NSNdogo Number:</Text> {agentPhonecontact}</Text>
-      {/* Replace KES with dynamic currency */}
-      <Text style={styles.prodInfo}><Text style={styles.label}>Amount:</Text> {formatAmountSync(Math.floor(amount), userCode, ratesMap)}</Text>
-        <Text style={styles.prodInfo}><Text style={styles.label}>Transaction Time:</Text> {createdAt}</Text>
-    
-       </View>               
-       </View>
+          <Text style={styles.prodName}>{agentName}</Text>
+          <Text style={styles.prodInfo}><Text style={styles.label}>{t.transactionId || 'Transaction ID:'}</Text> {id}</Text>
+          <Text style={styles.prodInfo}><Text style={styles.label}>{t.nsNdogoNumber || 'NSNdogo Number:'}</Text> {agentPhonecontact}</Text>
+          <Text style={styles.prodInfo}><Text style={styles.label}>{t.amount || 'Amount:'}</Text> {formatAmountSync(Math.floor(amount), userCode, ratesMap)}</Text>
+          <Text style={styles.prodInfo}><Text style={styles.label}>{t.transactionTime || 'Transaction Time:'}</Text> {createdAt}</Text>
+        </View>
+      </View>
    );
 }; 
 

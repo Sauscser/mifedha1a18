@@ -2,6 +2,7 @@ import { useNavigation } from '@react-navigation/core';
 import React from 'react';
 import { Text,  Pressable,  View, ScrollView} from 'react-native';
 
+import { translations } from './translation';
 import styles from './styles';
 
 
@@ -23,7 +24,9 @@ const ChmMbrShpInfo = (props:ChamaMmbrshpInfo) => {
    }} = props ;
 
    const navigation = useNavigation();
-    
+   const lang = (navigator.language || 'en').split('-')[0];
+   const t = translations[lang] || translations.en;
+   
    const SndChmMmbrMny = () => {
       navigation.navigate("RemoveChmMbrs", {id})
    }
@@ -35,9 +38,9 @@ const ChmMbrShpInfo = (props:ChamaMmbrshpInfo) => {
           
           <View style = {styles.card}>
          
-         <Text style={styles.prodInfo}><Text style={styles.label}>Member Name:</Text> {memberName}</Text>
-         <Text style={styles.prodInfo}><Text style={styles.label}> Member Chama ID:</Text> {id}</Text>
-         <Text style={styles.prodInfo}><Text style={styles.label}>Member Contact:</Text> {memberContact}</Text>
+         <Text style={styles.prodInfo}><Text style={styles.label}>{t.memberName}:</Text> {memberName}</Text>
+         <Text style={styles.prodInfo}><Text style={styles.label}> {t.memberChamaId}:</Text> {id}</Text>
+         <Text style={styles.prodInfo}><Text style={styles.label}>{t.memberContact}:</Text> {memberContact}</Text>
         
              </View>                   
                

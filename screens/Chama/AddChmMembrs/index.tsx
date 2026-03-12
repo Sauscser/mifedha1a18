@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, TextInput, ScrollView, TouchableOpacity, Alert, StyleSheet, ActivityIndicator } from 'react-native';
+import { translations } from './translation';
+import { useTranslation } from 'react-i18next';
 import { useNavigation } from '@react-navigation/native';
 import { generateClient } from 'aws-amplify/api';
 import { getCurrentUser, fetchUserAttributes } from 'aws-amplify/auth';
@@ -13,6 +15,9 @@ const AddChmMmbrs = () => {
   const navigation = useNavigation();
   const { nationality, ratesMap } = useExchange();
 
+  const { i18n } = useTranslation();
+  const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+  const t = translations[lang] || translations.en;
   // Form state
   const [phoneContacts, setPhoneContacts] = useState('');
   const [MmbaID, setMmbaID] = useState('');
@@ -28,10 +33,12 @@ const AddChmMmbrs = () => {
 
   // Loading
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingGroups, setIsLoadingGroups] = useState(false);
 
   // Fetch groups where current user is admin
   useEffect(() => {
     const fetchAdminGroups = async () => {
+      setIsLoadingGroups(true);
       try {
         const user = await getCurrentUser();
         const attrs = await fetchUserAttributes();
@@ -126,8 +133,9 @@ const AddChmMmbrs = () => {
         setAdminGroups(groupsData.data.listGroups.items);
       } catch (error) {
         console.error(error);
-        Alert.alert('Failed to fetch your groups');
+        Alert.alert(t.errorAdding);
       }
+      setIsLoadingGroups(false);
     };
     fetchAdminGroups();
   }, []);
@@ -169,11 +177,17 @@ const AddChmMmbrs = () => {
   ): Promise<boolean> => {
     return new Promise((resolve) => {
       Alert.alert(
-        'Confirm Member Add',
-        `Add ${memberName} (${memberEmail}) to ${groupName}?\n\nSubscription: ${subscriptionAmount} every ${frequencyDays} days\nLate Penalty: ${latePenalty}`,
+        t.confirmMemberAddTitle,
+        t.confirmMemberAddBody
+          .replace('{memberName}', memberName)
+          .replace('{memberEmail}', memberEmail)
+          .replace('{groupName}', groupName)
+          .replace('{subscriptionAmount}', subscriptionAmount)
+          .replace('{frequencyDays}', frequencyDays)
+          .replace('{latePenalty}', latePenalty),
         [
-          { text: 'Cancel', style: 'cancel', onPress: () => resolve(false) },
-          { text: 'Add Member', onPress: () => resolve(true) }
+          { text: t.cancel, style: 'cancel', onPress: () => resolve(false) },
+          { text: t.addMember, onPress: () => resolve(true) }
         ],
         {
           cancelable: true,
@@ -185,11 +199,11 @@ const AddChmMmbrs = () => {
 
   const handleAddMember = async () => {
     if (!selectedGroup) {
-      Alert.alert('Please select a group first');
+      Alert.alert(t.selectGroupFirst);
       return;
     }
     if (!phoneContacts || !MmbaID || !SubAmt || !SubFreq || !pword) {
-      Alert.alert('Please fill all required fields');
+      Alert.alert(t.fillAllFields);
       return;
     }
     setIsLoading(true);
@@ -209,7 +223,7 @@ const AddChmMmbrs = () => {
         }
       });
       if (memberData.data.listSMAccounts.items.length < 1) {
-        Alert.alert('Member must first create a main account');
+        Alert.alert(t.memberMustCreate);
         setIsLoading(false);
         return;
       }
@@ -223,7 +237,7 @@ const AddChmMmbrs = () => {
       });
       const adminDtls = adminAccount.data.getSMAccount;
       if (adminDtls.pw !== pword) {
-        Alert.alert('Incorrect password');
+        Alert.alert(t.incorrectPassword);
         setIsLoading(false);
         return;
       }
@@ -236,7 +250,7 @@ const AddChmMmbrs = () => {
 
       const subscriptionForeign = parseAmountInput(SubAmt);
       if (subscriptionForeign === null || subscriptionForeign <= 0) {
-        Alert.alert('Enter a valid subscription amount');
+        Alert.alert(t.enterValidSubAmt);
         setIsLoading(false);
         return;
       }
@@ -247,7 +261,7 @@ const AddChmMmbrs = () => {
       const latePenaltyKES = await convertForeignToKsh(latePenaltyForeign, adminCurrencyKey);
 
       if (!Number.isFinite(subscriptionAmtKES) || subscriptionAmtKES <= 0 || !Number.isFinite(latePenaltyKES) || latePenaltyKES < 0) {
-        Alert.alert('Unable to convert amounts. Please try again.');
+        Alert.alert(t.unableToConvert);
         setIsLoading(false);
         return;
       }
@@ -260,7 +274,7 @@ const AddChmMmbrs = () => {
       });
       const membaDtls = memberDtls.data.getSMAccount;
       if (!membaDtls) {
-        Alert.alert('Member must first create a main account');
+        Alert.alert(t.memberMustCreate);
         setIsLoading(false);
         return;
       }
@@ -344,7 +358,7 @@ const AddChmMmbrs = () => {
         variables: {
           input: {
             senderEmail: phoneContacts,
-            messageBody: `You have been added to group ${group.grpName}. Welcome!`
+            messageBody: t.addedToGroup.replace('{group}', group.grpName)
           }
         }
       });
@@ -352,11 +366,11 @@ const AddChmMmbrs = () => {
         query: sendNotification,
         variables: {
           riderEmail: phoneContacts,
-          title: "NiSenti: New Group Membership",
-          body: `You have been added to group ${group.grpName}. Welcome!`
+          title: t.newGroupMembership,
+          body: t.addedToGroup.replace('{group}', group.grpName)
         }
       });
-      Alert.alert("Success", `Member added successfully to ${group.grpName}`);
+      Alert.alert(t.success, t.memberAdded.replace('{group}', group.grpName));
       navigation.goBack();
       setPhoneContacts('');
       setMmbaID('');
@@ -367,7 +381,7 @@ const AddChmMmbrs = () => {
       setSelectedGroup(null);
     } catch (error) {
       console.error(error);
-      Alert.alert('Error adding member. Please try again.');
+      Alert.alert(t.errorAdding);
     }
     setIsLoading(false);
   };
@@ -376,49 +390,52 @@ const AddChmMmbrs = () => {
 
           {/* Header */}
           <View style={ui.header}>
-            <Text style={ui.title}>Add Chama Member</Text>
-            <Text style={ui.subtitle}>Select a group and fill member details</Text>
+            <Text style={ui.title}>{t.addChamaMember}</Text>
+            <Text style={ui.subtitle}>{t.selectGroupAndFill}</Text>
           </View>
 
           {/* Group Selection */}
           <View style={ui.card}>
-            <Text style={ui.label}>Select Group</Text>
-            {adminGroups.length > 0 ? adminGroups.map(group => <TouchableOpacity key={group.grpContact} style={[ui.groupButton, selectedGroup?.grpContact === group.grpContact && ui.groupButtonSelected]} onPress={() => setSelectedGroup(group)}>
-                  <Text style={[ui.groupButtonText, selectedGroup?.grpContact === group.grpContact && {
-            color: '#fff'
-          }]}>
+            <Text style={ui.label}>{t.selectGroup}</Text>
+            {isLoadingGroups ? (
+              <ActivityIndicator size="large" color="#e58d29" style={{ marginVertical: 20 }} />
+            ) : adminGroups.length > 0 ? (
+              adminGroups.map(group => (
+                <TouchableOpacity key={group.grpContact} style={[ui.groupButton, selectedGroup?.grpContact === group.grpContact && ui.groupButtonSelected]} onPress={() => setSelectedGroup(group)}>
+                  <Text style={[ui.groupButtonText, selectedGroup?.grpContact === group.grpContact && { color: '#fff' }]}>
                     {group.grpName}
                   </Text>
-                </TouchableOpacity>) : <Text style={{
-          color: 'red',
-          marginVertical: 10
-        }}>You have no groups</Text>}
+                </TouchableOpacity>
+              ))
+            ) : (
+              <Text style={{ color: 'red', marginVertical: 10 }}>{t.noGroups}</Text>
+            )}
           </View>
 
           {/* Member Form */}
           {selectedGroup && <View style={ui.card}>
               <View style={ui.inputGroup}>
-                <Text style={ui.label}>Member Email</Text>
-                <TextInput value={phoneContacts} onChangeText={setPhoneContacts} style={ui.input} placeholder="member@email.com" keyboardType="email-address" autoCapitalize="none" />
+                <Text style={ui.label}>{t.memberEmail}</Text>
+                <TextInput value={phoneContacts} onChangeText={setPhoneContacts} style={ui.input} keyboardType="email-address" autoCapitalize="none" />
               </View>
 
               <View style={ui.inputGroup}>
-                <Text style={ui.label}>Member Chama Number</Text>
-                <TextInput value={MmbaID} onChangeText={setMmbaID} style={ui.input} placeholder="Unique member ID" />
+                <Text style={ui.label}>{t.memberChamaNumber}</Text>
+                <TextInput value={MmbaID} onChangeText={setMmbaID} style={ui.input} />
               </View>
 
               <View style={ui.inputGroup}>
-                <Text style={ui.label}>Subscription Amount</Text>
+                <Text style={ui.label}>{t.subscriptionAmount}</Text>
                 <TextInput value={SubAmt} onChangeText={handleMoneyInput(setSubAmt)} onBlur={() => formatMoneyOnBlur(SubAmt, setSubAmt)} style={ui.input} keyboardType="decimal-pad" />
               </View>
 
               <View style={ui.inputGroup}>
-                <Text style={ui.label}>Subscription Frequency (Days)</Text>
+                <Text style={ui.label}>{t.subscriptionFrequency}</Text>
                 <TextInput value={SubFreq} onChangeText={setSubFreq} style={ui.input} keyboardType="decimal-pad" />
               </View>
 
               <View style={ui.inputGroup}>
-                <Text style={ui.label}>Late Subscription Penalty</Text>
+                <Text style={ui.label}>{t.lateSubPenalty}</Text>
                 <TextInput value={lateSub} onChangeText={handleMoneyInput(setLateSub)} onBlur={() => formatMoneyOnBlur(lateSub, setLateSub)} style={ui.input} keyboardType="decimal-pad" />
               </View>
 
@@ -437,13 +454,13 @@ const AddChmMmbrs = () => {
               color: '#2563EB',
               fontWeight: '500'
             }}>
-        {showPassword ? 'Hide' : 'Show'}
+        {showPassword ? t.hide : t.show}
       </Text>
     </TouchableOpacity>
   </View>
 
               <TouchableOpacity style={ui.button} onPress={handleAddMember} disabled={isLoading}>
-                {isLoading ? <ActivityIndicator color="#fff" /> : <Text style={ui.buttonText}>Add Member</Text>}
+                {isLoading ? <ActivityIndicator color="#fff" /> : <Text style={ui.buttonText}>{t.addMember}</Text>}
               </TouchableOpacity>
             </View>}
         </ScrollView>

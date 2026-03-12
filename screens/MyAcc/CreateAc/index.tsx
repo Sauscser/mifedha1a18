@@ -26,6 +26,9 @@ import * as ImageManipulator from 'expo-image-manipulator';
 import { PhoneNumberUtil } from 'google-libphonenumber';
 import countries from '../../../src/data/countries.json';
 
+import { useTranslation } from 'react-i18next';
+import translations from './translation';
+
 const client = generateClient();
 
 // ----------------- Phone helpers (exported for testing) -----------------
@@ -55,6 +58,10 @@ export const formatE164 = (dial: string, local: string, phoneUtilParam?: any) =>
 
 const CreateAcForm = () => {
   const navigation = useNavigation();
+
+    const { i18n } = useTranslation();
+    const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+    const t = translations[lang] || translations.en;
 
   const countryNamesByCode: Record<string, string> = {
   AF: "Afghanistan", AL: "Albania", DZ: "Algeria", AS: "American Samoa", AD: "Andorra", AO: "Angola", AI: "Anguilla", 
@@ -373,7 +380,7 @@ const officialDocumentByCountry: Record<string, string> = {
 
   const requirePhoneConfirmedOrAlert = (): boolean => {
     if (!phoneConfirmed || !phoneConfirmedE164) {
-      Alert.alert('Validate Phone', 'Please validate and confirm your phone number before proceeding.');
+      Alert.alert(t.validatePhone, t.validateAndConfirm);
       return false;
     }
     return true;
@@ -490,23 +497,23 @@ const nationality =
 
       // Display confirmation dialog
       Alert.alert(
-        'Confirm Your Phone Details',
-        `Country: ${countryDisplay}\nPhone: ${phone}\n\nIs this correct?`,
+        t.confirmPhoneDetails,
+        t.confirmPhoneDetailsBody.replace('{{countryDisplay}}', countryDisplay).replace('{{phone}}', phone),
         [
           {
-            text: 'Yes, Correct',
+            text: t.yesCorrect,
             onPress: () => {
               if (!isValid) {
                 Alert.alert(
-                  'Phone Format',
-                  `Your phone number is ${phone}. \n\nWould you like to update your phone number through Cognito?`,
+                  t.phoneFormat,
+                  t.updatePhonePrompt.replace('{{phone}}', phone),
                   [
                     {
-                      text: 'Update Phone',
+                      text: t.updatePhone,
                       onPress: () => showPhoneUpdateDialog(),
                     },
                     {
-                      text: 'Continue Anyway',
+                      text: t.continueAnyway,
                       onPress: () => console.log('User chose to continue with invalid phone'),
                     },
                   ]
@@ -515,7 +522,7 @@ const nationality =
             },
           },
           {
-            text: 'No, Update Phone',
+            text: t.noUpdatePhone,
             onPress: () => showPhoneUpdateDialog(),
           },
         ]
@@ -536,7 +543,7 @@ const validatePhoneInput = (input: string) => {
       isValid: false,
       corrected: '',
       country: '',
-      feedback: 'Enter a phone number with country code',
+      feedback: t.enterPhoneWithCountry,
     };
   }
 
@@ -548,7 +555,7 @@ const validatePhoneInput = (input: string) => {
       isValid: false,
       corrected: normalized,
       country: '',
-      feedback: '❌ Must start with + (country code)',
+      feedback: t.mustStartWithPlus,
     };
   }
 
@@ -559,7 +566,7 @@ const validatePhoneInput = (input: string) => {
       isValid: false,
       corrected: normalized,
       country: '',
-      feedback: '✓ Removed leading 0 → ' + normalized,
+      feedback: t.removedLeadingZero.replace('{{normalized}}', normalized),
     };
   }
 
@@ -584,14 +591,14 @@ const validatePhoneInput = (input: string) => {
         isValid: true,
         corrected: normalized,
         country: countryName,
-        feedback: `✓ Valid! Country: ${countryName}`,
+        feedback: t.validCountry.replace('{{countryName}}', countryName),
       };
     } else {
       return {
         isValid: false,
         corrected: normalized,
         country: region || '',
-        feedback: `❌ Invalid format for ${countryName}`,
+        feedback: t.invalidFormatCountry.replace('{{countryName}}', countryName),
       };
     }
   } catch (err) {
@@ -599,7 +606,7 @@ const validatePhoneInput = (input: string) => {
       isValid: false,
       corrected: normalized,
       country: '',
-      feedback: '❌ Invalid format. Check country code and number',
+      feedback: t.invalidFormat,
     };
   }
 };
@@ -664,7 +671,7 @@ const validatePhoneInput = (input: string) => {
       }
     } catch (err) {
       console.error('uploadImageToS3 error:', err);
-      Alert.alert('Image upload failed, please retry');
+      Alert.alert(t.imageUploadFailed);
     }
   };
 
@@ -672,7 +679,7 @@ const validatePhoneInput = (input: string) => {
     try {
       const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (!permission.granted) {
-        Alert.alert('Permission required', 'Please allow access to your photos');
+        Alert.alert(t.permissionRequired, t.allowPhotos);
         return;
       }
 
@@ -693,7 +700,7 @@ const validatePhoneInput = (input: string) => {
       }
     } catch (err) {
       console.error('pickImage error:', err);
-      Alert.alert('Image selection failed');
+      Alert.alert(t.imageSelectionFailed);
     }
   };
 
@@ -701,7 +708,7 @@ const validatePhoneInput = (input: string) => {
     try {
       const permission = await ImagePicker.requestCameraPermissionsAsync();
       if (!permission.granted) {
-        Alert.alert('Permission required', 'Please allow access to your camera');
+        Alert.alert(t.permissionRequired, t.allowCamera);
         return;
       }
 
@@ -722,7 +729,7 @@ const validatePhoneInput = (input: string) => {
       }
     } catch (err) {
       console.error('takeImage error:', err);
-      Alert.alert('Camera capture failed');
+      Alert.alert(t.cameraCaptureFailed);
     }
   };
 
@@ -734,7 +741,7 @@ const validatePhoneBeforeAccountCreation = async (): Promise<boolean> => {
     const phone = attributes.phone_number;
 
     if (!phone) {
-      Alert.alert('Phone Missing', 'Your account has no phone number on file.');
+      Alert.alert(t.phoneMissing, t.noPhoneOnFile);
       return false;
     }
 
@@ -771,26 +778,26 @@ const validatePhoneBeforeAccountCreation = async (): Promise<boolean> => {
     // Display confirmation dialog
     return new Promise((resolve) => {
       Alert.alert(
-        'Confirm Your Phone Details',
-        `Country: ${countryDisplay}\nPhone: ${phone}\n\nIs this correct?`,
+        t.confirmPhoneDetails,
+        t.confirmPhoneDetailsBody.replace('{{countryDisplay}}', countryDisplay).replace('{{phone}}', phone),
         [
           {
-            text: 'Yes, Correct',
+            text: t.yesCorrect,
             onPress: () => {
               if (!isValid) {
                 Alert.alert(
-                  'Invalid Phone Format',
-                  'Your phone number appears to be invalid for your country. This might cause issues with account creation.\n\nWould you like to update your phone number through Cognito?',
+                  t.invalidPhoneFormat,
+                  t.invalidPhoneFormatBody,
                   [
                     {
-                      text: 'Update Phone',
+                      text: t.updatePhone,
                       onPress: () => {
                         showPhoneUpdateDialog();
                         resolve(false); // Don't proceed until phone is updated and confirmed
                       },
                     },
                     {
-                      text: 'Continue Anyway',
+                      text: t.continueAnyway,
                       onPress: () => resolve(true), // Proceed despite invalid phone
                     },
                   ]
@@ -801,7 +808,7 @@ const validatePhoneBeforeAccountCreation = async (): Promise<boolean> => {
             },
           },
           {
-            text: 'No, Update Phone',
+            text: t.noUpdatePhone,
             onPress: () => {
               showPhoneUpdateDialog();
               resolve(false);
@@ -863,23 +870,23 @@ const validatePhoneBeforeAccountCreation = async (): Promise<boolean> => {
       const actvSMUsrs = compDtls.data.getCompany.ttlActiveUsers;
 
       if (!photoPassportKey) {
-  Alert.alert('Face photo required');
+  Alert.alert(t.facePhotoRequired);
   return;
 }
 
 if (!isPassport && (!idFrontKey || !idBackKey)) {
-  Alert.alert('Both front and back of the document are required');
+  Alert.alert(t.bothIdSidesRequired);
   return;
 }
 
 if (pword.length < 8) {
-        Alert.alert('Short password; at least 8 mixed characters');
+        Alert.alert(t.shortPassword);
         return;
       } else if (UsrDtls.data.listSMAccounts.items.length > 0) {
-        Alert.alert('National ID already exists');
+        Alert.alert(t.nationalIdExists);
         return;
       } else if (UsrDtlsz.data.listSMAccounts.items.length > 0) {
-        Alert.alert('Email already exists');
+        Alert.alert(t.emailExists);
         return;
       } else {
         await client.graphql({
@@ -1053,6 +1060,7 @@ if (pword.length < 8) {
         });
 
         Alert.alert('Account successfully created');
+  Alert.alert(t.accountCreated);
 
         setNationalid('');
         setPW('');
@@ -1066,7 +1074,7 @@ if (pword.length < 8) {
       }
     } catch (err) {
       console.log('ChckUsrExistence error:', err);
-      Alert.alert('Retry or update app or call customer care');
+      Alert.alert(t.retryOrUpdate);
     } finally {
       setIsLoading(false);
     }
@@ -1228,20 +1236,20 @@ if (pword.length < 8) {
       try {
         parts = parseE164ToParts(raw);
       } catch (err) {
-        Alert.alert('Invalid Phone', 'Could not parse the E.164 number you entered. Please check the format or select the appropriate country and enter the local number.');
+        Alert.alert(t.invalidPhone, t.couldNotParseE164);
         setPhoneConfirmed(false);
         return;
       }
     } else {
       const cleanLocal = stripLeadingZeros(raw || '');
-      if (!cleanLocal) { Alert.alert('Enter Phone', 'Please enter your phone number without leading zeros.'); return; }
+      if (!cleanLocal) { Alert.alert(t.enterPhone, t.enterPhoneNoZeros); return; }
       const dial = String(getDialCodeForRegion(selectedCountryRegion || undefined) || '').replace(/\+/g,'');
-      if (!dial) { Alert.alert('Country Code', 'This country has no known calling code in our dataset. Please select another country or paste the full number in +E.164 format.'); return; }
+      if (!dial) { Alert.alert(t.countryCode, t.countryNoCallingCode); return; }
       try {
         parts = formatE164(dial, cleanLocal);
       } catch (err) {
         console.log('Phone format failed:', err);
-        Alert.alert('Invalid Phone', 'Could not parse the phone number. Check the selected country and the local number.');
+        Alert.alert(t.invalidPhone, t.couldNotParse);
         setPhoneConfirmed(false);
         return;
       }
@@ -1255,10 +1263,10 @@ if (pword.length < 8) {
     const formatted = parts.formatted;
 
     Alert.alert(
-      'Confirm Your Phone Number',
-      `Country: ${countryName || selectedCountryRegion || 'Unknown'}\nPhone: ${formatted}\n\nIs this correct?`,
+      t.confirmPhoneDetails,
+      t.confirmPhoneDetailsBody.replace('{{countryDisplay}}', countryName || selectedCountryRegion || 'Unknown').replace('{{phone}}', formatted),
       [
-        { text: 'Yes, Confirm', onPress: async () => {
+        { text: t.yesConfirm, onPress: async () => {
             setPhoneConfirmedE164(formatted);
             setPhoneConfirmed(true);
             const region = displayRegion;
@@ -1280,20 +1288,20 @@ if (pword.length < 8) {
                   throw e2 || e;
                 }
               }
-              Alert.alert('Phone Confirmed', );
+              Alert.alert(t.phoneConfirmedTitle);
             } catch (err:any) {
               console.log('Cognito write failed:', err);
               const msg = err && (err.message || String(err)) || 'Unknown error';
               if (msg.includes('Attribute does not exist')) {
-                Alert.alert('Saved Locally', 'Phone confirmed locally but failed to write to Cognito: phone attribute not enabled in user pool. You can enable it via the Amplify CLI (add phone to user attributes).');
+                Alert.alert(t.savedLocally, t.phoneConfirmedLocally);
               } else {
-                Alert.alert('Saved Locally', `Phone confirmed locally but failed to write to Cognito. ${msg}`);
+                Alert.alert(t.savedLocally, t.phoneConfirmedLocallyMsg.replace('{{msg}}', msg));
               }
             } finally {
               setIsLoading(false);
             }
         }},
-        { text: 'No, Edit', style: 'cancel', onPress: () => setPhoneConfirmed(false) }
+        { text: t.noEdit, style: 'cancel', onPress: () => setPhoneConfirmed(false) }
       ]
     );
   };
@@ -1376,21 +1384,21 @@ return (
             {/* ================= PHONE (COUNTRY + NUMBER) ================= */}
             <View style={styles.phoneRowTop}>
               <TouchableOpacity style={styles.countrySelector} onPress={() => setCountryModalVisible(true)}>
-                <Text style={styles.countryText}>
-                  {selectedCountryRegion ? `${getCountryByCode(selectedCountryRegion)?.flag ? getCountryByCode(selectedCountryRegion)?.flag + ' ' : ''}${getCountryByCode(selectedCountryRegion)?.name || countryNamesByCode[selectedCountryRegion] || selectedCountryRegion} ${getDialCodeForRegion(selectedCountryRegion) ? `(+${getDialCodeForRegion(selectedCountryRegion)})` : ''}` : 'Select Country'}
-                </Text>
-              </TouchableOpacity>
+                  <Text style={styles.countryText}>
+                    {selectedCountryRegion ? `${getCountryByCode(selectedCountryRegion)?.flag ? getCountryByCode(selectedCountryRegion)?.flag + ' ' : ''}${getCountryByCode(selectedCountryRegion)?.name || countryNamesByCode[selectedCountryRegion] || selectedCountryRegion} ${getDialCodeForRegion(selectedCountryRegion) ? `(+${getDialCodeForRegion(selectedCountryRegion)})` : ''}` : t.selectCountry}
+                  </Text>
+                </TouchableOpacity>
             </View>
 
             <TextInput
-              placeholder="Local number (no leading zero) or paste +E.164"
+              placeholder={t.localNumberPlaceholder}
               placeholderTextColor="#666"
               keyboardType="phone-pad"
               value={localPhone}
               onChangeText={(t) => {
                 // If user pasted an E.164 number, auto-detect and set country + local part
                 if (t && t.trim().startsWith('+')) {
-                  try {
+                  try { 
                     const parts = parseE164ToParts(t.trim());
                     if (parts.region) setSelectedCountryRegion(parts.region);
                     setCallingCode(String(parts.countryCode));
@@ -1410,12 +1418,12 @@ return (
             />
 
             <TouchableOpacity onPress={handleValidateAndConfirmPhone} style={[styles.validateButtonFull, phoneConfirmed && { backgroundColor: '#4caf50' }]}> 
-              <Text style={styles.buttonTextSmall}>{phoneConfirmed ? 'Confirmed' : 'Validate'}</Text>
+              <Text style={styles.buttonTextSmall}>{phoneConfirmed ? t.confirmed : t.validate}</Text>
             </TouchableOpacity>
 
             {/* ================= OFFICIAL NAME ================= */}
             <TextInput
-              placeholder="Official Names (as on document)"
+              placeholder={t.officialNamesPlaceholder}
               placeholderTextColor="#666"
               value={officialName}
               onChangeText={setOfficialName}
@@ -1426,8 +1434,8 @@ return (
             <TextInput
               placeholder={
                 countryCode && officialDocumentByCountry[countryCode]
-                  ? officialDocumentByCountry[countryCode]
-                  : "Passport Number"
+                  ? t[officialDocumentByCountry[countryCode].replace(/\s+/g, '').toLowerCase()] || officialDocumentByCountry[countryCode]
+                  : t.passportNumberPlaceholder
               }
               placeholderTextColor="#666"
               value={nationalId}
@@ -1450,14 +1458,14 @@ return (
                 onPress={() => { if (!requirePhoneConfirmedOrAlert()) return; pickImage('passport'); }}
                 style={styles.actionButton}
               >
-                <Text style={styles.buttonText}>Upload Face Photo</Text>
+                <Text style={styles.buttonText}>{t.uploadFacePhoto}</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
                 onPress={() => { if (!requirePhoneConfirmedOrAlert()) return; takeImage('passport'); }}
                 style={styles.actionButton}
               >
-                <Text style={styles.buttonText}>Take Face Photo</Text>
+                <Text style={styles.buttonText}>{t.takeFacePhoto}</Text>
               </TouchableOpacity>
             </View>
 
@@ -1476,7 +1484,7 @@ return (
                   }}
                   style={styles.actionButtonAlt}
                 >
-                  <Text style={styles.buttonText}>Upload Passport Document</Text>
+                  <Text style={styles.buttonText}>{t.uploadPassportDocument}</Text>
                 </TouchableOpacity>
               </View>
             ) : (
@@ -1485,12 +1493,12 @@ return (
                   {idFrontUri && <Image source={{ uri: idFrontUri }} style={styles.previewImage} />}
                   <TouchableOpacity onPress={() => { if (!requirePhoneConfirmedOrAlert()) return; pickImage('idFront'); }} style={styles.actionButtonAlt}>
                     <Text style={styles.buttonText}>
-                      Upload {officialDocumentByCountry[countryCode] || "ID"} (Front)
+                      {t.uploadIdFront.replace('{{idType}}', officialDocumentByCountry[countryCode] || 'ID')}
                     </Text>
                   </TouchableOpacity>
                   <TouchableOpacity onPress={() => { if (!requirePhoneConfirmedOrAlert()) return; takeImage('idFront'); }} style={styles.actionButtonAlt}>
                     <Text style={styles.buttonText}>
-                      Take {officialDocumentByCountry[countryCode] || "ID"} (Front)
+                      {t.takeIdFront.replace('{{idType}}', officialDocumentByCountry[countryCode] || 'ID')}
                     </Text>
                   </TouchableOpacity>
                 </View>
@@ -1499,12 +1507,12 @@ return (
                   {idBackUri && <Image source={{ uri: idBackUri }} style={styles.previewImage} />}
                   <TouchableOpacity onPress={() => { if (!requirePhoneConfirmedOrAlert()) return; pickImage('idBack'); }} style={styles.actionButtonAlt}>
                     <Text style={styles.buttonText}>
-                      Upload {officialDocumentByCountry[countryCode] || "ID"} (Back)
+                      {t.uploadIdBack.replace('{{idType}}', officialDocumentByCountry[countryCode] || 'ID')}
                     </Text>
                   </TouchableOpacity>
                   <TouchableOpacity onPress={() => { if (!requirePhoneConfirmedOrAlert()) return; takeImage('idBack'); }} style={styles.actionButtonAlt}>
                     <Text style={styles.buttonText}>
-                      Take {officialDocumentByCountry[countryCode] || "ID"} (Back)
+                      {t.takeIdBack.replace('{{idType}}', officialDocumentByCountry[countryCode] || 'ID')}
                     </Text>
                   </TouchableOpacity>
                 </View>
@@ -1514,7 +1522,7 @@ return (
             {/* ================= PASSWORD ================= */}
             <View style={styles.passwordContainer}>
               <TextInput
-                placeholder="Main Account Password"
+                placeholder={t.mainAccountPassword}
                 placeholderTextColor="#666"
                 style={styles.passwordInput}
                 value={pword}
@@ -1535,7 +1543,7 @@ return (
               {isLoading ? (
                 <ActivityIndicator color="#fff" />
               ) : (
-                <Text style={styles.submitText}>Create Main Account</Text>
+                <Text style={styles.submitText}>{t.createMainAccount}</Text>
               )}
             </TouchableOpacity>
 

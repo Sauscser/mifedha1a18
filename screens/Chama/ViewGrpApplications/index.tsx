@@ -6,17 +6,22 @@ import * as Clipboard from 'expo-clipboard';
 import { useRoute } from '@react-navigation/native';
 import { generateClient } from 'aws-amplify/api';
 import { getCurrentUser, fetchUserAttributes } from 'aws-amplify/auth';
+import translations from './translation';
+import { useTranslation } from 'react-i18next';
 const client = generateClient();
 const FetchSMNonCovLns = props => {
   const [Loanees, setLoanees] = useState([]);
   const [loading, setLoading] = useState(false);
   const route = useRoute();
+  const { i18n } = useTranslation();
+  const lang = i18n.language || 'en';
+  const t = translations[lang] || translations.en;
   const fetchLoanees = async () => {
     setLoading(true);
     try {
       const user = await getCurrentUser();
       const attributes = await fetchUserAttributes();
-      const Lonees: any = await client.graphql({
+      const Lonees = await client.graphql({
         query: listChamaApply2s,
         variables: {
           filter: {
@@ -33,7 +38,7 @@ const FetchSMNonCovLns = props => {
       setLoanees(Applications);
     } catch (error) {
       console.log(error);
-      Alert.alert("Error fetching Chama applications. Please retry.");
+      Alert.alert(t.errorFetchingApplications);
     } finally {
       setLoading(false);
     }
@@ -41,19 +46,26 @@ const FetchSMNonCovLns = props => {
   useEffect(() => {
     fetchLoanees();
   }, []);
-  return <KeyboardAvoidingView style={{
-    flex: 1
-  }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+  return (
+    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <View style={styles.container}>
-        <FlatList style={{
-        flex: 1
-      }} data={Loanees} renderItem={({
-        item
-      }) => <View>
+        <FlatList
+          style={{ flex: 1 }}
+          data={Loanees}
+          renderItem={({ item }) => (
+            <View>
               <LnerStts SMAc={item} />
-            </View>} keyExtractor={(item, index) => index.toString()} onRefresh={fetchLoanees} refreshing={loading} keyboardShouldPersistTaps="handled" />
+            </View>
+          )}
+          keyExtractor={(item, index) => index.toString()}
+          onRefresh={fetchLoanees}
+          refreshing={loading}
+          keyboardShouldPersistTaps="handled"
+          ListEmptyComponent={<Text style={styles.placeholderText}>{t.placeholder}</Text>}
+        />
       </View>
-    </KeyboardAvoidingView>;
+    </KeyboardAvoidingView>
+  );
 };
 const styles = StyleSheet.create({
   container: {

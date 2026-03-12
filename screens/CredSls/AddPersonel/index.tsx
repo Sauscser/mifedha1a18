@@ -6,12 +6,16 @@ import { generateClient } from 'aws-amplify/api';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import { View, Text, TextInput, ScrollView, TouchableOpacity, Alert, ActivityIndicator, StyleSheet } from 'react-native';
+import { translations } from './translation';
+import { useTranslation } from 'react-i18next';
 import styles from './styles';
 export type UserReg = {
   usr: String;
 };
 const client = generateClient();
 const CreateChama = (props: UserReg) => {
+  const { i18n } = useTranslation();
+  const t = translations[i18n.language] || translations.en;
   const {
     usr
   } = props;
@@ -75,21 +79,21 @@ const CreateChama = (props: UserReg) => {
               }
             }
           });
-          Alert.alert('Sales Officer added successfully');
+          Alert.alert(t.successAlert);
           setIsLoading(false);
         };
         if (pws !== pword) {
-          Alert.alert('Wrong Business password');
+          Alert.alert(t.wrongPasswordAlert);
         } else if (ownerz === userInfo.userId || Admins.includes(attributes.email)) {
           await onCreateNewSMAc();
         } else {
-          Alert.alert('Neither the Creator nor Admin of this business');
+          Alert.alert(t.notCreatorAdminAlert);
         }
         setIsLoading(false);
       };
       await PckBiznaDtls();
     } catch (e) {
-      Alert.alert('Error! Access denied!');
+      Alert.alert(t.errorAccessDeniedAlert);
     }
     setIsLoading(false);
     setChmPhn('');
@@ -100,38 +104,56 @@ const CreateChama = (props: UserReg) => {
     setMmbaID('');
     setSign2Phn('');
   };
-  return <LinearGradient colors={['#e58d29', '#87ceeb']} style={{
-    flex: 1
-  }}>
-      <ScrollView contentContainerStyle={{
-      padding: 20
-    }}>
+  return (
+    <LinearGradient colors={['#e58d29', '#87ceeb']} style={{ flex: 1 }}>
+      <ScrollView contentContainerStyle={{ padding: 20 }}>
         <View style={ui.header}>
-          <Text style={ui.headerTitle}>Register Sales Officer</Text>
-          <Text style={ui.headerSub}>NiSenti Business Portal</Text>
+          <Text style={ui.headerTitle}>{t.registerSalesOfficer}</Text>
+          <Text style={ui.headerSub}>{t.businessPortal}</Text>
         </View>
-
         <View style={ui.card}>
-          <Text style={ui.label}>Business Phone</Text>
-          <TextInput placeholder="07xxxxxxxx" placeholderTextColor="#aaa" value={ChmRegNo} onChangeText={setChmRegNo} style={ui.input} />
-
-          <Text style={ui.label}>Sales Officer Email</Text>
-          <TextInput placeholder="email@example.com" placeholderTextColor="#aaa" value={ChmPhn} onChangeText={setChmPhn} style={ui.input} />
-
-          <Text style={ui.label}>Business Password</Text>
-          <TextInput secureTextEntry value={pword} onChangeText={setPW} style={ui.input} />
-
-          <Text style={ui.label}>Sales Officer Work ID</Text>
-          <TextInput value={ChmDesc} onChangeText={setChmDesc} style={ui.input} />
-
+          <Text style={ui.label}>{t.businessPhoneLabel}</Text>
+          <TextInput
+            placeholder={t.businessPhonePlaceholder}
+            placeholderTextColor="#aaa"
+            value={ChmRegNo}
+            onChangeText={setChmRegNo}
+            style={ui.input}
+          />
+          <Text style={ui.label}>{t.salesOfficerEmailLabel}</Text>
+          <TextInput
+            placeholder={t.salesOfficerEmailPlaceholder}
+            placeholderTextColor="#aaa"
+            value={ChmPhn}
+            onChangeText={setChmPhn}
+            style={ui.input}
+          />
+          <Text style={ui.label}>{t.businessPasswordLabel}</Text>
+          <TextInput
+            secureTextEntry
+            value={pword}
+            onChangeText={setPW}
+            style={ui.input}
+          />
+          <Text style={ui.label}>{t.salesOfficerWorkIdLabel}</Text>
+          <TextInput
+            value={ChmDesc}
+            onChangeText={setChmDesc}
+            style={ui.input}
+          />
           <TouchableOpacity onPress={ChckUsrExistence} disabled={isLoading}>
             <LinearGradient colors={['#e58d29', '#f2b66d']} style={ui.button}>
-              {isLoading ? <ActivityIndicator color="#fff" /> : <Text style={ui.buttonText}>Register Sales Officer</Text>}
+              {isLoading ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={ui.buttonText}>{t.registerButton}</Text>
+              )}
             </LinearGradient>
           </TouchableOpacity>
         </View>
       </ScrollView>
-    </LinearGradient>;
+    </LinearGradient>
+  );
 };
 export default CreateChama;
 const ui = StyleSheet.create({

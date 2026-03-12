@@ -1,5 +1,32 @@
 import { StyleSheet, Dimensions } from 'react-native';
 const styles = StyleSheet.create({
+  // ...existing code...
+  scrollContent: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: '100%',
+  },
+  card: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 28,
+    width: '92%',
+        marginBottom: 250,
+
+    shadowColor: '#000',
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 4,
+    alignSelf: 'center',
+  },
+  container: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#f4f6fa',
+  },
   image: {
     width: '100%',
     height: 670,
@@ -110,6 +137,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flexDirection: 'column',
     marginBottom: 20
+  },
+  root: {
+    flex: 1,
+    backgroundColor: '#f4f6fa',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 16,
+  },
+  label: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#1F2933',
+    marginBottom: 12,
+    textAlign: 'center',
   }
 });
 export default styles;

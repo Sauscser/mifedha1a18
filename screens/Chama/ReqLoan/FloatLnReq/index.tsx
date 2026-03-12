@@ -10,6 +10,7 @@ import {
   Image,
   Alert
 } from 'react-native';
+
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRoute } from '@react-navigation/native';
 import * as ImagePicker from 'expo-image-picker';
@@ -25,6 +26,8 @@ import {
 import { generateClient } from 'aws-amplify/api';
 import { getCurrentUser, fetchUserAttributes } from 'aws-amplify/auth';
 import { uploadData, getUrl } from 'aws-amplify/storage';
+import translations from './translation';
+import { useTranslation } from 'react-i18next';
 
 const client = generateClient();
 const MAX_IMAGE_SIZE_MB = 5;
@@ -33,8 +36,11 @@ const MAX_IMAGE_SIZE_MB = 5;
    SAFE IMAGE COMPONENT
    ========================= */
 const SafeImage = ({ uri, style }: { uri?: string; style: any }) => {
+  const { i18n } = useTranslation();
+  const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+  const t = translations[lang] || translations.en;
   if (!uri || typeof uri !== 'string' || uri.trim() === '') {
-    return <Text style={styles.decision}>Not signed</Text>;
+    return <Text style={styles.decision}>{t.notSigned}</Text>;
   }
   return <Image source={{ uri }} style={style} />;
 };
@@ -42,9 +48,14 @@ const SafeImage = ({ uri, style }: { uri?: string; style: any }) => {
 /** =====================
  *  INLINE VIEW MINUTES MODAL
  *  ===================== */
+import { GraphQLResult } from '@aws-amplify/api';
+
 const ViewMinutesModal = ({ visible, onClose, grpContact, onSelect }) => {
   const [minutesList, setMinutesList] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const { i18n } = useTranslation();
+  const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+  const t = translations[lang] || translations.en;
 
   useEffect(() => {
     if (visible) fetchMinutes();
@@ -56,10 +67,10 @@ const ViewMinutesModal = ({ visible, onClose, grpContact, onSelect }) => {
         query: listMinutesByChama,
         variables: { grpContact, sortDirection: 'DESC' }
       });
-      const minutes = res?.data?.listMinutesByChama?.items || [];
+      const minutes = (res as GraphQLResult<any>)?.data?.listMinutesByChama?.items || [];
       const enriched = await Promise.all(
         minutes.map(async (min: any) => {
-          const [itemsRes, attendanceRes] = await Promise.all([
+          const [itemsResRaw, attendanceResRaw] = await Promise.all([
             client.graphql({
               query: listMinuteItemsByMinutes,
               variables: { minutesId: min.id }
@@ -69,6 +80,8 @@ const ViewMinutesModal = ({ visible, onClose, grpContact, onSelect }) => {
               variables: { minutesId: min.id }
             })
           ]);
+          const itemsRes = itemsResRaw as GraphQLResult<any>;
+          const attendanceRes = attendanceResRaw as GraphQLResult<any>;
           const chairSignUrl = min.chairpersonId
             ? (await getUrl({ key: min.chairpersonId }))?.url
             : null;
@@ -87,7 +100,7 @@ const ViewMinutesModal = ({ visible, onClose, grpContact, onSelect }) => {
       setMinutesList(enriched);
     } catch (err) {
       console.error('Error fetching minutes:', err);
-      Alert.alert('Error', 'Failed to load minutes');
+      Alert.alert(t.error, t.failedLoadMinutes);
     } finally {
       setLoading(false);
     }
@@ -104,7 +117,7 @@ const ViewMinutesModal = ({ visible, onClose, grpContact, onSelect }) => {
 
   return (
     <ScrollView style={styles.modalContainer}>
-      <Text style={styles.modalTitle}>Select Loan Minutes</Text>
+      <Text style={styles.modalTitle}>{t.selectMinutes}</Text>
 
       {minutesList.map((min: any) => {
         const presentCount = (min.attendance || []).filter(
@@ -113,8 +126,8 @@ const ViewMinutesModal = ({ visible, onClose, grpContact, onSelect }) => {
         return (
           <View key={min.id} style={styles.modalCard}>
             <Text style={styles.date}>📅 {min.meetingDate}</Text>
-            <Text style={styles.meta}>Venue: {min.venue || '-'}</Text>
-            <Text style={styles.meta}>Attendance: {presentCount}</Text>
+            <Text style={styles.meta}>{t.venue}: {min.venue || '-'}</Text>
+            <Text style={styles.meta}>{t.attendance}: {presentCount}</Text>
 
             <Text style={styles.section}>Minutes</Text>
             {(min.items || [])
@@ -126,7 +139,7 @@ const ViewMinutesModal = ({ visible, onClose, grpContact, onSelect }) => {
                   </Text>
                   <Text>{item.content}</Text>
                   {item.decision && (
-                    <Text style={styles.decision}>Decision: {item.decision}</Text>
+                    <Text style={styles.decision}>{t.decision}: {item.decision}</Text>
                   )}
                 </View>
               ))}
@@ -150,7 +163,7 @@ const ViewMinutesModal = ({ visible, onClose, grpContact, onSelect }) => {
                 onClose();
               }}
             >
-              <Text style={styles.submitButtonText}>Attach This Minutes</Text>
+              <Text style={styles.submitButtonText}>{t.attachThisMinutes}</Text>
             </TouchableOpacity>
           </View>
         );
@@ -160,7 +173,7 @@ const ViewMinutesModal = ({ visible, onClose, grpContact, onSelect }) => {
         style={[styles.submitButton, { backgroundColor: '#6b7280', marginTop: 20 }]}
         onPress={onClose}
       >
-        <Text style={styles.submitButtonText}>Close</Text>
+        <Text style={styles.submitButtonText}>{t.close}</Text>
       </TouchableOpacity>
     </ScrollView>
   );
@@ -177,6 +190,11 @@ const CreateBiz = () => {
   const [minutesPhotoUri, setMinutesPhotoUri] = useState<string | null>(null);
   const [minutesModalVisible, setMinutesModalVisible] = useState(false);
   const route = useRoute();
+  // FloatLnReq: {grpContact:string} in types.tsx
+  const grpContact = (route.params as any)?.grpContact;
+  const { i18n } = useTranslation();
+  const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+  const t = translations[lang] || translations.en;
 
   /** IMAGE HANDLING **/
   const pickImage = async () => {
@@ -253,19 +271,19 @@ const CreateBiz = () => {
       });
            const pws = compDtls.data.getSMAccount.pw;
       if (pws !== pword) {
-        Alert.alert('Wrong password');
+        Alert.alert(t.wrongPassword);
         setIsLoading(false);
         return;
       }
 
-      const accountDtl: any = await client.graphql({
+      const accountDtl = await client.graphql({
         query: getGroup,
-        variables: { grpContact: route.params.grpContact }
-      });
-      const GrpDtls = accountDtl.data.getGroup;
+        variables: { grpContact }
+      }) as GraphQLResult<any>;
+      const GrpDtls = accountDtl?.data?.getGroup;
 
       if (!grpMinutes && !minutesPhotoKey) {
-        Alert.alert('Please either attach minutes or upload a minutes image');
+        Alert.alert(t.attachOrUploadMinutes);
         setIsLoading(false);
         return;
       }
@@ -284,13 +302,13 @@ const CreateBiz = () => {
         }
       });
 
-      Alert.alert('Success', 'Loan floated successfully.');
+      Alert.alert(t.success, t.loanFloatedSuccessfully);
       setPW('');
       setGrpMinutes(null);
       clearMinutesImage();
     } catch (e) {
       console.error(e);
-      Alert.alert('Error!', 'Retry or update app or call customer care');
+      Alert.alert(t.error, t.retryOrUpdateApp);
     } finally {
       setIsLoading(false);
     }
@@ -310,10 +328,8 @@ const CreateBiz = () => {
       >
         {/* HEADER */}
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>Float Loans</Text>
-          <Text style={styles.headerSubtitle}>
-            Please fill in all required details carefully
-          </Text>
+          <Text style={styles.headerTitle}>{t.floatLoans}</Text>
+          <Text style={styles.headerSubtitle}>{t.fillAllDetails}</Text>
         </View>
 
         {/* FORM CARD */}
@@ -326,8 +342,8 @@ const CreateBiz = () => {
             >
               <Text style={{ color: grpMinutes ? '#111' : '#6b7280' }}>
                 {grpMinutes
-                  ? `Minutes Selected: ${grpMinutes}`
-                  : 'Select Loan Minutes'}
+                  ? `${t.minutesSelected}: ${grpMinutes}`
+                  : t.selectMinutes}
               </Text>
             </TouchableOpacity>
             <Text style={styles.helperText}>Loan Minutes</Text>
@@ -336,21 +352,21 @@ const CreateBiz = () => {
           {/* PASSWORD */}
           <View style={styles.inputGroup}>
             <TextInput
-              placeholder="User Password"
+              placeholder={t.userPassword}
               placeholderTextColor="#333"
               secureTextEntry
               value={pword}
               onChangeText={setPW}
               style={styles.input}
             />
-            <Text style={styles.helperText}>Enter Main Account Password</Text>
+            <Text style={styles.helperText}>{t.enterMainAccountPassword}</Text>
           </View>
 
           {/* IMAGE UPLOAD */}
           <View style={styles.inputGroup}>
             <TouchableOpacity onPress={pickImage} style={styles.submitButton}>
               <Text style={styles.submitButtonText}>
-                {minutesPhotoUri ? 'Change Minutes Image' : 'Upload Group Minutes'}
+                {minutesPhotoUri ? t.changeMinutesImage : t.uploadGroupMinutes}
               </Text>
             </TouchableOpacity>
 
@@ -358,7 +374,7 @@ const CreateBiz = () => {
               onPress={takePhoto}
               style={[styles.submitButton, { marginTop: 10 }]}
             >
-              <Text style={styles.submitButtonText}>Take Photo of Minutes</Text>
+              <Text style={styles.submitButtonText}>{t.takePhotoOfMinutes}</Text>
             </TouchableOpacity>
           </View>
 
@@ -383,14 +399,14 @@ const CreateBiz = () => {
                   color: '#6b7280'
                 }}
               >
-                Preview of uploaded minutes
+                {t.previewOfUploadedMinutes}
               </Text>
 
               <TouchableOpacity
                 onPress={clearMinutesImage}
                 style={styles.removeButton}
               >
-                <Text style={styles.removeButtonText}>Remove Image</Text>
+                <Text style={styles.removeButtonText}>{t.removeImage}</Text>
               </TouchableOpacity>
             </View>
           )}
@@ -402,7 +418,7 @@ const CreateBiz = () => {
           onPress={gtUser}
           activeOpacity={0.85}
         >
-          <Text style={styles.submitButtonText}>Click to Float Loans</Text>
+          <Text style={styles.submitButtonText}>{t.clickToFloatLoans}</Text>
           {isLoading && (
             <ActivityIndicator color="#fff" style={{ marginLeft: 10 }} />
           )}
@@ -412,7 +428,7 @@ const CreateBiz = () => {
         <ViewMinutesModal
           visible={minutesModalVisible}
           onClose={() => setMinutesModalVisible(false)}
-          grpContact={route.params.grpContact}
+          grpContact={grpContact}
           onSelect={(id: string) => setGrpMinutes(id)}
         />
       </ScrollView>
