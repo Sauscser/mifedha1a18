@@ -2,16 +2,27 @@ import React, { useEffect, useState } from 'react';
 import { updateCompany, createMessages, sendNotification } from '../../../../src/graphql/mutations';
 import { getAdvocate, getBizna, getCompany, getSMAccount } from '../../../../src/graphql/queries';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import { View, Text, TextInput, ScrollView, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
-import styles from './styles';
+import { View, Text, TextInput, ScrollView, TouchableOpacity, Alert, ActivityIndicator, StyleSheet } from 'react-native';
+import { KeyboardAvoidingView, Platform } from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { createReqLoan } from '../../../../src/graphql/mutations';
 import { getCurrentUser, fetchUserAttributes } from "aws-amplify/auth";
 import { generateClient } from "aws-amplify/api";
 import { useExchange } from '../../../../src/contexts/ExchangeContext';
 import { convertForeignToKsh, formatAmountSync } from '../../../../src/utils/exchange';
 import { nationalityToCode } from '../../../../src/utils/nationalityToCode';
+import { useTranslation } from 'react-i18next';
+import { translations } from './translation';
 const client = generateClient();
 const CreateBiz = props => {
+  // State for showing converted KES values
+  const [itemPrysKes, setItemPrysKes] = useState('');
+  const [instAmtKes, setInstAmtKes] = useState('');
+  const [mmbaIdKes, setMmbaIdKes] = useState('');
+  const { i18n } = useTranslation();
+  const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+  const t = translations[lang] || translations.en;
+  // Helper to format any KES value for user display
   const [ChmPhn, setChmPhn] = useState('');
   const [nam, setName] = useState(null);
   const [awsEmail, setAWSEmail] = useState("");
@@ -19,6 +30,7 @@ const CreateBiz = props => {
   const [lnPrsntg, setlnPrsntg] = useState('');
   const [rpymntPrd, setrpymntPrd] = useState('');
   const [pword, setPW] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [ChmNm, setChmNm] = useState('');
   const [ChmDesc, setChmDesc] = useState('');
@@ -30,6 +42,43 @@ const CreateBiz = props => {
   const [itemTwn, setitemTwn] = useState('');
   const route = useRoute();
   const { nationality, ratesMap } = useExchange();
+  const formatUserAmount = (amountKes) => formatAmountSync(amountKes, nationalityToCode(nationality), ratesMap);
+
+  // Update KES values when user input changes (now after all state/vars)
+  useEffect(() => {
+    const updateKES = async () => {
+      if (itemPrys && nationality && Number.isFinite(parseFloat(itemPrys))) {
+        const kes = await convertForeignToKsh(parseFloat(itemPrys), nationalityToCode(nationality));
+        setItemPrysKes(Number.isFinite(kes) ? kes.toFixed(2) : '');
+      } else {
+        setItemPrysKes('');
+      }
+    };
+    updateKES();
+  }, [itemPrys, nationality]);
+  useEffect(() => {
+    const updateKES = async () => {
+      if (InstAmt && nationality && Number.isFinite(parseFloat(InstAmt))) {
+        const kes = await convertForeignToKsh(parseFloat(InstAmt), nationalityToCode(nationality));
+        setInstAmtKes(Number.isFinite(kes) ? kes.toFixed(2) : '');
+      } else {
+        setInstAmtKes('');
+      }
+    };
+    updateKES();
+  }, [InstAmt, nationality]);
+  useEffect(() => {
+    const updateKES = async () => {
+      if (MmbaID && nationality && Number.isFinite(parseFloat(MmbaID))) {
+        const kes = await convertForeignToKsh(parseFloat(MmbaID), nationalityToCode(nationality));
+        setMmbaIdKes(Number.isFinite(kes) ? kes.toFixed(2) : '');
+      } else {
+        setMmbaIdKes('');
+      }
+    };
+    updateKES();
+  }, [MmbaID, nationality]);
+  // (Removed duplicate variable and hook declarations)
   const gtBizna = async () => {
     if (isLoading) {
       return;
@@ -56,6 +105,7 @@ const CreateBiz = props => {
       return;
     }
     const currencyKey = nationalityToCode(nationality);
+    // Always convert user input to KES for backend writes
     const [amountKes, installmentKes, defaultPenaltyKes] = await Promise.all([
       convertForeignToKsh(amountForeign, currencyKey),
       convertForeignToKsh(installmentForeign, currencyKey),
@@ -74,7 +124,7 @@ const CreateBiz = props => {
         }
       });
       const pws = compDtls.data.getSMAccount.pw;
-      const phonecontacts = compDtls.data.getSMAccount.phonecontact;
+      const phonecontactsz = compDtls.data.getSMAccount.phonecontact;
       const name = compDtls.data.getSMAccount.name;
       const ownerz = compDtls.data.getSMAccount.owner;
       const Int = (parseFloat(lnPrsntg) - amountKes) * 100 / (parseFloat(lnPrsntg) * parseFloat(rpymntPrd));
@@ -108,6 +158,7 @@ const CreateBiz = props => {
                 }
               });
               const namez = compDtls3.data.getBizna.busName;
+              const phonecontacts = compDtls3.data.getBizna.email;
               const amtrpayable = amountKes * Math.pow(1 + parseFloat(lnPrsntg) / 36500, 0);
               const ExpInstmnt = amtrpayable / parseFloat(rpymntPrd);
               const CreateNewSMAc2 = async () => {
@@ -116,76 +167,24 @@ const CreateBiz = props => {
                 }
                 setIsLoading(true);
                 try {
-                  await client.graphql({
-                    query: createReqLoan,
-                    variables: {
-                      input: {
-                        loaneeEmail: attributes.email,
-                        loanerEmail: awsEmail,
-                        loaneeName: name,
-                        loaneePhone: phonecontacts,
-                        AdvEmail: "None",
-                        advLicNo: "None",
-                        loanerName: namez,
-                        lnType: "Biz2Pal",
-                        loanerPhone: awsEmail,
-                        dfltDeadLn: 0,
-                        amount: amountKes.toFixed(2),
-                        repaymentAmt: parseFloat(lnPrsntg).toFixed(2),
-                        repaymentPeriod: rpymntPrd,
-                        status: "AwaitingResponse",
-                        statusNumber: 0,
-                        owner: userInfo.userId,
-                        description: ChmRegNo,
-                        defaultPenalty: defaultPenaltyKes.toFixed(2),
-                        installmentAmount: installmentKes.toFixed(2),
-                        paymentFrequency: InstFreq,
-                        confirm1: "NO",
-                        confirm2: "NO"
+                  setIsLoading(true);
+                  const userInfo = await getCurrentUser();
+                  let email = "None";
+                  let phonecontact = phonecontacts;
+                  try {
+                    const compDtls5: any = await client.graphql({
+                      query: getAdvocate,
+                      variables: {
+                        advregnu: Sign2Phn
                       }
-                    }
-                  });
-                } catch (error) {
-                  console.log(error);
-                  if (error) {
-                    Alert.alert("Please enter details correctly");
-                    return;
-                  }
-                }
-                Alert.alert("Loan Request Successful");
-                const loanReqMessage3 = 'NiSenti. Hi ' + namez + '. It is ' + name + '. I request a soft loan of ' + formatAmountSync(amountKes, currencyKey, ratesMap) + ' from you. ' + 'Please go to NiSenti app to grant me the request' + '. Thank you.';
-                try {
-                  const msgRes = await client.graphql({
-                    query: createMessages,
-                    variables: { input: { senderEmail: awsEmail, messageBody: loanReqMessage3 }}
-                  });
-                  if (msgRes?.data?.createMessages) {
-                    await client.graphql({
-                      query: sendNotification,
-                      variables: { riderEmail: awsEmail, title: 'NiSenti: Loan Request', body: loanReqMessage3 }
                     });
-                  }
-                } catch (notifErr) {
-                  console.log('Notification error:', notifErr);
-                }
-              };
-              const gtAdvDtls = async () => {
-                if (isLoading) {
-                  return;
-                }
-                setIsLoading(true);
-                const userInfo = await getCurrentUser();
-                try {
-                  const compDtls5: any = await client.graphql({
-                    query: getAdvocate,
-                    variables: {
-                      advregnu: Sign2Phn
+                    if (compDtls5?.data?.getAdvocate) {
+                      email = compDtls5.data.getAdvocate.email || "None";
+                      phonecontact = compDtls5.data.getAdvocate.phonecontact || phonecontacts;
                     }
-                  });
-                  const email = compDtls5.data.getAdvocate.email;
-                  const phonecontact = compDtls5.data.getAdvocate.phonecontact;
-                  console.log(userInfo.userId);
-                  console.log(ownerz);
+                  } catch (e) {
+                    // If advocate not found, leave email as "None"
+                  }
                   const CreateNewSMAc = async () => {
                     if (isLoading) {
                       return;
@@ -206,6 +205,7 @@ const CreateBiz = props => {
                             loanerName: namez,
                             loanerPhone: awsEmail,
                             lnType: "Biz2Pal",
+                            // All backend writes use KES
                             amount: amountKes.toFixed(2),
                             repaymentAmt: parseFloat(lnPrsntg).toFixed(2),
                             repaymentPeriod: rpymntPrd,
@@ -221,6 +221,23 @@ const CreateBiz = props => {
                           }
                         }
                       });
+                      Alert.alert("Loan Request Successful");
+                      // All user-facing messages use user's currency and symbol
+                      const loanReqMessage4 = 'NiSenti. Greetings! ' + 'We ' + name + ', the loanee and ' + namez + ', the loaner humbly' + ' request that you witness our loan contract on NiSenti app amounting to ' + formatUserAmount(amountKes) + ' repayable with ' + lnPrsntg + '% interest by the end of ' + rpymntPrd + ' days. Default penalty is ' + formatUserAmount(defaultPenaltyKes) + '. You can reach my loaner through ' + awsEmail + '. You can also reach me through ' + phonecontacts + '. Thank you.';
+                      try {
+                        const msgRes = await client.graphql({
+                          query: createMessages,
+                          variables: { input: { senderEmail: phonecontact, messageBody: loanReqMessage4 }}
+                        });
+                        if ((msgRes as any)?.data?.createMessages) {
+                          await client.graphql({
+                            query: sendNotification,
+                            variables: { riderEmail: phonecontact, title: 'NiSenti: Witness Loan Contract', body: loanReqMessage4 }
+                          });
+                        }
+                      } catch (notifErr) {
+                        console.log('Notification error:', notifErr);
+                      }
                     } catch (error) {
                       console.log(error);
                       if (error) {
@@ -228,24 +245,8 @@ const CreateBiz = props => {
                         return;
                       }
                     }
-                    Alert.alert("Loan Request Successful");
-                    const loanReqMessage4 = 'NiSenti. Greetings! ' + 'We ' + name + ', the loanee and ' + namez + ', the loaner humbly' + ' request that you witness our loan contract on NiSenti app amounting to ' + formatAmountSync(amountKes, currencyKey, ratesMap) + ' repayable with ' + lnPrsntg + '% interest by the end of ' + rpymntPrd + ' days. Default penalty is ' + formatAmountSync(defaultPenaltyKes, currencyKey, ratesMap) + '. You can reach my loaner through ' + awsEmail + '. You can also reach me through ' + phonecontacts + '. Thank you.';
-                    try {
-                      const msgRes = await client.graphql({
-                        query: createMessages,
-                        variables: { input: { senderEmail: phonecontact, messageBody: loanReqMessage4 }}
-                      });
-                      if (msgRes?.data?.createMessages) {
-                        await client.graphql({
-                          query: sendNotification,
-                          variables: { riderEmail: phonecontact, title: 'NiSenti: Witness Loan Contract', body: loanReqMessage4 }
-                        });
-                      }
-                    } catch (notifErr) {
-                      console.log('Notification error:', notifErr);
-                    }
                   };
-                  CreateNewSMAc();
+                  await CreateNewSMAc();
                 } catch (e) {
                   if (e) {
                     Alert.alert("Error! Please enter advocate license correctly");
@@ -260,11 +261,12 @@ const CreateBiz = props => {
               } else if (parseFloat(rpymntPrd) < 1) {
                 Alert.alert("Enter repayment Period greater than 1 day");
               } else if (ExpInstmnt > installmentKes) {
-                Alert.alert("Enter Installment greater than " + (ExpInstmnt + 1).toFixed(0));
+                // Show amount in user's currency and symbol
+                Alert.alert("Enter Installment greater than " + formatUserAmount(ExpInstmnt + 1));
               } else if (Sign2Phn != "") {
-                await gtAdvDtls();
+                await CreateNewSMAc2(); // Call the correct function in scope
               } else {
-                CreateNewSMAc2();
+                await CreateNewSMAc2();
               }
             } catch (e) {
               if (e) {
@@ -417,75 +419,173 @@ const CreateBiz = props => {
     }
     setSign2Phn(Sign2Phns);
   }, [Sign2Phn]);
-  return <View>
-              <View style={styles.image}>
-                <ScrollView>
-           
-                  <View style={styles.loanTitleView}>
-                    <Text style={styles.title}>Fill Details Below</Text>
-                  </View>
-        
-                  
-                  <View style={styles.sendLoanView}>
-                    <TextInput placeholder='Company Phone' value={awsEmail} onChangeText={setAWSEmail} style={styles.sendLoanInput} editable={true}></TextInput>
-                    <Text style={styles.sendLoanText}>Company Phone Number</Text>
-                  </View>
-
-                  <View style={styles.sendLoanView}>
-                    <TextInput placeholder='Advocate License Number (Optional)' value={Sign2Phn} onChangeText={setSign2Phn} style={styles.sendLoanInput} editable={true}></TextInput>
-                    <Text style={styles.sendLoanText}>Advocate License Number</Text>
-                  </View>
-                  
-                  <View style={styles.sendLoanView}>
-                    <TextInput keyboardType='decimal-pad' value={itemPrys} onChangeText={setitemPrys} style={styles.sendLoanInput} editable={true}></TextInput>
-                    <Text style={styles.sendLoanText}>Loan Amount</Text>
-                  </View>
-                  <View style={styles.sendLoanView}>
-                    <TextInput keyboardType='decimal-pad' placeholder='Example: 8% write 8' value={lnPrsntg} onChangeText={setlnPrsntg} style={styles.sendLoanInput} editable={true}></TextInput>
-                    <Text style={styles.sendLoanText}>Annual Interest rate</Text>
-                  </View>
-
-                  <View style={styles.sendLoanView}>
-                    <TextInput keyboardType='decimal-pad' placeholder='Enter number of Days' value={rpymntPrd} onChangeText={setrpymntPrd} style={styles.sendLoanInput} editable={true}></TextInput>
-                    <Text style={styles.sendLoanText}>Repayment Period</Text>
-                  </View>
-
-                  <View style={styles.sendLoanView}>
-                    <TextInput placeholder='Payment Frequency (Days)' keyboardType='decimal-pad' value={InstFreq} onChangeText={setInstFreq} style={styles.sendLoanInput} editable={true}></TextInput>
-                    
-                  </View>            
-                  
-                    <View style={styles.sendLoanView}>
-                    <TextInput placeholder='Installment Amount' keyboardType='decimal-pad' value={InstAmt} onChangeText={setInstAmt} style={styles.sendLoanInput} editable={true}></TextInput>
-                    
-                  </View>
-
-                      
-                  
-                   <View style={styles.sendLoanView}>
-                    <TextInput keyboardType='decimal-pad' placeholder='Default Penalty' value={MmbaID} onChangeText={setMmbaID} style={styles.sendLoanInput} editable={true}></TextInput>
-                    <Text style={styles.sendLoanText}>Default Penalty</Text>
-                  </View>
-
-                
-                  <View style={styles.sendLoanView}>
-                    <TextInput placeholder='Loan Description (Optional)' value={ChmRegNo} multiline={true} onChangeText={setChmRegNo} style={styles.sendLoanInput} editable={true}></TextInput>
-                    <Text style={styles.sendLoanText}>Loan Description</Text>
-                  </View>
-
-                  <View style={styles.sendLoanView}>
-                    <TextInput value={pword} onChangeText={setPW} secureTextEntry={true} style={styles.sendLoanInput} editable={true}></TextInput>
-                    <Text style={styles.sendLoanText}> User PassWord</Text>
-                  </View>
-
-                  <TouchableOpacity onPress={gtBizna} style={styles.sendLoanButton}>
-                    <Text style={styles.sendLoanButtonText}>
-                      Click to Request 
-                    </Text>
-                    {isLoading && <ActivityIndicator size="large" color="blue" />}
-                  </TouchableOpacity>
-                </ScrollView>
-              </View>
-            </View>;
+  return (
+    <View style={{ flex: 1 }}>
+      <View style={styles.image}>
+        <KeyboardAwareScrollView
+          contentContainerStyle={{ paddingBottom: 32 }}
+          style={{ flex: 1 }}
+          enableOnAndroid={true}
+          extraScrollHeight={32}
+          keyboardShouldPersistTaps="handled"
+        >
+          <Text style={styles.title}>{t.fillDetails}</Text>
+          <View style={styles.sendLoanView}>
+            <TextInput placeholder={t.companyAccountNumber} value={awsEmail} onChangeText={setAWSEmail} style={styles.sendLoanInput} editable={true} />
+            <Text style={styles.sendLoanText}>{t.companyAccountNumber}</Text>
+          </View>
+          <View style={styles.sendLoanView}>
+            <TextInput placeholder={t.advocateLicense} value={Sign2Phn} onChangeText={setSign2Phn} style={styles.sendLoanInput} editable={true} />
+            <Text style={styles.sendLoanText}>{t.advocateLicense}</Text>
+          </View>
+          <View style={styles.sendLoanView}>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              {/* Show user's currency symbol before input */}
+              <Text style={{ fontSize: 16, marginRight: 4 }}>
+                {ratesMap && nationalityToCode(nationality) && ratesMap[nationalityToCode(nationality)] ? ratesMap[nationalityToCode(nationality)].symbol : 'Ksh'}
+              </Text>
+              <TextInput
+                keyboardType='decimal-pad'
+                value={itemPrys}
+                onChangeText={setitemPrys}
+                style={[styles.sendLoanInput, { flex: 1 }]}
+                editable={true}
+                placeholder={t.loanAmount}
+              />
+            </View>
+            <Text style={styles.sendLoanText}>{t.loanAmount}</Text>
+            {/* Removed KES conversion display for user localization */}
+          </View>
+          <View style={styles.sendLoanView}>
+            <TextInput keyboardType='decimal-pad' placeholder={t.annualInterest} value={lnPrsntg} onChangeText={setlnPrsntg} style={styles.sendLoanInput} editable={true} />
+            <Text style={styles.sendLoanText}>{t.annualInterest}</Text>
+          </View>
+          <View style={styles.sendLoanView}>
+            <TextInput keyboardType='decimal-pad' placeholder={t.repaymentPeriod} value={rpymntPrd} onChangeText={setrpymntPrd} style={styles.sendLoanInput} editable={true} />
+            <Text style={styles.sendLoanText}>{t.repaymentPeriod}</Text>
+          </View>
+          <View style={styles.sendLoanView}>
+            <TextInput placeholder={t.paymentFrequency} keyboardType='decimal-pad' value={InstFreq} onChangeText={setInstFreq} style={styles.sendLoanInput} editable={true} />
+          </View>
+          <View style={styles.sendLoanView}>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              {/* Show user's currency symbol before input */}
+              <Text style={{ fontSize: 16, marginRight: 4 }}>
+                {ratesMap && nationalityToCode(nationality) && ratesMap[nationalityToCode(nationality)] ? ratesMap[nationalityToCode(nationality)].symbol : 'Ksh'}
+              </Text>
+              <TextInput
+                placeholder={t.installmentAmount}
+                keyboardType='decimal-pad'
+                value={InstAmt}
+                onChangeText={setInstAmt}
+                style={[styles.sendLoanInput, { flex: 1 }]}
+                editable={true}
+              />
+            </View>
+            {/* Removed KES conversion display for user localization */}
+          </View>
+          <View style={styles.sendLoanView}>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              {/* Show user's currency symbol before input */}
+              <Text style={{ fontSize: 16, marginRight: 4 }}>
+                {ratesMap && nationalityToCode(nationality) && ratesMap[nationalityToCode(nationality)] ? ratesMap[nationalityToCode(nationality)].symbol : 'Ksh'}
+              </Text>
+              <TextInput
+                keyboardType='decimal-pad'
+                placeholder={t.defaultPenalty}
+                value={MmbaID}
+                onChangeText={setMmbaID}
+                style={[styles.sendLoanInput, { flex: 1 }]}
+                editable={true}
+              />
+            </View>
+            <Text style={styles.sendLoanText}>{t.defaultPenalty}</Text>
+            {/* Removed KES conversion display for user localization */}
+          </View>
+          <View style={styles.sendLoanView}>
+            <TextInput placeholder={t.loanDescription} value={ChmRegNo} multiline={true} onChangeText={setChmRegNo} style={styles.sendLoanInput} editable={true} />
+            <Text style={styles.sendLoanText}>{t.loanDescription}</Text>
+          </View>
+          <View style={styles.sendLoanView}>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <TextInput
+                value={pword}
+                onChangeText={setPW}
+                secureTextEntry={!showPassword}
+                style={[styles.sendLoanInput, { flex: 1 }]}
+                editable={true}
+                placeholder={t.userPassword}
+              />
+              <TouchableOpacity
+                onPress={() => setShowPassword(prev => !prev)}
+                style={{ marginLeft: 8 }}
+              >
+                <Text style={{ color: '#e28d58', fontSize: 16 }}>
+                  {showPassword ? 'Hide' : 'Show'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+            <Text style={styles.sendLoanText}>{t.userPassword}</Text>
+          </View>
+          <TouchableOpacity onPress={gtBizna} style={styles.sendLoanButton}>
+            <Text style={styles.sendLoanButtonText}>Click to Request</Text>
+            {isLoading && <ActivityIndicator size="large" color="blue" />}
+          </TouchableOpacity>
+        </KeyboardAwareScrollView>
+      </View>
+    </View>
+  );
 };
 export default CreateBiz;
+
+
+const styles = StyleSheet.create({
+  image: {
+    flex: 1,
+    backgroundColor: 'skyblue', // main background
+    padding: 16,
+  },
+  loanTitleView: {
+    marginVertical: 12,
+    alignItems: 'center',
+  },
+  title: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#e28d58', // accent color
+  },
+  sendLoanView: {
+    marginVertical: 8,
+    padding: 12,
+    borderRadius: 8,
+    backgroundColor: '#f0f8ff', // light skyblue tint
+    borderWidth: 1,
+    borderColor: '#e28d58',
+  },
+  sendLoanInput: {
+    borderBottomWidth: 1,
+    borderBottomColor: '#e28d58',
+    paddingVertical: 6,
+    paddingHorizontal: 8,
+    fontSize: 16,
+    color: '#333',
+  },
+  sendLoanText: {
+    marginTop: 6,
+    fontSize: 14,
+    color: '#e28d58',
+    fontWeight: '500',
+  },
+  sendLoanButton: {
+    marginTop: 20,
+    backgroundColor: '#e28d58',
+    paddingVertical: 14,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  sendLoanButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+});

@@ -151,21 +151,17 @@ const HomeScreen = () => {
         const init = async () => {
             try {
                 const attributes = await fetchUserAttributes();
-            getCompUrls();
+                getCompUrls();
                 const email = attributes.email;
 
                 // Check if main account exists
-                const userDtls: any = await client.graphql({
+                const userDtls = await client.graphql({
                     query: getSMAccount,
-                    variables: {
-                        awsemail: email
-                    }
+                    variables: { awsemail: email }
                 });
-                const note: any = await client.graphql({
+                const note = await client.graphql({
                     query: getNotification,
-                    variables: {
-                        awsemail: email
-                    }
+                    variables: { awsemail: email }
                 });
                 const mainAccExists = userDtls.data.getSMAccount;
                 const noteDtls = note.data.getNotification;
@@ -176,6 +172,9 @@ const HomeScreen = () => {
                     await loadUserPhoto(mainAccExists.photoPassport, mainAccExists.name);
                 } else {
                     setPhotoLoading(false);
+                    // Navigate to WelcomePgss (T&CAcceptanceForm) if no main account exists
+                    navigation.navigate('WelcomePgss');
+                    return;
                 }
 
                 // Refresh FCM token every time HomeScreen renders
@@ -185,9 +184,6 @@ const HomeScreen = () => {
                     return;
                 }
                 const token = await getFcmToken();
-                if (!mainAccExists) {
-                    Alert.alert("Click 'Create Main Account' button to create it.");
-                }
                 if (mainAccExists && noteDtls) {
                     await client.graphql({
                         query: updateNotification,

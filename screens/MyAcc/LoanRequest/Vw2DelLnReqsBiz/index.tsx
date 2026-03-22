@@ -5,6 +5,8 @@ import styles from './styles';
 import { getSMAccount, listReqLoans } from '../../../../src/graphql/queries';
 import { getCurrentUser, fetchUserAttributes } from "aws-amplify/auth";
 import { generateClient } from "aws-amplify/api";
+import { useTranslation } from 'react-i18next';
+import { translations } from './translation';
 const client = generateClient();
 const FetchSMNonCovLns = props => {
   const [LneePhn, setLneePhn] = useState(null);
@@ -25,6 +27,10 @@ const FetchSMNonCovLns = props => {
   const [itemTwn, setitemTwn] = useState('0');
   const [lnPrsntg, setlnPrsntg] = useState('0');
   const [rpymntPrd, setrpymntPrd] = useState('0');
+  const { i18n } = useTranslation();
+  const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+  const t = translations[lang] || translations.en;
+
   const fetchUsrDtls = async () => {
     const userInfo = await getCurrentUser();
     const attributes = await fetchUserAttributes();
@@ -81,12 +87,11 @@ const FetchSMNonCovLns = props => {
       width: "100%"
     }} data={Loanees} renderItem={({
       item
-    }) => <LnerStts SMAc={item} />} keyExtractor={(item, index) => index.toString()} onRefresh={fetchUsrDtls} refreshing={loading} showsVerticalScrollIndicator={false} ListHeaderComponentStyle={{
+    }) => <LnerStts SMAc={item} t={t} />} keyExtractor={(item, index) => index.toString()} onRefresh={fetchUsrDtls} refreshing={loading} showsVerticalScrollIndicator={false} ListHeaderComponentStyle={{
       alignItems: 'center'
     }} ListHeaderComponent={() => <>
-            
-            <Text style={styles.label}> Swipe to View My Loan Requests</Text>
-            <Text style={styles.label2}> (Select to Delete)</Text>
+            <Text style={styles.label}>{t.swipeToView}</Text>
+            <Text style={styles.label2}>{t.selectToDelete}</Text>
           </>} />
 
   </View>;

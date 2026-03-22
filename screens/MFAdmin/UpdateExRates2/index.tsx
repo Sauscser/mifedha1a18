@@ -6,6 +6,8 @@ import { generateClient } from 'aws-amplify/api';
 import { getCurrentUser } from 'aws-amplify/auth';
 import { listExRates, getCompany } from '../../../src/graphql/queries';
 import { updateExRates } from '../../../src/graphql/mutations';
+import { useTranslation } from 'react-i18next';
+import { translations } from './translation';
 
 const client = generateClient();
 
@@ -61,9 +63,12 @@ const ExRateRow = ({ rate, onUpdate, isUpdating }) => {
     setIsEditing(true);
   };
 
+  const { i18n } = useTranslation();
+  const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+  const t = translations[lang] || translations.en;
   const handleUpdate = async () => {
     if (!buyingPrice || !sellingPrice) {
-      Alert.alert('Error', 'Please enter both rates');
+      Alert.alert(t.error, t.errorEnterBothRates);
       return;
     }
     await onUpdate(rate.cur, buyingPrice, sellingPrice);
@@ -83,14 +88,14 @@ const ExRateRow = ({ rate, onUpdate, isUpdating }) => {
         <>
           <TextInput
             style={localStyles.cellInput}
-            placeholder="Buy"
+            placeholder={t.buy}
             value={buyingPrice}
             onChangeText={setBuyingPrice}
             keyboardType="decimal-pad"
           />
           <TextInput
             style={localStyles.cellInput}
-            placeholder="Sell"
+            placeholder={t.sell}
             value={sellingPrice}
             onChangeText={setSellingPrice}
             keyboardType="decimal-pad"
@@ -159,6 +164,10 @@ const UpdateExRates = () => {
     }
   };
 
+  const { i18n } = useTranslation();
+  const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+  const t = translations[lang] || translations.en;
+
   const handleUpdate = async (cur: string, buyingPrice: string, sellingPrice: string) => {
     setUpdatingCur(cur);
     try {
@@ -168,7 +177,7 @@ const UpdateExRates = () => {
       });
       const ownersss = compDtls?.data?.getCompany?.owner;
       if (ownersss !== ownerId) {
-        Alert.alert('Access Denied');
+        Alert.alert(t.accessDenied);
         setUpdatingCur(null);
         return;
       }
@@ -188,10 +197,10 @@ const UpdateExRates = () => {
           r.cur === cur ? { ...r, buyingPrice, sellingPrice } : r
         )
       );
-      Alert.alert('Success', `Rates updated for ${cur}`);
+      Alert.alert(t.success, `${t.successRatesUpdated} ${cur}`);
     } catch (e) {
       console.error('Update error:', e);
-      Alert.alert('Error', 'Failed to update rates');
+      Alert.alert(t.error, t.errorUpdateRates);
     } finally {
       setUpdatingCur(null);
     }
@@ -209,13 +218,13 @@ const UpdateExRates = () => {
 
   return (
     <View style={localStyles.container}>
-      <Text style={localStyles.title}>Exchange Rates for Kenyan Shilling</Text>
+      <Text style={localStyles.title}>{t.title}</Text>
 
       {/* Filter Panel */}
       <View style={localStyles.filterPanel}>
         <TextInput
           style={localStyles.filterInput}
-          placeholder="Filter countries (e.g., Kenya, KE, India...)"
+          placeholder={t.filterPlaceholder}
           value={filterText}
           onChangeText={setFilterText}
         />
@@ -223,9 +232,9 @@ const UpdateExRates = () => {
 
       {/* Header Row */}
       <View style={[localStyles.row, localStyles.headerRow]}>
-        <Text style={[localStyles.cellCountry, localStyles.headerText]}>Symbol</Text>
-        <Text style={[localStyles.cell, localStyles.headerText]}>Buying </Text>
-        <Text style={[localStyles.cell, localStyles.headerText]}>Selling</Text>
+        <Text style={[localStyles.cellCountry, localStyles.headerText]}>{t.headerSymbol}</Text>
+        <Text style={[localStyles.cell, localStyles.headerText]}>{t.headerBuying}</Text>
+        <Text style={[localStyles.cell, localStyles.headerText]}>{t.headerSelling}</Text>
       </View>
 
       {/* Rates List */}
@@ -244,7 +253,7 @@ const UpdateExRates = () => {
         />
       ) : (
         <Text style={localStyles.emptyText}>
-          {rates.length === 0 ? 'Loading rates...' : 'No countries match filter'}
+          {rates.length === 0 ? t.loadingRates : t.noCountriesMatch}
         </Text>
       )}
     </View>

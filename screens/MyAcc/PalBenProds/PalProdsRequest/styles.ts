@@ -1,68 +1,63 @@
+// styles.js
 import { StyleSheet, Dimensions } from 'react-native';
-const styles = StyleSheet.create({
+
+const { width } = Dimensions.get('window');
+
+export default StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: 'skyblue', // overall background
+  },
   image: {
-    width: '100%',
-    height: "100%",
-    resizeMode: 'cover',
-    alignItems: 'center',
-    flexDirection: 'column',
-    marginTop: 1,
-    flexWrap: "wrap"
+    flex: 1,
+    padding: 16,
   },
   accountView: {
-    backgroundColor: '#e58d29',
-    marginHorizontal: 10,
-    width: Dimensions.get('screen').width - 20,
-    height: "32%",
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-    flexDirection: 'column',
-    marginTop: "5%"
-  },
-  acPressables: {
-    backgroundColor: '#e58d29',
-    height: "60%",
-    borderRadius: 5,
-    marginTop: "4%",
-    marginLeft: "2%",
-    marginRight: "2%",
-    justifyContent: 'center',
-    alignItems: 'center',
-    flexDirection: 'column',
-    width: "40%"
-  },
-  acNonLnsPressables: {
-    backgroundColor: 'skyblue',
-    height: "99%",
-    borderRadius: 5,
-    marginTop: "4%",
-    marginLeft: "2%",
-    marginRight: "2%",
-    justifyContent: 'center',
-    alignItems: 'center',
-    flexDirection: 'row',
-    width: "45%"
-  },
-  viewForSalesPressables: {
-    backgroundColor: '#72ebd8',
-    marginHorizontal: 15,
-    width: Dimensions.get('screen').width - 30,
-    height: "70%",
-    borderRadius: 20,
-    marginTop: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
-    flexDirection: 'row'
-  },
-  acPressableText: {
-    color: 'white',
-    fontSize: 12,
-    marginTop: 1
+    marginVertical: 20,
+    padding: 16,
+    borderRadius: 12,
+    backgroundColor: '#f0f8ff', // light skyblue tint
+    borderWidth: 1,
+    borderColor: '#e28d58',
   },
   accountText: {
-    fontSize: 25,
-    color: 'white'
-  }
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#e28d58',
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  acPressables: {
+    marginVertical: 12,
+    padding: 12,
+    borderRadius: 8,
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#e28d58',
+  },
+  acPressableText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#e28d58',
+    marginBottom: 8,
+  },
+  row: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  acNonLnsPressables: {
+    flex: 1,
+    marginHorizontal: 6,
+    paddingVertical: 10,
+    borderRadius: 6,
+    backgroundColor: '#e28d58',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: width * 0.35,
+  },
+  acNonLnsPressablesText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
 });
-export default styles;

@@ -4,8 +4,14 @@ import { View, Text, Pressable, SafeAreaView } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import styles from './styles';
 import { ScrollView } from 'react-native-gesture-handler';
+import { useTranslation } from 'react-i18next';
+import { translations } from './translation';
+
 const MyLoanAccount = props => {
   const navigation = useNavigation();
+  const { i18n } = useTranslation();
+  const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+  const t = translations[lang] || translations.en;
 
   // Navigation functions for each button
   const SignIn2GrntLnReq = () => navigation.navigate('SignIn2GrntLnReq');
@@ -47,7 +53,7 @@ const MyLoanAccount = props => {
               y: 1
             }} style={styles.gradientPressable}>
               <Pressable onPress={UpdateExRates}>
-                <Text style={styles.clientsPressableText}>View Exchange Rates</Text>
+                <Text style={styles.clientsPressableText}>{t.viewExchangeRates}</Text>
               </Pressable>
             </LinearGradient>
 
@@ -55,7 +61,7 @@ const MyLoanAccount = props => {
           </View>
           
           {/* Loan Requests Section */}
-          <Text style={styles.salesPressableText}>Loan Requests</Text>
+          <Text style={styles.salesPressableText}>{t.loanRequests}</Text>
           <View style={styles.viewForClientsPressables}>
             <LinearGradient colors={['#FF8C00', '#00BFFF']} start={{
               x: 0,
@@ -65,7 +71,7 @@ const MyLoanAccount = props => {
               y: 1
             }} style={styles.gradientPressable}>
               <Pressable onPress={PalProdsRequest}>
-                <Text style={styles.clientsPressableText}>Make Loan Requests</Text>
+                <Text style={styles.clientsPressableText}>{t.makeLoanRequests}</Text>
               </Pressable>
             </LinearGradient>
 
@@ -73,7 +79,7 @@ const MyLoanAccount = props => {
           </View>
           
             {/* Grant Loan Requests Section */}
-          <Text style={styles.salesPressableText}>Grant Loan Requests</Text>
+          <Text style={styles.salesPressableText}>{t.grantLoanRequests}</Text>
           <View style={styles.viewForClientsPressables}>
             <LinearGradient colors={['#FF8C00', '#00BFFF']} start={{
               x: 0,
@@ -83,7 +89,7 @@ const MyLoanAccount = props => {
               y: 1
             }} style={styles.gradientPressable}>
               <Pressable onPress={SignIn2GrntLnReq}>
-                <Text style={styles.clientsPressableText}>Biz2Pal</Text>
+                <Text style={styles.clientsPressableText}>{t.biz2Pal}</Text>
               </Pressable>
             </LinearGradient>
 
@@ -95,7 +101,7 @@ const MyLoanAccount = props => {
               y: 1
             }} style={styles.gradientPressable}>
               <Pressable onPress={PalVw2GrantLnReq2}>
-                <Text style={styles.clientsPressableText}>Pal2Pal</Text>
+                <Text style={styles.clientsPressableText}>{t.pal2Pal}</Text>
               </Pressable>
             </LinearGradient>
           </View>
@@ -103,7 +109,7 @@ const MyLoanAccount = props => {
 
 
           {/* BizLoanStatus Section */}
-          <Text style={styles.salesPressableText}>BizLoanStatus</Text>
+          <Text style={styles.salesPressableText}>{t.bizLoanStatus}</Text>
           <View style={styles.viewForClientsPressables}>
             <LinearGradient colors={['#FF8C00', '#00BFFF']} start={{
               x: 0,
@@ -113,7 +119,7 @@ const MyLoanAccount = props => {
               y: 1
             }} style={styles.gradientPressable}>
               <Pressable onPress={SI2VwB2PLoanees}>
-                <Text style={styles.clientsPressableText}>Company Loanees</Text>
+                <Text style={styles.clientsPressableText}>{t.companyLoanees}</Text>
               </Pressable>
             </LinearGradient>
 
@@ -125,13 +131,13 @@ const MyLoanAccount = props => {
               y: 1
             }} style={styles.gradientPressable}>
               <Pressable onPress={VwB2PMyLoaners}>
-                <Text style={styles.clientsPressableText}>Loaning Companies</Text>
+                <Text style={styles.clientsPressableText}>{t.loaningCompanies}</Text>
               </Pressable>
             </LinearGradient>
           </View>
 
           {/* PalLoanStatus Section */}
-          <Text style={styles.salesPressableText}>PalLoanStatus</Text>
+          <Text style={styles.salesPressableText}>{t.palLoanStatus}</Text>
           <View style={styles.viewForClientsPressables}>
             <LinearGradient colors={['#FF8C00', '#00BFFF']} start={{
               x: 0,
@@ -141,7 +147,7 @@ const MyLoanAccount = props => {
               y: 1
             }} style={styles.gradientPressable}>
               <Pressable onPress={VwP2PMyLoanees}>
-                <Text style={styles.clientsPressableText}>My Loanees</Text>
+                <Text style={styles.clientsPressableText}>{t.myLoanees}</Text>
               </Pressable>
             </LinearGradient>
 
@@ -153,13 +159,13 @@ const MyLoanAccount = props => {
               y: 1
             }} style={styles.gradientPressable}>
               <Pressable onPress={VwP2PMyLoaners}>
-                <Text style={styles.clientsPressableText}>My Loaners</Text>
+                <Text style={styles.clientsPressableText}>{t.myLoaners}</Text>
               </Pressable>
             </LinearGradient>
           </View>
 
            {/* Account */}
-          <Text style={styles.salesPressableText}>Account</Text>
+          <Text style={styles.salesPressableText}>{t.account}</Text>
           <View style={styles.viewForClientsPressables}>
             <LinearGradient colors={['#FF8C00', '#00BFFF']} start={{
               x: 0,
@@ -169,7 +175,7 @@ const MyLoanAccount = props => {
               y: 1
             }} style={styles.gradientPressable}>
               <Pressable onPress={SMDpsitsss}>
-                <Text style={styles.clientsPressableText}>View Deposits</Text>
+                <Text style={styles.clientsPressableText}>{t.viewDeposits}</Text>
               </Pressable>
             </LinearGradient>
 
@@ -181,7 +187,7 @@ const MyLoanAccount = props => {
               y: 1
             }} style={styles.gradientPressable}>
               <Pressable onPress={UpdateMainAc}>
-                <Text style={styles.clientsPressableText}>Update Main Account</Text>
+                <Text style={styles.clientsPressableText}>{t.updateMainAccount}</Text>
               </Pressable>
             </LinearGradient>
 
@@ -193,7 +199,7 @@ const MyLoanAccount = props => {
               y: 1
             }} style={styles.gradientPressable}>
               <Pressable onPress={goToSMASndnonln}>
-                <Text style={styles.clientsPressableText}>Send Cash</Text>
+                <Text style={styles.clientsPressableText}>{t.sendCash}</Text>
               </Pressable>
             </LinearGradient>
 
@@ -205,7 +211,7 @@ const MyLoanAccount = props => {
               y: 1
             }} style={styles.gradientPressable}>
               <Pressable onPress={ViewNonLnsSents}>
-                <Text style={styles.clientsPressableText}>View Cash sent to Pals or Transpoter</Text>
+                <Text style={styles.clientsPressableText}>{t.viewCashSent}</Text>
               </Pressable>
             </LinearGradient>
 
@@ -217,7 +223,7 @@ const MyLoanAccount = props => {
               y: 1
             }} style={styles.gradientPressable}>
               <Pressable onPress={ViewBiznaShareRec}>
-                <Text style={styles.clientsPressableText}>View Cash received from Biz</Text>
+                <Text style={styles.clientsPressableText}>{t.viewCashReceivedBiz}</Text>
               </Pressable>
             </LinearGradient>
 
@@ -229,13 +235,13 @@ const MyLoanAccount = props => {
               y: 1
             }} style={styles.gradientPressable}>
               <Pressable onPress={ViewNonLnsRecs}>
-                <Text style={styles.clientsPressableText}>View Cash received from Pals</Text>
+                <Text style={styles.clientsPressableText}>{t.viewCashReceivedPals}</Text>
               </Pressable>
             </LinearGradient>
           </View>
 
            {/* Withdrawals */}
-          <Text style={styles.salesPressableText}>Withdrawals</Text>
+          <Text style={styles.salesPressableText}>{t.withdrawals}</Text>
           <View style={styles.viewForClientsPressables}>
             <LinearGradient colors={['#FF8C00', '#00BFFF']} start={{
               x: 0,
@@ -245,7 +251,7 @@ const MyLoanAccount = props => {
               y: 1
             }} style={styles.gradientPressable}>
               <Pressable onPress={goWithdrwMny}>
-                <Text style={styles.clientsPressableText}>Withdraw Money</Text>
+                <Text style={styles.clientsPressableText}>{t.withdrawMoney}</Text>
               </Pressable>
             </LinearGradient>
 
@@ -257,7 +263,7 @@ const MyLoanAccount = props => {
               y: 1
             }} style={styles.gradientPressable}>
               <Pressable onPress={SMWthdrwlsss}>
-                <Text style={styles.clientsPressableText}>View Withdrawn Money</Text>
+                <Text style={styles.clientsPressableText}>{t.viewWithdrawnMoney}</Text>
               </Pressable>
             </LinearGradient>
 
@@ -265,7 +271,7 @@ const MyLoanAccount = props => {
           </View>
 
           {/* Other Operations */}
-          <Text style={styles.salesPressableText}>Other Operations</Text>
+          <Text style={styles.salesPressableText}>{t.otherOperations}</Text>
           <View style={styles.viewForClientsPressables}>
              <LinearGradient colors={['#FF8C00', '#00BFFF']} start={{
               x: 0,
@@ -275,7 +281,7 @@ const MyLoanAccount = props => {
               y: 1
             }} style={styles.gradientPressable}>
               <Pressable onPress={BoostPalBenefits}>
-                <Text style={styles.clientsPressableText}>Boost pooled Benefits</Text>
+                <Text style={styles.clientsPressableText}>{t.boostPooledBenefits}</Text>
               </Pressable>
             </LinearGradient>
 
@@ -287,7 +293,7 @@ const MyLoanAccount = props => {
               y: 1
             }} style={styles.gradientPressable}>
               <Pressable onPress={SrchLoanAdz}>
-                <Text style={styles.clientsPressableText}>Search Loan Ads</Text>
+                <Text style={styles.clientsPressableText}>{t.searchLoanAds}</Text>
               </Pressable>
             </LinearGradient>
             <LinearGradient colors={['#FF8C00', '#00BFFF']} start={{
@@ -298,7 +304,7 @@ const MyLoanAccount = props => {
               y: 1
             }} style={styles.gradientPressable}>
               <Pressable onPress={LoanAds}>
-                <Text style={styles.clientsPressableText}>Advertise</Text>
+                <Text style={styles.clientsPressableText}>{t.advertise}</Text>
               </Pressable>
             </LinearGradient>
 
@@ -310,7 +316,7 @@ const MyLoanAccount = props => {
               y: 1
             }} style={styles.gradientPressable}>
               <Pressable onPress={VwPlLn2Remove}>
-                <Text style={styles.clientsPressableText}>Delete Loan Ads</Text>
+                <Text style={styles.clientsPressableText}>{t.deleteLoanAds}</Text>
               </Pressable>
             </LinearGradient>
 

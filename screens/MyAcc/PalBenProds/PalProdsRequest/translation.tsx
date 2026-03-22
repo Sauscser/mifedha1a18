@@ -1,0 +1,80 @@
+export const translations = {
+  en: {
+    request: 'Request',
+    company: 'Company',
+    pal: 'Pal',
+    view: 'View',
+  },
+  ar: {
+    request: 'طلب',
+    company: 'شركة',
+    pal: 'صديق',
+    view: 'عرض',
+  },
+  zh: {
+    request: '请求',
+    company: '公司',
+    pal: '好友',
+    view: '查看',
+  },
+  ru: {
+    request: 'Запрос',
+    company: 'Компания',
+    pal: 'Друг',
+    view: 'Просмотр',
+  },
+  sw: {
+    request: 'Omba',
+    company: 'Kampuni',
+    pal: 'Rafiki',
+    view: 'Angalia',
+  },
+  fr: {
+    request: 'Demande',
+    company: 'Entreprise',
+    pal: 'Ami',
+    view: 'Voir',
+  },
+  es: {
+    request: 'Solicitar',
+    company: 'Empresa',
+    pal: 'Amigo',
+    view: 'Ver',
+  },
+  de: {
+    request: 'Anfrage',
+    company: 'Firma',
+    pal: 'Freund',
+    view: 'Ansehen',
+  },
+  pt: {
+    request: 'Solicitar',
+    company: 'Empresa',
+    pal: 'Amigo',
+    view: 'Ver',
+  },
+  it: {
+    request: 'Richiedi',
+    company: 'Azienda',
+    pal: 'Amico',
+    view: 'Visualizza',
+  },
+  he: {
+    request: 'בקשה',
+    company: 'חברה',
+    pal: 'חבר',
+    view: 'הצג',
+  },
+  hi: {
+    request: 'अनुरोध',
+    company: 'कंपनी',
+    pal: 'मित्र',
+    view: 'देखें',
+  },
+  am: {
+    request: 'ጥያቄ',
+    company: 'ኩባንያ',
+    pal: 'ጓደኛ',
+    view: 'እይታ',
+  },
+};

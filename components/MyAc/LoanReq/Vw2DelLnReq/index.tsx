@@ -11,6 +11,8 @@ import { getSMAccount } from '../../../../src/graphql/queries';
 import {fetchUserAttributes} from 'aws-amplify/auth';
 import styles from './styles';
 import { TouchableOpacity } from 'react-native-gesture-handler';
+// Translation pattern
+// t is passed as prop from parent
 
 export interface SMAccount {
   SMAc: {
@@ -21,7 +23,8 @@ export interface SMAccount {
     repaymentAmt: number,
     repaymentPeriod: number,
     loaneeName: string,
-  }
+  };
+  t?: any;
 }
 
 const client = generateClient();
@@ -36,7 +39,8 @@ const SMCvLnStts = (props: SMAccount) => {
       repaymentPeriod,
       loaneeName,
       id
-    }
+    },
+    t
   } = props;
 
   const [isLoading, setIsLoading] = useState(false);
@@ -98,9 +102,15 @@ const SMCvLnStts = (props: SMAccount) => {
       <Pressable onPress={updtRecAc2} style={styles.card}>
         <Text style={styles.prodName}>
           {/*loaner details */}
-          Hi! it's {loaneeName}. Kindly Loan me  {formatAmountSync(amount, userCode, ratesMap)}. I
-          commit to repay at a compound interest of {repaymentAmt}% per year within {repaymentPeriod} days.
-          You can reach me through {loaneePhone}. {status}
+          {t && t.hiLoanRequest
+            ? t.hiLoanRequest
+                .replace('{name}', loaneeName)
+                .replace('{amount}', formatAmountSync(amount, userCode, ratesMap))
+                .replace('{interest}', repaymentAmt)
+                .replace('{days}', repaymentPeriod)
+                .replace('{phone}', loaneePhone)
+                .replace('{status}', status)
+            : `Hi! it's ${loaneeName}. Kindly Loan me ${formatAmountSync(amount, userCode, ratesMap)}. I commit to repay at a compound interest of ${repaymentAmt}% per year within ${repaymentPeriod} days. You can reach me through ${loaneePhone}. ${status}`}
         </Text>
       </Pressable>
     </View>

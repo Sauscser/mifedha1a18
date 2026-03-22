@@ -22,6 +22,7 @@ const RegisterAuditor = ({
 
   // Form state
   const [auditorEmail, setAuditorEmail] = useState('');
+   const [Client, setClient] = useState('');
   const [mainPassword, setMainPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -76,7 +77,7 @@ const RegisterAuditor = ({
             name: auditorData.name,
             email: auditorEmail,
             active: true,
-            organization: usr,
+            organization: Client,
             regions: [],
             createdAt,
             updatedAt: createdAt
@@ -116,6 +117,7 @@ const RegisterAuditor = ({
     setAuditorEmail('');
     setMainPassword('');
     setShowPassword(false);
+    setClient('');
   };
   return <LinearGradient colors={['#e58d29', '#87ceeb']} style={{
     flex: 1
@@ -132,7 +134,14 @@ const RegisterAuditor = ({
         {/* Card */}
         <View style={ui.card}>
           <Text style={ui.label}>{t.emailLabel}</Text>
-          <TextInput placeholder={t.emailPlaceholder} placeholderTextColor="#333" value={auditorEmail} onChangeText={setAuditorEmail} style={ui.input} keyboardType="email-address" autoCapitalize="none" />
+          <TextInput placeholder={t.emailPlaceholder} placeholderTextColor="#333" 
+          value={auditorEmail} onChangeText={setAuditorEmail} 
+          style={ui.input} keyboardType="email-address" autoCapitalize="none" />
+
+           <Text style={ui.label}>{t.clientLabel}</Text>
+          <TextInput placeholder={t.clientPlaceholder} placeholderTextColor="#333" 
+          value={Client} onChangeText={setClient} 
+          style={ui.input}  autoCapitalize="none" />
 
           <Text style={ui.label}>{t.passwordLabel}</Text>
           <View style={ui.passwordRow}>

@@ -129,6 +129,7 @@ const AuditorVoucherScreen = () => {
   const [showEndPicker, setShowEndPicker] = useState(false);
   const [auditorVerified, setAuditorVerified] = useState(false);
   const [auditorNationality, setAuditorNationality] = useState<string | null>(null);
+  const [auditorOrganizations, setAuditorOrganizations] = useState<string[]>([]);
   const [selectedVouchers, setSelectedVouchers] = useState<Record<string, boolean>>({});
   const { nationality, ratesMap } = useExchange();
 
@@ -153,7 +154,10 @@ const AuditorVoucherScreen = () => {
         Alert.alert(combTranslations[lang].auditorRegistration.unauthorized, combTranslations[lang].auditorRegistration.notRegistered);
         return;
       }
-      
+      // Parse organizations (comma, semicolon, or whitespace separated)
+      let orgsRaw = auditor.organization || '';
+      let orgs = orgsRaw.split(/[,;\s]+/).filter(Boolean);
+      setAuditorOrganizations(orgs);
       // Fetch auditor's nationality
       try {
         const smRes: any = await client.graphql({ query: getSMAccount, variables: { awsemail: email } });
@@ -162,24 +166,24 @@ const AuditorVoucherScreen = () => {
       } catch (e) {
         console.warn('Could not fetch auditor nationality', e);
       }
-      
       setAuditorVerified(true);
-      fetchVouchers();
+      fetchVouchers(orgs);
     } catch (error) {
       Alert.alert('Error', 'Failed to verify auditor.');
     }
   };
-  const fetchVouchers = async (token?: string) => {
+  const fetchVouchers = async (orgs?: string[], token?: string) => {
     if (loading) return;
     setLoading(true);
     try {
+      // Build funderAccount filter
+      let funderFilter = orgs && orgs.length > 0 ? { in: orgs } : undefined;
       const res: any = await client.graphql({
         query: listCombContractVouchers,
         variables: {
           filter: {
-            accStatus: {
-              eq: 'Cleared'
-            }
+            accStatus: { eq: 'Cleared' },
+            ...(funderFilter ? { funderAccount: funderFilter } : {})
           },
           limit: 50,
           nextToken: token

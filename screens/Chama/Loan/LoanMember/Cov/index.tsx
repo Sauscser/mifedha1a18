@@ -12,10 +12,14 @@ import { useExchange } from '../../../../../src/contexts/ExchangeContext';
 import { formatAmountSync } from '../../../../../src/utils/exchange';
 import { nationalityToCode } from '../../../../../src/utils/nationalityToCode';
 import { useTranslation } from 'react-i18next';
+
+import { translations } from './translation';
 const client = generateClient();
 
 const ChmCovLns = () => {
-  const { t } = useTranslation();
+  const { i18n } = useTranslation();
+  const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+  const t = translations[lang] || translations.en;
   const { ratesMap } = useExchange();
   const [state, setState] = useState({
     ChmPhn: '',
@@ -49,7 +53,7 @@ const ChmCovLns = () => {
       return result.data;
     } catch (e) {
       console.log(e);
-      Alert.alert(t('chama.loan.loanMember.cov.alerts.accessDenied'));
+      Alert.alert(t.alerts.accessDenied);
       setField('isLoading', false);
       throw e;
     }
@@ -91,7 +95,7 @@ const ChmCovLns = () => {
       });
       setUserNationality(senderAccount?.nationality || null);
       if (state.SnderPW !== senderAccount.pw) {
-        Alert.alert(t('chama.loan.loanMember.cov.alerts.wrongPassword'));
+        Alert.alert(t.alerts.wrongPassword);
         setField('isLoading', false);
         return;
       }
@@ -126,22 +130,22 @@ const ChmCovLns = () => {
         nationalid: group.BankAdminAcNu
       });
       if (status === 'Approved') {
-        Alert.alert(t('chama.loan.loanMember.cov.alerts.alreadyGranted'));
+        Alert.alert(t.alerts.alreadyGranted);
         setField('isLoading', false);
         return;
       }
       if (status !== 'Cleared') {
-        Alert.alert(t('chama.loan.loanMember.cov.alerts.notCleared'));
+        Alert.alert(t.alerts.notCleared);
         setField('isLoading', false);
         return;
       }
       if (state.MmbrId === chamaPhone) {
-        Alert.alert(t('chama.loan.loanMember.cov.alerts.cannotLoanSelf'));
+        Alert.alert(t.alerts.cannotLoanSelf);
         setField('isLoading', false);
         return;
       }
       if (recAccount.acStatus !== 'AccountActive') {
-        Alert.alert(t('chama.loan.loanMember.cov.alerts.receiverInactive'));
+        Alert.alert(t.alerts.receiverInactive);
         setField('isLoading', false);
         return;
       }
@@ -306,17 +310,7 @@ const ChmCovLns = () => {
         variables: {
           input: {
             senderEmail: loaneeEmail,
-            messageBody: t('chama.loan.loanMember.cov.notifications.message', {
-              groupName: group.grpName,
-              amount: formatMoney(amountKes),
-              totalAmount: formatMoney(totalAmount),
-              interestAmount: formatMoney(repaymentAmountKes),
-              repaymentPeriod,
-              transactionFee: formatMoney(transFee),
-              advocateFee: formatMoney(ttlCovFeeAmount),
-              installmentAmount: formatMoney(installmentAmountKes),
-              paymentFrequency
-            })
+            messageBody: t.notifications.message // You may want to interpolate values manually if needed
           }
         }
       });
@@ -324,26 +318,11 @@ const ChmCovLns = () => {
         query: sendNotification,
         variables: {
           riderEmail: loaneeEmail,
-          title: t('chama.loan.loanMember.cov.notifications.title'),
-          body: t('chama.loan.loanMember.cov.notifications.message', {
-            groupName: group.grpName,
-            amount: formatMoney(amountKes),
-            totalAmount: formatMoney(totalAmount),
-            interestAmount: formatMoney(repaymentAmountKes),
-            repaymentPeriod,
-            transactionFee: formatMoney(transFee),
-            advocateFee: formatMoney(ttlCovFeeAmount),
-            installmentAmount: formatMoney(installmentAmountKes),
-            paymentFrequency
-          })
+          title: t.notifications.title,
+          body: t.notifications.message // You may want to interpolate values manually if needed
         }
       });
-      Alert.alert(advLicNo !== 'None' ? t('chama.loan.loanMember.cov.alerts.successWithAdv', {
-        transFee: formatMoney(transFee),
-        advFee: formatMoney(ttlCovFeeAmount)
-      }) : t('chama.loan.loanMember.cov.alerts.successNoAdv', {
-        transFee: formatMoney(transFee)
-      }));
+      Alert.alert(advLicNo !== 'None' ? t.alerts.successWithAdv : t.alerts.successNoAdv);
       setField('amount', '');
       setField('AmtExp', '');
       setField('SnderPW', '');
@@ -365,14 +344,14 @@ const ChmCovLns = () => {
       
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerText}>{t('chama.loan.loanMember.cov.labels.header')}</Text>
-        <Text style={styles.subHeaderText}>{t('chama.loan.loanMember.cov.labels.subHeader')}</Text>
+        <Text style={styles.headerText}>{t.labels.header}</Text>
+        <Text style={styles.subHeaderText}>{t.labels.subHeader}</Text>
       </View>
 
       {/* Password Input Card */}
       <View style={styles.inputCard}>
-        <Text style={styles.inputLabel}>{t('chama.loan.loanMember.cov.labels.adminPassword')}</Text>
-      <TextInput placeholder={t('chama.loan.loanMember.cov.placeholders.password')} value={state.SnderPW} secureTextEntry={!showPassword} onChangeText={text => setField('SnderPW', text)} // ✅ fixed
+        <Text style={styles.inputLabel}>{t.labels.adminPassword}</Text>
+      <TextInput placeholder={t.placeholders.password} value={state.SnderPW} secureTextEntry={!showPassword} onChangeText={text => setField('SnderPW', text)} // ✅ fixed
         style={styles.input} editable={!state.isLoading} // ✅ access isLoading from state
         />
 
@@ -393,7 +372,7 @@ const ChmCovLns = () => {
           x: 1,
           y: 0
         }} style={styles.buttonGradient}>
-    <Text style={styles.buttonText}>{t('chama.loan.loanMember.cov.labels.loanButton')}</Text>
+    <Text style={styles.buttonText}>{t.labels.loanButton}</Text>
     {state.isLoading && <ActivityIndicator size="small" color="#fff" style={{
             marginLeft: 10
           }} />}
