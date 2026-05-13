@@ -8,7 +8,7 @@ import * as ImagePicker from 'expo-image-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
 import { getCurrentUser, fetchUserAttributes } from 'aws-amplify/auth';
 import { generateClient } from 'aws-amplify/api';
-import { uploadData } from 'aws-amplify/storage';
+import { uploadData, getUrl } from 'aws-amplify/storage';
 import { createAveragePrices, createSokoAd } from '../../../src/graphql/mutations';
 import { getSMAccount, getBizna, listPersonels, listAveragePrices } from '../../../src/graphql/queries';
 import { useRoute } from '@react-navigation/native';
@@ -58,6 +58,7 @@ const CreateBiz = () => {
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [itemPhotoKey, setItemPhotoKey] = useState(null);
   const [itemPhotoUri, setItemPhotoUri] = useState(null);
+  const [photoLoading, setPhotoLoading] = useState(false);
   const [businessOwnerNationality, setBusinessOwnerNationality] = useState<string | null>(null);
   const PriceInKsh = convertForeignToKsh(formData.itemPrice, businessOwnerNationality);
   const route = useRoute();
@@ -149,42 +150,53 @@ const CreateBiz = () => {
       quality: 1
     });
     if (!result.canceled && result.assets?.[0]?.uri) {
-      handleImage(result.assets[0].uri);
-    }
-  };
-  const handleImage = async uri => {
-    try {
-      const manipResult = await ImageManipulator.manipulateAsync(uri, [{
-        resize: {
-          width: 800
+      try {
+        const manipResult = await ImageManipulator.manipulateAsync(result.assets[0].uri, [{ resize: { width: 800 } }], { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG });
+        const response = await fetch(manipResult.uri);
+        const blob = await response.blob();
+        const imageSizeMB = blob.size / (1024 * 1024);
+        if (imageSizeMB > MAX_IMAGE_SIZE_MB) {
+          Alert.alert(t.imageTooLarge, `Image is ${imageSizeMB.toFixed(2)}MB.`);
+          return;
         }
-      }], {
-        compress: 0.7,
-        format: ImageManipulator.SaveFormat.JPEG
-      });
-      const response = await fetch(manipResult.uri);
-      const blob = await response.blob();
-      const imageSizeMB = blob.size / (1024 * 1024);
-      if (imageSizeMB > MAX_IMAGE_SIZE_MB) {
-        Alert.alert(t.imageTooLarge, `Image is ${imageSizeMB.toFixed(2)}MB.`);
-        return;
+        const filename = `${Date.now()}_item.jpg`;
+        await uploadData({ key: filename, data: blob, options: { contentType: 'image/jpeg' } }).result;
+        setItemPhotoKey(filename); // Only set key, HomeScrn-style effect will fetch S3 URL
+        Alert.alert(t.success, t.imageUploaded);
+      } catch (err) {
+        console.error('Image upload failed:', err);
+        Alert.alert(t.error, t.imageUploadFailed);
       }
-      const filename = `${Date.now()}_item.jpg`;
-      await uploadData({
-        key: filename,
-        data: blob,
-        options: {
-          contentType: 'image/jpeg'
-        }
-      }).result;
-      setItemPhotoKey(filename);
-      setItemPhotoUri(manipResult.uri);
-      Alert.alert(t.success, t.imageUploaded);
-    } catch (err) {
-      console.error('Image upload failed:', err);
-      Alert.alert(t.error, t.imageUploadFailed);
     }
   };
+
+  // HomeScrn-style: fetch S3 signed URL when itemPhotoKey changes
+  const loadItemPhoto = async (photoKey) => {
+    setPhotoLoading(true);
+    try {
+      if (photoKey && photoKey !== 'None') {
+        const signedUrl = await getUrl({ key: photoKey });
+        const photoUrl = signedUrl.url.toString();
+        setItemPhotoUri(photoUrl);
+      } else {
+        setItemPhotoUri(null);
+      }
+    } catch (photoErr) {
+      console.log('Error fetching item photo URL:', photoErr);
+      setItemPhotoUri(null);
+    } finally {
+      setPhotoLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (itemPhotoKey) {
+      loadItemPhoto(itemPhotoKey);
+    } else {
+      setItemPhotoUri(null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [itemPhotoKey]);
   const clearForm = () => {
     setFormData({
       itemName: '',
@@ -224,7 +236,8 @@ const CreateBiz = () => {
       setIsLoading(false);
       return;
     }
-    const priceInKsh = parseFloat(PriceInKsh);
+    // Convert user-entered price (in their currency) to KES for backend
+    const priceInKsh = await convertForeignToKsh(parseFloat(itemPrice), businessOwnerNationality);
     if (!Number.isFinite(priceInKsh) || priceInKsh <= 0) {
       Alert.alert(t.error, t.enterValidPrice);
       setIsLoading(false);
@@ -356,7 +369,13 @@ const CreateBiz = () => {
         <InputField label={t.itemNameLabel} value={formData.itemName} onChange={v => updateForm('itemName', v)} />
         <InputField label={t.brandLabel} value={formData.brandName} onChange={v => updateForm('brandName', v)} />
         {businessOwnerNationality ? (
-          <InputField label={`${t.itemPriceLabel} (${ratesMap?.[nationalityToCode(businessOwnerNationality)]?.symbol || 'Ksh'})`} value={formData.itemPrice} onChange={v => updateForm('itemPrice', v)} keyboardType="numeric" />
+          <InputField
+            label={`${t.itemPriceLabel} (${ratesMap?.[nationalityToCode(businessOwnerNationality)]?.symbol || 'Ksh'})`}
+            value={formData.itemPrice}
+            onChange={v => updateForm('itemPrice', v)}
+            keyboardType="numeric"
+            placeholder={ratesMap?.[nationalityToCode(businessOwnerNationality)]?.symbol ? `${ratesMap[nationalityToCode(businessOwnerNationality)].symbol} 0.00` : 'Ksh 0.00'}
+          />
         ) : (
           <InputField label={t.itemPriceLoading} value={formData.itemPrice} onChange={v => updateForm('itemPrice', v)} keyboardType="numeric" />
         )}
@@ -390,9 +409,21 @@ const CreateBiz = () => {
 
         </View>
 
-        {itemPhotoUri && <Image source={{
-        uri: itemPhotoUri
-      }} style={styles.imagePreview} />}
+        <View style={{ width: '100%', height: 200, marginTop: 10, borderRadius: 10, overflow: 'hidden', backgroundColor: '#eee', alignItems: 'center', justifyContent: 'center' }}>
+          {photoLoading ? (
+            <ActivityIndicator size="large" color="#f5a623" />
+          ) : itemPhotoUri ? (
+            <Image
+              source={{ uri: itemPhotoUri }}
+              style={styles.imagePreview}
+              onError={() => setItemPhotoUri(null)}
+            />
+          ) : (
+            <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+              <Ionicons name="image" size={80} color="#bbb" />
+            </View>
+          )}
+        </View>
 
         <View style={styles.passwordContainer}>
           <TextInput placeholder={t.userPasswordPlaceholder} style={styles.passwordInput} value={formData.bizPassword} onChangeText={v => updateForm('bizPassword', v)} secureTextEntry={!isPasswordVisible} placeholderTextColor="#ccc" />

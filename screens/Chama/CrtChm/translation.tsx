@@ -44,7 +44,10 @@ export const translations = {
     success: 'Success',
     signatureUploaded: '{role} signature uploaded successfully.',
     failedToUploadSignature: 'Failed to upload signature. Please try again.',
-    show: 'Show'
+    show: 'Show',
+    loading: 'Loading...'
+    ,uploadDocument: 'Upload Chair Signature'
+    ,changeDocument: 'Change Chair Signature'
   },
   ar: {
     fillGroupDetails: 'املأ تفاصيل المجموعة أدناه',
@@ -89,7 +92,10 @@ export const translations = {
     success: 'نجاح',
     signatureUploaded: 'تم تحميل توقيع {role} بنجاح.',
     failedToUploadSignature: 'فشل تحميل التوقيع. حاول مرة أخرى.',
-    show: 'إظهار'
+    show: 'إظهار',
+    loading: 'جارٍ التحميل...'
+    ,uploadDocument: 'تحميل مستند أو صورة'
+    ,changeDocument: 'تغيير المستند أو الصورة'
   },
   zh: {
     fillGroupDetails: '请在下方填写小组信息',
@@ -134,7 +140,10 @@ export const translations = {
     success: '成功',
     signatureUploaded: '{role} 签名上传成功。',
     failedToUploadSignature: '签名上传失败，请重试。',
-    show: '显示'
+    show: '显示',
+    loading: '加载中...'
+    ,uploadDocument: '上传文档或图片'
+    ,changeDocument: '更改文档或图片'
   },
   ru: {
     fillGroupDetails: 'Заполните данные группы ниже',
@@ -179,7 +188,10 @@ export const translations = {
     success: 'Успех',
     signatureUploaded: 'Подпись {role} успешно загружена.',
     failedToUploadSignature: 'Не удалось загрузить подпись. Попробуйте еще раз.',
-    show: 'Показать'
+    show: 'Показать',
+    loading: 'Загрузка...'
+    ,uploadDocument: 'Загрузить документ или изображение'
+    ,changeDocument: 'Изменить документ или изображение'
   },
   sw: {
     fillGroupDetails: 'Jaza maelezo ya kikundi hapa chini',
@@ -224,7 +236,10 @@ export const translations = {
     success: 'Imefanikiwa',
     signatureUploaded: 'Saini ya {role} imepakiwa kikamilifu.',
     failedToUploadSignature: 'Imeshindikana kupakia saini. Jaribu tena.',
-    show: 'Onyesha'
+    show: 'Onyesha',
+    loading: 'Inapakia...'
+    ,uploadDocument: 'Pakia Hati au Picha'
+    ,changeDocument: 'Badilisha Hati au Picha'
   },
   fr: {
     fillGroupDetails: 'Remplissez les détails du groupe ci-dessous',
@@ -270,6 +285,8 @@ export const translations = {
     signatureUploaded: 'Signature {role} téléchargée avec succès.',
     failedToUploadSignature: 'Échec du téléchargement de la signature. Veuillez réessayer.',
     show: 'Afficher'
+    ,uploadDocument: 'Télécharger un document ou une image'
+    ,changeDocument: 'Changer le document ou l’image'
   },
   es: {
     fillGroupDetails: 'Complete los detalles del grupo a continuación',
@@ -315,6 +332,8 @@ export const translations = {
     signatureUploaded: 'Firma de {role} subida con éxito.',
     failedToUploadSignature: 'No se pudo subir la firma. Intente de nuevo.',
     show: 'Mostrar'
+    ,uploadDocument: 'Subir documento o imagen'
+    ,changeDocument: 'Cambiar documento o imagen'
   },
   de: {
     fillGroupDetails: 'Geben Sie unten die Gruppendaten ein',
@@ -360,6 +379,8 @@ export const translations = {
     signatureUploaded: '{role}-Unterschrift erfolgreich hochgeladen.',
     failedToUploadSignature: 'Unterschrift konnte nicht hochgeladen werden. Bitte erneut versuchen.',
     show: 'Anzeigen'
+    ,uploadDocument: 'Dokument oder Bild hochladen'
+    ,changeDocument: 'Dokument oder Bild ändern'
   },
   pt: {
     fillGroupDetails: 'Preencha os detalhes do grupo abaixo',
@@ -405,6 +426,8 @@ export const translations = {
     signatureUploaded: 'Assinatura de {role} enviada com sucesso.',
     failedToUploadSignature: 'Falha ao enviar assinatura. Tente novamente.',
     show: 'Mostrar'
+    ,uploadDocument: 'Carregar documento ou imagem'
+    ,changeDocument: 'Alterar documento ou imagem'
   },
   it: {
     fillGroupDetails: 'Compila i dettagli del gruppo qui sotto',
@@ -450,6 +473,8 @@ export const translations = {
     signatureUploaded: 'Firma di {role} caricata con successo.',
     failedToUploadSignature: 'Caricamento firma non riuscito. Riprova.',
     show: 'Mostra'
+    ,uploadDocument: 'Carica documento o immagine'
+    ,changeDocument: 'Cambia documento o immagine'
   },
   he: {
     fillGroupDetails: 'מלא את פרטי הקבוצה למטה',
@@ -495,6 +520,8 @@ export const translations = {
     signatureUploaded: 'חתימת {role} הועלתה בהצלחה.',
     failedToUploadSignature: 'העלאת החתימה נכשלה. נסה שוב.',
     show: 'הצג'
+    ,uploadDocument: 'העלה מסמך או תמונה'
+    ,changeDocument: 'שנה מסמך או תמונה'
   },
   hi: {
     fillGroupDetails: 'नीचे समूह विवरण भरें',
@@ -540,6 +567,8 @@ export const translations = {
     signatureUploaded: '{role} का हस्ताक्षर सफलतापूर्वक अपलोड हुआ।',
     failedToUploadSignature: 'हस्ताक्षर अपलोड विफल। कृपया पुनः प्रयास करें।',
     show: 'दिखाएँ'
+    ,uploadDocument: 'दस्तावेज़ या छवि अपलोड करें'
+    ,changeDocument: 'दस्तावेज़ या छवि बदलें'
   },
   am: {
     fillGroupDetails: 'የቡድኑን ዝርዝሮች ከታች ይሙሉ',
@@ -585,6 +614,8 @@ export const translations = {
     signatureUploaded: '{role} ፊርማ በተሳካ ሁኔታ ተሰቀላ።',
     failedToUploadSignature: 'ፊርማ ማስገባት አልተሳካም። እባክዎ ደግመው ይሞኩ።',
     show: 'አሳይ'
+    ,uploadDocument: 'ሰነድ ወይም ምስል ያስገቡ'
+    ,changeDocument: 'ሰነዱን ወይም ምስሉን ይቀይሩ'
   }
 };
 export default translations;

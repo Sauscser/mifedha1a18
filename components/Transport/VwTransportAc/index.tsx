@@ -1,5 +1,5 @@
 import React, { useState, useEffect} from 'react';
-import { View, Text, Pressable, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, Pressable, TouchableOpacity, ActivityIndicator, Alert, Modal, TextInput } from 'react-native';
 
 import styles from './styles';
 import { generateClient } from 'aws-amplify/api';
@@ -8,11 +8,13 @@ import { updateTransportRegister, deleteTransportRegister } from '../../../src/g
 import * as Location from 'expo-location';
 import { useNavigation } from '@react-navigation/native';
 
-import { formatAmountSync } from '../../../src/utils/exchange';
+import { formatAmountSync, convertForeignToKsh } from '../../../src/utils/exchange';
 import { nationalityToCode } from '../../../src/utils/nationalityToCode';
-import {useExchange} from '../../../src/contexts/ExchangeContext';
+import { useExchange } from '../../../src/contexts/ExchangeContext';
 import { getSMAccount } from '../../../src/graphql/queries';
-import {fetchUserAttributes} from 'aws-amplify/auth';
+import { fetchUserAttributes } from 'aws-amplify/auth';
+import { useTranslation } from 'react-i18next';
+import { translations } from '../../../screens/Transport/VwTransportAccount/translation';
 
 export interface SMAccount {
   SMAc: {
@@ -56,8 +58,55 @@ const ViewSMDeposts = ({ SMAc }: SMAccount) => {
   const [isLoading, setIsLoading] = useState(false);
   const [isLoading2, setIsLoading2] = useState(false);
   const [location, setLocation] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [newRate, setNewRate] = useState(transportRate ? transportRate.toString() : '');
+  const [localTransportRate, setLocalTransportRate] = useState(transportRate);
+  const [isUpdatingRate, setIsUpdatingRate] = useState(false);
+  const openRateModal = () => {
+    setNewRate(transportRate ? transportRate.toString() : '');
+    setModalVisible(true);
+  };
+
+  const closeRateModal = () => {
+    setModalVisible(false);
+  };
+
+  const handleUpdateRate = async () => {
+    if (!newRate || isNaN(Number(newRate))) {
+      Alert.alert(t.invalidRate || 'Please enter a valid rate.');
+      return;
+    }
+    setIsUpdatingRate(true);
+    try {
+      // Convert user input (foreign currency) to KES for backend
+      const rateInKES = await convertForeignToKsh(Number(newRate), userCode);
+      const updated = await client.graphql({
+        query: updateTransportRegister,
+        variables: {
+          input: {
+            id,
+            transportRate: rateInKES,
+          },
+        },
+      });
+      if (updated && 'data' in updated && updated.data?.updateTransportRegister) {
+        Alert.alert(t.rateUpdated || 'Transport rate updated.');
+        // Update local state so UI reflects new rate immediately
+        setLocalTransportRate(rateInKES);
+        setModalVisible(false);
+      }
+    } catch (error) {
+      console.warn('Error updating rate:', error);
+      Alert.alert(t.failedToUpdateRate || 'Failed to update rate.');
+    } finally {
+      setIsUpdatingRate(false);
+    }
+  };
 
   const navigation = useNavigation();
+  const { i18n } = useTranslation();
+  const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+  const t = translations[lang] || translations.en;
 
   const ShareRev = () => {
     navigation.navigate("ShareTransportRevenue", { id });
@@ -71,40 +120,40 @@ const ViewSMDeposts = ({ SMAc }: SMAccount) => {
     navigation.navigate("ViewDeliveryPayments");
   };
 
-      const client = generateClient();
-      const [Uzer, setUzer] = useState<string>(null);
-      const [userNationality, setUserNationality] = useState<string>(null);
-      const userCode = nationalityToCode(userNationality);
-      const {ratesMap} = useExchange();
+  const [Uzer, setUzer] = useState<string>(null);
+  const [userNationality, setUserNationality] = useState<string>(null);
+  const userCode = nationalityToCode(userNationality);
+  const {ratesMap} = useExchange();
         
      
         
      
-        useEffect(() => {
-                const fetchUserData = async () => {
-        
-                    const user = await fetchUserAttributes();
-                    setUzer(user.email);
-                    try {
-                        const userData = await client.graphql({
-                            query: getSMAccount,
-                            variables: { awsemail: user.email },
-                        });
-                        setUserNationality(userData.data.getSMAccount.nationality);
-                        console.log('User Data:', userData);
-                    } catch (error) {
-                        console.error('Error fetching user data:', error);
-                    }
-                };
-                fetchUserData();
-            }, [Uzer]);
+  useEffect(() => {
+    const fetchUserData = async () => {
+      const user = await fetchUserAttributes();
+      setUzer(user.email);
+      try {
+        const userData = await client.graphql({
+          query: getSMAccount,
+          variables: { awsemail: user.email },
+        });
+        if (userData && 'data' in userData && userData.data?.getSMAccount) {
+          setUserNationality(userData.data.getSMAccount.nationality);
+          console.log('User Data:', userData);
+        }
+      } catch (error) {
+        console.error('Error fetching user data:', error);
+      }
+    };
+    fetchUserData();
+  }, [Uzer]);
 
   const fetchLocation = async () => {
     setIsLoading(true);
     try {
       let { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== "granted") {
-        Alert.alert("Permission to access location was denied.");
+        Alert.alert(t.permissionDenied);
         return;
       }
 
@@ -119,8 +168,8 @@ const ViewSMDeposts = ({ SMAc }: SMAccount) => {
 
       if (loc.coords.accuracy && loc.coords.accuracy > 30) {
         Alert.alert(
-          "Low GPS Accuracy",
-          `Location accuracy is about ${Math.round(loc.coords.accuracy)} meters. Try moving near a window or outside.`
+          t.lowGpsAccuracyTitle,
+          t.lowGpsAccuracyMsg.replace('{accuracy}', Math.round(loc.coords.accuracy).toString())
         );
       }
 
@@ -138,11 +187,11 @@ const ViewSMDeposts = ({ SMAc }: SMAccount) => {
       });
 
       if (updateOrdr.data.updateTransportRegister) {
-        Alert.alert("Stage Location reset successfully.");
+        Alert.alert(t.stageLocationReset);
       }
     } catch (error) {
       console.warn("Error fetching location:", error);
-      Alert.alert("Failed to get location. Try again.");
+      Alert.alert(t.failedToGetLocation);
     } finally {
       setIsLoading(false);
     }
@@ -163,11 +212,11 @@ const ViewSMDeposts = ({ SMAc }: SMAccount) => {
       await remove({ key: transportPhoto });
 
       if (delAc.data.deleteTransportRegister) {
-        Alert.alert("Account Deleted successfully.");
+        Alert.alert(t.accountDeleted);
       }
     } catch (error) {
       console.warn("Error deleting Account:", error);
-      Alert.alert("Failed to delete account. Try again.");
+      Alert.alert(t.failedToDeleteAccount);
     } finally {
       setIsLoading2(false);
     }
@@ -177,11 +226,51 @@ const ViewSMDeposts = ({ SMAc }: SMAccount) => {
     <View style={styles.pageContainer}>
       <Pressable style={styles.card}>
         <Text style={styles.prodInfo}>
-          {transportName} transport services || TransportRate: {formatAmountSync(transportRate, userCode, ratesMap)} || Earnings: {formatAmountSync(Earnings, userCode, ratesMap)} || Description: {transportdesc}
+          {t.transportInfo
+            .replace('{name}', transportName)
+            .replace('{rate}', formatAmountSync(localTransportRate, userCode, ratesMap))
+            .replace('{earnings}', formatAmountSync(Earnings, userCode, ratesMap))
+            .replace('{desc}', transportdesc)
+          }
         </Text>
       </Pressable>
 
       <View style={styles.buttonRow}>
+        <TouchableOpacity style={styles.loanFriendButton} onPress={openRateModal}>
+          <Text style={{ color: 'white', fontSize: 12 }}>{t.changeTransportRate || 'Change Transport Rate'}</Text>
+        </TouchableOpacity>
+              <Modal
+                visible={modalVisible}
+                animationType="slide"
+                transparent={true}
+                onRequestClose={closeRateModal}
+              >
+                <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.4)' }}>
+                  <View style={{ backgroundColor: 'white', padding: 20, borderRadius: 10, width: '80%' }}>
+                    <Text style={{ fontSize: 16, marginBottom: 10 }}>{t.enterNewRate || 'Enter new transport rate:'}</Text>
+                    <TextInput
+                      value={newRate}
+                      onChangeText={setNewRate}
+                      keyboardType="numeric"
+                      style={{ borderWidth: 1, borderColor: '#ccc', borderRadius: 5, padding: 8, marginBottom: 15, fontWeight: 'bold', color: '#222' }}
+                      placeholder={
+                        t.newRatePlaceholder
+                          ? `${t.newRatePlaceholder} (${ratesMap && userCode && ratesMap[userCode]?.symbol ? ratesMap[userCode].symbol : 'Ksh'})`
+                          : `New Rate (${ratesMap && userCode && ratesMap[userCode]?.symbol ? ratesMap[userCode].symbol : 'Ksh'})`
+                      }
+                      placeholderTextColor="#444"
+                    />
+                    <View style={{ flexDirection: 'row', justifyContent: 'flex-end' }}>
+                      <TouchableOpacity onPress={closeRateModal} style={{ marginRight: 15 }}>
+                        <Text style={{ color: '#e58d29', fontWeight: 'bold' }}>{t.cancel || 'Cancel'}</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity onPress={handleUpdateRate} disabled={isUpdatingRate}>
+                        <Text style={{ color: '#e58d29', fontWeight: 'bold' }}>{isUpdatingRate ? (t.processing || 'Processing...') : (t.update || 'Update')}</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                </View>
+              </Modal>
         <TouchableOpacity
           onPress={fetchLocation}
           style={[
@@ -198,7 +287,7 @@ const ViewSMDeposts = ({ SMAc }: SMAccount) => {
         >
           {isLoading && <ActivityIndicator size="small" color="#fff" style={{ marginRight: 6 }} />}
           <Text style={{ color: 'white', fontSize: 12 }}>
-            {isLoading ? 'Processing...' : 'Reset Stage Location'}
+            {isLoading ? t.processing : t.resetStageLocation}
           </Text>
         </TouchableOpacity>
 
@@ -218,20 +307,20 @@ const ViewSMDeposts = ({ SMAc }: SMAccount) => {
         >
           {isLoading2 && <ActivityIndicator size="small" color="#fff" style={{ marginRight: 6 }} />}
           <Text style={{ color: 'white', fontSize: 12 }}>
-            {isLoading2 ? 'Processing...' : 'Delete Transport Account'}
+            {isLoading2 ? t.processing : t.deleteTransportAccount}
           </Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.loanFriendButton} onPress={ShareRev}>
-          <Text style={{ color: 'white', fontSize: 12 }}>Share Revenue</Text>
+          <Text style={{ color: 'white', fontSize: 12 }}>{t.shareRevenue}</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.loanFriendButton} onPress={ViewTransportPaymentRec}>
-          <Text style={{ color: 'white', fontSize: 12 }}>View shared revenue</Text>
+          <Text style={{ color: 'white', fontSize: 12 }}>{t.viewSharedRevenue}</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.loanFriendButton} onPress={ViewDeliveryPayments}>
-          <Text style={{ color: 'white', fontSize: 12 }}>View Delivery Payments</Text>
+          <Text style={{ color: 'white', fontSize: 12 }}>{t.viewDeliveryPayments}</Text>
         </TouchableOpacity>
       </View>
     </View>

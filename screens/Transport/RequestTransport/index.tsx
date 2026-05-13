@@ -8,9 +8,12 @@ import { useRoute } from '@react-navigation/native';
 import MapView, { Marker } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { getDistance } from 'geolib';
+import { useTranslation } from 'react-i18next';
+import { translations } from './translation';
 import { getBizna, getCompany, getNonLoans, getSokoAd, getTransportRegister, listTransportRegisters } from '../../../src/graphql/queries';
-import { getSignedImageUrl } from '../../../src/utils/getSignedImageUrl';
-import { createTransportOrder, updateTransportRegister } from '../../../src/graphql/mutations';
+import { getSMAccount } from '../../../src/graphql/queries';
+import { getUrl } from 'aws-amplify/storage';
+import { createTransportOrder, updateTransportRegister, sendNotification, createMessages } from '../../../src/graphql/mutations';
 import { Linking } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
 import { Image } from 'react-native'; // ✅ This is correct
@@ -38,6 +41,10 @@ export default function SalesItemMapScreen({
 }) {
   // Dynamic currency context
   const { nationality, ratesMap } = useExchange();
+  // i18n translation
+  const { i18n } = useTranslation();
+  const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+  const t = translations[lang] || translations.en;
   const [filters, setFilters] = useState({
     radius: '0.05 KM',
     transportRate: '1',
@@ -61,8 +68,6 @@ export default function SalesItemMapScreen({
   const [cartExpanded, setCartExpanded] = useState(true);
   const [sellerlongitude2, setsellerlongitude] = useState('');
   const [sellerlatitude2, setsellerlatitude] = useState('');
-  const [filteredItems2, setItems3] = useState<any[]>([]);
-  const [Ttl, setFilteredItems3] = useState<any[]>([]);
   const [company, setCompany] = useState<Company | null>(null);
   const [Rdz, setRdz] = useState(0);
   const [location, setLocation] = useState<{
@@ -234,9 +239,21 @@ export default function SalesItemMapScreen({
         });
         const rawItems = res.data.listTransportRegisters.items || [];
         console.log('Fetched riders:', rawItems.length, rawItems);
-        setAllItems(rawItems || []);
         const ads = await Promise.all(rawItems.map(async (item: any) => {
-          const signedUrl = item.transportPhoto ? await getSignedImageUrl(item.transportPhoto) : null;
+          let signedUrl = null;
+          const photoKey = item.photoKey || item.transportPhoto || item.itemPhoto;
+          if (photoKey && photoKey !== 'None') {
+            try {
+              const urlObj = await getUrl({ key: photoKey });
+              if (urlObj && urlObj.url) {
+                signedUrl = urlObj.url.toString();
+              } else {
+                signedUrl = null;
+              }
+            } catch (err) {
+              signedUrl = null;
+            }
+          }
           return {
             ...item,
             latitude: parseFloat(item.latitude),
@@ -244,9 +261,7 @@ export default function SalesItemMapScreen({
             signedUrl
           };
         }));
-        console.log('Ads after mapping:', ads.length, ads);
-        setItems3(ads);
-        setFilteredItems3(ads);
+        setAllItems(ads);
       } catch (err) {
         console.error('Error fetching Transporters:', err);
       }
@@ -301,8 +316,17 @@ export default function SalesItemMapScreen({
       }
       return passes;
     });
-    console.log('Filtered riders:', filtered.length, filtered);
-    return filtered.sort((a, b) => a.transportRate - b.transportRate).slice(0, rank);
+    // Ensure signedUrl is always present and up to date
+    const filteredWithSignedUrl = filtered.map(item => {
+      // Find the original item in allItems (should be itself, but for safety)
+      const original = allItems.find(ai => ai.id === item.id);
+      return {
+        ...item,
+        signedUrl: original && original.signedUrl ? original.signedUrl : item.signedUrl || null
+      };
+    });
+    console.log('Filtered riders:', filteredWithSignedUrl.length, filteredWithSignedUrl);
+    return filteredWithSignedUrl.sort((a, b) => a.transportRate - b.transportRate).slice(0, rank);
   }, [filters, allItems, userLocation]);
   useEffect(() => {
     if (filteredItems.length && userLocation) {
@@ -427,7 +451,7 @@ export default function SalesItemMapScreen({
     [key: string]: any;
   }
   const registerTransport = async (item: SokoItem): Promise<void> => {
-    const userInfo: AuthUser = await getCurrentUser();
+    const userInfo: AuthUser = await fetchUserAttributes();
     setLoadingItemId(item.id);
     const coords: {
       latitude: number;
@@ -436,6 +460,18 @@ export default function SalesItemMapScreen({
       latitude: 0,
       longitude: 0
     };
+
+    // Fetch sender name from SMAccount using awsemail
+    let senderName = userInfo?.email;
+    try {
+      const smAccountRes = await client.graphql({
+        query: getSMAccount,
+        variables: { awsemail: userInfo?.email }
+      });
+      senderName = smAccountRes?.data?.getSMAccount?.name;
+    } catch (err) {
+      // fallback to email if error
+    }
     try {
       const res4 = await client.graphql({
         query: getNonLoans,
@@ -458,14 +494,9 @@ export default function SalesItemMapScreen({
         }
       });
       const ItemDtls6: SokoAdDetails = res6.data.getTransportRegister;
-      console.log('ItemDtls6:', ItemDtls6);
-      console.log('AdDtls:', AdDtls);
-      console.log('ItemDtls4:', ItemDtls4);
-      console.log(sellerlatitude2, sellerlongitude2);
-      console.log(sellerBuyerDistance);
       const attributes = await fetchUserAttributes();
       if (!userLocation || typeof userLocation.latitude !== 'number' || typeof userLocation.longitude !== 'number') {
-        Alert.alert("Location Error", "Unable to get your current location. Please check location permissions and try again.");
+        Alert.alert(t.locationErrorTitle || "Location Error", t.locationErrorMsg || "Unable to get your current location. Please check location permissions and try again.");
         return;
       }
       // determine seller nationality and convert computed amounts to KES for storage
@@ -517,45 +548,79 @@ export default function SalesItemMapScreen({
         orderCost: orderCostKes
       };
       if (ItemDtls6.transportOwnerEmail === attributes.email) {
-        Alert.alert("Sorry", "You cannot request your own transport.");
+        Alert.alert(t.sorryTitle || "Sorry", t.cannotRequestOwnTransport || "You cannot request your own transport.");
         return;
       }
-      {
-        const mutationResult = (await client.graphql({
-          query: createTransportOrder,
-          variables: {
-            input
-          }
-        })) as {
-          data?: any;
-        };
-        if (mutationResult?.data?.createTransportOrder) {
-          Alert.alert('Transport Request Successful');
-          setSelectedItemId(null);
-          setQuantities({});
-          setCart([]);
-          setCartExpanded(false);
-          setFilters({
-            radius: '0.05 KM',
-            transportRate: '1',
-            transportName: '',
-            transportType: '',
-            dutyStatus: 'TransportOnduty',
-            engagementStatus: 'TransportNotEngaged'
-          });
-          // Send SMS notification
-          const sendSMS = (phoneNumber: string, message: string) => {
-            const url = `sms:${phoneNumber}?body=${encodeURIComponent(message)}`;
-            Linking.openURL(url);
-          };
-
-          // Example usage inside registerTransport or on button press:
-          sendSMS(ItemDtls6.transportkntct, 'You have a new transport request from ' + AdDtls.bizName + " to " + ItemDtls4.SenderName + " " + AdDtls.businessType);
+      const mutationResult = (await client.graphql({
+        query: createTransportOrder,
+        variables: {
+          input
         }
+      })) as {
+        data?: any;
+      };
+      if (mutationResult?.data?.createTransportOrder) {
+        Alert.alert(t.transportRequestSuccess || 'Transport Request Successful');
+        setSelectedItemId(null);
+        setQuantities({});
+        setCart([]);
+        setCartExpanded(false);
+        setFilters({
+          radius: '0.05 KM',
+          transportRate: '1',
+          transportName: '',
+          transportType: '',
+          dutyStatus: 'TransportOnduty',
+          engagementStatus: 'TransportNotEngaged'
+        });
+        // Send SMS notification
+        const sendSMS = (phoneNumber: string, message: string) => {
+          const url = `sms:${phoneNumber}?body=${encodeURIComponent(message)}`;
+          Linking.openURL(url);
+        };
+        // Use translation for SMS body
+        const smsBody = t.transportRequestNotifBody
+          ? t.transportRequestNotifBody.replace('{name}', senderName)
+          : `${senderName} requests transport from you. Go to MiFedha app > Transport > View Transport Requests to Accept - Transporter.`;
+        sendSMS(
+          ItemDtls6.transportkntct,
+          smsBody
+        );
+
+        // --- Notification and Message Logic ---
+        try {
+          // Compose translated title and body
+          const notifTitle = t.transportRequestNotifTitle || 'Transport Request';
+          const notifBody = t.transportRequestNotifBody
+            ? t.transportRequestNotifBody.replace('{name}', senderName)
+            : `${senderName} requests transport from you. Go to MiFedha app > Transport > View Transport Requests to Accept - Transporter.`;
+          // Create message record
+          await client.graphql({
+            query: createMessages,
+            variables: {
+              input: {
+                senderEmail: ItemDtls6.transportOwnerEmail,
+                messageBody: notifBody
+              }
+            }
+          });
+          // Send push/email notification
+          await client.graphql({
+            query: sendNotification,
+            variables: {
+              riderEmail: ItemDtls6.transportOwnerEmail,
+              title: notifTitle,
+              body: notifBody
+            }
+          });
+        } catch (notifyErr) {
+          console.error('Notification/message error:', notifyErr);
+        }
+        // --- End Notification and Message Logic ---
       }
     } catch (err) {
       console.error('Transport request failed:', err);
-      Alert.alert('Error', 'Failed to request transport. Try again.');
+      Alert.alert(t.errorTitle || 'Error', t.failedRequestTransport || 'Failed to request transport. Try again.');
     } finally {
       setLoadingItemId(null);
     }
@@ -563,7 +628,7 @@ export default function SalesItemMapScreen({
   if (!userLocation || typeof userLocation.latitude !== 'number' || typeof userLocation.longitude !== 'number') {
     return <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" />
-        <Text>Unable to get your location. Please check location permissions and try again.</Text>
+        <Text>{t.locationErrorMsg || 'Unable to get your location. Please check location permissions and try again.'}</Text>
         <TouchableOpacity onPress={() => {
           (async () => {
             const { status } = await Location.requestForegroundPermissionsAsync();
@@ -574,139 +639,246 @@ export default function SalesItemMapScreen({
                 longitude: loc.coords.longitude
               });
             } else {
-              Alert.alert('Location Error', 'Location permission denied. Please enable location services.');
+              Alert.alert(t.locationErrorTitle || 'Location Error', t.locationPermissionDenied || 'Location permission denied. Please enable location services.');
             }
           })();
         }} style={{marginTop: 20, padding: 12, backgroundColor: '#1e90ff', borderRadius: 8}}>
-          <Text style={{color: 'white'}}>Retry Location</Text>
+          <Text style={{color: 'white'}}>{t.retryLocation || 'Retry Location'}</Text>
         </TouchableOpacity>
       </View>;
   }
-  return <View style={{
-    flex: 1
-  }}>
-      <MapView ref={mapRef} style={{
-      flex: 1
-    }} showsUserLocation initialRegion={{
-      ...userLocation,
-      latitudeDelta: 0.05,
-      longitudeDelta: 0.05
-    }}>
-        {filteredItems.map((item, index) => <Marker key={item.id} coordinate={{
-        latitude: +item.latitude,
-        longitude: +item.longitude
-      }} onPress={() => onSelectItem(item, index)}>
-            <View style={[styles.markerContainer, selectedItemId === item.id && styles.selectedMarker]}>
-              <Text style={styles.markerText}>{(sellerBuyerDistance * item.transportRate).toFixed(0)}</Text>
-            </View>
-          </Marker>)}
+  return (
+    <View style={{ flex: 1 }}>
+      <View style={{ flex: 1 }}>
+        <MapView
+          ref={mapRef}
+          style={{ flex: 1 }}
+          showsUserLocation
+          initialRegion={{
+            ...userLocation,
+            latitudeDelta: 0.05,
+            longitudeDelta: 0.05
+          }}
+        >
+          {filteredItems.map((item, index) => (
+            <Marker
+              key={item.id}
+              coordinate={{
+                latitude: +item.latitude,
+                longitude: +item.longitude
+              }}
+              onPress={() => onSelectItem(item, index)}
+            >
+              <View style={[styles.markerContainer, selectedItemId === item.id && styles.selectedMarker]}>
+                <Text style={styles.markerText}>{(sellerBuyerDistance * item.transportRate).toFixed(0)}</Text>
+              </View>
+            </Marker>
+          ))}
 
-        {sellerlatitude2 && sellerlongitude2 && <Marker coordinate={{
-        latitude: Number(sellerlatitude2),
-        longitude: Number(sellerlongitude2)
-      }} title="Seller" description="Seller Location" pinColor="orange" // You can use a custom color or icon
-      >
-      <View style={styles.sellerMarker}>
-        <FontAwesome name="user" size={24} color="#fff" />
-        <Text style={styles.sellerMarkerText}>Seller</Text>
+          {sellerlatitude2 && sellerlongitude2 && (
+            <Marker
+              coordinate={{
+                latitude: Number(sellerlatitude2),
+                longitude: Number(sellerlongitude2)
+              }}
+              title="Seller"
+              description="Seller Location"
+              pinColor="orange"
+            >
+              <View style={styles.sellerMarker}>
+                <FontAwesome name="user" size={24} color="#fff" />
+                <Text style={styles.sellerMarkerText}>{t.sellerLabel || 'Seller'}</Text>
+              </View>
+            </Marker>
+          )}
+        </MapView>
+        {/* Floating Refresh Spinner Button */}
+        <TouchableOpacity
+          onPress={isLoading2 ? undefined : async () => {
+            setIsLoading2(true);
+            try {
+              // Re-fetch transporters logic (copy from your fetch logic above)
+              const res = await client.graphql({ query: listTransportRegisters });
+              const rawItems = res.data.listTransportRegisters.items || [];
+              setAllItems(rawItems || []);
+              const ads = await Promise.all(rawItems.map(async (item) => {
+                let signedUrl = null;
+                if (item.transportPhoto && item.transportPhoto !== 'None') {
+                  try {
+                    const urlObj = await getUrl({ key: item.transportPhoto });
+                    if (urlObj && urlObj.url) {
+                      signedUrl = urlObj.url.toString();
+                    } else {
+                      signedUrl = null;
+                    }
+                  } catch (err) {
+                    signedUrl = null;
+                  }
+                }
+                return {
+                  ...item,
+                  latitude: parseFloat(item.latitude),
+                  longitude: parseFloat(item.longitude),
+                  signedUrl
+                };
+              }));
+              setAllItems(ads);
+            } catch (err) {
+              // Optionally show error
+            } finally {
+              setIsLoading2(false);
+            }
+          }}
+          style={{
+            position: 'absolute',
+            top: 24,
+            right: 24,
+            zIndex: 100,
+            backgroundColor: '#e58d29',
+            borderRadius: 25,
+            width: 48,
+            height: 48,
+            alignItems: 'center',
+            justifyContent: 'center',
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.2,
+            shadowRadius: 4,
+            elevation: 5,
+            opacity: isLoading2 ? 0.7 : 1
+          }}
+          activeOpacity={0.7}
+          disabled={isLoading2}
+        >
+          <Animated.View
+            style={{
+              transform: [
+                {
+                  rotate: isLoading2
+                    ? new Animated.Value(0).interpolate({
+                        inputRange: [0, 1],
+                        outputRange: ['0deg', '360deg']
+                      })
+                    : '0deg'
+                }
+              ]
+            }}
+          >
+            <FontAwesome name="refresh" size={28} color="#fff" />
+          </Animated.View>
+        </TouchableOpacity>
       </View>
-    </Marker>}
-      </MapView>
-
       {/* Draggable Filter Panel */}
       <Animated.View style={[styles.filterPanel, pan.getLayout()]} {...panResponder.panHandlers}>
         <View style={styles.inputsRow}>
-          {INPUT_KEYS.map((key, idx) => <View key={key} style={{
-          width: INPUT_WIDTH,
-          marginRight: idx < INPUT_KEYS.length - 1 ? GAP : 0
-        }}>
-              <TextInput placeholder={(PLACEHOLDERS as any)[key]} keyboardType={['radius', 'transportRate'].includes(key) ? 'numeric' : 'default'} style={styles.input} placeholderTextColor="#999" value={(filters as any)[key]} onChangeText={text => setFilters(f => ({
-            ...f,
-            [key]: text
-          }))} />
-            </View>)}
+          {INPUT_KEYS.map((key, idx) => (
+            <View
+              key={key}
+              style={{
+                width: INPUT_WIDTH,
+                marginRight: idx < INPUT_KEYS.length - 1 ? GAP : 0
+              }}
+            >
+              <TextInput
+                placeholder={t[key] || (PLACEHOLDERS as any)[key]}
+                keyboardType={['radius', 'transportRate'].includes(key) ? 'numeric' : 'default'}
+                style={styles.input}
+                placeholderTextColor="#999"
+                value={(filters as any)[key]}
+                onChangeText={text =>
+                  setFilters(f => ({
+                    ...f,
+                    [key]: text
+                  }))
+                }
+              />
+            </View>
+          ))}
         </View>
-        <View style={styles.handleWrapper}><View style={styles.handleLine} /></View>
+        <View style={styles.handleWrapper}>
+          <View style={styles.handleLine} />
+        </View>
       </Animated.View>
-
       {/* Responsive Carousel */}
-
-      
-
-      <Animated.View style={[styles.carouselContainer, {
-      top: carouselPosition
-    }]}>
-
-     
-        <FlatList ref={listRef} data={filteredItems} horizontal showsHorizontalScrollIndicator={false} keyExtractor={item => item.id} renderItem={({
-        item,
-        index
-      }: {
-        item: SokoItem;
-        index: number;
-      }) => {
-        const qty = quantities[item.id] || 1;
-        const total = sellerBuyerDistance * item.transportRate;
-        return <TouchableOpacity style={[styles.card, selectedItemId === item.id && styles.cardSelected, {
-          flexDirection: 'row',
-          alignItems: 'center'
-        } // Ensures side-by-side layout
-        ]} onPress={() => onSelectItem(item, index)} onLongPress={() => registerTransport(item)}>
-      {/* RIGHT: Image */}
-      {item.transportPhoto && <Image source={{
-            uri: `https://mifedhasalesadsphotosc789c-mifedha.s3.us-east-1.amazonaws.com/public/${item.transportPhoto}`
-          }} style={styles.carouselImage} resizeMode="cover" />}
-
-      {/* LEFT: Text and buttons */}
-      <View style={{
-            flex: 1,
-            padding: 10
-          }}>
-        <Text style={styles.text}>
-          {item.transportName} offering {item.transportType} services
-          @ {formatAmountSync(item.transportRate, nationalityToCode(nationality), ratesMap)} / KM = {formatAmountSync(total, nationalityToCode(nationality), ratesMap)} for {distanceMeters / 1000} Aerial KiloMeters. Contact: {item.transportkntct}
-          | Long press to Request transport
-        </Text>
-
-        <View style={styles.buttonRow}>
-          
-          <TouchableOpacity onPress={() => navigation.navigate("TransportDetails", {
-                id: item.id
-              })} style={[styles.btn, {
-                backgroundColor: '#e58d29'
-              }]}>
-            <Text style={{
-                  color: 'white',
-                  fontSize: 12
-                }}>Details</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity onPress={() => registerTransport(item)} style={[styles.btn, {
-                backgroundColor: '#e58d29',
-                flexDirection: 'row',
-                alignItems: 'center',
-                justifyContent: 'center',
-                opacity: loadingItemId === item.id ? 0.7 : 1
-              }]} disabled={loadingItemId === item.id}>
-  {loadingItemId === item.id && <ActivityIndicator size="small" color="#fff" style={{
-                  marginRight: 6
-                }} />}
-  <Text style={{
-                  color: 'white',
-                  fontSize: 12
-                }}>
-    {loadingItemId === item.id ? 'Processing...' : 'Transport'}
-  </Text>
+      <Animated.View style={[styles.carouselContainer, { top: carouselPosition }]}> 
+        <FlatList
+          ref={listRef}
+          data={filteredItems}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          keyExtractor={item => item.id}
+          renderItem={({ item, index }) => {
+            const qty = quantities[item.id] || 1;
+            const total = sellerBuyerDistance * item.transportRate;
+            return (
+              <TouchableOpacity
+                style={[
+                  styles.card,
+                  selectedItemId === item.id && styles.cardSelected,
+                  { flexDirection: 'row', alignItems: 'center' }
+                ]}
+                onPress={() => onSelectItem(item, index)}
+                onLongPress={() => registerTransport(item)}
+              >
+                {/* RIGHT: Image */}
+                {item.signedUrl ? (
+                  <Image source={{ uri: item.signedUrl }} style={{ width: 60, height: 60, borderRadius: 8 }} />
+                ) : (
+                  <View style={{ width: 60, height: 90, backgroundColor: '#e58d29', borderRadius: 8, alignItems: 'center', justifyContent: 'center' }}>
+                    <Text style={{ color: '#fff' }}>{(item.transportType || 'TR').slice(0, 2).toUpperCase()}</Text>
+                  </View>
+                )}
+                {/* LEFT: Text and buttons */}
+                <View style={{ flex: 1, padding: 10 }}>
+                  <Text style={styles.text}>
+                    {t.transportNameLabel
+                      ? t.transportNameLabel.replace('{name}', item.transportName)
+                      : item.transportName}{' '}
+                    {t.offering || 'offering'} {item.transportType} {t.services || 'services'} @{' '}
+                    {formatAmountSync(item.transportRate, nationalityToCode(nationality), ratesMap)} / KM ={' '}
+                    {formatAmountSync(total, nationalityToCode(nationality), ratesMap)} {t.forLabel || 'for'}{' '}
+                    {distanceMeters / 1000} {t.aerialKilometers || 'Aerial KiloMeters'}. {t.contact || 'Contact'}:
+                    {item.transportkntct} | {t.longPressRequest || 'Long press to Request transport'}
+                  </Text>
+                  <View style={styles.buttonRow}>
+                    <TouchableOpacity
+                      onPress={() => navigation.navigate('TransportDetails', { id: item.id })}
+                      style={[styles.btn, { backgroundColor: '#e58d29' }]}
+                    >
+                      <Text style={{ color: 'white', fontSize: 12 }}>{t.viewDetails || 'Details'}</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={() => registerTransport(item)}
+                      style={[
+                        styles.btn,
+                        {
+                          backgroundColor: '#e58d29',
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          opacity: loadingItemId === item.id ? 0.7 : 1
+                        }
+                      ]}
+                      disabled={loadingItemId === item.id}
+                    >
+                      {loadingItemId === item.id && (
+                        <ActivityIndicator size="small" color="#fff" style={{ marginRight: 6 }} />
+                      )}
+                      <Text style={{ color: 'white', fontSize: 12 }}>
+                        {loadingItemId === item.id
+                          ? t.processing || 'Processing...'
+                          : t.transport || 'Transport'}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
               </TouchableOpacity>
-
-        </View>
-      </View>
-    </TouchableOpacity>;
-      }} />
-        </Animated.View>
-
-  
-    </View>;
+            );
+          }}
+        />
+      </Animated.View>
+    </View>
+  );
 }
 const styles = StyleSheet.create({
   loadingContainer: {

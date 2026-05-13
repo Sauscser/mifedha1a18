@@ -11,7 +11,8 @@ import {
   Image
 } from 'react-native';
 import { useRoute, useNavigation } from '@react-navigation/native';
-import { printAsync } from '../../../../src/utils/print';
+import { printAsync, printToFileAsync } from '../../../../src/utils/print';
+import { shareFile } from '../../../../src/utils/share';
 import ImageViewer from 'react-native-image-zoom-viewer';
 import { listChamaAdminLnApplies, listChamaMinutes, listMinuteItemsByMinutes, listAttendanceByMinutes } from '../../../../src/graphql/queries';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -90,10 +91,10 @@ const FloatedLoansList = () => {
         client.graphql({ query: listAttendanceByMinutes, variables: { minutesId: minutes.id } })
       ]);
       const chairSignUrl = minutes.chairpersonId
-        ? (await getUrl({ key: minutes.chairpersonId }))?.url || ''
+        ? (await getUrl({ key: minutes.chairpersonId }))?.url?.toString() || ''
         : '';
       const secSignUrl = minutes.secretaryId
-        ? (await getUrl({ key: minutes.secretaryId }))?.url || ''
+        ? (await getUrl({ key: minutes.secretaryId }))?.url?.toString() || ''
         : '';
       setSelectedMinutes({
         ...minutes,
@@ -128,7 +129,8 @@ const FloatedLoansList = () => {
             ${i.decision ? `<em>Decision: ${i.decision}</em>` : ''}</div>
           `).join('')}
         </body></html>`;
-      await printAsync({ html });
+      const { uri } = await printToFileAsync({ html });
+      await shareFile(uri, t.exportToPDF);
     } catch (err) {
       console.error(err);
       Alert.alert(t.errorExportPDF, t.failedExportPDF);

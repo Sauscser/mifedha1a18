@@ -6,12 +6,18 @@ import LnerStts from "../../../../components/Ads/DetailedSls";
 import styles from './styles';
 import { useRoute } from '@react-navigation/core';
 import { listGroups, listSokoAds } from '../../../../src/graphql/queries';
+import { useTranslation } from 'react-i18next';
+import { translations } from './translation';
 const client = generateClient();
 const FetchSMCovLns = props => {
   const [LneePhn, setLneePhn] = useState(null);
   const [loading, setLoading] = useState(false);
   const [Loanees, setLoanees] = useState([]);
   const route = useRoute();
+  // i18n translation
+  const { i18n } = useTranslation();
+  const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+  const t = translations[lang] || translations.en;
   const fetchLoanees = async () => {
     setLoading(true);
     try {
@@ -45,8 +51,8 @@ const FetchSMCovLns = props => {
     }) => <LnerStts SMAc={item} />} keyExtractor={(item, index) => index.toString()} onRefresh={fetchLoanees} refreshing={loading} showsVerticalScrollIndicator={false} ListHeaderComponentStyle={{
       alignItems: 'center'
     }} ListHeaderComponent={() => <>
-            <Text style={styles.label}> Cash Sale Details</Text>
-            <Text style={styles.label}> (Please swipe down to reload)</Text>
+            <Text style={styles.label}>{t.cashSaleDetails}</Text>
+            <Text style={styles.label}>{t.swipeToReload}</Text>
           </>} />
     </View>;
 };

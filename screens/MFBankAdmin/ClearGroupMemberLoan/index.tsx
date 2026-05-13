@@ -1,4 +1,8 @@
+import { useTranslation } from 'react-i18next';
+import { translations } from './translation';
 import React, { useEffect, useState } from 'react';
+import { nationalityToCode } from '../../../src/utils/nationalityToCode';
+
 import {
   View,
   Text,
@@ -8,7 +12,8 @@ import {
   ActivityIndicator,
   Alert,
   Modal,
-  Image
+  Image,
+  Linking
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { generateClient } from 'aws-amplify/api';
@@ -18,7 +23,8 @@ import { formatAmountSync } from '../../../src/utils/exchange';
 import { getUrl } from '@aws-amplify/storage';
 import ImageViewer from 'react-native-image-zoom-viewer';
 import { LinearGradient } from 'expo-linear-gradient';
-import { printAsync } from '../../../src/utils/print';
+import { printAsync, printToFileAsync } from '../../../src/utils/print';
+import { shareFile } from '../../../src/utils/share';
 
 import {
   listGroups,
@@ -35,9 +41,9 @@ import {
 } from '../../../src/graphql/queries';
 import { createMessages, sendNotification, updateReqLoanChama } from '../../../src/graphql/mutations';
 
-const SafeImage = ({ uri, style }: { uri?: string; style: any }) => {
+const SafeImage = ({ uri, style, t }: { uri?: string; style: any; t: any }) => {
   if (!uri || typeof uri !== 'string' || uri.trim() === '') {
-    return <Text style={styles.signatureMissing}>Not signed</Text>;
+    return <Text style={styles.signatureMissing}>{t.notSigned}</Text>;
   }
   return <Image source={{ uri }} style={style} />;
 };
@@ -48,8 +54,15 @@ const clip = (x: number, min = 0, max = 100) => Math.max(min, Math.min(max, x));
 
 const AdminClearLoans = () => {
   const navigation = useNavigation();
+  const { i18n } = useTranslation();
+  const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+  const t = translations[lang] || translations.en;
   const client = generateClient();
   const { nationality, ratesMap } = useExchange();
+  // Currency pattern: always use nationalityToCode for currency key
+  const userCurrencyKey = nationalityToCode(nationality);
+  // Helper for all money display
+  const formatMoney = (amount: number) => formatAmountSync(Number(amount || 0), userCurrencyKey, ratesMap);
 
   // Groups
   const [adminGroups, setAdminGroups] = useState<any[]>([]);
@@ -87,6 +100,12 @@ const AdminClearLoans = () => {
   // Identification image URLs for export
   const [photoUrls, setPhotoUrls] = useState<{ passport?: string; idFront?: string; idBack?: string }>({});
 
+  // Export loading state
+  const [exportLoading, setExportLoading] = useState(false);
+
+  // View PDF loading state
+  const [viewPdfLoading, setViewPdfLoading] = useState(false);
+
   // Fetch admin groups
   useEffect(() => {
     const fetchAdminGroups = async () => {
@@ -98,7 +117,7 @@ const AdminClearLoans = () => {
         setAdminGroups(res?.data?.listGroups?.items || []);
       } catch (err) {
         console.error(err);
-        Alert.alert('Error', 'Failed to fetch groups');
+        Alert.alert(t.errorTitle, t.failedToFetchGroupsMessage);
       }
     };
     fetchAdminGroups();
@@ -126,7 +145,7 @@ const AdminClearLoans = () => {
       setLoans(loansWithNames);
     } catch (err) {
       console.error(err);
-      Alert.alert('Error', 'Failed to fetch loans');
+      Alert.alert(t.errorTitle, t.failedToFetchLoansMessage);
     } finally {
       setLoading(false);
     }
@@ -141,7 +160,7 @@ const AdminClearLoans = () => {
       setApprovingMembers(approvalsRes?.data?.listChamaLnApprovals?.items || []);
     } catch (err) {
       console.error(err);
-      Alert.alert('Error', 'Failed to load approving members');
+      Alert.alert(t.errorTitle, t.failedToLoadApprovingMembersMessage);
     } finally {
       setLoadingApprovals(false);
     }
@@ -150,11 +169,11 @@ const AdminClearLoans = () => {
   // Fetch minutes for a loan
   const fetchMinutesForLoan = async (loan: any) => {
     if (!loan?.loanMinutes) {
-      Alert.alert('No minutes', 'This loan has no linked minutes record');
+      Alert.alert(t.noMinutesTitle, t.noMinutesMessage);
       return;
     }
     if (!loan?.chamaPhone) {
-      Alert.alert('Invalid loan', 'Loan has no chamaPhone → cannot resolve grpContact');
+      Alert.alert(t.invalidLoanTitle, t.invalidLoanMessage);
       return;
     }
 
@@ -165,7 +184,7 @@ const AdminClearLoans = () => {
       const minutes = res?.data?.listChamaMinutes?.items || [];
       const min = minutes.find((m: any) => m.id === loan.loanMinutes);
       if (!min) {
-        Alert.alert('Minutes not found', 'Linked minutes record missing');
+        Alert.alert(t.noMinutesTitle, t.noMinutesMessage);
         return;
       }
 
@@ -195,7 +214,7 @@ return fullMinutes;
 
     } catch (err) {
       console.error(err);
-      Alert.alert('Error', 'Failed to fetch minutes');
+      Alert.alert(t.errorTitle, t.failedToFetchMinutesMessage);
     } finally {
       setLoadingMinutes(false);
     }
@@ -212,17 +231,42 @@ return fullMinutes;
       }
 
       const urls: { passport?: string; idFront?: string; idBack?: string } = {};
+      // Log and stringify keys for debugging
       if (sm.photoPassport && sm.photoPassport !== 'None') {
-        const res: any = await getUrl({ key: sm.photoPassport });
-        urls.passport = res?.url ? String(res.url) : undefined;
+        const key = sm.photoPassport.toString();
+        console.log('photoPassport key:', key);
+        try {
+          const res: any = await getUrl({ key });
+          urls.passport = res?.url ? String(res.url) : undefined;
+        } catch (err) {
+          console.error('Error fetching passport image:', err, key);
+        }
       }
       if (sm.idFront && sm.idFront !== 'None') {
-        const res: any = await getUrl({ key: sm.idFront });
-        urls.idFront = res?.url ? String(res.url) : undefined;
+        const key = sm.idFront.toString();
+        console.log('idFront key:', key);
+        try {
+          const res: any = await getUrl({ key });
+          urls.idFront = res?.url ? String(res.url) : undefined;
+          if (!urls.idFront) {
+            console.error('idFront getUrl returned no url for key:', key, res);
+          }
+        } catch (err) {
+          console.error('Error fetching idFront image:', err, key);
+        }
       }
       if (sm.idBack && sm.idBack !== 'None') {
-        const res: any = await getUrl({ key: sm.idBack });
-        urls.idBack = res?.url ? String(res.url) : undefined;
+        const key = sm.idBack.toString();
+        console.log('idBack key:', key);
+        try {
+          const res: any = await getUrl({ key });
+          urls.idBack = res?.url ? String(res.url) : undefined;
+          if (!urls.idBack) {
+            console.error('idBack getUrl returned no url for key:', key, res);
+          }
+        } catch (err) {
+          console.error('Error fetching idBack image:', err, key);
+        }
       }
       setPhotoUrls(urls);
     } catch (err) {
@@ -243,7 +287,7 @@ return fullMinutes;
       const memberRes: any = await client.graphql({ query: listChamaMembers, variables: { filter: { groupContact: { eq: selectedGroup.grpContact }, memberContact: { eq: loaneeEmail } } } });
       const memberItems = memberRes?.data?.listChamaMembers?.items || [];
       if (memberItems.length === 0) {
-        Alert.alert('No member record found', loaneeEmail);
+        Alert.alert(t.noMemberRecordTitle, t.noMemberRecordMessage.replace('{email}', loaneeEmail));
         setLoadingCredit(false);
         return;
       }
@@ -352,7 +396,7 @@ return fullMinutes;
       setShowCreditModal(true);
     } catch (err) {
       console.error(err);
-      Alert.alert('Error', 'Failed to fetch member credit info');
+      Alert.alert(t.errorTitle, t.failedToFetchMemberCreditInfoMessage);
     } finally {
       setLoadingCredit(false);
     }
@@ -376,28 +420,30 @@ return fullMinutes;
           { email: loan.signatory3Email, name: 'Signatory 3' },
         ].filter(r => r.email && r.email !== 'None');
 
-        const messageBody = `NiSenti: Your loan in self-help group ${selectedGroup.grpName} has been cleared by the bank`;
+        const messageBody = `${t.loanClearedMessage} ${selectedGroup.grpName} ${t.hasbeenclearedbybank}`;
 
         for (const r of recipients) {
           await client.graphql({ query: createMessages, variables: { input: { senderEmail: r.email, messageBody } } });
-          await client.graphql({ query: sendNotification, variables: { riderEmail: r.email, title: 'NiSenti: Loan Bank Clearance', body: messageBody } });
+          await client.graphql({ query: sendNotification, variables: { riderEmail: r.email, title: t.loanClearedNotificationTitle, body: messageBody } });
         }
 
-        Alert.alert('Success', 'Loan cleared successfully');
+        Alert.alert(t.successTitle, t.loanClearedMessage);
         fetchLoans(selectedGroup.grpContact);
       } catch (err) {
         console.error(err);
-        Alert.alert('Error', 'Failed to clear loan');
+        Alert.alert(t.errorTitle, t.failedToClearLoanMessage);
       }
     } else {
-      Alert.alert('Threshold not reached', `This loan requires ${thresholdPercent}% approval`);
+      Alert.alert(t.thresholdNotReachedTitle, t.thresholdNotReachedMessage.replace('{threshold}', thresholdPercent));
     }
   };
 
   // Export minutes only
+  const { printToFileAsync } = require('../../../src/utils/print');
+  const { shareFile } = require('../../../src/utils/share');
   const exportMinutesToPDF = async (min: any) => {
     if (!min) {
-      Alert.alert('Missing minutes', 'Open a minutes record first');
+      Alert.alert(t.missingMinutesTitle, t.missingMinutesMessage);
       return;
     }
     try {
@@ -453,31 +499,38 @@ return fullMinutes;
         </body>
         </html>
       `;
-      await printAsync({ html });
+      const { uri } = await printToFileAsync({ html });
+      await shareFile(uri, 'Share Minutes PDF');
     } catch (err) {
       console.error(err);
-      Alert.alert('PDF Error', 'Failed to export minutes PDF');
+      Alert.alert(t.pdfErrorTitle, t.failedToExportMinutesPDFMessage);
     }
   };
 
   // Export full loan report (original details preserved) + Identification images added with ample space
   const exportLoanReportToPDF = async () => {
     if (!selectedLoan) {
-      Alert.alert('Missing loan', 'Select a loan and prepare its report first');
+      Alert.alert(t.missingLoanTitle, t.missingLoanMessage);
       return;
     }
-let minutes = selectedMinutes;
+    setExportLoading(true);
+    let minutes = selectedMinutes;
 
-if (!minutes && selectedLoan?.loanMinutes) {
-  minutes = await fetchMinutesForLoan(selectedLoan);
-}
+    if (!minutes && selectedLoan?.loanMinutes) {
+      minutes = await fetchMinutesForLoan(selectedLoan);
+    }
     const creditInfo = memberCreditInfo;
     const approvals = approvingMembers;
 
     try {
       const present = minutes?.attendance?.filter((a: any) => a.attendanceStatus === 'PRESENT') || [];
 
-  const html = `
+      // Always show only one ID document (prefer idFront, else idBack), label as 'Official Identity Document'
+      const officialIdUrl = photoUrls.idFront || photoUrls.idBack;
+      // Helper to check if a URL is a PDF
+      const isPdf = (url?: string) => url && url.toLowerCase().endsWith('.pdf');
+
+      const html = `
   <html>
   <head><style>
     body { font-family: Arial; padding: 20px; }
@@ -512,19 +565,26 @@ if (!minutes && selectedLoan?.loanMinutes) {
 
    <h1>Identification</h1>
     <div class="id-section">
-      ${photoUrls.passport ? `<div class="id-block"><div class="id-label">Passport / Portrait</div><div class="passport"><img src="${photoUrls.passport}" /></div></div>` : ""}
-      ${photoUrls.idFront ? `<div class="id-block"><div class="id-label">National ID / Passport - Front</div><div class="id"><img src="${photoUrls.idFront}" /></div></div>` : ""}
-      ${photoUrls.idBack ? `<div class="id-block"><div class="id-label">National ID / Passport - Back</div><div class="id"><img src="${photoUrls.idBack}" /></div></div>` : ""}
+      ${photoUrls.passport ?
+        `<div class="id-block"><div class="id-label">Passport / Portrait</div><div class="passport">
+          <img src="${photoUrls.passport}" />
+        </div></div>`
+        : ""}
+      ${officialIdUrl ?
+        `<div class="id-block"><div class="id-label">Official Identity Document</div><div class="id">
+          <a href="${officialIdUrl}" target="_blank" style="font-size:16px;color:#065f46;text-decoration:underline;">View PDF Document</a>
+        </div></div>`
+        : ""}
 
     <h2>${selectedLoan?.loaneeName} — Full Loan Application Report</h2>
 
     <h2>Loan Summary</h2>
     <p><strong>Loanee:</strong> ${selectedLoan.loaneeName} (${selectedLoan.loaneeEmail})</p>
-    <p><strong>Amount:</strong> ${formatAmountSync(Number(selectedLoan.amount || 0), nationality, ratesMap)}</p>
+    <p><strong>Amount:</strong> ${formatAmountSync(Number(selectedLoan.amount || 0), userCurrencyKey, ratesMap)}</p>
     <p><strong>Status:</strong> ${selectedLoan.status}</p>
     <p><strong>Interest:</strong> ${selectedLoan.repaymentAmt}%</p>
     <p><strong>Repayment Period:</strong> ${selectedLoan.repaymentPeriod} days</p>
-    <p><strong>Installment:</strong> ${formatAmountSync(Number(selectedLoan.installmentAmount || 0), nationality, ratesMap)}</p>
+    <p><strong>Installment:</strong> ${formatAmountSync(Number(selectedLoan.installmentAmount || 0), userCurrencyKey, ratesMap)}</p>
     <p><strong>Frequency:</strong> ${selectedLoan.paymentFrequency} days</p>
     <p><strong>Default Penalty:</strong> ${selectedLoan.defaultPenalty}</p>
     <p><strong>Description:</strong> ${selectedLoan.description || "-"}</p>
@@ -538,24 +598,24 @@ if (!minutes && selectedLoan?.loanMinutes) {
 
     <h2>Credit Score Breakdown</h2>
     <p><strong>Blended Score:</strong> ${creditInfo?.creditScore || 0}%</p>
-    <p>Group Balance: ${formatAmountSync(Number(creditInfo?.grpBal || 0), nationality, ratesMap)}</p>
-    <p>Balance: ${formatAmountSync(Number(creditInfo?.balance || 0), nationality, ratesMap)}</p>
-    <p>Benefits Amount: ${formatAmountSync(Number(creditInfo?.benefitsAmount || 0), nationality, ratesMap)}</p>
-    <p>P2P Chama Benefits: ${formatAmountSync(Number(creditInfo?.p2pchmBenefits || 0), nationality, ratesMap)}</p>
-    <p>Total Deposits (SM): ${formatAmountSync(Number(creditInfo?.ttlDpstSM || 0), nationality, ratesMap)}</p>
+    <p>Group Balance: ${formatAmountSync(Number(creditInfo?.grpBal || 0), userCurrencyKey, ratesMap)}</p>
+    <p>Balance: ${formatAmountSync(Number(creditInfo?.balance || 0), userCurrencyKey, ratesMap)}</p>
+    <p>Benefits Amount: ${formatAmountSync(Number(creditInfo?.benefitsAmount || 0), userCurrencyKey, ratesMap)}</p>
+    <p>P2P Chama Benefits: ${formatAmountSync(Number(creditInfo?.p2pchmBenefits || 0), userCurrencyKey, ratesMap)}</p>
+    <p>Total Deposits (SM): ${formatAmountSync(Number(creditInfo?.ttlDpstSM || 0), userCurrencyKey, ratesMap)}</p>
     <p>Max Times Borrowed Late: ${creditInfo?.MaxTymsBL}</p>
-    <p>Loans Issued (Group): ${formatAmountSync(Number(creditInfo?.amountGiven_group || 0), nationality, ratesMap)}</p>
-    <p>Loans Issued (Global): ${formatAmountSync(Number(creditInfo?.amountGiven_global || 0), nationality, ratesMap)}</p>
-    <p>Outstanding Balance (Group): ${formatAmountSync(Number(creditInfo?.lonBala_group || 0), nationality, ratesMap)}</p>
-    <p>Outstanding Balance (Global): ${formatAmountSync(Number(creditInfo?.lonBala_global || 0), nationality, ratesMap)}</p>
-    <p>Amount Repaid (Group): ${formatAmountSync(Number(creditInfo?.amountRepaid_group || 0), nationality, ratesMap)}</p>
-    <p>Amount Repaid (Global): ${formatAmountSync(Number(creditInfo?.amountRepaid_global || 0), nationality, ratesMap)}</p>
-    <p>Non-Loan Support (Group): ${formatAmountSync(Number(creditInfo?.amountSent_group || 0), nationality, ratesMap)}</p>
-    <p>Non-Loan Support (Global): ${formatAmountSync(Number(creditInfo?.amountSent_global || 0), nationality, ratesMap)}</p>
-    <p>Contributions (Group): ${formatAmountSync(Number(creditInfo?.contriAmount_group || 0), nationality, ratesMap)}</p>
-    <p>Contributions (Global): ${formatAmountSync(Number(creditInfo?.contriAmount_global || 0), nationality, ratesMap)}</p>
-    <p>Group liquidity: ${formatAmountSync(Number(creditInfo?.L_group || 0), nationality, ratesMap)}</p>
-    <p>Global Liquidity: ${formatAmountSync(Number(creditInfo?.L_global || 0), nationality, ratesMap)}</p>
+    <p>Loans Issued (Group): ${formatAmountSync(Number(creditInfo?.amountGiven_group || 0), userCurrencyKey, ratesMap)}</p>
+    <p>Loans Issued (Global): ${formatAmountSync(Number(creditInfo?.amountGiven_global || 0), userCurrencyKey, ratesMap)}</p>
+    <p>Outstanding Balance (Group): ${formatAmountSync(Number(creditInfo?.lonBala_group || 0), userCurrencyKey, ratesMap)}</p>
+    <p>Outstanding Balance (Global): ${formatAmountSync(Number(creditInfo?.lonBala_global || 0), userCurrencyKey, ratesMap)}</p>
+    <p>Amount Repaid (Group): ${formatAmountSync(Number(creditInfo?.amountRepaid_group || 0), userCurrencyKey, ratesMap)}</p>
+    <p>Amount Repaid (Global): ${formatAmountSync(Number(creditInfo?.amountRepaid_global || 0), userCurrencyKey, ratesMap)}</p>
+    <p>Non-Loan Support (Group): ${formatAmountSync(Number(creditInfo?.amountSent_group || 0), userCurrencyKey, ratesMap)}</p>
+    <p>Non-Loan Support (Global): ${formatAmountSync(Number(creditInfo?.amountSent_global || 0), userCurrencyKey, ratesMap)}</p>
+    <p>Contributions (Group): ${formatAmountSync(Number(creditInfo?.contriAmount_group || 0), userCurrencyKey, ratesMap)}</p>
+    <p>Contributions (Global): ${formatAmountSync(Number(creditInfo?.contriAmount_global || 0), userCurrencyKey, ratesMap)}</p>
+    <p>Group liquidity: ${formatAmountSync(Number(creditInfo?.L_group || 0), userCurrencyKey, ratesMap)}</p>
+    <p>Global Liquidity: ${formatAmountSync(Number(creditInfo?.L_global || 0), userCurrencyKey, ratesMap)}</p>
     <p>Group Exposure Ratio: ${creditInfo?.E_group}</p>
     <p>Global Exposure ratio: ${creditInfo?.E_global}</p>
     <p>Group repayment strength: ${creditInfo?.R_group}</p>
@@ -589,23 +649,23 @@ ${minutes ? `
       <div class="item">
         <strong>${item.entryOrder}. ${item.minuteRef}</strong>
         <p>${item.content}</p>
-        ${item.decision ? `<div class="decision">Decision: ${item.decision}</div>` : ""}
+        ${item.decision ? `<div class="decision">${t.decision}: ${item.decision}</div>` : ""}
       </div>
     `)
     .join("")}
 
   <div class="signatures">
     <div>
-      <strong>Chairperson</strong><br/>
-      ${minutes.chairSignUrl ? `<img class="signature-img" src="${minutes.chairSignUrl}" />` : "Not signed"}
+      <strong>{t.chairperson}</strong><br/>
+      ${minutes.chairSignUrl ? `<img class="signature-img" src="${minutes.chairSignUrl}" />` : t.notSigned}
     </div>
     <div>
-      <strong>Secretary</strong><br/>
-      ${minutes.secSignUrl ? `<img class="signature-img" src="${minutes.secSignUrl}" />` : "Not signed"}
+      <strong>{t.secretary}</strong><br/>
+      ${minutes.secSignUrl ? `<img class="signature-img" src="${minutes.secSignUrl}" />` : t.notSigned}
     </div>
   </div>
 ` : `
-  <p><em>No minutes attached to this loan.</em></p>
+  <p><em>${t.noMinutesAttached}</em></p>
 `}
 
   </body>
@@ -613,10 +673,13 @@ ${minutes ? `
 
 
       `;
-      await printAsync({ html });
+      const { uri } = await printToFileAsync({ html });
+      await shareFile(uri, 'Share Loan Report PDF');
     } catch (err) {
       console.error(err);
-      Alert.alert('PDF Error', 'Failed to export loan report PDF');
+      Alert.alert(t.error, t.failedToExportLoanReportPDF);
+    } finally {
+      setExportLoading(false);
     }
   };
 
@@ -635,40 +698,59 @@ ${minutes ? `
     <ScrollView contentContainerStyle={{ padding: 16 }}>
       {/* Header with two export buttons */}
       <View style={styles.headerRow}>
-        <Text style={styles.header}>Select a Group</Text>
+        <Text style={styles.header}>{t.selectGroup}</Text>
         <View style={styles.exportRow}>
-          <TouchableOpacity
-            style={styles.exportBtnLoan}
-            onPress={exportLoanReportToPDF}
-          >
-            <Text style={styles.exportBtnText}>Export Loan Report</Text>
-          </TouchableOpacity>
+          {exportLoading ? (
+            <View style={[styles.exportBtnLoan, { flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }]}> 
+              <ActivityIndicator size="small" color="#fff" style={{ marginRight: 8 }} />
+              <Text style={styles.exportBtnText}>{t.exporting}</Text>
+            </View>
+          ) : (
+            <TouchableOpacity
+              style={styles.exportBtnLoan}
+              onPress={exportLoanReportToPDF}
+            >
+              <Text style={styles.exportBtnText}>{t.exportLoanReport}</Text>
+            </TouchableOpacity>
+          )}
         </View>
       </View>
 
       {/* On-screen identification preview (vertical, generous spacing) */}
       {selectedLoan && (photoUrls.passport || photoUrls.idFront || photoUrls.idBack) ? (
         <View style={styles.previewContainer}>
+          {/* Passport/Portrait always image */}
           {photoUrls.passport ? (
             <View style={styles.previewBlock}>
-              <Text style={styles.previewLabel}>Passport / Portrait</Text>
-              <SafeImage uri={photoUrls.passport} style={styles.previewPassport} />
+              <Text style={styles.previewLabel}>{t.passport}</Text>
+                    <SafeImage uri={photoUrls.passport} style={styles.previewPassport} t={t} />
             </View>
           ) : null}
-          {photoUrls.idFront ? (
+          {/* Official Identity Document always PDF (prefer idFront, else idBack) */}
+          {(photoUrls.idFront || photoUrls.idBack) ? (
             <View style={styles.previewBlock}>
-              <Text style={styles.previewLabel}>National ID / Passport - Front</Text>
-              <SafeImage uri={photoUrls.idFront} style={styles.previewId} />
-            </View>
-          ) : null}
-          {photoUrls.idBack ? (
-            <View style={styles.previewBlock}>
-              <Text style={styles.previewLabel}>National ID / Passport - Back</Text>
-              <SafeImage uri={photoUrls.idBack} style={styles.previewId} />
+              <Text style={styles.previewLabel}>{t.officialId}</Text>
+              <TouchableOpacity
+                onPress={async () => {
+                  setViewPdfLoading(true);
+                  const officialIdUrl = photoUrls.idFront ? String(photoUrls.idFront) : String(photoUrls.idBack);
+                  try {
+                    await Linking.openURL(officialIdUrl);
+                  } finally {
+                    setTimeout(() => setViewPdfLoading(false), 1000);
+                  }
+                }}
+                style={{marginTop: 8, padding: 12, backgroundColor: '#e29d58', borderRadius: 6, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', opacity: viewPdfLoading ? 0.7 : 1}}
+                disabled={viewPdfLoading}
+              >
+                {viewPdfLoading && <ActivityIndicator size="small" color="#fff" style={{ marginRight: 8 }} />}
+                <Text style={{color: '#fff', fontWeight: 'bold'}}>{viewPdfLoading ? t.openingPdf : t.viewPdf}</Text>
+              </TouchableOpacity>
             </View>
           ) : null}
         </View>
       ) : null}
+      
 
       {/* Group buttons */}
       {adminGroups.map(group => (
@@ -684,8 +766,9 @@ ${minutes ? `
             fetchLoans(group.grpContact);
           }}
         >
+          {/* Always wrap group name in <Text> */}
           <Text style={{ color: selectedGroup?.grpContact === group.grpContact ? '#fff' : '#000' }}>
-            {group.grpName}
+            {group.grpName ? group.grpName.toString() : ''}
           </Text>
         </TouchableOpacity>
       ))}
@@ -699,34 +782,34 @@ ${minutes ? `
 
         return (
           <View key={loan.id} style={styles.card}>
-            <Text style={{ fontWeight: '700', fontSize: 16, marginBottom: 4 }}>Loanee: {loan.loaneeName}</Text>
-            <Text style={styles.amount}>{formatAmountSync(Number(loan.amount || 0), nationality, ratesMap)}</Text>
-            <Text style={styles.purpose}>{loan.description || 'No description'}</Text>
+            <Text style={{ fontWeight: '700', fontSize: 16, marginBottom: 4 }}>{t.loanee}: {loan.loaneeName}</Text>
+            <Text style={styles.amount}>{formatAmountSync(Number(loan.amount || 0), userCurrencyKey, ratesMap)}</Text>
+            <Text style={styles.purpose}>{loan.description || t.noDescription}</Text>
 
             <View style={styles.row}>
-              <Text style={styles.detail}>Interest:</Text>
+              <Text style={styles.detail}>{t.interest}:</Text>
               <Text style={styles.value}>{loan.repaymentAmt}%</Text>
             </View>
             <View style={styles.row}>
-              <Text style={styles.detail}>Repayment Period:</Text>
-              <Text style={styles.value}>{loan.repaymentPeriod} days</Text>
+              <Text style={styles.detail}>{t.repaymentPeriod}:</Text>
+              <Text style={styles.value}>{loan.repaymentPeriod} {t.days}</Text>
             </View>
             <View style={styles.row}>
-              <Text style={styles.detail}>Installment:</Text>
-              <Text style={styles.value}>{formatAmountSync(Number(loan.installmentAmount || 0), nationality, ratesMap)}</Text>
+              <Text style={styles.detail}>{t.installment}:</Text>
+              <Text style={styles.value}>{formatAmountSync(Number(loan.installmentAmount || 0), userCurrencyKey, ratesMap)}</Text>
             </View>
             <View style={styles.row}>
-              <Text style={styles.detail}>Installment Frequency:</Text>
-              <Text style={styles.value}>{loan.paymentFrequency} days</Text>
+              <Text style={styles.detail}>{t.installmentFrequency}:</Text>
+              <Text style={styles.value}>{loan.paymentFrequency} {t.days}</Text>
             </View>
             <View style={styles.row}>
-              <Text style={styles.detail}>Default Penalty:</Text>
+              <Text style={styles.detail}>{t.defaultPenalty}:</Text>
               <Text style={styles.value}>{loan.defaultPenalty}</Text>
             </View>
-            {loan.AdvEmail && loan.AdvEmail !== 'None' && <Text style={styles.advocate}>Advocate: {loan.advLicNo}</Text>}
+            {loan.AdvEmail && loan.AdvEmail !== 'None' && <Text style={styles.advocate}>{t.advocate}: {loan.advLicNo}</Text>}
 
             <Text style={styles.approvalText}>
-              {loan.membersApprove}/{groupSize} approvals ({percent}%) • Required: {selectedGroup?.loanApprovalThreshHold}%
+              {loan.membersApprove}/{groupSize} {t.approvals} ({percent}%) • {t.required}: {selectedGroup?.loanApprovalThreshHold}%
             </Text>
 
             <View style={styles.progressBg}>
@@ -739,7 +822,7 @@ ${minutes ? `
               onPress={() => prepareLoanReport(loan)}
             >
               <Text style={{ color: '#fff', fontWeight: '700' }}>
-                {selectedLoan?.id === loan.id ? 'Report Ready' : 'Prepare Full Report'}
+                {selectedLoan?.id === loan.id ? t.reportReady : t.prepareFullReport}
               </Text>
             </TouchableOpacity>
 
@@ -750,7 +833,7 @@ ${minutes ? `
                 disabled={!canClear}
                 onPress={() => clearLoan(loan)}
               >
-                <Text style={{ color: '#fff', textAlign: 'center' }}>Clear Loan</Text>
+                <Text style={{ color: '#fff', textAlign: 'center' }}>{t.clearLoan}</Text>
               </TouchableOpacity>
             )}
 
@@ -762,7 +845,7 @@ ${minutes ? `
             >
               {loadingCredit ? <ActivityIndicator size="small" color="#fff" style={{ marginRight: 8 }} /> : null}
               <Text style={{ color: '#fff', fontWeight: '700' }}>
-                {loadingCredit ? 'Loading...' : 'View NiSenti Credit Worth'}
+                {loadingCredit ? t.loading : t.viewNiSentiCreditWorth}
               </Text>
             </TouchableOpacity>
 
@@ -778,7 +861,7 @@ ${minutes ? `
                 }
               }}
             >
-              <Text>{showApprovalsFor === loan.id ? 'Hide Approving Members' : 'View Members Who Approved'}</Text>
+              <Text>{showApprovalsFor === loan.id ? t.hideApprovingMembers : t.viewMembersWhoApproved}</Text>
             </TouchableOpacity>
 
             {showApprovalsFor === loan.id && (
@@ -786,13 +869,13 @@ ${minutes ? `
                 {loadingApprovals ? (
                   <ActivityIndicator size="small" color="#e29d58" />
                 ) : approvingMembers.length === 0 ? (
-                  <Text style={styles.emptyText}>No approvals recorded yet</Text>
+                  <Text style={styles.emptyText}>{t.noApprovalsRecordedYet}</Text>
                 ) : (
                   <ScrollView style={{ maxHeight: 200 }} nestedScrollEnabled contentContainerStyle={{ flexGrow: 0 }}>
                     {approvingMembers.map((member, idx) => (
                       <View key={idx} style={styles.memberRow}>
-                        <Text><Text style={{ fontWeight: '700' }}>Name:</Text> {member.memberName}</Text>
-                        <Text><Text style={{ fontWeight: '700' }}>Email:</Text> {member.MemberEmail}</Text>
+                        <Text><Text style={{ fontWeight: '700' }}>{t.name}:</Text> {member.memberName}</Text>
+                        <Text><Text style={{ fontWeight: '700' }}>{t.email}:</Text> {member.MemberEmail}</Text>
                       </View>
                     ))}
                   </ScrollView>
@@ -811,15 +894,15 @@ ${minutes ? `
                     if (url && url.trim() !== '') {
                       setSelectedImage(url);
                     } else {
-                      Alert.alert('No image', 'Unable to load uploaded minutes');
+                      Alert.alert(t.error, t.unableToLoadUploadedMinutes);
                     }
                   } catch (err) {
                     console.error('Error loading minutes image', err);
-                    Alert.alert('Error', 'Unable to load uploaded minutes');
+                    Alert.alert(t.error, t.unableToLoadUploadedMinutes);
                   }
                 }}
               >
-                <Text>View Uploaded Minutes</Text>
+                <Text>{t.viewUploadedMinutes}</Text>
               </TouchableOpacity>
             )}
 
@@ -831,7 +914,7 @@ ${minutes ? `
               {loadingMinutes ? (
                 <ActivityIndicator size="small" color="#e29d58" />
               ) : (
-                <Text style={styles.amount}>Read Minutes</Text>
+                <Text style={styles.amount}>{t.readMinutes}</Text>
               )}
             </TouchableOpacity>
           </View>
@@ -850,11 +933,11 @@ ${minutes ? `
             />
           ) : (
             <View style={{ padding: 20 }}>
-              <Text style={{ color: '#fff' }}>Unable to load image</Text>
+              <Text style={{ color: '#fff' }}>{t.unableToLoadImage}</Text>
             </View>
           )}
           <TouchableOpacity style={styles.imageCloseButton} onPress={() => setSelectedImage(null)}>
-            <Text style={styles.imageCloseText}>Close</Text>
+            <Text style={styles.imageCloseText}>{t.close}</Text>
           </TouchableOpacity>
         </View>
       </Modal>
@@ -866,7 +949,7 @@ ${minutes ? `
             <Text>{selectedText}</Text>
           </ScrollView>
           <TouchableOpacity style={styles.closeBtn} onPress={() => setSelectedText(null)}>
-            <Text style={{ color: '#fff' }}>Close</Text>
+            <Text style={{ color: '#fff' }}>{t.close}</Text>
           </TouchableOpacity>
         </View>
       </Modal>
@@ -880,25 +963,25 @@ ${minutes ? `
             <View style={{ margin: 20, borderRadius: 12, overflow: 'hidden' }}>
               <LinearGradient colors={['#e29d58', 'skyblue']} start={[0, 0]} end={[1, 0]} style={{ padding: 16 }}>
                 <Text style={{ fontSize: 18, fontWeight: '700', color: '#fff' }}>
-                  {memberCreditInfo?.name}'s Credit Worthiness
+                  {memberCreditInfo?.name}'s {t.creditWorthiness}
                 </Text>
               </LinearGradient>
 
               <View style={{ flexDirection: 'row', backgroundColor: '#fff' }}>
                 <TouchableOpacity style={[styles.tabBtn, creditTab === 'group' && styles.tabBtnActive]} onPress={() => setCreditTab('group')}>
-                  <Text style={[styles.tabText, creditTab === 'group' && styles.tabTextActive]}>Group</Text>
+                  <Text style={[styles.tabText, creditTab === 'group' && styles.tabTextActive]}>{t.group}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={[styles.tabBtn, creditTab === 'global' && styles.tabBtnActive]} onPress={() => setCreditTab('global')}>
-                  <Text style={[styles.tabText, creditTab === 'global' && styles.tabTextActive]}>Global</Text>
+                  <Text style={[styles.tabText, creditTab === 'global' && styles.tabTextActive]}>{t.global}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={[styles.tabBtn, creditTab === 'blended' && styles.tabBtnActive]} onPress={() => setCreditTab('blended')}>
-                  <Text style={[styles.tabText, creditTab === 'blended' && styles.tabTextActive]}>Blended</Text>
+                  <Text style={[styles.tabText, creditTab === 'blended' && styles.tabTextActive]}>{t.blended}</Text>
                 </TouchableOpacity>
               </View>
 
               <ScrollView style={{ backgroundColor: '#fff', maxHeight: 600 }}>
                 <View style={{ padding: 16 }}>
-                  <Text style={{ fontWeight: '700', marginBottom: 6 }}>Credit Score</Text>
+                  <Text style={{ fontWeight: '700', marginBottom: 6 }}>{t.creditScore}</Text>
                   <Text style={{ marginBottom: 6 }}>{Number(memberCreditInfo?.creditScore || 0)}%</Text>
                   <View style={{ height: 12, backgroundColor: '#e5e7eb', borderRadius: 6, overflow: 'hidden' }}>
                     <View
@@ -915,56 +998,56 @@ ${minutes ? `
                     />
                   </View>
 
-                  <Text style={{ fontWeight: '700', marginTop: 16, marginBottom: 6 }}>SMAccount Overview</Text>
-                  <Text>Balance: {formatAmountSync(Number(memberCreditInfo?.balance || 0), nationality, ratesMap)}</Text>
-                  <Text>Benefits Amount: {formatAmountSync(Number(memberCreditInfo?.benefitsAmount || 0), nationality, ratesMap)}</Text>
-                  <Text>P2P Chama Benefits: {formatAmountSync(Number(memberCreditInfo?.p2pchmBenefits || 0), nationality, ratesMap)}</Text>
-                  <Text>Total Deposits (SM): {formatAmountSync(Number(memberCreditInfo?.ttlDpstSM || 0), nationality, ratesMap)}</Text>
-                  <Text>Max Times Borrowed Late: {memberCreditInfo?.MaxTymsBL || 0}</Text>
+                  <Text style={{ fontWeight: '700', marginTop: 16, marginBottom: 6 }}>{t.smAccountOverview}</Text>
+                  <Text>{t.balance}: {formatMoney(memberCreditInfo?.balance)}</Text>
+                  <Text>{t.benefitsAmount}: {formatMoney(memberCreditInfo?.benefitsAmount)}</Text>
+                  <Text>{t.p2pChamaBenefits}: {formatMoney(memberCreditInfo?.p2pchmBenefits)}</Text>
+                  <Text>{t.totalDepositsSM}: {formatMoney(memberCreditInfo?.ttlDpstSM)}</Text>
+                  <Text>{t.maxTimesBorrowedLate}: {memberCreditInfo?.MaxTymsBL || 0}</Text>
 
                   {creditTab === 'group' && (
                     <>
-                      <Text style={{ fontWeight: '700', marginTop: 16 }}>Group Overview</Text>
-                      <Text>Group balance: {formatAmountSync(Number(memberCreditInfo?.grpBal || 0), nationality, ratesMap)}</Text>
-                      <Text>Loans issued: {formatAmountSync(Number(memberCreditInfo?.amountGiven_group || 0), nationality, ratesMap)}</Text>
-                      <Text>Outstanding loans: {formatAmountSync(Number(memberCreditInfo?.lonBala_group || 0), nationality, ratesMap)}</Text>
-                      <Text>Repaid: {formatAmountSync(Number(memberCreditInfo?.amountRepaid_group || 0), nationality, ratesMap)}</Text>
-                      <Text>Non-loan receipts: {formatAmountSync(Number(memberCreditInfo?.amountSent_group || 0), nationality, ratesMap)}</Text>
-                      <Text>Contributions: {formatAmountSync(Number(memberCreditInfo?.contriAmount_group || 0), nationality, ratesMap)}</Text>
+                      <Text style={{ fontWeight: '700', marginTop: 16 }}>{t.groupOverview}</Text>
+                      <Text>{t.groupBalance}: {formatMoney(memberCreditInfo?.grpBal)}</Text>
+                      <Text>{t.loansIssued}: {formatMoney(memberCreditInfo?.amountGiven_group)}</Text>
+                      <Text>{t.outstandingLoans}: {formatMoney(memberCreditInfo?.lonBala_group)}</Text>
+                      <Text>{t.repaid}: {formatMoney(memberCreditInfo?.amountRepaid_group)}</Text>
+                      <Text>{t.nonLoanReceipts}: {formatMoney(memberCreditInfo?.amountSent_group)}</Text>
+                      <Text>{t.contributions}: {formatMoney(memberCreditInfo?.contriAmount_group)}</Text>
 
-                      <Text style={{ fontWeight: '700', marginTop: 16 }}>Score Components</Text> 
-                      <Text>Liquidity: {formatAmountSync(Number(memberCreditInfo?.L_group || 0), nationality, ratesMap)}</Text>
-                      <Text>Exposure ratio: {memberCreditInfo?.E_group?.toFixed?.(2)}</Text>
-                      <Text>Repayment strength: {Math.round((memberCreditInfo?.R_group || 0) * 100)}%</Text>
-                      <Text>Community support: {memberCreditInfo?.S_group?.toFixed?.(2)}</Text>
-                      <Text>Penalty: {memberCreditInfo?.P_group?.toFixed?.(2)}</Text>
+                      <Text style={{ fontWeight: '700', marginTop: 16 }}>{t.scoreComponents}</Text> 
+                      <Text>{t.liquidity}: {formatMoney(memberCreditInfo?.L_group)}</Text>
+                      <Text>{t.exposureRatio}: {memberCreditInfo?.E_group?.toFixed?.(2)}</Text>
+                      <Text>{t.repaymentStrength}: {Math.round((memberCreditInfo?.R_group || 0) * 100)}%</Text>
+                      <Text>{t.communitySupport}: {memberCreditInfo?.S_group?.toFixed?.(2)}</Text>
+                      <Text>{t.penalty}: {memberCreditInfo?.P_group?.toFixed?.(2)}</Text>
                     </>
                   )}
 
                   {creditTab === 'global' && (
                     <>
-                      <Text style={{ fontWeight: '700', marginTop: 16 }}>Global Overview</Text>
-                      <Text>Total loans issued: {formatAmountSync(Number(memberCreditInfo?.amountGiven_global || 0), nationality, ratesMap)}</Text>
-                      <Text>Total outstanding: {formatAmountSync(Number(memberCreditInfo?.lonBala_global || 0), nationality, ratesMap)}</Text>
-                      <Text>Total repaid: {formatAmountSync(Number(memberCreditInfo?.amountRepaid_global || 0), nationality, ratesMap)}</Text>
-                      <Text>Non-loan receipts: {formatAmountSync(Number(memberCreditInfo?.amountSent_global || 0), nationality, ratesMap)}</Text>
-                      <Text>Contributions: {formatAmountSync(Number(memberCreditInfo?.contriAmount_global || 0), nationality, ratesMap)}</Text>
+                      <Text style={{ fontWeight: '700', marginTop: 16 }}>{t.globalOverview}</Text>
+                      <Text>{t.totalLoansIssued}: {formatMoney(memberCreditInfo?.amountGiven_global)}</Text>
+                      <Text>{t.totalOutstanding}: {formatMoney(memberCreditInfo?.lonBala_global)}</Text>
+                      <Text>{t.totalRepaid}: {formatMoney(memberCreditInfo?.amountRepaid_global)}</Text>
+                      <Text>{t.nonLoanReceipts}: {formatMoney(memberCreditInfo?.amountSent_global)}</Text>
+                      <Text>{t.contributions}: {formatMoney(memberCreditInfo?.contriAmount_global)}</Text>
 
-                      <Text style={{ fontWeight: '700', marginTop: 16 }}>Score Components</Text>
-                      <Text>Liquidity: {formatAmountSync(Number(memberCreditInfo?.L_global || 0), nationality, ratesMap)}</Text>
-                      <Text>Exposure ratio: {memberCreditInfo?.E_global?.toFixed?.(2)}</Text>
-                      <Text>Repayment strength: {Math.round((memberCreditInfo?.R_global || 0) * 100)}%</Text>
-                      <Text>Community support: {memberCreditInfo?.S_global?.toFixed?.(2)}</Text>
-                      <Text>Penalty: {memberCreditInfo?.P_global?.toFixed?.(2)}</Text>
+                      <Text style={{ fontWeight: '700', marginTop: 16 }}>{t.scoreComponents}</Text>
+                      <Text>{t.liquidity}: {formatMoney(memberCreditInfo?.L_global)}</Text>
+                      <Text>{t.exposureRatio}: {memberCreditInfo?.E_global?.toFixed?.(2)}</Text>
+                      <Text>{t.repaymentStrength}: {Math.round((memberCreditInfo?.R_global || 0) * 100)}%</Text>
+                      <Text>{t.communitySupport}: {memberCreditInfo?.S_global?.toFixed?.(2)}</Text>
+                      <Text>{t.penalty}: {memberCreditInfo?.P_global?.toFixed?.(2)}</Text>
                     </>
                   )}
 
                   {creditTab === 'blended' && (
                     <>
-                      <Text style={{ fontWeight: '700', marginTop: 16 }}>Blended Summary</Text>
-                      <Text>Blended score (0.6 group / 0.4 global): {Number(memberCreditInfo?.creditScore || 0)}%</Text>
-                      <Text>Group component score: {memberCreditInfo?.C_group?.toFixed?.(2)}</Text>
-                      <Text>Global component score: {memberCreditInfo?.C_global?.toFixed?.(2)}</Text>
+                      <Text style={{ fontWeight: '700', marginTop: 16 }}>{t.blendedSummary}</Text>
+                      <Text>{t.blendedScore}: {Number(memberCreditInfo?.creditScore || 0)}%</Text>
+                      <Text>{t.groupComponentScore}: {memberCreditInfo?.C_group?.toFixed?.(2)}</Text>
+                      <Text>{t.globalComponentScore}: {memberCreditInfo?.C_global?.toFixed?.(2)}</Text>
                     </>
                   )}
                 </View>
@@ -982,43 +1065,43 @@ ${minutes ? `
           ) : (
             <ScrollView style={styles.minutesModal}>
               <View style={styles.minutesCard}>
-                <Text style={styles.groupTitle}>{selectedGroup?.grpName} — Minutes</Text>
+                <Text style={styles.groupTitle}>{selectedGroup?.grpName} — {t.minutes}</Text>
                 <Text style={styles.date}>📅 {selectedMinutes?.meetingDate}</Text>
-                <Text style={styles.meta}>Venue: {selectedMinutes?.venue || "-"}</Text>
+                <Text style={styles.meta}>{t.venue}: {selectedMinutes?.venue || "-"}</Text>
                 <Text style={styles.meta}>
-                  Attendance: {selectedMinutes?.attendance?.filter((a: any) => a.attendanceStatus === "PRESENT").length}
+                  {t.attendance}: {selectedMinutes?.attendance?.filter((a: any) => a.attendanceStatus === "PRESENT").length}
                 </Text>
 
                 <TouchableOpacity style={styles.exportBtn} onPress={() => exportMinutesToPDF(selectedMinutes)}>
-                  <Text style={styles.exportText}>Export PDF</Text>
+                  <Text style={styles.exportText}>{t.exportPDF}</Text>
                 </TouchableOpacity>
 
-                <Text style={styles.section}>Minutes</Text>
+                <Text style={styles.section}>{t.minutes}</Text>
                 {selectedMinutes?.items
                   ?.sort((a: any, b: any) => a.entryOrder - b.entryOrder)
                   .map((item: any) => (
                     <View key={item.id} style={styles.minuteItem}>
                       <Text style={styles.minuteTitle}>{item.entryOrder}. {item.minuteRef}</Text>
                       <Text>{item.content}</Text>
-                      {item.decision && <Text style={styles.decision}>Decision: {item.decision}</Text>}
+                      {item.decision && <Text style={styles.decision}>{t.decision}: {item.decision}</Text>}
                     </View>
                   ))}
 
-                <Text style={styles.section}>Signatures</Text>
+                <Text style={styles.section}>{t.signatures}</Text>
                 <View style={styles.signatures}>
                   <View style={styles.signatureBlock}>
-                    <Text style={styles.signatureLabel}>Chairperson</Text>
-                    <SafeImage uri={selectedMinutes?.chairSignUrl} style={styles.signature} />
+                    <Text style={styles.signatureLabel}>{t.chairperson}</Text>
+                    <SafeImage uri={selectedMinutes?.chairSignUrl} style={styles.signature} t={t} />
                   </View>
 
                   <View style={styles.signatureBlock}>
-                    <Text style={styles.signatureLabel}>Secretary</Text>
-                    <SafeImage uri={selectedMinutes?.secSignUrl} style={styles.signature} />
+                    <Text style={styles.signatureLabel}>{t.secretary}</Text>
+                    <SafeImage uri={selectedMinutes?.secSignUrl} style={styles.signature} t={t} />
                   </View>
                 </View>
 
                 <TouchableOpacity style={[styles.exportBtn, { backgroundColor: "skyblue" }]} onPress={() => setSelectedMinutes(null)}>
-                  <Text style={styles.exportText}>Close</Text>
+                  <Text style={styles.exportText}>{t.close}</Text>
                 </TouchableOpacity>
               </View>
             </ScrollView>

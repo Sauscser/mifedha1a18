@@ -6,8 +6,14 @@ import { useRoute } from '@react-navigation/core';
 import { listGroups, listNonLoans, listSokoAds, listTransportRegisters, VwMySntMny } from '../../../src/graphql/queries';
 import { getCurrentUser, fetchUserAttributes } from "aws-amplify/auth";
 import { generateClient } from "aws-amplify/api";
+import { useTranslation } from 'react-i18next';
+import { translations } from './translation';
+
 const client = generateClient();
 const FetchSMCovLns = props => {
+  const { i18n } = useTranslation();
+  const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+  const t = translations[lang] || translations.en;
   const [LneePhn, setLneePhn] = useState(null);
   const [loading, setLoading] = useState(false);
   const [Loanees, setLoanees] = useState([]);
@@ -17,7 +23,7 @@ const FetchSMCovLns = props => {
     const attributes = await fetchUserAttributes();
     setLoading(true);
     try {
-      const Lonees: any = await client.graphql({
+      const Lonees = await client.graphql({
         query: listTransportRegisters,
         variables: {
           filter: {
@@ -30,7 +36,7 @@ const FetchSMCovLns = props => {
       const AcDtls = Lonees.data.listTransportRegisters.items;
       setLoanees(AcDtls);
       if (!AcDtls) {
-        Alert.alert("No Transport Accounts to view or reset at the moment.");
+        Alert.alert(t.noTransportAccounts);
       }
     } catch (e) {
       console.log(e);
@@ -42,17 +48,20 @@ const FetchSMCovLns = props => {
     fetchLoanees();
   }, []);
   return <View style={styles.root}>
-      <FlatList style={{
-      width: "100%"
-    }} data={Loanees} renderItem={({
-      item
-    }) => <LnerStts SMAc={item} />} keyExtractor={(item, index) => index.toString()} onRefresh={fetchLoanees} refreshing={loading} showsVerticalScrollIndicator={false} ListHeaderComponentStyle={{
-      alignItems: 'center'
-    }} ListHeaderComponent={() => <>
-            
-            <Text style={styles.label}>My Transport Account</Text>
-            <Text style={styles.label}> (Please swipe down to reload)</Text>
-          </>} />
+      <FlatList
+        style={{ width: "100%" }}
+        data={Loanees}
+        renderItem={({ item }) => <LnerStts SMAc={item} />}
+        keyExtractor={(item, index) => index.toString()}
+        onRefresh={fetchLoanees}
+        refreshing={loading}
+        showsVerticalScrollIndicator={false}
+        ListHeaderComponentStyle={{ alignItems: 'center' }}
+        ListHeaderComponent={() => <>
+          <Text style={styles.label}>{t.myTransportAccount}</Text>
+          <Text style={styles.label}>{t.swipeToReload}</Text>
+        </>}
+      />
     </View>;
 };
 export default FetchSMCovLns;

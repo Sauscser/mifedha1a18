@@ -12,11 +12,17 @@ import { Route, useRoute } from '@react-navigation/native';
 import { getCurrentUser, fetchUserAttributes } from "aws-amplify/auth";
 import { useExchange } from '../../../src/contexts/ExchangeContext';
 import { formatAmountSync } from '../../../src/utils/exchange';
+import { uploadData } from '@aws-amplify/storage';
 import { nationalityToCode } from '../../../src/utils/nationalityToCode';
 import { generateClient } from "aws-amplify/api"; 
+import { useTranslation } from 'react-i18next';
+import { translations } from './translation';
 const client = generateClient();
 const MAX_IMAGE_SIZE_MB = 5;
 const CreateBiz = () => {
+  const { i18n } = useTranslation();
+  const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+  const t = translations[lang] || translations.en;
   const [formData, setFormData] = useState({
     itemName: '',
     itemTown: '',
@@ -53,7 +59,7 @@ const CreateBiz = () => {
           status
         } = await Location.requestForegroundPermissionsAsync();
         if (status !== "granted") {
-          Alert.alert("Permission to access location was denied.");
+          Alert.alert(t.alertPermissionDenied);
           return;
         }
         const loc = await Location.getCurrentPositionAsync({
@@ -67,7 +73,11 @@ const CreateBiz = () => {
 
         // Optional: check for acceptable accuracy
         if (loc.coords.accuracy && loc.coords.accuracy > 30) {
-          Alert.alert("Low GPS Accuracy", `Location accuracy is about ${Math.round(loc.coords.accuracy)} meters. Try moving near a window or outside.`);
+          Alert.alert(
+            t.alertLowGpsAccuracyTitle,
+            t.alertLowGpsAccuracyMsg
+              .replace('{accuracy}', Math.round(loc.coords.accuracy).toString())
+          );
         }
         setLocation(coords);
       } catch (error) {
@@ -148,19 +158,23 @@ const CreateBiz = () => {
       const blob = await response.blob();
       const imageSizeMB = blob.size / (1024 * 1024);
       if (imageSizeMB > MAX_IMAGE_SIZE_MB) {
-        Alert.alert('Image too large', `Image is ${imageSizeMB.toFixed(2)}MB. Max allowed is ${MAX_IMAGE_SIZE_MB}MB.`);
+        Alert.alert(
+          t.alertImageTooLargeTitle,
+          t.alertImageTooLargeMsg
+            .replace('{size}', imageSizeMB.toFixed(2))
+            .replace('{max}', MAX_IMAGE_SIZE_MB.toString())
+        );
         return;
       }
-      const filename = `${Date.now()}_item.jpg`;
-      await Storage.put(filename, blob, {
-        contentType: 'image/jpeg'
-      });
+      const ext = 'jpg';
+      const filename = `transport_${Date.now()}.${ext}`;
+      await uploadData({ key: filename, data: blob, options: { contentType: blob.type || 'image/jpeg' } }).result;
       setItemPhotoKey(filename);
       setItemPhotoUri(manipResult.uri);
-      Alert.alert('Success', 'Image uploaded successfully.');
+      Alert.alert(t.alertImageUploadSuccessTitle, t.alertImageUploadSuccessMsg);
     } catch (err) {
       console.error('Image upload failed:', err);
-      Alert.alert('Error', 'Failed to upload image. Please try again.');
+      Alert.alert(t.alertImageUploadErrorTitle, t.alertImageUploadErrorMsg);
     }
   };
   const clearForm = () => {
@@ -199,7 +213,7 @@ const CreateBiz = () => {
     } = formData;
     try {
       const user = await getCurrentUser();
-    const attributes = await fetchUserAttributes();
+      const attributes = await fetchUserAttributes();
       const userEmail = attributes.email;
       const accRes = await client.graphql({
         query: getSMAccount,
@@ -209,17 +223,27 @@ const CreateBiz = () => {
       });
       const account = accRes?.data?.getSMAccount;
       if (!account || bizPassword !== account.pw) {
-        Alert.alert('Error', 'Incorrect user password.');
+        Alert.alert(t.alertIncorrectPasswordTitle, t.alertIncorrectPasswordMsg);
         return;
       }
       const coords = location || {
         latitude: 0,
         longitude: 0
       };
+
+      // --- Currency conversion pattern: convert user-keyed amount to KES before saving ---
+      const userCode = nationalityToCode(businessOwnerNationality);
+      let transportRateKES = parseFloat(itemPrice);
+      if (userCode) {
+        // Use async convertForeignToKsh from src/utils/exchange
+        const { convertForeignToKsh } = await import('../../../src/utils/exchange');
+        transportRateKES = await convertForeignToKsh(parseFloat(itemPrice), userCode);
+      }
+
       const adInput = {
         transportkntct: account.phonecontact,
-        // NOTE: Rate is stored in KES in backend, even though displayed in user's currency in UI
-        transportRate: itemPrice,
+        // Store in KES for backend
+        transportRate: transportRateKES,
         transportdesc: itemDesc,
         transportPhoto: itemPhotoKey,
         owner: account.owner,
@@ -264,16 +288,19 @@ const CreateBiz = () => {
         }
       });
       // Format rate for display in user's currency
-      const userCode = nationalityToCode(businessOwnerNationality);
       const rateInDisplayCurrency = userCode
-        ? formatAmountSync(parseFloat(itemPrice), userCode, ratesMap)
-        : formatAmountSync(parseFloat(itemPrice), undefined, ratesMap);
-      
-      Alert.alert('Success', `Transport successfully registered.\n\nCost per km: ${rateInDisplayCurrency}\n\n(Stored in backend as: KES ${parseFloat(itemPrice).toFixed(2)})`);
+        ? formatAmountSync(transportRateKES, userCode, ratesMap)
+        : formatAmountSync(transportRateKES, undefined, ratesMap);
+      Alert.alert(
+        t.alertRegisterSuccessTitle,
+        t.alertRegisterSuccessMsg
+          .replace('{rate}', rateInDisplayCurrency)
+          
+      );
       clearForm();
     } catch (err) {
       console.error('Transport registration failed:', err);
-      Alert.alert('Error', 'Failed to register transport. Try again.');
+      Alert.alert(t.alertRegisterErrorTitle, t.alertRegisterErrorMsg);
     } finally {
       setIsLoading(false);
     }
@@ -282,23 +309,22 @@ const CreateBiz = () => {
     flex: 1
   }}>
       <ScrollView contentContainerStyle={styles.container}>
-        <Text style={styles.title}>Register Transport</Text>
-  <InputField label="Transport Business Name" value={formData.itemName} onChange={v => updateForm('itemName', v)} />
-        <InputField label="Means of Transport e.g. motorbike, pickup, freight services, tuktuk" value={formData.brandName} onChange={v => updateForm('brandName', v)} />
+        <Text style={styles.title}>{t.registerTransport}</Text>
+        <InputField label={t.transportBusinessName} value={formData.itemName} onChange={v => updateForm('itemName', v)} />
+        <InputField label={t.meansOfTransport} value={formData.brandName} onChange={v => updateForm('brandName', v)} />
         {businessOwnerNationality ? (
           <>
-            <InputField label={`Cost per kilometer (${ratesMap?.[nationalityToCode(businessOwnerNationality)]?.symbol || ratesMap?.[nationality]?.symbol || 'KES'})`} value={formData.itemPrice} onChange={v => updateForm('itemPrice', v)} keyboardType="numeric" />
-            {formData.itemPrice ? <Text style={styles.helperText}>Equivalent: {formatAmountSync(parseFloat(formData.itemPrice || '0'), nationalityToCode(businessOwnerNationality), ratesMap)}</Text> : null}
+            <InputField label={`${t.costPerKm} (${ratesMap?.[nationalityToCode(businessOwnerNationality)]?.symbol || ratesMap?.[nationality]?.symbol || 'KES'})`} value={formData.itemPrice} onChange={v => updateForm('itemPrice', v)} keyboardType="numeric" />
+            {formData.itemPrice ? <Text style={styles.helperText}></Text> : null}
           </>
         ) : (
           <>
-            <InputField label="Cost per kilometer (Loading...)" value={formData.itemPrice} onChange={v => updateForm('itemPrice', v)} keyboardType="numeric" />
+            <InputField label={`${t.costPerKm} (${t.loading})`} value={formData.itemPrice} onChange={v => updateForm('itemPrice', v)} keyboardType="numeric" />
           </>
         )}
-        <InputField label="More Transport Description" value={formData.itemDesc} onChange={v => updateForm('itemDesc', v)} multiline height={100} />
-        <InputField label="Transport Number Plate" value={formData.numberPlate} onChange={v => updateForm('numberPlate', v)} />
-        <InputField label="Image URL (Optional)" value={formData.ImageUrl} onChange={v => updateForm('ImageUrl', v)} />
-        
+        <InputField label={t.moreTransportDesc} value={formData.itemDesc} onChange={v => updateForm('itemDesc', v)} multiline height={100} />
+        <InputField label={t.transportNumberPlate} value={formData.numberPlate} onChange={v => updateForm('numberPlate', v)} />
+        <InputField label={t.imageUrlOptional} value={formData.ImageUrl} onChange={v => updateForm('ImageUrl', v)} />
         <View style={{
         flexDirection: 'row',
         justifyContent: 'space-between'
@@ -307,24 +333,20 @@ const CreateBiz = () => {
           flex: 1,
           marginRight: 10
         }]}>
-            <Text style={styles.buttonText}>Attach Transport Means Photo from Gallery</Text>
+            <Text style={styles.buttonText}>{t.attachPhoto}</Text>
           </TouchableOpacity>
-         
         </View>
-
         {itemPhotoUri && <Image source={{
         uri: itemPhotoUri
       }} style={styles.imagePreview} />}
-
         <View style={styles.passwordContainer}>
-          <TextInput placeholder="User Main Account Password" style={styles.passwordInput} value={formData.bizPassword} onChangeText={v => updateForm('bizPassword', v)} secureTextEntry={!isPasswordVisible} placeholderTextColor="#ccc" />
+          <TextInput placeholder={t.userPassword} style={styles.passwordInput} value={formData.bizPassword} onChangeText={v => updateForm('bizPassword', v)} secureTextEntry={!isPasswordVisible} placeholderTextColor="#ccc" />
           <TouchableOpacity onPress={() => setIsPasswordVisible(!isPasswordVisible)}>
             <Ionicons name={isPasswordVisible ? 'eye' : 'eye-off'} size={24} color="gray" />
           </TouchableOpacity>
         </View>
-
         <TouchableOpacity style={styles.button} onPress={handleAdCreation}>
-          <Text style={styles.buttonText}>Click to Add</Text>
+          <Text style={styles.buttonText}>{t.clickToAdd}</Text>
           {isLoading && <ActivityIndicator color="#fff" style={{
           marginTop: 10
         }} />}

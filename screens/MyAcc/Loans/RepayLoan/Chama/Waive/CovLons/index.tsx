@@ -121,7 +121,7 @@ const WaiverScreen = () => {
           variables: {
             input: {
               ChamaNMember: memberId,
-              AmtRepaid: (parseFloat(senderAcc.AmtRepaids) + amountKes).toFixed(0),
+              AmtRepaid: (parseFloat(amountRepaid) + amountKes).toFixed(0),
               LnBal: LonBalsss.toFixed(0)
             }
           }

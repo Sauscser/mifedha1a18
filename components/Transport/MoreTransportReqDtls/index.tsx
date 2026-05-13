@@ -1,6 +1,8 @@
 
 
 import { View, Text, ScrollView, Image, TouchableOpacity, Linking } from 'react-native';
+import { useTranslation } from 'react-i18next';
+import { translations } from './translation';
 import styles from './styles';
 
 import React, {useEffect, useState} from 'react';
@@ -29,6 +31,9 @@ export interface SMAccount {
 }
 
 const ViewSMDeposts = ({ SMAc }: SMAccount) => {
+  const { i18n } = useTranslation();
+  const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+  const t = translations[lang] || translations.en;
   const {
     id,
     engagementStatus,
@@ -80,13 +85,11 @@ const client = generateClient();
         <View style={styles.card}>
          
          <Text style={styles.prodInfo}> 
-                         {sellerName} to {buyerName}
-                         || Aerial Distance: {distance} Kilometer || Order Total Cost: {formatAmountSync(orderCost, userCode, ratesMap)} || TransportCost: 
-                          Ksh. {formatAmountSync(deliveryCost, userCode, ratesMap)}
-                         || Contact: {buyerContact} || {transportRequest} || {engagementStatus}
-                       </Text>
-                      
-                       <Text style = {styles.prodDesc}>Order Desciption: {deliveryDesc}</Text>
+           {t.sellerToBuyer(sellerName, buyerName)}
+           || {t.aerialDistance}: {distance} {t.kilometer} || {t.orderTotalCost}: {formatAmountSync(orderCost, userCode, ratesMap)} || {t.transportCost}: {formatAmountSync(deliveryCost, userCode, ratesMap)}
+           || {t.contact}: {buyerContact} || {t.transportRequest}: {transportRequest} || {t.engagementStatus}: {engagementStatus}
+         </Text>
+         <Text style={styles.prodDesc}>{(t.orderDescription || 'Order Description:')} {deliveryDesc}</Text>
          
              </View>
       </View>

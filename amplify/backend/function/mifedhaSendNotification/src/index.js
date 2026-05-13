@@ -1,3 +1,17 @@
+/*
+Use the following code to retrieve configured secrets from SSM:
+
+const aws = require('aws-sdk');
+
+const { Parameters } = await (new aws.SSM())
+  .getParameters({
+    Names: ["MiFedhaRidesKey"].map(secretName => process.env[secretName]),
+    WithDecryption: true,
+  })
+  .promise();
+
+Parameters will be of the form { Name: 'secretName', Value: 'secretValue', ... }[]
+*/
 /* Amplify Params - DO NOT EDIT
     API_MIFEDHA1A_GRAPHQLAPIENDPOINTOUTPUT
     API_MIFEDHA1A_GRAPHQLAPIIDOUTPUT
@@ -89,14 +103,15 @@ exports.handler = async (event) => {
 
     console.log("Sending FCM message:", JSON.stringify(message, null, 2));
 
-    await axios.post(
+    const fcmResponse = await axios.post(
       `https://fcm.googleapis.com/v1/projects/${firebaseCreds.project_id}/messages:send`,
       message,
       { headers: { Authorization: `Bearer ${accessToken}` } }
     );
 
+    console.log("FCM response:", JSON.stringify(fcmResponse.data, null, 2));
     console.log("Notification sent successfully to:", riderEmail);
-    return { success: true, message: "Notification sent successfully" };
+    return { success: true, message: "Notification sent successfully", fcmResponse: fcmResponse.data };
   } catch (err) {
     console.error("Error sending notification:", err);
     return { success: false, error: err.message };

@@ -12,7 +12,16 @@
       ],
       "output": {
         "authConfig": {
-          "additionalAuthenticationProviders": [],
+          "additionalAuthenticationProviders": [
+            {
+              "apiKeyConfig": {
+                "apiKeyExpirationDate": "2026-03-24T19:21:41.935Z",
+                "apiKeyExpirationDays": 1,
+                "description": "Lambda Acess for notifications"
+              },
+              "authenticationType": "API_KEY"
+            }
+          ],
           "defaultAuthentication": {
             "authenticationType": "AMAZON_COGNITO_USER_POOLS",
             "userPoolConfig": {
@@ -68,6 +77,20 @@
     }
   },
   "function": {
+    "loanrepaymentnotificationlambda": {
+      "build": true,
+      "dependsOn": [
+        {
+          "attributes": [
+            "GraphQLAPIIdOutput"
+          ],
+          "category": "api",
+          "resourceName": "mifedha1a"
+        }
+      ],
+      "providerPlugin": "awscloudformation",
+      "service": "Lambda"
+    },
     "mifedhaSendNotification": {
       "build": true,
       "dependsOn": [
@@ -92,6 +115,22 @@
     }
   },
   "parameters": {
+    "AMPLIFY_function_loanrepaymentnotificationlambda_deploymentBucketName": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "loanrepaymentnotificationlambda"
+        }
+      ]
+    },
+    "AMPLIFY_function_loanrepaymentnotificationlambda_s3Key": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "loanrepaymentnotificationlambda"
+        }
+      ]
+    },
     "AMPLIFY_function_mifedhaSendNotification_deploymentBucketName": {
       "usedBy": [
         {
@@ -146,6 +185,10 @@
       "dependsOn": [],
       "providerPlugin": "awscloudformation",
       "service": "S3"
+    },
+    "laonrepaymentnotification": {
+      "providerPlugin": "awscloudformation",
+      "service": "DynamoDB"
     }
   }
 }

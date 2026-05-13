@@ -6,8 +6,13 @@ import { useRoute } from '@react-navigation/core';
 import { listGroups, listNonLoans, listSokoAds, listTransportOrders, VwMySntMny } from '../../../src/graphql/queries';
 import { getCurrentUser, fetchUserAttributes } from "aws-amplify/auth";
 import { generateClient } from "aws-amplify/api";
+import { useTranslation } from 'react-i18next';
+import { translations } from './translation';
 const client = generateClient();
 const FetchSMCovLns = props => {
+    const { i18n } = useTranslation();
+    const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+    const t = translations[lang] || translations.en;
   const [LneePhn, setLneePhn] = useState(null);
   const [loading, setLoading] = useState(false);
   const [Loanees, setLoanees] = useState([]);
@@ -37,17 +42,20 @@ const FetchSMCovLns = props => {
     fetchLoanees();
   }, []);
   return <View style={styles.root}>
-      <FlatList style={{
-      width: "100%"
-    }} data={Loanees} renderItem={({
-      item
-    }) => <LnerStts SMAc={item} />} keyExtractor={(item, index) => index.toString()} onRefresh={fetchLoanees} refreshing={loading} showsVerticalScrollIndicator={false} ListHeaderComponentStyle={{
-      alignItems: 'center'
-    }} ListHeaderComponent={() => <>
-            
-            <Text style={styles.label}>More Details on delivery Order</Text>
-            <Text style={styles.label}> (Please swipe down to reload)</Text>
-          </>} />
+      <FlatList
+        style={{ width: "100%" }}
+        data={Loanees}
+        renderItem={({ item }) => <LnerStts SMAc={item} />}
+        keyExtractor={(item, index) => index.toString()}
+        onRefresh={fetchLoanees}
+        refreshing={loading}
+        showsVerticalScrollIndicator={false}
+        ListHeaderComponentStyle={{ alignItems: 'center' }}
+        ListHeaderComponent={() => <>
+          <Text style={styles.label}>{t.moreDetails}</Text>
+          <Text style={styles.label}>{t.swipeToReload}</Text>
+        </>}
+      />
     </View>;
 };
 export default FetchSMCovLns;

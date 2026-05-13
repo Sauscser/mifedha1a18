@@ -3,19 +3,19 @@
 // Responsive design with draggable filter, collapsible cart, responsive carousel spacing
 
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
-import { View, Text, TextInput, FlatList, TouchableOpacity, StyleSheet, Dimensions, ActivityIndicator, Animated, PanResponder, ScrollView, Alert, KeyboardAvoidingView, TouchableWithoutFeedback, Keyboard, Platform } from 'react-native';
+import { View, Text, TextInput, FlatList, TouchableOpacity, StyleSheet, Dimensions, ActivityIndicator, Animated, PanResponder, ScrollView, Alert, KeyboardAvoidingView, TouchableWithoutFeedback, Keyboard, Platform, Easing } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import MapView, { Marker } from 'react-native-maps';
+import MapView, { Marker, Polyline } from 'react-native-maps';
+import axios from 'axios';
 import * as Location from 'expo-location';
 import { getDistance } from 'geolib';
 import {useTranslation} from 'react-i18next';
 import { translations } from './translation';
 import { generateClient } from 'aws-amplify/api';
 import { getCurrentUser, fetchUserAttributes } from 'aws-amplify/auth';
-import { remove } from 'aws-amplify/storage';
 import { listSokoAds, getBizna, getCompany, getSMAccount, listCovCreditSellers, listCvrdGroupLoans, listSMLoansCovereds } from '../../../../src/graphql/queries';
 import { createBenefitContributions2, createNonLoans, updateCompany, updateSMAccount, updateBizna, createMarketConsumption } from '../../../../src/graphql/mutations';
-import { getSignedImageUrl } from '../../../../src/utils/getSignedImageUrl';
+import { getUrl } from 'aws-amplify/storage';
 import { formatAmountSync, convertForeignToKsh, getUserNationalityByEmail } from '../../../../src/utils/exchange';
 import { useExchange } from '../../../../src/contexts/ExchangeContext';
 import { nationalityToCode } from '../../../../src/utils/nationalityToCode';
@@ -36,9 +36,9 @@ const PLACEHOLDERS: Record<string,string> = {
   cheapestRank: 'Cost Rank',
   bizName: 'BizName'
 };
-export default function SalesItemMapScreen({
-  navigation
-}: { navigation: any }) {
+export default function SalesItemMapScreen({ navigation }: { navigation: any }) {
+  // Polyline state for showing route from user to selected item
+  const [polylineCoords, setPolylineCoords] = useState<Array<{ latitude: number; longitude: number }>>([]);
   // Dynamic currency context
   // i18n translation
     const { i18n } = useTranslation();
@@ -59,6 +59,40 @@ export default function SalesItemMapScreen({
   const [allItems, setAllItems] = useState<any[]>([]);
   const [userLocation, setUserLocation] = useState<any>(null);
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
+
+  // Update polyline when selected item or user location changes
+  useEffect(() => {
+    const drawPolyline = async () => {
+      if (!userLocation || !selectedItemId) {
+        setPolylineCoords([]);
+        return;
+      }
+      const item = allItems.find(i => i.id === selectedItemId);
+      if (!item || !item.latitude || !item.longitude) {
+        setPolylineCoords([]);
+        return;
+      }
+      try {
+        const url = `https://router.project-osrm.org/route/v1/driving/${userLocation.longitude},${userLocation.latitude};${item.longitude},${item.latitude}?overview=full&geometries=geojson`;
+        const res = await axios.get(url);
+        if (res.data.routes && res.data.routes.length > 0) {
+          const coords = res.data.routes[0].geometry.coordinates.map(([lng, lat]) => ({ latitude: lat, longitude: lng }));
+          setPolylineCoords(coords);
+        } else {
+          setPolylineCoords([
+            { latitude: userLocation.latitude, longitude: userLocation.longitude },
+            { latitude: item.latitude, longitude: item.longitude }
+          ]);
+        }
+      } catch (err) {
+        setPolylineCoords([
+          { latitude: userLocation.latitude, longitude: userLocation.longitude },
+          { latitude: item.latitude, longitude: item.longitude }
+        ]);
+      }
+    };
+    drawPolyline();
+  }, [userLocation, selectedItemId, allItems]);
   const [quantities, setQuantities] = useState<Record<string, number>>({});
   const [cart, setCart] = useState<any[]>([]);
   const [cartExpanded, setCartExpanded] = useState(true);
@@ -171,41 +205,87 @@ export default function SalesItemMapScreen({
     })();
   }, []);
 
-  // Fetch ads
+  // Fetch ads (refactor for refresh)
+  // Animated loading state for refresh icon
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const spinAnim = useRef(new Animated.Value(0)).current;
   useEffect(() => {
-    (async () => {
-      try {
-        const res: any = await client.graphql({
-          query: listSokoAds
-        });
-        const rawItems = res.data.listSokoAds.items || [];
-        setAllItems(rawItems);
-        const ads = await Promise.all(rawItems.map(async (item: any) => {
-          const signedUrl = item.itemPhoto ? await getSignedImageUrl(item.itemPhoto) : null;
-          // try to enrich item with seller nationality for dual-currency display
-          let sellerNationality = null;
+    if (isRefreshing) {
+      Animated.loop(
+        Animated.timing(spinAnim, {
+          toValue: 1,
+          duration: 800,
+          useNativeDriver: true,
+          easing: Easing.linear
+        })
+      ).start();
+    } else {
+      spinAnim.stopAnimation();
+      spinAnim.setValue(0);
+    }
+  }, [isRefreshing]);
+
+  const fetchAds = async () => {
+    setIsRefreshing(true);
+    try {
+      const res: any = await client.graphql({
+        query: listSokoAds
+      });
+      const rawItems = res.data.listSokoAds.items || [];
+      const ads = await Promise.all(rawItems.map(async (item: any) => {
+        let signedUrl = null;
+        if (item.itemPhoto && item.itemPhoto !== 'None') {
+          try {
+            const urlObj = await getUrl({ key: item.itemPhoto });
+            // console.log removed to declutter logs
+            if (urlObj && urlObj.url) {
+              signedUrl = urlObj.url.toString();
+              // console.log removed to declutter logs
+            } else {
+              console.error('getUrl did not return a .url property for', item.itemPhoto, urlObj);
+              signedUrl = null;
+            }
+          } catch (err) {
+            console.error('Failed to get signed URL for image:', item.itemPhoto, err);
+            signedUrl = null;
+          }
+        } else {
+          console.log('No itemPhoto or itemPhoto is None for item', item.id, item.itemPhoto);
+        }
+        let sellerNationality = null;
+        if (!item.sokokntct) {
+          console.warn('[SKIP] SokoAd missing sokokntct, id:', item.id, item);
+        } else {
           try {
             const bizRes: any = await client.graphql({ query: getBizna, variables: { BusKntct: item.sokokntct } });
             const biz = bizRes?.data?.getBizna;
-            if (biz?.email) sellerNationality = await getUserNationalityByEmail(biz.email);
+            console.log('[DEBUG] getBizna result for', item.sokokntct, ':', biz);
+            if (!biz) {
+              console.warn('[DEBUG] getBizna returned undefined/null for', item.sokokntct, 'raw result:', bizRes);
+            }
+            if (biz?.email) sellerNationality = biz.Nationality;
           } catch (e) {
-            // ignore enrichment failures
+            console.error('[ERROR] getBizna failed for', item.sokokntct, e);
           }
-          return {
-            ...item,
-            latitude: parseFloat(item.latitude),
-            longitude: parseFloat(item.longitude),
-            signedUrl,
-            sellerNationality
-          };
-        }));
-        setItems3(ads);
-        setFilteredItems3(ads);
-      } catch (err) {
-        console.error('Error fetching SokoAds:', err);
-      }
-    })();
-  }, []);
+        }
+        return {
+          ...item,
+          latitude: parseFloat(item.latitude),
+          longitude: parseFloat(item.longitude),
+          signedUrl,
+          sellerNationality
+        };
+      }));
+      setAllItems(ads);
+      setItems3(ads);
+      setFilteredItems3(ads);
+    } catch (err) {
+      console.error('Error fetching SokoAds:', err);
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+  useEffect(() => { fetchAds(); }, []);
 
   // Filtering
   const filteredItems = useMemo(() => {
@@ -411,6 +491,10 @@ export default function SalesItemMapScreen({
 
       // Process cart items
       for (const item of cart) {
+        if (!item.sokokntct) {
+          console.warn('[SKIP] Cart item missing sokokntct, id:', item.id, item);
+          continue;
+        }
         const qty = quantities[item.id] || 1;
         const itemCost = parseFloat(item.sokoprice) * qty;
         const fee = itemCost * parseFloat(company.biznaCashSaleFee);
@@ -435,7 +519,6 @@ export default function SalesItemMapScreen({
               itemBrand: item.itemBrand,
               itemSpecifications: item.itemSpecifications,
               Nationality: item.Nationality
-              
             }
           }
         });
@@ -446,7 +529,9 @@ export default function SalesItemMapScreen({
           }
         });
         const biz = bizResult.data.getBizna;
+        console.log('[DEBUG] getBizna result for', item.sokokntct, ':', biz);
         if (!biz) {
+          console.warn('[DEBUG] getBizna returned undefined/null for', item.sokokntct, 'raw result:', bizResult);
           setIsLoading2(false);
           Alert.alert(`${t.couldNotFindAccount} ${item.bizName}`);
           return;
@@ -475,8 +560,8 @@ export default function SalesItemMapScreen({
       let totalCostKes = 0;
       for (const sokokntct in sellerTotals) {
         const totals = sellerTotals[sokokntct];
-        // use tracked lastItemId as owner's reference; fallback to seller contact
         const allItemsID = totals.lastItemId;
+        console.log('REACHED BIZNA FETCH for sokokntct:', sokokntct);
         const bizResult: any = await client.graphql({
           query: getBizna,
           variables: {
@@ -485,15 +570,16 @@ export default function SalesItemMapScreen({
         });
         console.log(allItemsID)
         const biz = bizResult.data.getBizna;
-        // determine seller nationality (via biz email -> SMAccount)
-        let sellerNationality = null;
-        try {
-          if (biz?.email) sellerNationality = await getUserNationalityByEmail(biz.email);
-        } catch (e) {}
-        // convert seller totals (assumed in seller currency) to KES for backend accounting
-        const totalInKes = await convertForeignToKsh(totals.totalItemCost, sellerNationality);
-        const benefitInKes = await convertForeignToKsh(totals.totalBenefit, sellerNationality);
-        totalCostKes += Number(totalInKes || 0);
+        console.log('[DEBUG] getBizna result for', sokokntct, ':', biz);
+        if (!biz) {
+          console.warn('[DEBUG] getBizna returned undefined/null for', sokokntct, 'raw result:', bizResult);
+          console.error('[FATAL] Tried to access biz properties but biz is undefined for', sokokntct, 'raw result:', bizResult);
+          setIsLoading2(false);
+          Alert.alert("Error", "Could not find Bizna record for this seller.");
+          continue;
+        }
+        // All arithmetic and backend writes use KES values directly (totals.totalItemCost, totals.totalBenefit)
+        totalCostKes += Number(totals.totalItemCost);
         const usrDtls: any = await client.graphql({
           query: getSMAccount,
           variables: {
@@ -501,17 +587,36 @@ export default function SalesItemMapScreen({
           }
         });
         const usrDtlsx = usrDtls.data.getSMAccount;
-        await client.graphql({
-          query: updateBizna,
-          variables: {
-            input: {
-              BusKntct: sokokntct,
-              netEarnings: (parseFloat(biz.netEarnings) + totalInKes).toFixed(0),
-              earningsBal: (parseFloat(biz.earningsBal) + totalInKes).toFixed(0),
-              benefitsAmount: parseFloat(biz.benefitsAmount) + benefitInKes
+        // Defensive: check before every use of biz and all mutation values, log error if invalid
+        const netEarnings = parseFloat(biz.netEarnings);
+        const earningsBal = parseFloat(biz.earningsBal);
+        const benefitsAmount = parseFloat(biz.benefitsAmount);
+        if (isNaN(netEarnings)) {
+          console.error('[ERROR] netEarnings is NaN for seller', sokokntct, 'biz:', biz);
+        }
+        if (isNaN(earningsBal)) {
+          console.error('[ERROR] earningsBal is NaN for seller', sokokntct, 'biz:', biz);
+        }
+        if (isNaN(benefitsAmount)) {
+          console.error('[ERROR] benefitsAmount is NaN for seller', sokokntct, 'biz:', biz);
+        }
+        if (!isNaN(netEarnings) && !isNaN(earningsBal) && !isNaN(benefitsAmount) && !isNaN(Number(totals.totalItemCost)) && !isNaN(Number(totals.totalBenefit))) {
+          await client.graphql({
+            query: updateBizna,
+            variables: {
+              input: {
+                BusKntct: sokokntct,
+                netEarnings: (netEarnings + Number(totals.totalItemCost)).toFixed(0),
+                earningsBal: (earningsBal + Number(totals.totalItemCost)).toFixed(0),
+                benefitsAmount: benefitsAmount + Number(totals.totalBenefit)
+              }
             }
-          }
-        });
+          });
+        } else {
+          console.error('[ERROR] Skipping updateBizna for seller', sokokntct, 'due to invalid numeric values:', {
+            netEarnings, earningsBal, benefitsAmount, totalItemCost: totals.totalItemCost, totalBenefit: totals.totalBenefit, biz
+          });
+        }
         console.log('Creating NonLoans for', sokokntct, 'owner:', allItemsID);
         await client.graphql({
           query: createNonLoans,
@@ -519,9 +624,9 @@ export default function SalesItemMapScreen({
             input: {
               recPhn: sokokntct,
               senderPhn: attributes.email,
-              amount: totalInKes.toFixed(0),
+              amount: Number(totals.totalItemCost).toFixed(0),
               description: totals.description.join('\n'),
-              RecName: biz.busName,
+              RecName: biz ? biz.busName : '',
               SenderName: usrDtlsx.name,
               status: "cashSales",
               owner: allItemsID
@@ -696,6 +801,10 @@ export default function SalesItemMapScreen({
           }
         });
         const biz = bizResult.data.getBizna;
+        console.log('[DEBUG] getBizna result for', sokokntct, ':', biz);
+        if (!biz) {
+          console.warn('[DEBUG] getBizna returned undefined/null for', sokokntct, 'raw result:', bizResult);
+        }
         if (!biz) {
           setIsLoading(false);
           Alert.alert(`${t.couldNotFindAccount} ${item.bizName}`);
@@ -734,13 +843,18 @@ export default function SalesItemMapScreen({
           }
         });
         const biz = bizResult.data.getBizna;
+        if (!biz) {
+          console.warn('[DEBUG] getBizna returned undefined/null for', sokokntct, 'raw result:', bizResult);
+          console.error('[ERROR] Tried to update Bizna but biz is undefined for', sokokntct);
+          continue;
+        }
         // seller nationality (via biz email -> SMAccount)
         let sellerNationality = null;
         try {
-          if (biz?.email) sellerNationality = await getUserNationalityByEmail(biz.email);
+          if (biz?.email) sellerNationality = biz.Nationality;
         } catch (e) {}
-        const totalInKes = await convertForeignToKsh(totals.totalItemCost, sellerNationality);
-        const benefitInKes = await convertForeignToKsh(totals.totalBenefit, sellerNationality);
+        const totalInKes = totals.totalItemCost;
+        const benefitInKes = totals.totalBenefit;
         totalCostKes += Number(totalInKes || 0);
         const usrDt: any = await client.graphql({
           query: getSMAccount,
@@ -749,17 +863,23 @@ export default function SalesItemMapScreen({
           }
         });
         const usrDts = usrDt.data.getSMAccount;
-        await client.graphql({
-          query: updateBizna,
-          variables: {
-            input: {
-              BusKntct: sokokntct,
-              netEarnings: (parseFloat(biz.netEarnings) + totalInKes).toFixed(0),
-              earningsBal: (parseFloat(biz.earningsBal) + totalInKes).toFixed(0),
-              benefitsAmount: parseFloat(biz.benefitsAmount) + benefitInKes
+        // Defensive: check before every use of biz and all mutation values
+        if (biz) {
+          const netEarnings = isNaN(parseFloat(biz.netEarnings)) ? 0 : parseFloat(biz.netEarnings);
+          const earningsBal = isNaN(parseFloat(biz.earningsBal)) ? 0 : parseFloat(biz.earningsBal);
+          const benefitsAmount = isNaN(parseFloat(biz.benefitsAmount)) ? 0 : parseFloat(biz.benefitsAmount);
+          await client.graphql({
+            query: updateBizna,
+            variables: {
+              input: {
+                BusKntct: sokokntct,
+                netEarnings: Maths.floor(netEarnings + totalInKes),
+                earningsBal: Maths.floor(earningsBal + totalInKes),
+                benefitsAmount: Maths.floor(benefitsAmount + benefitInKes)
+              }
             }
-          }
-        });
+          });
+        }
         console.log('Creating NonLoans for', sokokntct, 'owner:', allItemsID);
         await client.graphql({
           query: createNonLoans,
@@ -769,7 +889,7 @@ export default function SalesItemMapScreen({
               senderPhn: attributes.email,
               amount: totalInKes.toFixed(0),
               description: totals.description.join('\n'),
-              RecName: biz.busName,
+              RecName: biz ? biz.busName : '',
               SenderName: usrDts.name,
               status: "cashSales",
               owner: allItemsID
@@ -848,26 +968,72 @@ export default function SalesItemMapScreen({
         <Text>{t.locating}</Text>
       </View>;
   }
-  return <View style={{
-    flex: 1
-  }}>
-      {/* MapView */}
-      <MapView ref={mapRef} style={{
-      flex: 1
-    }} showsUserLocation initialRegion={{
-      ...userLocation,
-      latitudeDelta: 0.05,
-      longitudeDelta: 0.05
-    }}>
-                {filteredItems.map((item, index) => <Marker key={item.id} coordinate={{
-        latitude: +item.latitude,
-        longitude: +item.longitude
-      }} {...({ onPress: () => onSelectItem(item, index), onLongPress: () => onAddToCart(item) } as any)}>
-            <View style={[styles.markerContainer, selectedItemId === item.id && styles.selectedMarker]}>
-              <Text style={styles.markerText}>{item.sokoprice}</Text>
-            </View>
-          </Marker>)}
-      </MapView>
+  return <View style={{ flex: 1 }}>
+      {/* MapView with floating refresh icon */}
+      <View style={{ flex: 1 }}>
+        <MapView
+          ref={mapRef}
+          style={{ flex: 1 }}
+          showsUserLocation
+          initialRegion={{
+            ...userLocation,
+            latitudeDelta: 0.05,
+            longitudeDelta: 0.05
+          }}
+        >
+          {filteredItems.map((item, index) => (
+            <Marker
+              key={item.id}
+              coordinate={{
+                latitude: +item.latitude,
+                longitude: +item.longitude
+              }}
+              {...({ onPress: () => onSelectItem(item, index), onLongPress: () => onAddToCart(item) } as any)}
+            >
+              <View style={[styles.markerContainer, selectedItemId === item.id && styles.selectedMarker]}>
+                <Text style={styles.markerText}>{item.sokoprice}</Text>
+              </View>
+            </Marker>
+          ))}
+          {polylineCoords.length > 1 && (
+            <Polyline
+              coordinates={polylineCoords}
+              strokeColor="#e58d29"
+              strokeWidth={4}
+            />
+          )}
+        </MapView>
+        {/* Floating Refresh Icon (on top of map) */}
+        <TouchableOpacity
+          onPress={isRefreshing ? undefined : fetchAds}
+          style={{
+            position: 'absolute',
+            top: 24,
+            right: 24,
+            zIndex: 100,
+            backgroundColor: '#e58d29',
+            borderRadius: 25,
+            width: 48,
+            height: 48,
+            alignItems: 'center',
+            justifyContent: 'center',
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.2,
+            shadowRadius: 4,
+            elevation: 5,
+            opacity: isRefreshing ? 0.7 : 1
+          }}
+          activeOpacity={0.7}
+          disabled={isRefreshing}
+        >
+          <Animated.View style={{
+            transform: [{ rotate: spinAnim.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] }) }]
+          }}>
+            <FontAwesome name="refresh" size={28} color="#fff" />
+          </Animated.View>
+        </TouchableOpacity>
+      </View>
 
       {/* Draggable Filter Panel */}
       <Animated.View style={[styles.filterPanel, pan.getLayout()]} {...panResponder.panHandlers}>
@@ -913,14 +1079,25 @@ export default function SalesItemMapScreen({
       }) => {
         const qty = quantities[item.id] || 1;
         const total = qty * item.sokoprice;
+        // Debug: log the S3 key and signed URL for this item
+        // console.log removed to declutter logs
         return <TouchableOpacity style={[styles.card, selectedItemId === item.id && styles.cardSelected, {
           flexDirection: 'row',
           alignItems: 'center'
         }]} onPress={() => onSelectItem(item, index)} onLongPress={() => onAddToCart(item)}>
                 {/* RIGHT: Image */}
-                {item.itemPhoto && <Image source={{
-            uri: item.signedUrl || `https://mifedhasalesadsphotosc789c-mifedha.s3.us-east-1.amazonaws.com/public/${item.itemPhoto}`
-          }} style={styles.carouselImage} resizeMode="cover" />}
+                {item.signedUrl ? (
+                  <Image
+                    source={{ uri: item.signedUrl }}
+                    style={styles.carouselImage}
+                    resizeMode="cover"
+                    onError={() => {}}
+                  />
+                ) : (
+                  <View style={[styles.carouselImage, { backgroundColor: '#eee', alignItems: 'center', justifyContent: 'center' }]}> 
+                    <FontAwesome name="image" size={40} color="#bbb" />
+                  </View>
+                )}
 
                 {/* LEFT: Text and buttons */}
                 <View style={{
@@ -979,19 +1156,25 @@ export default function SalesItemMapScreen({
           fontWeight: 'bold',
           marginTop: 10
         }}>{`${t.total}: ${formatAmountSync(Number(OverallTotalDebit), natCode, ratesMap)}`}</Text>
-            <TextInput placeholder="Enter Password" secureTextEntry={!isPasswordVisible} value={password} onChangeText={setPassword} style={styles.passwordInput} />
-                        <TextInput placeholder={t.enterPassword} secureTextEntry={!isPasswordVisible} value={password} onChangeText={setPassword} style={styles.passwordInput} />
+                        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                          <TextInput
+                            placeholder={t.enterPassword}
+                            secureTextEntry={!isPasswordVisible}
+                            value={password}
+                            onChangeText={setPassword}
+                            style={[styles.passwordInput, { flex: 1 }]}
+                          />
+                          <TouchableOpacity
+                            onPress={() => setIsPasswordVisible(v => !v)}
+                            style={{ marginLeft: 8, padding: 4 }}
+                          >
+                            <FontAwesome name={isPasswordVisible ? 'eye-slash' : 'eye'} size={20} color="#888" />
+                          </TouchableOpacity>
+                        </View>
             <TouchableOpacity onPress={validateAndTransact2} style={styles.checkoutBtn}>
               {isLoading2 ? <ActivityIndicator color="white" /> : <Text style={{
             color: 'white'
           }}>{t.quickCheckout}</Text>}
-            </TouchableOpacity>
-            <TouchableOpacity onPress={validateAndTransact} style={[styles.checkoutBtn, {
-          backgroundColor: '#34a4a1'
-        }]}>
-              {isLoading ? <ActivityIndicator color="white" /> : <Text style={{
-            color: 'white'
-          }}>{t.fullCheckout}</Text>}
             </TouchableOpacity>
           </ScrollView>}
       </View>
@@ -1120,3 +1303,4 @@ const styles = StyleSheet.create({
     alignItems: 'center'
   }
 });
+

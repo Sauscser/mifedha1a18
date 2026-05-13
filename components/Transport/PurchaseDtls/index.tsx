@@ -10,6 +10,8 @@ import {useExchange} from '../../../src/contexts/ExchangeContext';
 import { getSMAccount } from '../../../src/graphql/queries';
 import {fetchUserAttributes} from 'aws-amplify/auth';
 import { generateClient } from 'aws-amplify/api';
+import { useTranslation } from 'react-i18next';
+import { translations } from './translation';
 
 export interface SMAccount {
   SMAc: {
@@ -83,27 +85,26 @@ const ViewSMDeposts =
              }, [Uzer]);
 
   
+  // i18n translation
+  const { i18n } = useTranslation();
+  const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+  const t = translations[lang] || translations.en;
   return (
     <ScrollView contentContainerStyle={styles.pageContainer}>
       <TouchableOpacity style={styles.card} onPress={RequestTransport}>
-       
-
         <View style={styles.infoSection}>
           <Text style={styles.prodInfo}>
-            <Text style={styles.label}>Seller Name:</Text> {RecName}
+            <Text style={styles.label}>{t.sellerName}</Text> {RecName}
           </Text>
           <Text style={styles.prodInfo}>
-            <Text style={styles.label}>Buyer Name:</Text> {SenderName}
+            <Text style={styles.label}>{t.buyerName}</Text> {SenderName}
           </Text>
-          
           <Text style={styles.prodInfo}>
-            <Text style={styles.label}>Purchase Despription:</Text> {description}
+            <Text style={styles.label}>{t.purchaseDescription}</Text> {description}
           </Text>
-
           <Text style={styles.prodInfo}>
-            <Text style={styles.label}>Purchase ID:</Text> {owner}
+            <Text style={styles.label}>{t.purchaseId}</Text> {owner}
           </Text>
-         
         </View>
       </TouchableOpacity>
     </ScrollView>

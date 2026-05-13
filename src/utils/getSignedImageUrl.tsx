@@ -2,7 +2,6 @@ import { generateClient } from 'aws-amplify/api';
 import { getCurrentUser, fetchUserAttributes } from 'aws-amplify/auth';
 import { uploadData, getUrl } from '@aws-amplify/storage';
 // utils/getSignedImageUrl.ts
-import { Storage } from 'aws-amplify';
 
 /**
  * Get a signed image URL from S3 for display in the app.
@@ -11,8 +10,12 @@ import { Storage } from 'aws-amplify';
  */
 export const getSignedImageUrl = async (key: string): Promise<string | undefined> => {
   try {
-    const url = await getUrl(key, { level: 'public' });
-    return url;
+    if (!key || key === 'None') return undefined;
+    // Always stringify the key and only pass key, never path
+    const stringKey = key.toString();
+    const url = await getUrl({ key: stringKey });
+    // HomeScrn pattern: use url.url.toString()
+    return url && url.url ? url.url.toString() : undefined;
   } catch (error) {
     console.error('Failed to get signed URL for image:', key, error);
     return undefined;

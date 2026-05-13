@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, ScrollView, TextInput, TouchableOpacity, Alert, ActivityIndicator, KeyboardAvoidingView, Platform, StyleSheet } from 'react-native';
 import { getCvrdGroupLoans, getSMAccount, getCompany, getGroup, getChamaMembers } from '../../../../../../src/graphql/queries';
 import { updateSMAccount, updateCvrdGroupLoans, updateChamaMembers, updateGroup, updateCompany, createLoanRepayments, sendNotification, createMessages } from '../../../../../../src/graphql/mutations';
-import { useRoute } from '@react-navigation/native';
+import { useRoute, RouteProp } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { getCurrentUser, fetchUserAttributes } from "aws-amplify/auth";
 import { useExchange } from '../../../../../../src/contexts/ExchangeContext';
@@ -12,6 +12,13 @@ import { generateClient } from "aws-amplify/api";
 import { useTranslation } from 'react-i18next';
 import translations from './translation';
 const client = generateClient();
+type RouteParams = {
+  RepayCovChmLnsss: {
+    loanID: string;
+    // add other params if needed
+  };
+};
+
 const RepayCovChmLnsss = () => {
   const { i18n } = useTranslation();
   const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
@@ -22,7 +29,7 @@ const RepayCovChmLnsss = () => {
   const [LnId, setLnId] = useState('');
   const [Desc, setDesc] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const route = useRoute();
+  const route = useRoute<RouteProp<RouteParams, 'RepayCovChmLnsss'>>();
   const { nationality, ratesMap } = useExchange();
   const resetForm = () => {
     setAmount('');
@@ -38,8 +45,8 @@ const RepayCovChmLnsss = () => {
     amountPaid,
     loanBalanceAfter
   }) => {
-    const messageBody = isFullRepayment ? `Your loan from ${grpName} has been fully repaid. Amount paid: ${formatAmountSync(Number(amountPaid), nationality || undefined, ratesMap)}. Your loan balance is now ${formatAmountSync(0, nationality || undefined, ratesMap)}.` : `A partial repayment of ${formatAmountSync(Number(amountPaid), nationality || undefined, ratesMap)} has been made to your loan from ${grpName}. Remaining loan balance: ${formatAmountSync(Number(loanBalanceAfter), nationality || undefined, ratesMap)}.`;
-    const title = isFullRepayment ? 'NiSenti: Loan Fully Repaid' : 'NiSenti: Loan Partially Repaid';
+    const messageBody = isFullRepayment ? t.loanFullyRepaidMessage.replace('{grpName}', grpName).replace('{amountPaid}', formatAmountSync(Number(amountPaid), nationality || undefined, ratesMap)) : t.loanPartiallyRepaidMessage.replace('{grpName}', grpName).replace('{amountPaid}', formatAmountSync(Number(amountPaid), nationality || undefined, ratesMap)).replace('{loanBalanceAfter}', formatAmountSync(Number(loanBalanceAfter), nationality || undefined, ratesMap));
+    const title = isFullRepayment ? t.loanFullyRepaidTitle : t.loanPartiallyRepaidTitle;
     await client.graphql({
       query: createMessages,
       variables: {

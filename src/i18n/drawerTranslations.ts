@@ -7,7 +7,8 @@ export const drawerTranslations = {
     kubwa: 'Kubwa',
     advocate: 'Money Advocate',
     admin2: 'Money Admin Two',
-    bankAdmin: 'Money Bank Admin',
+    bankAdmin: 'Money  Admin',
+    nisentibankAdmin: 'Bank Admin',
     admin1: 'Money Admin One'
   },
   ar: {

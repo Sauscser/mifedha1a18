@@ -1,0 +1,13 @@
+# Plan for S3 image loading fix in PassengerRequestRide
+
+1. Identify the S3 key field for each rider (e.g., item.transportPhoto, item.photoKey, etc.)
+2. In fetchRiders, after fetching and parsing riders, for each rider:
+   - If the S3 key exists and is not 'None', call getUrl({ key }) to get a signed URL
+   - Set item.signedUrl to the signed URL (or null if not available)
+3. Update setAllRiders to use the processed array with signedUrl
+4. In the FlatList render, keep using item.signedUrl for <Image> source
+5. Add error handling and placeholder logic as in other screens
+6. Import getUrl from aws-amplify/storage
+7. Remove any static S3 URL usage
+
+Next: Check what the S3 key field is for each rider in the fetched data.

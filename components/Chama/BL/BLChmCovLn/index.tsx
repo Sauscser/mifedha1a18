@@ -91,9 +91,14 @@ const ChmMbrShpInfo = (props:ChamaMmbrshpInfo) => {
 
               const curYrs = parseFloat(years)*365;
               const curMnths = (months2)*30.4375;
-              const daysUpToDate = curYrs + curMnths + parseFloat(days)
+              const daysUpToDates = curYrs + curMnths + parseFloat(days)
 
-              const dayselapsed = crtnDate - daysUpToDate
+                const nows = Date.now();
+
+
+              const daysUpToDate = Date.parse(now) ;
+
+              const dayselapsed = (crtnDate - daysUpToDate)/(1000 * 60 * 60 * 24);
 
               const netLnBal = amountExpectedBack - amountRepaid
 

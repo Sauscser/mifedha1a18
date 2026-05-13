@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
+import translations from './translation';
 import { View, Text, FlatList, Alert } from 'react-native';
 import NonLnSent from "../../../components/MyAc/ViewRecNonLns";
 import styles from './styles';
@@ -8,6 +10,9 @@ import { getCurrentUser, fetchUserAttributes } from "aws-amplify/auth";
 import { generateClient } from "aws-amplify/api";
 const client = generateClient();
 const FetchSMNonLnsSnt = props => {
+    const { i18n } = useTranslation();
+    const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+    const t = translations[lang] || translations.en;
   const [loading, setLoading] = useState(false);
   const [Recvrs, setRecvrs] = useState([]);
   const fetchUsrDtls = async () => {
@@ -39,7 +44,7 @@ const FetchSMNonLnsSnt = props => {
           });
           const lds = Lonees.data.VwMyRecMny.items;
           if (lds.length < 1) {
-            Alert.alert("No money received");
+            Alert.alert(t.noMoneyReceived);
           }
           setRecvrs(lds);
           const fetchCompDtls = async () => {
@@ -67,7 +72,7 @@ const FetchSMNonLnsSnt = props => {
                   });
                 } catch (error) {
                   if (error) {
-                    Alert.alert("Check your internet connection");
+                    Alert.alert(t.retryOrUpdate);
                     return;
                   }
                 }
@@ -86,20 +91,20 @@ const FetchSMNonLnsSnt = props => {
                   });
                 } catch (error) {
                   if (error) {
-                    Alert.alert("Retry or update app or call customer care");
+                    Alert.alert(t.retryOrUpdate);
                     return;
                   }
                 }
               };
               if (parseFloat(balances) < parseFloat(enquiryFees)) {
-                Alert.alert("Account Balance is very little");
+                Alert.alert(t.accountBalanceLow);
                 return;
               } else {
                 updtActAdm();
               }
             } catch (e) {
               if (e) {
-                Alert.alert("User does not exist does not exist; otherwise check internet connection");
+                Alert.alert(t.userNotExist);
                 return;
               }
               console.log(e);
@@ -108,14 +113,14 @@ const FetchSMNonLnsSnt = props => {
           await fetchCompDtls();
         } catch (e) {
           if (e) {
-            Alert.alert("Retry or update app or call customer care");
+            Alert.alert(t.retryOrUpdate);
             return;
           }
           console.log(e);
         }
       };
       if (userInfo.userId !== owner) {
-        Alert.alert("Please first create a main account");
+        Alert.alert(t.createMainAccount);
         return;
       } else {
         await fetchLoanees();
@@ -130,17 +135,20 @@ const FetchSMNonLnsSnt = props => {
     fetchUsrDtls();
   }, []);
   return <View style={styles.root}>
-      <FlatList style={{
-      width: "100%"
-    }} data={Recvrs} renderItem={({
-      item
-    }) => <NonLnSent SMAc={item} />} keyExtractor={(item, index) => index.toString()} onRefresh={fetchUsrDtls} refreshing={loading} showsVerticalScrollIndicator={false} ListHeaderComponentStyle={{
-      alignItems: 'center'
-    }} ListHeaderComponent={() => <>
-            
-            <Text style={styles.label}> Transport revenue share</Text>
-            <Text style={styles.label2}> (Please swipe down to load)</Text>
-          </>} />
+      <FlatList
+        style={{ width: "100%" }}
+        data={Recvrs}
+        renderItem={({ item }) => <NonLnSent SMAc={item} />}
+        keyExtractor={(item, index) => index.toString()}
+        onRefresh={fetchUsrDtls}
+        refreshing={loading}
+        showsVerticalScrollIndicator={false}
+        ListHeaderComponentStyle={{ alignItems: 'center' }}
+        ListHeaderComponent={() => <>
+          <Text style={styles.label}>{t.transportRevenueShare}</Text>
+          <Text style={styles.label2}>{t.swipeToLoad}</Text>
+        </>}
+      />
     </View>;
 };
 export default FetchSMNonLnsSnt;

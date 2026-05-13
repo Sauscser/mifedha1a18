@@ -1,9 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet, ActivityIndicator, Alert, Modal, Image } from 'react-native';
 import translations from './translation';
+import { useExchange } from '../../../../src/contexts/ExchangeContext';
+import { formatAmountSync } from '../../../../src/utils/exchange';
+import { nationalityToCode } from '../../../../src/utils/nationalityToCode';
 import { useTranslation } from 'react-i18next';
 import { useRoute } from '@react-navigation/native';
-import { printAsync } from '../../../../src/utils/print';
+import { printAsync, printToFileAsync } from '../../../../src/utils/print';
+import { shareFile } from '../../../../src/utils/share';
 import { listReqLoanChamas, listChamaMembers, listChamaLnApprovals, listChamaMinutes, listMinuteItemsByMinutes, listAttendanceByMinutes } from '../../../../src/graphql/queries';
 import { createChamaLnApproval, updateReqLoanChama } from '../../../../src/graphql/mutations';
 import { generateClient } from 'aws-amplify/api';
@@ -12,6 +16,8 @@ import { getUrl } from 'aws-amplify/storage';
 const client = generateClient();
 
 const FloatedLoansList = () => {
+  const { nationality, ratesMap } = useExchange();
+  const userCurrencyKey = nationalityToCode(nationality);
   const { i18n } = useTranslation();
   const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
   const t = translations[lang] || translations.en;
@@ -127,10 +133,10 @@ const FloatedLoansList = () => {
         client.graphql({ query: listAttendanceByMinutes, variables: { minutesId: minutes.id } })
       ]);
       const chairSignUrl = minutes.chairpersonId
-        ? (await getUrl({ key: minutes.chairpersonId }))?.url || ""
+        ? ((await getUrl({ key: minutes.chairpersonId }))?.url?.toString() || "")
         : "";
       const secSignUrl = minutes.secretaryId
-        ? (await getUrl({ key: minutes.secretaryId }))?.url || ""
+        ? ((await getUrl({ key: minutes.secretaryId }))?.url?.toString() || "")
         : "";
       setSelectedMinutes({
         ...minutes,
@@ -152,8 +158,8 @@ const FloatedLoansList = () => {
     if (!min) return;
     try {
       const present = min.attendance.filter((a: any) => a.attendanceStatus === "PRESENT");
-      const html = `
-        <html>
+      
+       const html = ` <html>
         <head><style>
           body { font-family: Arial; padding: 20px; }
           h1 { color: #e58d29; }
@@ -199,7 +205,8 @@ const FloatedLoansList = () => {
         </body>
         </html>
       `;
-      await printAsync({ html });
+      const { uri } = await printToFileAsync({ html });
+      await shareFile(uri, t.exportToPDF);
     } catch (err) {
       console.error(err);
       Alert.alert(t.pdfError, t.failedExportPDF);
@@ -230,7 +237,7 @@ const FloatedLoansList = () => {
         return (
                     <View key={loan.id} style={styles.card}>
             <Text style={styles.amount}>
-              {t.amount} {Number(loan.amount).toLocaleString()}
+              {formatAmountSync(Number(loan.amount), userCurrencyKey, ratesMap)}
             </Text>
 
             <Text style={styles.amount}>
@@ -254,7 +261,7 @@ const FloatedLoansList = () => {
             <View style={styles.row}>
               <Text style={styles.detail}>{t.installment}</Text>
               <Text style={styles.value}>
-                {t.amount} {Number(loan.installmentAmount).toLocaleString()}
+                {formatAmountSync(Number(loan.installmentAmount), userCurrencyKey, ratesMap)}
               </Text>
             </View>
 

@@ -13,7 +13,8 @@ import {
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { printAsync } from '../../../../src/utils/print';
+import { printAsync, printToFileAsync } from '../../../../src/utils/print';
+import { shareFile } from '../../../../src/utils/share';
 import {
   createMessages,
   createReqLoanChama,
@@ -45,9 +46,9 @@ const client = generateClient();
 /* =========================
    SAFE IMAGE COMPONENT
    ========================= */
-const SafeImage = ({ uri, style }: { uri?: string; style: any }) => {
+const SafeImage = ({ uri, style, t }: { uri?: string; style: any; t: any }) => {
   if (!uri || typeof uri !== 'string' || uri.trim() === '') {
-    return <Text style={styles.signatureMissing}>Not signed</Text>;
+    return <Text style={styles.signatureMissing}>{t.notSigned}</Text>;
   }
   return <Image source={{ uri }} style={style} />;
 };
@@ -56,13 +57,13 @@ const CreateBiz = () => {
   const { i18n } = useTranslation();
   const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
   const t = translations[lang] || translations.en;
-  const [Sign2Phn, setSign2Phn] = useState('');
-  const [itemPrys, setitemPrys] = useState('');
-  const [lnPrsntg, setlnPrsntg] = useState('');
-  const [rpymntPrd, setrpymntPrd] = useState('');
+  const [Sign2Phn, setSign2Phn] = useState(''); // Advocate license number
+  const [itemPrys, setitemPrys] = useState(''); // Take home amount
+  const [InstAmt, setInstAmt] = useState(''); // Installment amount
+  const [rpymntPrd, setrpymntPrd] = useState(''); // Installment interval in days
+  // Remove user input for number of installments; it will be calculated
   const [pword, setPW] = useState('');
-  const [InstAmt, setInstAmt] = useState('');
-  const [InstFreq, setInstFreq] = useState('');
+  // Remove lnPrsntg and InstFreq from user input, interest comes from appDetails.loanInterest
   const [isLoading, setIsLoading] = useState(false);
   const [ChmNm, setChmNm] = useState('');
   const [ChmDesc, setChmDesc] = useState('');
@@ -81,13 +82,88 @@ const CreateBiz = () => {
 
   const { ratesMap } = useExchange();
   const userCurrencyKey = nationalityToCode(userNationality);
+  const currencySymbol = ratesMap?.[userCurrencyKey]?.symbol || userCurrencyKey || '';
 
   // Parse amount input
   const parseAmountInput = (value: string): number => {
     if (!value || value.trim() === '') return 0;
-    const num = parseFloat(value);
+    // Remove commas and whitespace before parsing
+    const cleaned = value.replace(/,/g, '').replace(/\s+/g, '');
+    const num = parseFloat(cleaned);
     return isNaN(num) ? 0 : num;
   };
+
+  // --- Dynamic Calculation State ---
+  const [totalRepay, setTotalRepay] = useState(0);
+  const [totalInterest, setTotalInterest] = useState(0);
+  const [totalFee, setTotalFee] = useState(0);
+
+  // --- Helper: Annual Compounding Reducing Balance ---
+  // Calculate number of installments needed to pay off the loan
+  // Using the amortization formula, solve for n (number of installments)
+  function calculateInstallments(principal: number, rate: number, installment: number, installmentDays: number) {
+    // rate: annual interest in percent
+    // installmentDays: days between installments
+    // installment: amount per payment
+    if (!principal || !rate || !installment || !installmentDays) return { n: 0, totalRepay: 0, totalInterest: 0 };
+    const r = rate / 100;
+    // Compounding: effective periodic rate for the interval
+    const periodRate = Math.pow(1 + r, installmentDays / 365) - 1;
+    // If interest is 0, simple division
+    if (periodRate === 0) {
+      const n = Math.ceil(principal / installment);
+      const totalRepay = n * installment;
+      const totalInterest = totalRepay - principal;
+      return { n, totalRepay, totalInterest };
+    }
+    // Solve for n: A = P * [r(1+r)^n] / [(1+r)^n - 1]  => n = log(A/(A - Pr)) / log(1 + r)
+    const A = installment;
+    const P = principal;
+    const rPer = periodRate;
+    const denominator = A - P * rPer;
+    if (denominator <= 0) return { n: 0, totalRepay: 0, totalInterest: 0 };
+    const n = Math.log(A / denominator) / Math.log(1 + rPer);
+    const nCeil = Math.ceil(n);
+    const totalRepay = nCeil * installment;
+    const totalInterest = totalRepay - principal;
+    return { n: nCeil, totalRepay, totalInterest };
+  }
+
+  // --- Helper: Transaction Fee Logic (from Cov/index.tsx) ---
+  // Transaction fee logic matching Cov/index.tsx
+  function computeTransactionFee(principal: number, advocateInvolved: boolean, company: any) {
+    if (!company) return 0;
+    // Use company.userLoanTransferFee and company.CoverageFee (should be numbers or numeric strings)
+    const transferFee = parseFloat(company.userLoanTransferFee || '0');
+    const coverageFee = parseFloat(company.CoverageFee || '0');
+    let fee = transferFee * principal;
+    if (advocateInvolved) {
+      fee += coverageFee * principal;
+    }
+    return fee;
+  }
+
+  // --- Dynamic Calculation Effect ---
+  const [calculatedInstallments, setCalculatedInstallments] = useState(0);
+  const [calculatedRepaymentPeriod, setCalculatedRepaymentPeriod] = useState(0);
+  useEffect(() => {
+    // All calculations in user currency
+    const principal = parseAmountInput(itemPrys);
+    const installment = parseAmountInput(InstAmt);
+    const installmentDays = parseInt(rpymntPrd) || 0;
+    const interest = parseFloat(appDetails?.loanInterest || '0');
+    // For company fees, use groupDetails?.company or groupDetails
+    const company = groupDetails;
+    const advocateInvolved = !!Sign2Phn && Sign2Phn.trim() !== '' && Sign2Phn.trim().toLowerCase() !== 'none';
+    const { n, totalRepay, totalInterest } = calculateInstallments(principal, interest, installment, installmentDays);
+    // Transaction fee: compute in user currency (if company fees are in KES, you may need to convert, but for now assume user currency)
+    const fee = computeTransactionFee(principal, advocateInvolved, company); // If company fees are in KES, convertForeignToKsh(principal, userCurrencyKey) first
+    setTotalRepay(totalRepay);
+    setTotalInterest(totalInterest);
+    setTotalFee(fee);
+    setCalculatedInstallments(n);
+    setCalculatedRepaymentPeriod(n * installmentDays);
+  }, [itemPrys, InstAmt, rpymntPrd, appDetails?.loanInterest, groupDetails, Sign2Phn]);
 
   // Handle money input with 2-decimal enforcement
   const handleMoneyInput = (setter: (value: string) => void) => (value: string) => {
@@ -154,10 +230,7 @@ const CreateBiz = () => {
         setLoadingMinutes(false);
         return;
       }
-      if (minutes.status !== 'FINALIZED') {
-        Alert.alert(t.secretaryNotSigned);
-        return;
-      }
+      
       if (minutes.status !== 'LOCKED') {
         Alert.alert(t.chairNotSigned);
         return;
@@ -173,11 +246,12 @@ const CreateBiz = () => {
         })
       ]);
       const chairSignUrl = minutes.chairpersonId
-        ? (await getUrl({ key: minutes.chairpersonId }))?.url
+        ? (await getUrl({ key: minutes.chairpersonId }))?.url?.toString()
         : null;
       const secSignUrl = minutes.secretaryId
-        ? (await getUrl({ key: minutes.secretaryId }))?.url
+        ? (await getUrl({ key: minutes.secretaryId }))?.url?.toString()
         : null;
+      console.log('DEBUG PlaceLnReq chairSignUrl:', chairSignUrl, 'secSignUrl:', secSignUrl, 'keys:', minutes.chairpersonId, minutes.secretaryId);
       setSelectedMinutes({
         ...minutes,
         grpName: groupDetails?.grpName || minutes.grpName || 'Group',
@@ -250,7 +324,8 @@ const CreateBiz = () => {
         </body>
         </html>
       `;
-      await printAsync({ html });
+      const { uri } = await printToFileAsync({ html });
+      await shareFile(uri, t.exportToPDF);
     } catch (err) {
       console.error(err);
       Alert.alert(t.pdfError, t.failedExportPDF);
@@ -348,13 +423,31 @@ const CreateBiz = () => {
       const installmentAmtInKES = await convertForeignToKsh(installmentAmtForeign, userCurrencyKey);
 
       // Confirmation prompt
+      // Compute transaction fee and summary for confirmation dialog
+      const principal = parseAmountInput(itemPrys);
+      const installment = parseAmountInput(InstAmt);
+      const installmentDays = parseInt(rpymntPrd) || 0;
+      const interest = parseFloat(appDetails?.loanInterest || '0');
+      const company = groupDetails;
+      const advocateInvolved = !!Sign2Phn && Sign2Phn.trim() !== '' && Sign2Phn.trim().toLowerCase() !== 'none';
+      const { n, totalRepay, totalInterest } = calculateInstallments(principal, interest, installment, installmentDays);
+      const fee = computeTransactionFee(principal, advocateInvolved, company);
+      const summary =
+        `${t.principalAmount || 'Principal'}: ${currencySymbol} ${principal.toFixed(2)}\n` +
+        `${t.installmentAmountPlaceholder || 'Installment'}: ${currencySymbol} ${installment.toFixed(2)}\n` +
+        `${t.interestPerYear || 'Interest Rate'}: ${interest}%\n` +
+        `${t.totalRepayable || 'Total Repayable'}: ${currencySymbol} ${totalRepay.toFixed(2)}\n` +
+        `${t.totalInterest || 'Total Interest'}: ${currencySymbol} ${totalInterest.toFixed(2)}\n` +
+        `${t.totalTransactionFee || 'Total Transaction Fee'}: ${currencySymbol} ${fee.toFixed(2)}\n` +
+        `${t.numberOfInstallments || 'Number of Installments'}: ${n}\n` +
+        `${t.totalRepaymentDuration || 'Total Repayment Duration'}: ${n * installmentDays} ${(t.days || 'days')}`;
       const confirmed = await new Promise<boolean>((resolve) => {
         Alert.alert(
-          'Confirm Loan Request',
-          `Loan Amount: ${formatAmountSync(loanAmountInKES, userCurrencyKey, ratesMap)}\nInterest Rate: ${lnPrsntg}% per year\nInstallment: ${formatAmountSync(installmentAmtInKES, userCurrencyKey, ratesMap)}\n\nSubmit request?`,
+          t.confirmLoanRequest || 'Confirm Loan Request',
+          summary + `\n\n${t.submitRequestQn || 'Submit request?'} `,
           [
-            { text: 'Cancel', style: 'cancel', onPress: () => resolve(false) },
-            { text: 'Submit', onPress: () => resolve(true) }
+            { text: t.cancel || 'Cancel', style: 'cancel', onPress: () => resolve(false) },
+            { text: t.submit || 'Submit', onPress: () => resolve(true) }
           ]
         );
       });
@@ -509,6 +602,7 @@ const CreateBiz = () => {
 
         {/* Form Card */}
         <View style={styles.formCard}>
+          {/* Advocate License Number */}
           <View style={styles.inputGroup}>
             <TextInput
               placeholder={t.advocateLicensePlaceholder}
@@ -520,91 +614,66 @@ const CreateBiz = () => {
             <Text style={styles.helperText}>{t.advocateLicense}</Text>
           </View>
 
+          {/* Take Home Amount */}
           <View style={styles.inputGroup}>
-            <TextInput
-              placeholder={t.loanDescriptionPlaceholder}
-              placeholderTextColor="#333"
-              value={ChmNm}
-              onChangeText={setChmNm}
-              multiline
-              style={[styles.input, { height: 80 }]}
-            />
-            <Text style={styles.helperText}>{t.loanPurpose}</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <Text style={{ marginRight: 6, fontWeight: 'bold', fontSize: 16 }}>{currencySymbol}</Text>
+              <TextInput
+                placeholder={t.loanAmountPlaceholder}
+                placeholderTextColor="#333"
+                keyboardType="decimal-pad"
+                value={itemPrys}
+                onChangeText={handleMoneyInput(setitemPrys)}
+                onBlur={() => formatMoneyOnBlur(itemPrys, setitemPrys)}
+                style={[styles.input, { flex: 1 }]}
+              />
+            </View>
+            <Text style={styles.helperText}>{t.principalAmount} ({currencySymbol})</Text>
           </View>
 
+          {/* Installment Amount */}
           <View style={styles.inputGroup}>
-            <TextInput
-              placeholder={t.defaultPenaltyPlaceholder}
-              placeholderTextColor="#333"
-              keyboardType="decimal-pad"
-              value={ChmDesc}
-              onChangeText={setChmDesc}
-              style={styles.input}
-            />
-            <Text style={styles.helperText}>{t.penaltyOnDefault}</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <Text style={{ marginRight: 6, fontWeight: 'bold', fontSize: 16 }}>{currencySymbol}</Text>
+              <TextInput
+                placeholder={t.installmentAmountPlaceholder}
+                placeholderTextColor="#333"
+                keyboardType="decimal-pad"
+                value={InstAmt}
+                onChangeText={handleMoneyInput(setInstAmt)}
+                onBlur={() => formatMoneyOnBlur(InstAmt, setInstAmt)}
+                style={[styles.input, { flex: 1 }]}
+              />
+            </View>
+            <Text style={styles.helperText}>{t.installmentAmountPlaceholder} ({currencySymbol})</Text>
           </View>
 
+
+
+          {/* Calculated Number of Installments (output only) */}
+          <View style={styles.inputGroup}>
+            <Text style={styles.helperText}>{t.numberOfInstallments || 'Number of Installments'}: {calculatedInstallments > 0 ? calculatedInstallments : '-'}</Text>
+          </View>
+
+          {/* Calculated Total Repayment Period (output only) */}
+          <View style={styles.inputGroup}>
+            <Text style={styles.helperText}>{t.totalRepaymentDuration || 'Total Repayment Duration'}: {calculatedRepaymentPeriod > 0 ? calculatedRepaymentPeriod + ' ' + (t.days || 'days') : '-'}</Text>
+          </View>
+
+          {/* Installment Interval in Days */}
           <View style={styles.inputGroup}>
             <TextInput
               placeholder={t.installmentDaysPlaceholder}
-              placeholderTextColor="#333"
-              keyboardType="decimal-pad"
-              value={InstFreq}
-              onChangeText={setInstFreq}
-              style={styles.input}
-            />
-          </View>
-
-          <View style={styles.inputGroup}>
-            <TextInput
-              placeholder={t.installmentAmountPlaceholder}
-              placeholderTextColor="#333"
-              keyboardType="decimal-pad"
-              value={InstAmt}
-              onChangeText={handleMoneyInput(setInstAmt)}
-              onBlur={() => formatMoneyOnBlur(InstAmt, setInstAmt)}
-              style={styles.input}
-            />
-          </View>
-
-          <View style={styles.inputGroup}>
-            <TextInput
-              placeholder={t.loanAmountPlaceholder}
-              placeholderTextColor="#333"
-              keyboardType="decimal-pad"
-              value={itemPrys}
-              onChangeText={handleMoneyInput(setitemPrys)}
-              onBlur={() => formatMoneyOnBlur(itemPrys, setitemPrys)}
-              style={styles.input}
-            />
-            <Text style={styles.helperText}>{t.principalAmount}</Text>
-          </View>
-
-          <View style={styles.inputGroup}>
-            <TextInput
-              placeholder={t.interestRatePlaceholder}
-              placeholderTextColor="#333"
-              keyboardType="decimal-pad"
-              value={lnPrsntg}
-              onChangeText={handleMoneyInput(setlnPrsntg)}
-              onBlur={() => formatMoneyOnBlur(lnPrsntg, setlnPrsntg)}
-              style={styles.input}
-            />
-            <Text style={styles.helperText}>{t.interestPerYear}</Text>
-          </View>
-
-          <View style={styles.inputGroup}>
-            <TextInput
-              placeholder={t.repaymentPeriodPlaceholder}
               placeholderTextColor="#333"
               keyboardType="decimal-pad"
               value={rpymntPrd}
               onChangeText={setrpymntPrd}
               style={styles.input}
             />
-            <Text style={styles.helperText}>{t.totalRepaymentDuration}</Text>
+            <Text style={styles.helperText}>{t.installmentIntervalInDays || 'Installment Interval (days)'}</Text>
           </View>
 
+          {/* Password */}
           <View style={{ position: 'relative' }}>
             <TextInput
               placeholder={t.userPasswordPlaceholder}
@@ -622,6 +691,17 @@ const CreateBiz = () => {
                 {showPassword ? t.hide : t.show}
               </Text>
             </TouchableOpacity>
+          </View>
+
+          {/* Dynamic Calculation Output */}
+          <View style={{ marginTop: 18, marginBottom: 8 }}>
+            <Text style={{ fontWeight: 'bold', fontSize: 16 }}>{t.calculationSummary || 'Calculation Summary'}</Text>
+            <Text>{t.totalRepayable || 'Total Repayable'}: {currencySymbol} {totalRepay.toFixed(2)}</Text>
+            <Text>{t.totalInterest || 'Total Interest'}: {currencySymbol} {totalInterest.toFixed(2)}</Text>
+            <Text>{t.totalTransactionFee || 'Total Transaction Fee'}: {currencySymbol} {totalFee.toFixed(2)}</Text>
+            <Text>{t.interestPerYear || 'Interest Rate'}: {appDetails?.loanInterest || 0}%</Text>
+            <Text>{t.numberOfInstallments || 'Number of Installments'}: {calculatedInstallments > 0 ? calculatedInstallments : '-'}</Text>
+            <Text>{t.totalRepaymentDuration || 'Total Repayment Duration'}: {calculatedRepaymentPeriod > 0 ? calculatedRepaymentPeriod + ' ' + (t.days || 'days') : '-'}</Text>
           </View>
         </View>
 
@@ -714,6 +794,7 @@ const CreateBiz = () => {
                       <SafeImage
                         uri={selectedMinutes?.chairSignUrl}
                         style={styles.signature}
+                        t={t}
                       />
                     </View>
                     <View style={styles.signatureBlock}>
@@ -721,6 +802,7 @@ const CreateBiz = () => {
                       <SafeImage
                         uri={selectedMinutes?.secSignUrl}
                         style={styles.signature}
+                        t={t}
                       />
                     </View>
                   </View>

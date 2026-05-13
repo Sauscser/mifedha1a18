@@ -9,7 +9,8 @@ import {
   TouchableOpacity,
   Alert,
 } from "react-native";
-import { printAsync } from "../../../../src/utils/print";
+import { printAsync, printToFileAsync } from "../../../../src/utils/print";
+import { shareFile } from "../../../../src/utils/share";
 import translations from './translation';
 import { useTranslation } from 'react-i18next';
 import { generateClient } from "aws-amplify/api";
@@ -70,10 +71,10 @@ const ViewMinutesScreen = ({ route }) => {
             }),
           ]);
           const chairSignUrl = min.chairpersonId
-            ? (await getUrl({ key: min.chairpersonId })).url
+            ? (await getUrl({ key: min.chairpersonId })).url?.toString() || null
             : null;
           const secSignUrl = min.secretaryId
-            ? (await getUrl({ key: min.secretaryId })).url
+            ? (await getUrl({ key: min.secretaryId })).url?.toString() || null
             : null;
           return {
             ...min,
@@ -194,7 +195,9 @@ const ViewMinutesScreen = ({ route }) => {
   /* =========================
      PDF EXPORT
      ========================= */
+  const [exportingId, setExportingId] = useState<string | null>(null);
   const exportToPDF = async (min: any) => {
+    setExportingId(min.id);
     try {
       const present = (min.attendance || []).filter(
         (a: any) => a.attendanceStatus === "PRESENT"
@@ -264,9 +267,12 @@ const ViewMinutesScreen = ({ route }) => {
           </body>
         </html>
       `;
-      await printAsync({ html });
+      const { uri } = await printToFileAsync({ html });
+      await shareFile(uri, t.exportPDF);
     } catch (err) {
       Alert.alert(t.pdfError, t.unableToExport);
+    } finally {
+      setExportingId(null);
     }
   };
 
@@ -298,8 +304,12 @@ const ViewMinutesScreen = ({ route }) => {
             <TouchableOpacity
               style={styles.exportBtn}
               onPress={() => exportToPDF(min)}
+              disabled={exportingId === min.id}
             >
-              <Text style={styles.exportText}>{t.exportPDF}</Text>
+              {exportingId === min.id ? (
+                <ActivityIndicator size="small" color="#fff" style={{ marginRight: 8 }} />
+              ) : null}
+              <Text style={styles.exportText}>{exportingId === min.id ? (t.exportingPDF || 'Exporting...') : t.exportPDF}</Text>
             </TouchableOpacity>
 
             <Text style={styles.section}>{t.minutes}</Text>

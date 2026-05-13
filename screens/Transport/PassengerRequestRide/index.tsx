@@ -1,5 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { PanResponder } from 'react-native';
 import { View, Text, TextInput, FlatList, TouchableOpacity, StyleSheet, Dimensions, ActivityIndicator, Animated, Image, Alert } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { Easing } from 'react-native';
 import MapView, { Marker, Polyline } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { getDistance } from 'geolib';
@@ -14,6 +17,7 @@ import { useExchange } from '../../../src/contexts/ExchangeContext';
 import { formatAmountSync, getUserNationalityByEmail, convertForeignToKsh } from '../../../src/utils/exchange';
 import { nationalityToCode } from '../../../src/utils/nationalityToCode';
 import { generateClient } from "aws-amplify/api";
+import { getUrl } from 'aws-amplify/storage';
 const client = generateClient();
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const SCREEN_HEIGHT = Dimensions.get('window').height;
@@ -23,7 +27,10 @@ export default function RideRequestMapScreen({
 }: {
   navigation: any;
 }) {
+  // Collapsible filter panel state
+  const [filterPanelCollapsed, setFilterPanelCollapsed] = useState(false);
   const [pendingCheckDone, setPendingCheckDone] = useState(false);
+  // Floating refresh animation state
   const [pendingRides, setPendingRides] = useState<any[]>([]);
   const [pickupInput, setPickupInput] = useState('');
   const [destinationInput, setDestinationInput] = useState('');
@@ -132,14 +139,36 @@ export default function RideRequestMapScreen({
       console.log('PassengerRequestRide: fetchRiders raw response', res && typeof res === 'object' ? Object.keys(res).slice(0,10) : res);
       const items = res?.data?.listTransportRegisters?.items || [];
       console.log('PassengerRequestRide: fetchRiders items count', items.length);
-      // Parse lat/lng as numbers
-      const riders = items.map((item: any) => ({
-        ...item,
-        latitude: parseFloat(item.latitude),
-        longitude: parseFloat(item.longitude)
-      })).filter((r: any) => !isNaN(r.latitude) && !isNaN(r.longitude));
-      console.log('PassengerRequestRide: parsed riders count', riders.length);
-      setAllRiders(riders);
+      // Parse lat/lng as numbers and fetch signedUrl for each rider
+      const riders = await Promise.all(items.map(async (item: any) => {
+        const latitude = parseFloat(item.latitude);
+        const longitude = parseFloat(item.longitude);
+        let signedUrl = null;
+        // Use 'photoKey' as the S3 key field; adjust if your field is different
+        const photoKey = item.photoKey || item.transportPhoto || item.itemPhoto;
+        if (photoKey && photoKey !== 'None') {
+          try {
+            const urlObj = await getUrl({ key: photoKey });
+            if (urlObj && urlObj.url) {
+              signedUrl = urlObj.url.toString();
+            } else {
+              signedUrl = null;
+            }
+          } catch (err) {
+            console.error('Failed to get signed URL for rider image:', photoKey, err);
+            signedUrl = null;
+          }
+        }
+        return {
+          ...item,
+          latitude,
+          longitude,
+          signedUrl
+        };
+      }));
+      const validRiders = riders.filter((r: any) => !isNaN(r.latitude) && !isNaN(r.longitude));
+      console.log('PassengerRequestRide: parsed riders count', validRiders.length);
+      setAllRiders(validRiders);
     } catch (err) {
       console.error('PassengerRequestRide: Error fetching riders:', err);
     } finally {
@@ -251,7 +280,18 @@ export default function RideRequestMapScreen({
   // Selected rider id
   const [selectedRiderId, setSelectedRiderId] = useState<string | null>(null);
 
-  // Update polyline when a rider is focused/selected
+  // Invalidate cached polylines when pickup or destination changes
+  useEffect(() => {
+    if (!selectedRiderId) return;
+    // Invalidate both pickup and drop cache for this rider
+    if (routeCache.current[selectedRiderId]) {
+      delete routeCache.current[selectedRiderId].pickup;
+      delete routeCache.current[selectedRiderId].drop;
+      delete routeCache.current[selectedRiderId].dropDistanceKm;
+    }
+  }, [filters.pickup, filters.destination, selectedRiderId]);
+
+  // Update polyline when a rider is focused/selected or pickup/destination changes
   useEffect(() => {
     const drawPolyline = async () => {
       if (!selectedRiderId || !filters.pickup) {
@@ -351,7 +391,51 @@ export default function RideRequestMapScreen({
   const [destinationText, setDestinationText] = useState('');
   const mapRef = useRef<MapView | null>(null);
   const carouselRef = useRef<FlatList | null>(null);
-  const carouselPosition = useRef(new Animated.Value(SCREEN_HEIGHT * 0.6)).current;
+  // Draggable carousel state
+  const CAROUSEL_HEIGHT = 220;
+  // Clamp so at least 60px of the carousel is always visible at top and bottom
+  const MIN_CAROUSEL_TOP = 60; // 60px from top
+  const MAX_CAROUSEL_TOP = SCREEN_HEIGHT - CAROUSEL_HEIGHT - 60; // 60px from bottom
+  const carouselPosition = useRef(new Animated.Value(MAX_CAROUSEL_TOP)).current;
+
+  // Ensure carousel is visible on mount
+  useEffect(() => {
+    setTimeout(() => {
+      Animated.timing(carouselPosition, {
+        toValue: MAX_CAROUSEL_TOP,
+        duration: 0,
+        useNativeDriver: false
+      }).start();
+    }, 100);
+  }, []);
+
+  const lastTop = useRef(MAX_CAROUSEL_TOP);
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: () => true,
+      onPanResponderGrant: () => {
+        carouselPosition.stopAnimation();
+      },
+      onPanResponderMove: (evt, gestureState) => {
+        let newTop = lastTop.current + gestureState.dy;
+        newTop = Math.max(MIN_CAROUSEL_TOP, Math.min(newTop, MAX_CAROUSEL_TOP));
+        carouselPosition.setValue(newTop);
+      },
+      onPanResponderRelease: (evt, gestureState) => {
+        let newTop = lastTop.current + gestureState.dy;
+        newTop = Math.max(MIN_CAROUSEL_TOP, Math.min(newTop, MAX_CAROUSEL_TOP));
+        // Snap to closest position
+        let snapTo = (newTop < (MIN_CAROUSEL_TOP + MAX_CAROUSEL_TOP) / 2) ? MIN_CAROUSEL_TOP : MAX_CAROUSEL_TOP;
+        Animated.spring(carouselPosition, {
+          toValue: snapTo,
+          useNativeDriver: false
+        }).start(() => {
+          lastTop.current = snapTo;
+        });
+      },
+    })
+  ).current;
 
   // ---------- Notification Handlers ----------
   useEffect(() => {
@@ -605,18 +689,20 @@ export default function RideRequestMapScreen({
       }}>
         {/* Riders: custom marker showing numberPlate (if available) or price */}
         {filteredRiders.map((rider, idx) => (
-          <Marker key={rider.id} coordinate={{ latitude: rider.latitude, longitude: rider.longitude }} onPress={() => focusOnRider(rider, idx)}>
-            <View style={[styles.markerContainer, selectedRiderId === rider.id && styles.selectedMarker]}>
-              <Text style={styles.markerText}>{selectedRiderId === rider.id ? ` ${rider.numberPlate || rider.transportName?.slice(0,6)}` : formatAmountSync(Math.round(rider._estimatedCost || 0), natCode, ratesMap)}</Text>
-            </View>
+          <Marker
+            key={rider.id}
+            coordinate={{ latitude: rider.latitude, longitude: rider.longitude }}
+            onPress={() => focusOnRider(rider, idx)}
+          >
+            <View style={[styles.markerContainer, selectedRiderId === rider.id && styles.selectedMarker]} />
           </Marker>
         ))}
 
         {/* Pickup marker */}
         {filters.pickup && (
           <Marker coordinate={{ latitude: filters.pickup.latitude, longitude: filters.pickup.longitude }}>
-            <View style={{ backgroundColor: '#27ae60', padding: 6, borderRadius: 6 }}>
-              <Text style={{ color: '#fff', fontWeight: '700' }}>📍 Pick up</Text>
+            <View style={{ backgroundColor: '#27ae60', padding: 4, borderRadius: 16, alignItems: 'center', justifyContent: 'center' }}>
+              <Ionicons name="person-circle" size={32} color="#fff" />
             </View>
           </Marker>
         )}
@@ -624,8 +710,8 @@ export default function RideRequestMapScreen({
         {/* Destination marker */}
         {filters.destination && (
           <Marker coordinate={{ latitude: filters.destination.latitude, longitude: filters.destination.longitude }}>
-            <View style={{ backgroundColor: '#9b59b6', padding: 6, borderRadius: 6 }}>
-              <Text style={{ color: '#fff', fontWeight: '700' }}>🎯 Destination</Text>
+            <View style={{ backgroundColor: '#9b59b6', padding: 4, borderRadius: 16, alignItems: 'center', justifyContent: 'center' }}>
+              <Ionicons name="flag" size={28} color="#fff" />
             </View>
           </Marker>
         )}
@@ -641,107 +727,150 @@ export default function RideRequestMapScreen({
         )}
       </MapView>
 
-      {/* Filter/Search Panel */}
-      <View style={styles.filterPanel}>
-        <GooglePlacesAutocompleteNew
-          placeholder="Pickup location"
-          value={pickupInput}
-          onValueChange={setPickupInput}
-          onPlaceSelected={(place: any) => fetchPlaceDetails(place, 'pickup')}
-          clearOnSelect={false}
-        />
-        <GooglePlacesAutocompleteNew
-          placeholder="Destination"
-          value={destinationInput}
-          onValueChange={setDestinationInput}
-          onPlaceSelected={(place: any) => fetchPlaceDetails(place, 'destination')}
-          clearOnSelect={false}
-        />
 
-        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-          <TextInput
-            placeholder="Radius (km)"
-            value={filters.radiusKm}
-            keyboardType="numeric"
-            onChangeText={t => setFilters(f => ({ ...f, radiusKm: t }))}
-            style={[styles.smallInput, { width: 80, marginTop: 6 }]}
-          />
-          {filteringLoading && (
-            <ActivityIndicator size="small" color="#e58d29" style={{ marginLeft: 8, marginTop: 6 }} />
-          )}
-          <TouchableOpacity onPress={fetchRiders} style={styles.refreshBtn}>
-            {loadingAllRiders ? <ActivityIndicator size="small" color="#1f8ef1" style={{ marginLeft: 8, marginTop: 6 }} /> : <Text style={styles.refreshTxt}>Refresh</Text>}
-          </TouchableOpacity>
-        </View>
+      {/* Filter/Search Panel (collapsible) */}
+      <View style={[styles.filterPanel, filterPanelCollapsed && { height: 40, minHeight: 40, overflow: 'hidden', paddingVertical: 0, paddingBottom: 0 }]}> 
+        <TouchableOpacity
+          onPress={() => setFilterPanelCollapsed(c => !c)}
+          style={{ position: 'absolute', top: 4, right: 8, zIndex: 10, backgroundColor: '#e58d29', borderRadius: 12, paddingHorizontal: 10, paddingVertical: 2 }}
+        >
+          <Text style={{ color: '#fff', fontWeight: 'bold' }}>{filterPanelCollapsed ? '▼ Show Filters' : '▲ Hide Filters'}</Text>
+        </TouchableOpacity>
+        {!filterPanelCollapsed && (
+          <>
+            <GooglePlacesAutocompleteNew
+              placeholder="Pickup location"
+              value={pickupInput}
+              onValueChange={setPickupInput}
+              onPlaceSelected={(place: any) => fetchPlaceDetails(place, 'pickup')}
+              clearOnSelect={false}
+            />
+            <GooglePlacesAutocompleteNew
+              placeholder="Destination"
+              value={destinationInput}
+              onValueChange={setDestinationInput}
+              onPlaceSelected={(place: any) => fetchPlaceDetails(place, 'destination')}
+              clearOnSelect={false}
+            />
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <TextInput
+                placeholder="Radius (km)"
+                value={filters.radiusKm}
+                keyboardType="numeric"
+                onChangeText={t => setFilters(f => ({ ...f, radiusKm: t }))}
+                style={[styles.smallInput, { width: 80, marginTop: 6 }]}
+              />
+              {filteringLoading && (
+                <ActivityIndicator size="small" color="#e58d29" style={{ marginLeft: 8, marginTop: 6 }} />
+              )}
+              <TouchableOpacity onPress={fetchRiders} style={styles.refreshBtn}>
+                {loadingAllRiders ? <ActivityIndicator size="small" color="#1f8ef1" style={{ marginLeft: 8, marginTop: 6 }} /> : <Text style={styles.refreshTxt}>Refresh</Text>}
+              </TouchableOpacity>
+            </View>
+          </>
+        )}
       </View>
 
-      {/* Payment */}
-      
-      {/* Payment Method Toggle */}
-    <View style={styles.paymentToggle}>
 
-   <TouchableOpacity style={[styles.payBtn, paymentMethod === 'MiFedha' && styles.payBtnActive]}>
-    <Text style={[styles.payTxt, paymentMethod === 'MiFedha' && styles.payTxtActive]}>
-      Payment method
-    </Text>
-  </TouchableOpacity>
+      {/* Payment Method Toggle (with collapse/expand icon) */}
+      {!filterPanelCollapsed && (
+        <View style={styles.paymentToggle}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+            <Text style={{ fontWeight: 'bold', fontSize: 16, marginLeft: 4 }}>Payment method</Text>
+            <TouchableOpacity
+              onPress={() => setFilterPanelCollapsed(true)}
+              style={styles.collapseBtn}
+              activeOpacity={0.8}
+            >
+              <Text style={{ fontSize: 22, color: '#fff' }}>▼</Text>
+            </TouchableOpacity>
+          </View>
+          <TouchableOpacity style={[styles.payBtn, paymentMethod === 'Cash' && styles.payBtnActive]} onPress={() => setPaymentMethod('Cash')}>
+            <Text style={[styles.payTxt, paymentMethod === 'Cash' && styles.payTxtActive]}>
+              Cash
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.payBtn, paymentMethod === 'NiSenti' && styles.payBtnActive]} onPress={() => setPaymentMethod('NiSenti')}>
+            <Text style={[styles.payTxt, paymentMethod === 'NiSenti' && styles.payTxtActive]}>
+              NiSenti
+            </Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
-   <TouchableOpacity style={[styles.payBtn, paymentMethod === 'Cash' && styles.payBtnActive]} onPress={() => setPaymentMethod('Cash')}>
-
-    
-    <Text style={[styles.payTxt, paymentMethod === 'Cash' && styles.payTxtActive]}>
-      Cash
-    </Text>
-  </TouchableOpacity>
-  
-  <TouchableOpacity style={[styles.payBtn, paymentMethod === 'MiFedha' && styles.payBtnActive]} onPress={() => setPaymentMethod('MiFedha')}>
-    <Text style={[styles.payTxt, paymentMethod === 'MiFedha' && styles.payTxtActive]}>
-      NiSenti
-    </Text>
-  </TouchableOpacity>
- 
-
- 
-    </View>
+      {/* Floating expand icon when collapsed, attached to payment method area */}
+      {filterPanelCollapsed && (
+        <TouchableOpacity
+          onPress={() => setFilterPanelCollapsed(false)}
+          style={styles.floatingExpandBtn}
+          activeOpacity={0.8}
+        >
+          <Text style={{ fontSize: 22, color: '#fff' }}>▲</Text>
+        </TouchableOpacity>
+      )}
 
 
       {/* Carousel */}
-      <Animated.View style={[styles.carouselContainer, {
-      top: carouselPosition
-    }]}>
-        <FlatList ref={carouselRef} data={filteredRiders} horizontal keyExtractor={item => item.id} showsHorizontalScrollIndicator={false} renderItem={({
-        item,
-        index
-      }) => <TouchableOpacity style={[styles.card, selectedRiderId === item.id && styles.cardSelected]} onPress={() => focusOnRider(item, index)} onLongPress={() => confirmAndRequestRide(item)}>
-        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-          {item.signedUrl ? (
-            <Image source={{ uri: item.signedUrl }} style={{ width: 60, height: 60, borderRadius: 8 }} />
-          ) : (
-            <View style={styles.thumbPlaceholder}>
-              <Text style={{ color: '#fff' }}>{(item.transportType || 'TR').slice(0, 2).toUpperCase()}</Text>
-            </View>
-          )}
-          <View style={{ flex: 1, paddingLeft: 10 }}>
-            <Text style={{ fontWeight: '700' }}>{item.transportName || 'Rider'}</Text>
-            <Text style={{ fontSize: 12 }}>
-              {item.transportType} • {formatAmountSync(item.transportRate, nationality, ratesMap)}/km
-            </Text>
-            <Text style={{ fontSize: 12 }}>
-              Est: {formatAmountSync(Math.round(item._estimatedCost || 0), natCode, ratesMap)} || {selectedRiderId === item.id && selectedRouteDistanceKm != null ? selectedRouteDistanceKm.toFixed(2) : (item._tripDistanceKm || 0).toFixed(2)} km
-            </Text>
-            {/* New button for TransportDetails */}
-            <TouchableOpacity
-              style={[styles.requestBtn, { backgroundColor: '#4CAF50', marginTop: 6 }]}
-              onPress={() => navigation.navigate('TransportDetails', { riderId: item.id })}
-            >
-              <Text style={{ color: '#fff' }}>View Details</Text>
-            </TouchableOpacity>
-          </View>
-          <TouchableOpacity style={styles.requestBtn} onPress={() => confirmAndRequestRide(item)}>
-            {loadingRiders[item.id] ? <ActivityIndicator color="#fff" /> : <Text style={{ color: '#fff' }}>Request</Text>}
-          </TouchableOpacity>
+      <Animated.View
+        style={[
+          styles.carouselContainer,
+          {
+            top: carouselPosition,
+            height: CAROUSEL_HEIGHT,
+            zIndex: 100,
+            borderWidth: 2,
+            borderColor: '#e58d29',
+            pointerEvents: 'box-none',
+          },
+        ]}
+        {...panResponder.panHandlers}
+      >
+        <View style={styles.carouselHandle}>
+          <View style={styles.carouselHandleBar} />
         </View>
-      </TouchableOpacity>} />
+        <FlatList
+          ref={carouselRef}
+          data={filteredRiders}
+          horizontal
+          keyExtractor={item => item.id}
+          showsHorizontalScrollIndicator={false}
+          renderItem={({ item, index }) => (
+            <TouchableOpacity
+              style={[styles.card, selectedRiderId === item.id && styles.cardSelected]}
+              onPress={() => focusOnRider(item, index)}
+              onLongPress={() => confirmAndRequestRide(item)}
+            >
+              <View style={{ flexDirection: 'row', alignItems: 'center', }}>
+                {item.signedUrl ? (
+                  <Image source={{ uri: item.signedUrl }} style={{ width: 60, height: 60, borderRadius: 8 }} />
+                ) : (
+                  <View style={styles.thumbPlaceholder}>
+                    <Text style={{ color: '#fff' }}>{(item.transportType || 'TR').slice(0, 2).toUpperCase()}</Text>
+                  </View>
+                )}
+                <View style={{ flex: 1, paddingLeft: 10 }}>
+                  <Text style={{ fontWeight: '700' }}>{item.transportName || 'Rider'}</Text>
+                  <Text style={{ fontSize: 12 }}>
+                    {item.transportType} • {formatAmountSync(item.transportRate, nationality, ratesMap)}/km
+                  </Text>
+                  <Text style={{ fontSize: 12 }}>
+                    Est: {formatAmountSync(Math.round(item._estimatedCost || 0), natCode, ratesMap)} || {selectedRiderId === item.id && selectedRouteDistanceKm != null ? selectedRouteDistanceKm.toFixed(2) : (item._tripDistanceKm || 0).toFixed(2)} km
+                  </Text>
+                  {/* New button for TransportDetails */}
+                  <TouchableOpacity
+                    style={[styles.requestBtn, { backgroundColor: '#4CAF50', marginTop: 6 }]}
+                    onPress={() => navigation.navigate('TransportDetails', { id: item.id })}
+                  >
+                    <Text style={{ color: '#fff' }}>View Details</Text>
+                  </TouchableOpacity>
+                </View>
+                <TouchableOpacity style={styles.requestBtn} onPress={() => confirmAndRequestRide(item)}>
+                  {loadingRiders[item.id] ? <ActivityIndicator color="#fff" /> : <Text style={{ color: '#fff' }}>Request</Text>}
+                </TouchableOpacity>
+              </View>
+            </TouchableOpacity>
+          )}
+        />
       </Animated.View>
     </View>;
 }
@@ -753,6 +882,19 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center'
   },
+  carouselHandle: {
+    width: '100%',
+    alignItems: 'center',
+    paddingTop: 6,
+    paddingBottom: 2,
+  },
+  carouselHandleBar: {
+    width: 40,
+    height: 5,
+    borderRadius: 3,
+    backgroundColor: '#ccc',
+    marginBottom: 4,
+  },
   filterPanel: {
     position: 'absolute',
     top: 12,
@@ -763,6 +905,38 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     elevation: 6,
     zIndex: 5
+  },
+  collapseBtn: {
+    backgroundColor: '#e58d29',
+    borderRadius: 16,
+    width: 32,
+    height: 32,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 4,
+    marginLeft: 8,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.15,
+    shadowRadius: 2,
+  },
+  floatingExpandBtn: {
+    position: 'absolute',
+    top: 250,
+    left: 12,
+    backgroundColor: '#e58d29',
+    borderRadius: 16,
+    width: 32,
+    height: 32,
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 6,
+    zIndex: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.15,
+    shadowRadius: 2,
   },
   smallInput: {
     backgroundColor: '#f5f5f5',
@@ -796,20 +970,29 @@ const styles = StyleSheet.create({
   },
   carouselContainer: {
     position: 'absolute',
-    width: SCREEN_WIDTH,
-    height: 140,
-    backgroundColor: 'rgba(255,255,255,0.95)',
-    zIndex: 10,
-    bottom: 12,
-    paddingTop: 6
+    left: 0,
+    right: 0,
+    alignSelf: 'center',
+    width: SCREEN_WIDTH * 0.90, // slightly less than full width for margin
+    backgroundColor: 'rgba(255,255,255,0.97)',
+    zIndex: 100,
+    paddingTop: 6,
+    borderRadius: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    paddingHorizontal: 0,
   },
   card: {
     backgroundColor: 'white',
     marginHorizontal: 8,
     padding: 8,
     borderRadius: 8,
-    width: SCREEN_WIDTH * 0.82,
-    elevation: 3
+    width: SCREEN_WIDTH * 0.90, // slightly less than full width for margin
+    elevation: 3,
+    minHeight: 120, // Increased height for better visibility
+    height: 120, // Set a larger fixed height for the card
   },
   cardSelected: {
     borderColor: '#1f8ef1',
@@ -817,18 +1000,23 @@ const styles = StyleSheet.create({
   },
   thumbPlaceholder: {
     width: 60,
-    height: 60,
+    height: 90,
     backgroundColor: '#e58d29',
     borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center'
   },
   markerContainer: {
-    backgroundColor: '#1f8ef1',
-    padding: 4,
-    borderRadius: 4,
+    backgroundColor: '#293ad1',
+    minWidth: 40,
+    height: 40,
+    paddingHorizontal: 10,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#333',
     alignItems: 'center',
-    justifyContent: 'center'
+    justifyContent: 'center',
+    flexDirection: 'row',
   },
   selectedMarker: {
     backgroundColor: '#e58d29'
@@ -836,7 +1024,9 @@ const styles = StyleSheet.create({
   markerText: {
     color: '#fff',
     fontWeight: 'bold',
-    fontSize: 12
+    fontSize: 13,
+    textAlign: 'center',
+    paddingHorizontal: 4,
   },
   requestBtn: {
     backgroundColor: '#1f8ef1',

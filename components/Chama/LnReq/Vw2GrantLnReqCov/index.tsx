@@ -221,10 +221,10 @@ const SMCvLnStts = (props: SMAccount) => {
   const loanerDetails = t.loanerDetails
     .replace('{name}', loaneeName)
     .replace('{amount}', formatAmountSync(Math.floor(amount), userCode, ratesMap))
-    .replace('{interest}', repaymentAmt)
+    .replace('{interest}', formatAmountSync(Math.ceil(repaymentAmt), userCode, ratesMap))
     .replace('{days}', repaymentPeriod)
-    .replace('{installment}', installmentAmount)
-    .replace('{frequency}', paymentFrequency)
+    .replace('{installment}', formatAmountSync(Math.ceil(installmentAmount), userCode, ratesMap))
+    .replace('{frequency}', formatAmountSync(Math.ceil(paymentFrequency), userCode, ratesMap))
     .replace('{phone}', loaneePhone);
   const confirmation1 = t.confirmation1.replace('{confirm1}', confirm1);
   const confirmation2 = t.confirmation2.replace('{confirm2}', confirm2);

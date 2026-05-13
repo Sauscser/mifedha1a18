@@ -2,6 +2,7 @@ import { View, Text, ScrollView, Image, TouchableOpacity, Linking } from 'react-
 import styles from './styles';
 
 import React, {useEffect, useState} from 'react';
+import { getUrl } from 'aws-amplify/storage';
 import { formatAmountSync } from '../../../src/utils/exchange';
 import { nationalityToCode } from '../../../src/utils/nationalityToCode';
 import {useExchange} from '../../../src/contexts/ExchangeContext';
@@ -28,7 +29,6 @@ export interface SMAccount {
 const ViewSMDeposts = ({ SMAc }: SMAccount) => {
   const {
     id,
-    
     transportkntct,
     transportRate,
     ImageUrl,
@@ -37,8 +37,33 @@ const ViewSMDeposts = ({ SMAc }: SMAccount) => {
     transportPhoto,
     transportName,
     transportType,
-  
   } = SMAc;
+
+  // S3 image state
+  const [signedUrl, setSignedUrl] = useState<string | null>(null);
+  const [imageError, setImageError] = useState(false);
+
+  useEffect(() => {
+    let isMounted = true;
+    async function fetchImage() {
+      setImageError(false);
+      setSignedUrl(null);
+      if (transportPhoto && transportPhoto !== 'None') {
+        try {
+          const urlObj = await getUrl({ key: transportPhoto });
+          if (isMounted && urlObj && urlObj.url) {
+            setSignedUrl(urlObj.url.toString());
+          }
+        } catch (err) {
+          if (isMounted) setImageError(true);
+        }
+      } else {
+        setImageError(true);
+      }
+    }
+    fetchImage();
+    return () => { isMounted = false; };
+  }, [transportPhoto]);
 
     const client = generateClient();
       const [Uzer, setUzer] = useState<string>(null);
@@ -77,13 +102,19 @@ const ViewSMDeposts = ({ SMAc }: SMAccount) => {
   return (
     <ScrollView contentContainerStyle={styles.pageContainer}>
       <View style={styles.card}>
-        <Image
-          source={{
-            uri: `https://mifedhasalesadsphotosc789c-mifedha.s3.us-east-1.amazonaws.com/public/${transportPhoto}`,
-          }}
-          style={styles.carouselImage}
-          resizeMode="cover"
-        />
+
+        {signedUrl && !imageError ? (
+          <Image
+            source={{ uri: signedUrl }}
+            style={styles.carouselImage}
+            resizeMode="cover"
+            onError={() => setImageError(true)}
+          />
+        ) : (
+          <View style={[styles.carouselImage, { backgroundColor: '#eee', alignItems: 'center', justifyContent: 'center' }]}> 
+            <Text style={{ color: '#aaa' }}>No Image</Text>
+          </View>
+        )}
 
         <View style={styles.infoSection}>
           <Text style={styles.prodInfo}>

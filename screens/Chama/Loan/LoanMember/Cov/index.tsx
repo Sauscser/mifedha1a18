@@ -5,7 +5,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { KeyboardAvoidingView, Platform, Alert, ScrollView, TextInput, TouchableOpacity, View, Text, ActivityIndicator } from 'react-native';
 import { StyleSheet } from 'react-native';
 import { createCvrdGroupLoans, updateChamaMembers, updateGroup, updateSMAccount, updateCompany, updateMiFedhaBankAdmin, updateChamaControlTable, updateReqLoanChama, updateAdvocate, createMessages, sendNotification } from '../../../../../src/graphql/mutations';
-import { getReqLoanChama, getSMAccount, getChamaMembers, getGroup, getCompany, getChamaControlTable, getMiFedhaBankAdmin, getAdvocate } from '../../../../../src/graphql/queries';
+import { createLaonRepaymentNotification } from '../../../../../src/graphql/mutations';
+import { getReqLoanChama, getSMAccount, getNotification, getChamaMembers, getGroup, getCompany, getChamaControlTable, getMiFedhaBankAdmin, getAdvocate } from '../../../../../src/graphql/queries';
 import { generateClient } from 'aws-amplify/api';
 import { getCurrentUser, fetchUserAttributes } from 'aws-amplify/auth';
 import { useExchange } from '../../../../../src/contexts/ExchangeContext';
@@ -119,6 +120,37 @@ const ChmCovLns = () => {
       } = await fetchGraphQL(getSMAccount, {
         awsemail: loaneeEmail
       });
+
+      const {
+        getNotification: recAccountNotification
+      } = await fetchGraphQL(getNotification, {
+        awsemail: loaneeEmail
+      });
+      // --- Notification wiring: create laonrepaymentnotification after loan creation ---
+      const createNotification = async () => {
+        try {
+          const dueDate = (() => {
+            const crtn = new Date();
+            return crtn;
+          })();
+          await client.graphql({
+            query: createLaonRepaymentNotification,
+            variables: {
+              input: {
+                loanId: route.params.id,
+                userId: loaneeEmail,
+                dueDate: new Date(),
+                sent: false,
+                notificationType: 'Loan Repayment Due',
+                loanType: 'GrpLn',
+                fcmToken: recAccountNotification?.firebaseKey || ''
+              }
+            }
+          });
+        } catch (err) {
+          console.log('Failed to create laonrepaymentnotification:', err);
+        }
+      };
       const {
         getChamaControlTable: controlTable
       } = await fetchGraphQL(getChamaControlTable, {
@@ -201,6 +233,7 @@ const ChmCovLns = () => {
       };
       if (advLicNo === 'None') {
         await createLoan();
+        await createNotification();
       } else {
         const {
           getAdvocate: adv
@@ -219,6 +252,7 @@ const ChmCovLns = () => {
             }
           }
         });
+        await createNotification();
       }
       await client.graphql({
         query: updateChamaMembers,
@@ -305,12 +339,26 @@ const ChmCovLns = () => {
           }
         }
       });
+      // Use recipient's currency for notification (like Vw2GrantLnReqCov)
+      const recUserCode = nationalityToCode(recAccount.nationality) || recAccount.nationality || 'KE';
+      const formatRecipientMoney = (amt) => formatAmountSync(amt || 0, recUserCode, ratesMap);
+      const notificationMessage = t.notifications.message
+        .replace('{{groupName}}', group.grpName)
+        .replace('{{amount}}', formatRecipientMoney(amountKes))
+        .replace('{{totalAmount}}', formatRecipientMoney(totalAmount))
+        .replace('{{interestAmount}}', formatRecipientMoney(repaymentAmountKes))
+        .replace('{{repaymentPeriod}}', repaymentPeriod)
+        .replace('{{transactionFee}}', formatRecipientMoney(transFee))
+        .replace('{{advocateFee}}', advLicNo !== 'None' ? formatRecipientMoney(ttlCovFeeAmount * parseFloat(company.AdvCom)) : '0')
+        .replace('{{installmentAmount}}', formatRecipientMoney(installmentAmountKes))
+        .replace('{{paymentFrequency}}', paymentFrequency);
+
       await client.graphql({
         query: createMessages,
         variables: {
           input: {
             senderEmail: loaneeEmail,
-            messageBody: t.notifications.message // You may want to interpolate values manually if needed
+            messageBody: notificationMessage
           }
         }
       });
@@ -319,10 +367,17 @@ const ChmCovLns = () => {
         variables: {
           riderEmail: loaneeEmail,
           title: t.notifications.title,
-          body: t.notifications.message // You may want to interpolate values manually if needed
+          body: notificationMessage
         }
       });
-      Alert.alert(advLicNo !== 'None' ? t.alerts.successWithAdv : t.alerts.successNoAdv);
+      // Feedback to sender using translations
+      const senderSuccessMsg = advLicNo !== 'None'
+        ? t.alerts.successWithAdv
+            .replace('{{transFee}}', formatRecipientMoney(transFee))
+            .replace('{{advFee}}', formatRecipientMoney(ttlCovFeeAmount * parseFloat(company.AdvCom)))
+        : t.alerts.successNoAdv
+            .replace('{{transFee}}', formatRecipientMoney(transFee));
+      Alert.alert(t.labels.header, senderSuccessMsg);
       setField('amount', '');
       setField('AmtExp', '');
       setField('SnderPW', '');

@@ -1,6 +1,7 @@
 // @ts-nocheck
 import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, ScrollView, TouchableOpacity, Alert, KeyboardAvoidingView, Platform, ActivityIndicator, Dimensions, StyleSheet, Image } from 'react-native';
+import { Modal } from 'react-native';
 import { getCurrentUser, fetchUserAttributes } from 'aws-amplify/auth';
 import { uploadData } from 'aws-amplify/storage';
 import { generateClient } from 'aws-amplify/api';
@@ -8,6 +9,7 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
+import * as DocumentPicker from 'expo-document-picker';
 import { createChamaMembers, createGroup, updateChamaApply2, updateCompany } from '../../../src/graphql/mutations';
 import { getMiFedhaBankAdmin, getSMAccount, getCompany } from '../../../src/graphql/queries';
 
@@ -58,6 +60,81 @@ const CreateChama = (props: UserReg) => {
   const [chairSignUri, setChairSignUri] = useState<string | null>(null);
   const [secSignKey, setSecSignKey] = useState<string | null>(null);
   const [secSignUri, setSecSignUri] = useState<string | null>(null);
+    /** Secretary Signature Handling (PDF or Image) **/
+    const pickSecretarySignature = async () => {
+      try {
+        const result = await DocumentPicker.getDocumentAsync({
+          type: ['application/pdf', 'image/*'],
+          copyToCacheDirectory: true,
+        });
+        if (result.assets && result.assets.length > 0) {
+          const asset = result.assets[0];
+          const response = await fetch(asset.uri);
+          const blob = await response.blob();
+          const ext = asset.name?.split('.').pop() || 'pdf';
+          const key = `sec_signature_${Date.now()}.${ext}`;
+          await uploadData({ key, data: blob, options: { contentType: blob.type } }).result;
+          setSecSignKey(key);
+          setSecSignUri(asset.uri);
+          Alert.alert('Upload Success', 'Secretary signature uploaded to server.');
+        }
+      } catch (err) {
+        Alert.alert('Upload Failed', 'Could not upload signature. Please try again.');
+      }
+    };
+
+    /** Chair Signature Handling (PDF or Image) **/
+    const pickChairSignature = async () => {
+      try {
+        const result = await DocumentPicker.getDocumentAsync({
+          type: ['application/pdf', 'image/*'],
+          copyToCacheDirectory: true,
+        });
+        if (result.assets && result.assets.length > 0) {
+          const asset = result.assets[0];
+          const response = await fetch(asset.uri);
+          const blob = await response.blob();
+          const ext = asset.name?.split('.').pop() || 'pdf';
+          const key = `chair_signature_${Date.now()}.${ext}`;
+          await uploadData({ key, data: blob, options: { contentType: blob.type } }).result;
+          setChairSignKey(key);
+          setChairSignUri(asset.uri);
+          Alert.alert('Upload Success', 'Chair signature uploaded to server.');
+        }
+      } catch (err) {
+        Alert.alert('Upload Failed', 'Could not upload signature. Please try again.');
+      }
+    };
+  // Document upload states
+  const [docKey, setDocKey] = useState<string | null>(null);
+  const [docUri, setDocUri] = useState<string | null>(null);
+    /** Document/Image Upload (PDF or Image) **/
+    const pickDocumentOrImage = async () => {
+      try {
+        const result = await DocumentPicker.getDocumentAsync({
+          type: ['application/pdf', 'image/*'],
+          copyToCacheDirectory: true,
+        });
+        if (result.assets && result.assets.length > 0) {
+          setDocUri(result.assets[0].uri);
+          // S3 upload logic
+          try {
+            const response = await fetch(result.assets[0].uri);
+            const blob = await response.blob();
+            const ext = result.assets[0].name?.split('.').pop() || 'pdf';
+            const key = `chama_doc_${Date.now()}.${ext}`;
+            await uploadData({ key, data: blob, options: { contentType: blob.type } }).result;
+            setDocKey(key);
+            Alert.alert('Upload Success', 'Document uploaded to server.');
+          } catch (err) {
+            console.error('S3 upload error:', err);
+            Alert.alert('Upload Failed', 'Could not upload document. Please try again.');
+          }
+        }
+      } catch (err) {
+        Alert.alert('Error', 'Failed to pick document or image.');
+      }
+    };
   const ChmPhnNphoneContact = MmbaID + ChamaAcNu;
 
   const { ratesMap } = useExchange();
@@ -102,61 +179,7 @@ const CreateChama = (props: UserReg) => {
   }, []);
 
   /** Image Handling **/
-  const pickSignature = async (role: 'chair' | 'sec') => {
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: false,
-      aspect: [4, 3],
-      quality: 1
-    });
-    if (!result.canceled && result.assets?.[0]?.uri) {
-      handleSignature(result.assets[0].uri, role);
-    }
-  };
-  const takeSignature = async (role: 'chair' | 'sec') => {
-    const result = await ImagePicker.launchCameraAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: false,
-      aspect: [4, 3],
-      quality: 1
-    });
-    if (!result.canceled && result.assets?.[0]?.uri) {
-      handleSignature(result.assets[0].uri, role);
-    }
-  };
-  const handleSignature = async (uri: string, role: 'chair' | 'sec') => {
-    try {
-      const manipResult = await ImageManipulator.manipulateAsync(uri, [{
-        resize: {
-          width: 600
-        }
-      }], {
-        compress: 0.7,
-        format: ImageManipulator.SaveFormat.PNG
-      });
-      const response = await fetch(manipResult.uri);
-      const blob = await response.blob();
-      const imageSizeMB = blob.size / (1024 * 1024);
-      if (imageSizeMB > MAX_IMAGE_SIZE_MB) {
-        Alert.alert('Image too large', `Image is ${imageSizeMB.toFixed(2)}MB. Max allowed is ${MAX_IMAGE_SIZE_MB}MB.`);
-        return;
-      }
-      const filename = `${Date.now()}_${role}Sign.png`;
-      // Upload using Amplify Storage v6 helper
-      await uploadData({ key: filename, data: blob, options: { contentType: 'image/png' } }).result;
-      if (role === 'chair') {
-        setChairSignKey(filename);
-        setChairSignUri(manipResult.uri);
-      } else {
-        setSecSignKey(filename);
-        setSecSignUri(manipResult.uri);
-      }
-      Alert.alert('Success', `${role} signature uploaded successfully.`);
-    } catch (err) {
-      console.error('Signature upload failed:', err);
-      Alert.alert('Error', 'Failed to upload signature. Please try again.');
-    }
-  };
+  // Removed old pickSignature, takeSignature, handleSignature logic
   const clearSignature = (role: 'chair' | 'sec') => {
     if (role === 'chair') {
       setChairSignKey(null);
@@ -167,34 +190,50 @@ const CreateChama = (props: UserReg) => {
     }
   };
   const handleCreateChama = async () => {
-    // Convert amounts to KES first    const subAmtForeign = parseAmountInput(SubAmt);
+    console.log('handleCreateChama called');
+    // Fallbacks for translation keys
+    const tConfirmGroupCreation = t.confirmGroupCreation || 'Confirm Group Creation';
+    const tSubscriptionAmount = t.subscriptionAmount || 'Subscription Amount';
+    const tLatePenalty = t.latePenalty || 'Late Penalty';
+    const tLoanThreshold = t.loanThreshold || 'Loan Threshold';
+    const tProceed = t.proceed || 'Proceed?';
+    const tCancel = t.cancel || 'Cancel';
+    const tConfirm = t.confirm || 'Confirm';
+    // Convert amounts to KES first, ensure valid numbers (async)
+    const subAmtForeign = parseAmountInput(SubAmt);
     const lateSubForeign = parseAmountInput(lateSub);
     const loanThresholdForeign = parseAmountInput(loanApprovalThreshHold);
-    
-    const subAmtInKES = convertForeignToKsh(subAmtForeign, userCurrencyKey, ratesMap);
-    const lateSubInKES = convertForeignToKsh(lateSubForeign, userCurrencyKey, ratesMap);
-    const loanThresholdInKES = convertForeignToKsh(loanThresholdForeign, userCurrencyKey, ratesMap);
-
+    if (!subAmtForeign || !lateSubForeign || !loanThresholdForeign) {
+      Alert.alert('Missing or invalid amounts', 'Please enter valid values for subscription amount, late penalty, and threshold.');
+      return;
+    }
+    let subAmtInKES = await convertForeignToKsh(subAmtForeign, userCurrencyKey);
+    let lateSubInKES = await convertForeignToKsh(lateSubForeign, userCurrencyKey);
+    let loanThresholdInKES = await convertForeignToKsh(loanThresholdForeign, userCurrencyKey);
+    subAmtInKES = typeof subAmtInKES === 'number' && !isNaN(subAmtInKES) ? subAmtInKES : 0;
+    lateSubInKES = typeof lateSubInKES === 'number' && !isNaN(lateSubInKES) ? lateSubInKES : 0;
+    loanThresholdInKES = typeof loanThresholdInKES === 'number' && !isNaN(loanThresholdInKES) ? loanThresholdInKES : 0;
     // Confirmation prompt
+    console.log('About to show confirmation Alert');
     const confirmed = await new Promise<boolean>((resolve) => {
-      Alert.alert(
-        t.confirmGroupCreation,
-        `${t.subscriptionAmount}: ${formatAmountSync(subAmtInKES, userCurrencyKey, ratesMap)}\n${t.latePenalty}: ${formatAmountSync(lateSubInKES, userCurrencyKey, ratesMap)}\n${t.loanThreshold}: ${formatAmountSync(loanThresholdInKES, userCurrencyKey, ratesMap)}\n\n${t.proceed}`,
-        [
-          { text: t.cancel, style: 'cancel', onPress: () => resolve(false) },
-          { text: t.confirm, onPress: () => resolve(true) }
-        ]
-      );
+      setTimeout(() => {
+        Alert.alert(
+          tConfirmGroupCreation,
+          `${tSubscriptionAmount}: ${formatAmountSync(subAmtInKES, userCurrencyKey, ratesMap)}\n${tLatePenalty}: ${formatAmountSync(lateSubInKES, userCurrencyKey, ratesMap)}\n${tLoanThreshold}: ${formatAmountSync(loanThresholdInKES, userCurrencyKey, ratesMap)}\n\n${tProceed}`,
+          [
+            { text: tCancel, style: 'cancel', onPress: () => { console.log('User cancelled'); resolve(false); } },
+            { text: tConfirm, onPress: () => { console.log('User confirmed'); resolve(true); } }
+          ]
+        );
+      }, 100);
     });
-    
-
+    console.log('Confirmation result:', confirmed);
     if (!confirmed) return;
-
     setIsLoading(true);
     try {
       if (!MmbaID || !ChmNm || !Sign2Phn || !Sign3Phn || !loanApprovalThreshHold || !pword || !SubFreq || !SubAmt || !lateSub || !ventures || !ChmDesc) {
-        Alert.alert(t.missingRequired);
         setIsLoading(false);
+        Alert.alert(t.missingRequired || 'Missing required fields');
         return;
       }
       const safeAWSEmail = awsEmail || 'None';
@@ -222,8 +261,8 @@ const CreateChama = (props: UserReg) => {
       const namess = userRes.data.getSMAccount.name;
       const owner = userRes.data.getSMAccount.owner;
       if (attributes.sub !== owner) {
-        Alert.alert(t.pleaseCreateMainAccount);
         setIsLoading(false);
+        Alert.alert(t.pleaseCreateMainAccount || 'Please create main account');
         return;
       }
       const sign2Res: any = await client.graphql({
@@ -245,13 +284,13 @@ const CreateChama = (props: UserReg) => {
       const curMnths = (today.getMonth() + 1) * 30.4375;
       const daysUpToDate = curYrs + curMnths + today.getDate();
       if (pword.length < 8) {
-        Alert.alert(t.passwordTooShort);
         setIsLoading(false);
+        Alert.alert(t.passwordTooShort || 'Password too short');
         return;
       }
       if (parseFloat(lateSub) > parseFloat(SubAmt)) {
-        Alert.alert(t.tooHighLatePenalty);
         setIsLoading(false);
+        Alert.alert(t.tooHighLatePenalty || 'Late penalty too high');
         return;
       }
       await client.graphql({
@@ -397,7 +436,16 @@ const CreateChama = (props: UserReg) => {
           }
         }
       });
-      Alert.alert(t.success, t.congratsCreated.replace('{name}', namess).replace('{group}', ChmNm));
+      Alert.alert(
+        t.success || 'Success',
+        (t.congratsCreated || 'Group created successfully!').replace('{name}', namess).replace('{group}', ChmNm),
+        [
+          {
+            text: 'OK',
+            onPress: () => navigation.goBack(),
+          },
+        ]
+      );
       // Reset form
       setChmPhn('');
       setPW('');
@@ -417,10 +465,13 @@ const CreateChama = (props: UserReg) => {
       clearSignature('chair');
       clearSignature('sec');
     } catch (error) {
-      console.log(error);
-      Alert.alert(t.errorOccurred);
-    } finally {
       setIsLoading(false);
+      let errorMsg = t.errorOccurred || 'An error occurred.';
+      if (error && error.message) {
+        errorMsg += `\n${error.message}`;
+      }
+      console.log('Group creation error:', error);
+      Alert.alert(t.errorOccurred || 'Error', errorMsg);
     }
   };
   return <LinearGradient colors={['#e58d29', 'skyblue']} style={{
@@ -485,66 +536,96 @@ const CreateChama = (props: UserReg) => {
           });
         })()}
 
-        {/* Chair Signature Upload */}
+       
+       
+
+        {/* Chair Signature Upload (PDF or Image) */}
         <View style={styles.sendLoanView}>
-          <TouchableOpacity onPress={() => pickSignature('chair')} style={styles.sendLoanButton}>
+          <TouchableOpacity onPress={pickChairSignature} style={styles.sendLoanButton}>
             <Text style={styles.sendLoanButtonText}>
               {chairSignUri ? t.changeChairSignature : t.uploadChairSignature}
             </Text>
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => takeSignature('chair')} style={[styles.sendLoanButton, {
-            marginTop: 10
-          }]}>
-            <Text style={styles.sendLoanButtonText}>{t.takeChairSignaturePhoto}</Text>
-          </TouchableOpacity>
-          {chairSignUri && <View style={styles.previewContainer}>
-              <Image source={{
-              uri: chairSignUri
-            }} style={styles.previewImage} />
+          {chairSignUri && (
+            <View style={styles.previewContainer}>
+              {chairSignUri.match(/\.(jpg|jpeg|png|gif)$/i) ? (
+                <Image source={{ uri: chairSignUri }} style={styles.previewImage} />
+              ) : chairSignUri.match(/\.pdf$/i) ? (
+                <Text style={{ color: '#333', marginTop: 8 }}>PDF uploaded: {chairSignUri.split('/').pop()}</Text>
+              ) : (
+                <Text>File uploaded: {chairSignUri.split('/').pop()}</Text>
+              )}
               <TouchableOpacity onPress={() => clearSignature('chair')} style={styles.removeButton}>
                 <Text style={styles.removeButtonText}>{t.removeChairSignature}</Text>
               </TouchableOpacity>
-            </View>}
+            </View>
+          )}
         </View>
 
-        {/* Secretary Signature Upload */}
+        {/* Secretary Signature Upload (PDF or Image) */}
         <View style={styles.sendLoanView}>
-          <TouchableOpacity onPress={() => pickSignature('sec')} style={styles.sendLoanButton}>
+          <TouchableOpacity onPress={pickSecretarySignature} style={styles.sendLoanButton}>
             <Text style={styles.sendLoanButtonText}>
               {secSignUri ? t.changeSecretarySignature : t.uploadSecretarySignature}
             </Text>
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => takeSignature('sec')} style={[styles.sendLoanButton, {
-            marginTop: 10
-          }]}>
-            <Text style={styles.sendLoanButtonText}>{t.takeSecretarySignaturePhoto}</Text>
-          </TouchableOpacity>
-          {secSignUri && <View style={styles.previewContainer}>
-              <Image source={{
-              uri: secSignUri
-            }} style={styles.previewImage} />
+          {secSignUri && (
+            <View style={styles.previewContainer}>
+              {secSignUri.match(/\.(jpg|jpeg|png|gif)$/i) ? (
+                <Image source={{ uri: secSignUri }} style={styles.previewImage} />
+              ) : secSignUri.match(/\.pdf$/i) ? (
+                <Text style={{ color: '#333', marginTop: 8 }}>PDF uploaded: {secSignUri.split('/').pop()}</Text>
+              ) : (
+                <Text>File uploaded: {secSignUri.split('/').pop()}</Text>
+              )}
               <TouchableOpacity onPress={() => clearSignature('sec')} style={styles.removeButton}>
                 <Text style={styles.removeButtonText}>{t.removeSecretarySignature}</Text>
               </TouchableOpacity>
-            </View>}
+            </View>
+          )}
         </View>
 
+    
+
         {/* Submit Button */}
-        <TouchableOpacity onPress={handleCreateChama} style={styles.sendLoanButton}>
-          <Text style={styles.sendLoanButtonText}>{t.clickToCreateGroup}</Text>
-          {isLoading && <ActivityIndicator size="large" color="blue" style={{
-            marginTop: 8
-          }} />}
+        <TouchableOpacity onPress={handleCreateChama} style={styles.sendLoanButton} disabled={isLoading}>
+          {isLoading ? (
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
+              <ActivityIndicator size="small" color="#fff" style={{ marginRight: 8 }} />
+              <Text style={styles.sendLoanButtonText}>{t.loading}</Text>
+            </View>
+          ) : (
+            <Text style={styles.sendLoanButtonText}>{t.clickToCreateGroup}</Text>
+          )}
         </TouchableOpacity>
       </ScrollView>
     </KeyboardAvoidingView>
   </LinearGradient>;
 };
 export default CreateChama;
-const {
-  width
-} = Dimensions.get('window');
+const { width } = Dimensions.get('window');
 const styles = StyleSheet.create({
+  loadingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.3)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 9999,
+  },
+  loadingText: {
+    marginTop: 16,
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    textShadowColor: '#000',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 2,
+  },
   title: {
     fontSize: 22,
     fontWeight: 'bold',

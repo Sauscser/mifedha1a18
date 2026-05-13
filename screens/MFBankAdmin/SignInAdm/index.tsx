@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { createCompany } from '../../../src/graphql/mutations';
 import { getBankAdmin, getCompany, getMiFedhaBankAdmin } from '../../../src/graphql/queries';
 import { useNavigation } from '@react-navigation/native';
-import { View, Text, TextInput, ScrollView, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, Alert, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import styles from './styles';
 import MFBankAdmin from "../../../screens/MFBankAdmin";
 
@@ -14,6 +14,7 @@ const AdminSignIn = props => {
   const [AdmnId, setAdminId] = useState("");
   const [AdminPW, setAdminPW] = useState("");
   const [ownr, setownr] = useState(null);
+  const [showPassword, setShowPassword] = useState(false);
  
   
   const moveToAdminHm = () => {
@@ -77,30 +78,56 @@ const AdminSignIn = props => {
     }
     setAdminPW(pws);
   }, [AdminPW]);
-  return <View>
-              <View style={styles.image}>
-                <ScrollView>
-                  <TouchableOpacity onPress={GoHome} style={styles.loanTitleView}>
-                    <Text style={styles.title}>Go Home</Text>
-                  </TouchableOpacity>
-        
-                  <View style={styles.sendLoanView}>
-                    <TextInput value={AdmnId} onChangeText={setAdminId} style={styles.sendLoanInput} editable={true}></TextInput>
-                    <Text style={styles.sendLoanText}>Admin Id</Text>
-                  </View>
-        
-                  <View style={styles.sendLoanView}>
-                    <TextInput value={AdminPW} onChangeText={setAdminPW} secureTextEntry={true} style={styles.sendLoanInput} editable={true}></TextInput>
-                    <Text style={styles.sendLoanText}>Pass Word</Text>
-                  </View>
-        
-                  <TouchableOpacity onPress={fetchAdmnDts} style={styles.sendLoanButton}>
-                    <Text style={styles.sendLoanButtonText}>
-                      Click to Sign In
-                    </Text>
-                  </TouchableOpacity>
-                </ScrollView>
-              </View>
-            </View>;
+  return (
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 24}
+    >
+      <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: 'center' }} keyboardShouldPersistTaps="handled">
+        <View style={styles.container}>
+          <TouchableOpacity onPress={GoHome} style={styles.goHome}>
+            <Text style={styles.goHomeText}>Go Home</Text>
+          </TouchableOpacity>
+          <View style={styles.card}>
+            <Text style={styles.title}>Admin Sign In</Text>
+            <Text style={styles.label}>Admin Id</Text>
+            <TextInput
+              value={AdmnId}
+              onChangeText={setAdminId}
+              style={styles.input}
+              placeholder="Enter Admin Id"
+              placeholderTextColor="#b0b0b0"
+              autoCapitalize="none"
+            />
+            <Text style={styles.label}>Password</Text>
+            <View style={{ width: '100%', position: 'relative', marginBottom: 16 }}>
+              <TextInput
+                value={AdminPW}
+                onChangeText={setAdminPW}
+                style={styles.input}
+                placeholder="Enter Password"
+                placeholderTextColor="#b0b0b0"
+                secureTextEntry={!showPassword}
+              />
+              <TouchableOpacity
+                onPress={() => setShowPassword(v => !v)}
+                style={{ position: 'absolute', right: 12, top: 12, padding: 4 }}
+                accessibilityLabel={showPassword ? 'Hide password' : 'Show password'}
+              >
+                <Text style={{ color: '#e29d58', fontWeight: 'bold' }}>
+                  {showPassword ? 'Hide' : 'Show'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+            <TouchableOpacity onPress={fetchAdmnDts} style={styles.button}>
+              <Text style={styles.buttonText}>Sign In</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </ScrollView>
+    </KeyboardAvoidingView>
+  );
 };
 export default AdminSignIn;
+

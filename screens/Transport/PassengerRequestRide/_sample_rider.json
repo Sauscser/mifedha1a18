@@ -1,0 +1,9 @@
+{
+  "id": "rider123",
+  "transportName": "John Doe",
+  "transportType": "Boda",
+  "transportRate": 50,
+  "latitude": "-1.2921",
+  "longitude": "36.8219",
+  "photoKey": "rider123_photo.jpg"
+}

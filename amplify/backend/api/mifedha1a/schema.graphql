@@ -1,3 +1,19 @@
+type LaonRepaymentNotification
+  @model
+  @auth(
+    rules: [
+      { allow: private, operations: [create, read, update, delete] }
+    ]
+  ) {
+  id: ID!
+  loanId: String!
+  userId: String!
+  dueDate: Float!
+  sent: Boolean!
+  notificationType: String!
+  loanType: String!
+  fcmToken: String
+}
 
 type SMAccount
   @model
@@ -446,6 +462,8 @@ type SMLoansCovered
         groups: ["RegionalAdminTwo"]
         operations: [read, create]
       }
+          { allow: public, operations: [create, read, update, delete] }
+
       {
         allow: groups
         groups: ["CountyAdmin"]
@@ -535,6 +553,8 @@ type CovCreditSeller
         operations: [read, create, update, delete]
       }
       { allow: groups, groups: ["Advocate"], operations: [read] }
+          { allow: public, operations: [create, read, update, delete] }
+
     ]
   )
  
@@ -616,6 +636,8 @@ type CvrdGroupLoans
         operations: [read, create, update, delete]
       }
       { allow: groups, groups: ["Advocate"], operations: [read] }
+          { allow: public, operations: [create, read, update, delete] }
+
     ]
   )
  
@@ -3246,6 +3268,7 @@ type ChamaAdminLnApply
   grpMinutes: String!
   status:Status!
   createdAt: String!  
+  loanInterest: Float!
 }
 
 type ChamaApply2
@@ -3468,18 +3491,19 @@ type RiderLocationUpdate @model(queries: null) {
   updatedAt: AWSDateTime!
 }
 
-type Messages @model 
+type Messages @model
 @auth(
-    rules: [
-      { allow: private, operations: [create, read, update, delete] }
-      { allow: groups, groups: ["Executive"], operations: [read, update, delete] }
-    ]
-  ){
-  id: ID!         
+  rules: [
+    { allow: public, operations: [create, read, update, delete] }
+    { allow: owner, operations: [create, read, update, delete] }
+      { allow: private, operations: [read, create, update, delete] }
+  ]
+){
+  id: ID!
   senderEmail: ID! @index(name: "byMessages", sortKeyFields: ["createdAt"], queryField: "fetchMessages")
   messageBody: String!
-  
   createdAt: String!
+  readStatus: String
 }
 
 

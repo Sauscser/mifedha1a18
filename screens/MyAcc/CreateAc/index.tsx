@@ -3,7 +3,6 @@ import { createSMAccount, updateCompany } from '../../../src/graphql/mutations';
 import { getCompany, listSMAccounts } from '../../../src/graphql/queries';
 import { getCurrentUser, fetchUserAttributes, updateUserAttribute, updateUserAttributes } from 'aws-amplify/auth';
 import { generateClient } from 'aws-amplify/api';
-import { uploadData } from '@aws-amplify/storage';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import {
@@ -20,11 +19,15 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
+
 import { LinearGradient } from 'expo-linear-gradient';
-import * as ImagePicker from 'expo-image-picker';
-import * as ImageManipulator from 'expo-image-manipulator';
+import * as DocumentPicker from 'expo-document-picker';
+import { uploadData } from '@aws-amplify/storage';
 import { PhoneNumberUtil } from 'google-libphonenumber';
 import countries from '../../../src/data/countries.json';
+import Pdf from 'react-native-pdf';
+import * as Linking from 'expo-linking';
+import * as FileSystem from 'expo-file-system';
 
 import { useTranslation } from 'react-i18next';
 import translations from './translation';
@@ -335,8 +338,9 @@ const officialDocumentByCountry: Record<string, string> = {
 
   // UI preview URIs
   const [photoPassportUri, setPhotoPassportUri] = useState<string | null>(null);
-  const [idFrontUri, setIdFrontUri] = useState<string | null>(null);
-  const [idBackUri, setIdBackUri] = useState<string | null>(null);
+  const [pdfUri, setPdfUri] = useState<string | null>(null);
+  // idFrontKey and idBackKey state already exist, do not redeclare
+  const [docModalVisible, setDocModalVisible] = useState(false);
 
   // PHONE INPUT + COUNTRY SELECTION (local first; confirm then write to Cognito)
   const [localPhone, setLocalPhone] = useState('');
@@ -611,127 +615,7 @@ const validatePhoneInput = (input: string) => {
   }
 };
 
-  /* ================= IMAGE LOGIC ================= */
-
-  const uploadImageToS3 = async (
-    uri: string,
-    role: 'passport' | 'idFront' | 'idBack',
-    origW?: number,
-    origH?: number
-  ) => {
-    try {
-      let actions: any[] = [];
-
-      if (role === 'passport' && origW && origH) {
-        // Maintain 3:4 portrait aspect for head & shoulders capture
-        const width = Math.min(origW, origH * 0.75); // 3:4 ratio
-        const height = (width * 4) / 3; // Ensure 4:3 height
-        
-        // Center horizontally, position vertically to capture head & shoulders
-        const crop = {
-          originX: Math.floor((origW - width) / 2),
-          originY: Math.floor((origH - height) * 0.15), // Position higher to get head & shoulders
-          width: Math.floor(width),
-          height: Math.floor(height),
-        };
-        
-        actions.push({ crop });
-        // Resize maintaining 3:4 aspect ratio: width 675 x height 900
-        actions.push({ resize: { width: 675, height: 900 } });
-      } else {
-        // IDs: just resize/compress, no crop
-        actions.push({ resize: { width: 900 } });
-      }
-
-      const manipulated = await ImageManipulator.manipulateAsync(
-        uri,
-        actions,
-        { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG }
-      );
-
-      const response = await fetch(manipulated.uri);
-      const blob = await response.blob();
-
-      const key = `${role}_${Date.now()}.jpg`;
-      await uploadData({ key, data: blob, options: { contentType: 'image/jpeg' } }).result;
-
-      switch (role) {
-        case 'passport':
-          setPhotoPassportUri(manipulated.uri);
-          setPhotoPassportKey(key);
-          break;
-        case 'idFront':
-          setIdFrontUri(manipulated.uri);
-          setIdFrontKey(key);
-          break;
-        case 'idBack':
-          setIdBackUri(manipulated.uri);
-          setIdBackKey(key);
-          break;
-      }
-    } catch (err) {
-      console.error('uploadImageToS3 error:', err);
-      Alert.alert(t.imageUploadFailed);
-    }
-  };
-
-  const pickImage = async (role: 'passport' | 'idFront' | 'idBack') => {
-    try {
-      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (!permission.granted) {
-        Alert.alert(t.permissionRequired, t.allowPhotos);
-        return;
-      }
-
-      const result = await ImagePicker.launchImageLibraryAsync({
-  mediaTypes: ImagePicker.MediaTypeOptions.Images,
-  allowsEditing: true,
-  aspect: role === 'passport' ? [3, 4] : undefined,
-  quality: 1,
-});
-
-
-    
-
-
-      if (!result.canceled && result.assets?.length > 0) {
-        const asset = result.assets[0];
-        await uploadImageToS3(asset.uri, role, asset.width, asset.height);
-      }
-    } catch (err) {
-      console.error('pickImage error:', err);
-      Alert.alert(t.imageSelectionFailed);
-    }
-  };
-
-  const takeImage = async (role: 'passport' | 'idFront' | 'idBack') => {
-    try {
-      const permission = await ImagePicker.requestCameraPermissionsAsync();
-      if (!permission.granted) {
-        Alert.alert(t.permissionRequired, t.allowCamera);
-        return;
-      }
-
-     const result = await ImagePicker.launchCameraAsync({
-  mediaTypes: ImagePicker.MediaTypeOptions.Images,
-  allowsEditing: true,
-  aspect: role === 'passport' ? [3, 4] : undefined,
-  cameraType:
-    role === 'passport'
-      ? ImagePicker.CameraType.front
-      : ImagePicker.CameraType.back,
-  quality: 1,
-});
-
-      if (!result.canceled && result.assets?.length > 0) {
-        const asset = result.assets[0];
-        await uploadImageToS3(asset.uri, role, asset.width, asset.height);
-      }
-    } catch (err) {
-      console.error('takeImage error:', err);
-      Alert.alert(t.cameraCaptureFailed);
-    }
-  };
+  // IMAGE LOGIC REMOVED: Only file upload allowed for face and document. All camera/capture logic removed.
 
 /* ================= PHONE VALIDATION BEFORE ACCOUNT CREATION ================= */
 
@@ -1066,8 +950,8 @@ if (pword.length < 8) {
         setPW('');
         setOfficialName('');
         setPhotoPassportUri(null);
-        setIdFrontUri(null);
-        setIdBackUri(null);
+        // setIdFrontUri(null);
+        // setIdBackUri(null);
         setPhotoPassportKey(null);
         setIdFrontKey(null);
         setIdBackKey(null);
@@ -1102,8 +986,6 @@ if (pword.length < 8) {
               style={styles.modalScrollContent}
             >
               <Text style={styles.modalTitle}>Update Phone Number</Text>
-
-              {/* Instructions */}
               <View style={styles.instructionBox}>
                 <Text style={styles.instructionText}>
                   Enter with country code, <Text style={styles.bold}>without leading 0</Text>
@@ -1112,8 +994,6 @@ if (pword.length < 8) {
                   Example: <Text style={styles.bold}>+254724071582</Text>
                 </Text>
               </View>
-
-              {/* Phone Input */}
               <TextInput
                 style={styles.phoneInput}
                 placeholder="e.g., +254724071582"
@@ -1126,8 +1006,6 @@ if (pword.length < 8) {
                 keyboardType="phone-pad"
                 editable={!phoneValidation?.isValid || phoneInput.length === 0}
               />
-
-              {/* Real-time Validation Feedback */}
               {phoneValidation && (
                 <View
                   style={[
@@ -1145,72 +1023,65 @@ if (pword.length < 8) {
                   )}
                 </View>
               )}
-            </ScrollView>
-
-            {/* Action Buttons - Fixed at bottom */}
-            <View style={styles.modalButtonsContainer}>
-              <TouchableOpacity
-                style={styles.cancelButton}
-                onPress={() => {
-                  setPhoneUpdateModalVisible(false);
-                  setPhoneInput('');
-                  setPhoneValidation(null);
-                }}
-              >
-                <Text style={styles.cancelButtonText}>Cancel</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[
-                  styles.updateButton,
-                  !phoneValidation?.isValid && styles.updateButtonDisabled,
-                ]}
-                onPress={async () => {
-                  if (!phoneValidation?.isValid) {
-                    Alert.alert('Error', 'Please enter a valid phone number');
-                    return;
-                  }
-
-                  try {
-                    setIsLoading(true);
-                    try {
-                      await updateUserAttributes({ userAttributes: { phone_number: phoneValidation.corrected } });
-                    } catch (e) {
-                      // Fallback to singular call if available
-                      try {
-                        await updateUserAttribute({ userAttribute: { attributeKey: 'phone_number', value: phoneValidation.corrected } });
-                      } catch (e2) {
-                        throw e2 || e;
-                      }
-                    }
-
-                    Alert.alert(
-                      'Success',
-                      'Your phone number has been updated successfully.\n\nPlease sign out and sign back in for changes to take effect.'
-                    );
-
+              <View style={styles.modalButtonsContainer}>
+                <TouchableOpacity
+                  style={styles.cancelButton}
+                  onPress={() => {
                     setPhoneUpdateModalVisible(false);
                     setPhoneInput('');
                     setPhoneValidation(null);
-                  } catch (err:any) {
-                    console.log('Phone update error:', err);
-                    const msg = err && (err.message || String(err)) || 'Unknown error';
-                    if (msg.includes('Attribute does not exist')) {
-                      Alert.alert('Cognito Attribute Missing', 'Your Cognito user pool does not allow the phone_number attribute. To save phone numbers to Cognito you must enable phone in the user pool attributes (Amplify CLI) or update the backend schema. Phone is still confirmed locally.');
-                    } else {
-                      Alert.alert('Error', `Failed to update your phone number. ${msg}`);
+                  }}
+                >
+                  <Text style={styles.cancelButtonText}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.updateButton,
+                    !phoneValidation?.isValid && styles.updateButtonDisabled,
+                  ]}
+                  onPress={async () => {
+                    if (!phoneValidation?.isValid) {
+                      Alert.alert('Error', 'Please enter a valid phone number');
+                      return;
                     }
-                  } finally {
-                    setIsLoading(false);
-                  }
-                }}
-                disabled={!phoneValidation?.isValid}
-              >
-                <Text style={styles.updateButtonText}>
-                  {isLoading ? 'Updating...' : 'Update Phone'}
-                </Text>
-              </TouchableOpacity>
-            </View>
+                    try {
+                      setIsLoading(true);
+                      try {
+                        await updateUserAttributes({ userAttributes: { phone_number: phoneValidation.corrected } });
+                      } catch (e) {
+                        try {
+                          await updateUserAttribute({ userAttribute: { attributeKey: 'phone_number', value: phoneValidation.corrected } });
+                        } catch (e2) {
+                          throw e2 || e;
+                        }
+                      }
+                      Alert.alert(
+                        'Success',
+                        'Your phone number has been updated successfully.\n\nPlease sign out and sign back in for changes to take effect.'
+                      );
+                      setPhoneUpdateModalVisible(false);
+                      setPhoneInput('');
+                      setPhoneValidation(null);
+                    } catch (err:any) {
+                      console.log('Phone update error:', err);
+                      const msg = err && (err.message || String(err)) || 'Unknown error';
+                      if (msg.includes('Attribute does not exist')) {
+                        Alert.alert('Cognito Attribute Missing', 'Your Cognito user pool does not allow the phone_number attribute. To save phone numbers to Cognito you must enable phone in the user pool attributes (Amplify CLI) or update the backend schema. Phone is still confirmed locally.');
+                      } else {
+                        Alert.alert('Error', `Failed to update your phone number. ${msg}`);
+                      }
+                    } finally {
+                      setIsLoading(false);
+                    }
+                  }}
+                  disabled={!phoneValidation?.isValid}
+                >
+                  <Text style={styles.updateButtonText}>
+                    {isLoading ? 'Updating...' : 'Update Phone'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </ScrollView>
           </View>
         </View>
       </Modal>
@@ -1391,7 +1262,7 @@ return (
             </View>
 
             <TextInput
-              placeholder={t.localNumberPlaceholder}
+              placeholder={t.phoneNumberPlaceholder}
               placeholderTextColor="#666"
               keyboardType="phone-pad"
               value={localPhone}
@@ -1453,70 +1324,118 @@ return (
                   />
                 </View>
               )}
-
               <TouchableOpacity
-                onPress={() => { if (!requirePhoneConfirmedOrAlert()) return; pickImage('passport'); }}
+                onPress={async () => {
+                  if (!requirePhoneConfirmedOrAlert()) return;
+                  const result = await DocumentPicker.getDocumentAsync({
+                    type: 'image/*',
+                    copyToCacheDirectory: true,
+                  });
+                  if (result.assets && result.assets.length > 0) {
+                    setPhotoPassportUri(result.assets[0].uri);
+                    // S3 upload logic for face photo
+                    try {
+                      const response = await fetch(result.assets[0].uri);
+                      const blob = await response.blob();
+                      const ext = result.assets[0].name?.split('.').pop() || 'jpg';
+                      const key = `face_${Date.now()}.${ext}`;
+                      await uploadData({ key, data: blob, options: { contentType: blob.type } }).result;
+                      // Store the key for backend use
+                      if (typeof setPhotoPassportKey === 'function') setPhotoPassportKey(key);
+                      Alert.alert('Upload Success', 'Face photo uploaded to server.');
+                    } catch (err) {
+                      console.error('S3 upload error:', err);
+                      Alert.alert('Upload Failed', 'Could not upload face photo. Please try again.');
+                    }
+                  }
+                }}
                 style={styles.actionButton}
               >
                 <Text style={styles.buttonText}>{t.uploadFacePhoto}</Text>
               </TouchableOpacity>
+            </View>
 
+
+            {/* ================= PASSPORT / ID UPLOAD ================= */}
+
+            <View style={styles.imageSection}>
+              {pdfUri && (
+                <View style={{ width: '100%', alignItems: 'center', marginBottom: 10 }}>
+                  <TouchableOpacity
+                    style={[styles.actionButton, { marginBottom: 8, width: '100%' }]}
+                    onPress={() => setDocModalVisible(true)}
+                  >
+                    <Text style={styles.buttonText}>Review Uploaded Document</Text>
+                  </TouchableOpacity>
+                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    <Ionicons name="document" size={32} color="#333" />
+                    <Text style={{ marginLeft: 8 }}>{pdfUri.split('/').pop()}</Text>
+                  </View>
+                </View>
+              )}
               <TouchableOpacity
-                onPress={() => { if (!requirePhoneConfirmedOrAlert()) return; takeImage('passport'); }}
-                style={styles.actionButton}
+                onPress={async () => {
+                  if (!requirePhoneConfirmedOrAlert()) return;
+                  const result = await DocumentPicker.getDocumentAsync({
+                    type: ['application/pdf', 'image/*'],
+                    copyToCacheDirectory: true,
+                  });
+                  if (result.assets && result.assets.length > 0) {
+                    setPdfUri(result.assets[0].uri);
+                    // S3 upload logic
+                    try {
+                      const response = await fetch(result.assets[0].uri);
+                      const blob = await response.blob();
+                      const ext = result.assets[0].name?.split('.').pop() || 'pdf';
+                      const key = `doc_${Date.now()}.${ext}`;
+                      await uploadData({ key, data: blob, options: { contentType: blob.type } }).result;
+                      setIdFrontKey(key);
+                      setIdBackKey(key);
+                      Alert.alert('Upload Success', 'Document uploaded to server.');
+                    } catch (err) {
+                      console.error('S3 upload error:', err);
+                      Alert.alert('Upload Failed', 'Could not upload document. Please try again.');
+                    }
+                  }
+                }}
+                style={styles.actionButtonAlt}
               >
-                <Text style={styles.buttonText}>{t.takeFacePhoto}</Text>
+                <Text style={styles.buttonText}>{t.uploadDocument}</Text>
               </TouchableOpacity>
             </View>
 
-            {/* ================= PASSPORT / ID UPLOAD ================= */}
-            {isPassport ? (
-              <View style={styles.imageSection}>
-                {idFrontUri && (
-                  <Image source={{ uri: idFrontUri }} style={styles.previewImage} />
-                )}
-
-                <TouchableOpacity
-                  onPress={async () => {
-                    await pickImage('idFront');
-                    setIdBackKey(idFrontKey); // duplicate key for idBack
-                    setIdBackUri(idFrontUri);
-                  }}
-                  style={styles.actionButtonAlt}
-                >
-                  <Text style={styles.buttonText}>{t.uploadPassportDocument}</Text>
-                </TouchableOpacity>
-              </View>
-            ) : (
-              <>
-                <View style={styles.imageSection}>
-                  {idFrontUri && <Image source={{ uri: idFrontUri }} style={styles.previewImage} />}
-                  <TouchableOpacity onPress={() => { if (!requirePhoneConfirmedOrAlert()) return; pickImage('idFront'); }} style={styles.actionButtonAlt}>
-                    <Text style={styles.buttonText}>
-                      {t.uploadIdFront.replace('{{idType}}', officialDocumentByCountry[countryCode] || 'ID')}
-                    </Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity onPress={() => { if (!requirePhoneConfirmedOrAlert()) return; takeImage('idFront'); }} style={styles.actionButtonAlt}>
-                    <Text style={styles.buttonText}>
-                      {t.takeIdFront.replace('{{idType}}', officialDocumentByCountry[countryCode] || 'ID')}
-                    </Text>
-                  </TouchableOpacity>
+            {/* Document Review Modal */}
+            {pdfUri && (
+              <Modal
+                visible={docModalVisible}
+                transparent={true}
+                animationType="slide"
+                onRequestClose={() => setDocModalVisible(false)}
+              >
+                <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.8)', justifyContent: 'center', alignItems: 'center' }}>
+                  <View style={{ width: '90%', maxHeight: '85%', backgroundColor: '#fff', borderRadius: 16, padding: 12, alignItems: 'center' }}>
+                    <TouchableOpacity style={{ alignSelf: 'flex-end', marginBottom: 8 }} onPress={() => setDocModalVisible(false)}>
+                      <Ionicons name="close-circle" size={32} color="#e29d58" />
+                    </TouchableOpacity>
+                    {pdfUri.match(/\.(jpg|jpeg|png|gif)$/i) ? (
+                      <Image source={{ uri: pdfUri }} style={{ width: 320, height: 400, borderRadius: 12, resizeMode: 'contain' }} />
+                    ) : pdfUri.match(/\.pdf$/i) ? (
+                      <Pdf
+                        source={{ uri: pdfUri }}
+                        style={{ width: 320, height: 400, borderRadius: 12 }}
+                        onError={() => Alert.alert('PDF Preview Failed', 'Unable to preview PDF.')}
+                        trustAllCerts={true}
+                        horizontal={false}
+                        enablePaging={false}
+                        enableAnnotationRendering={true}
+                        fitPolicy={0}
+                      />
+                    ) : (
+                      <Text>Cannot preview this file type.</Text>
+                    )}
+                  </View>
                 </View>
-
-                <View style={styles.imageSection}>
-                  {idBackUri && <Image source={{ uri: idBackUri }} style={styles.previewImage} />}
-                  <TouchableOpacity onPress={() => { if (!requirePhoneConfirmedOrAlert()) return; pickImage('idBack'); }} style={styles.actionButtonAlt}>
-                    <Text style={styles.buttonText}>
-                      {t.uploadIdBack.replace('{{idType}}', officialDocumentByCountry[countryCode] || 'ID')}
-                    </Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity onPress={() => { if (!requirePhoneConfirmedOrAlert()) return; takeImage('idBack'); }} style={styles.actionButtonAlt}>
-                    <Text style={styles.buttonText}>
-                      {t.takeIdBack.replace('{{idType}}', officialDocumentByCountry[countryCode] || 'ID')}
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-              </>
+              </Modal>
             )}
 
             {/* ================= PASSWORD ================= */}

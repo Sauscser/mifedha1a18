@@ -2,7 +2,8 @@ export type AmplifyDependentResourcesAttributes = {
   "api": {
     "mifedha1a": {
       "GraphQLAPIEndpointOutput": "string",
-      "GraphQLAPIIdOutput": "string"
+      "GraphQLAPIIdOutput": "string",
+      "GraphQLAPIKeyOutput": "string"
     }
   },
   "auth": {
@@ -33,6 +34,14 @@ export type AmplifyDependentResourcesAttributes = {
     }
   },
   "function": {
+    "loanrepaymentnotificationlambda": {
+      "Arn": "string",
+      "CloudWatchEventRule": "string",
+      "LambdaExecutionRole": "string",
+      "LambdaExecutionRoleArn": "string",
+      "Name": "string",
+      "Region": "string"
+    },
     "mifedhaSendNotification": {
       "Arn": "string",
       "LambdaExecutionRole": "string",
@@ -45,6 +54,14 @@ export type AmplifyDependentResourcesAttributes = {
     "MifedhaPhotos": {
       "BucketName": "string",
       "Region": "string"
+    },
+    "laonrepaymentnotification": {
+      "Arn": "string",
+      "Name": "string",
+      "PartitionKeyName": "string",
+      "PartitionKeyType": "string",
+      "Region": "string",
+      "StreamArn": "string"
     }
   }
 }

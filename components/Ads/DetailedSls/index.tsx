@@ -8,6 +8,9 @@ import {useExchange} from '../../../src/contexts/ExchangeContext';
 import { getSMAccount } from '../../../src/graphql/queries';
 import {fetchUserAttributes} from 'aws-amplify/auth';
 import { generateClient } from 'aws-amplify/api';
+import { getUrl } from 'aws-amplify/storage';
+import { useTranslation } from 'react-i18next';
+import { translations } from './translation';
 export interface SMAccount {
   SMAc: {
     sokokntct: string;
@@ -81,56 +84,84 @@ const ViewSMDeposts = ({ SMAc }: SMAccount) => {
     }
   };
 
+  const [signedUrl, setSignedUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchSignedUrl = async () => {
+      if (itemPhoto && itemPhoto !== 'None') {
+        try {
+          const urlObj = await getUrl({ key: itemPhoto });
+          if (urlObj && urlObj.url) {
+            setSignedUrl(urlObj.url.toString());
+          } else {
+            setSignedUrl(null);
+          }
+        } catch (err) {
+          console.error('Failed to get signed URL for image:', itemPhoto, err);
+          setSignedUrl(null);
+        }
+      } else {
+        setSignedUrl(null);
+      }
+    };
+    fetchSignedUrl();
+  }, [itemPhoto]);
+
+  // i18n translation
+  const { i18n } = useTranslation();
+  const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+  const t = translations[lang] || translations.en;
   return (
     <ScrollView contentContainerStyle={styles.pageContainer}>
       <View style={styles.card}>
-        <Image
-          source={{
-            uri: `https://mifedhasalesadsphotosc789c-mifedha.s3.us-east-1.amazonaws.com/public/${itemPhoto}`,
-          }}
-          style={styles.carouselImage}
-          resizeMode="cover"
-        />
+        {signedUrl ? (
+          <Image
+            source={{ uri: signedUrl }}
+            style={styles.carouselImage}
+            resizeMode="cover"
+            onError={() => setSignedUrl(null)}
+          />
+        ) : (
+          <View style={[styles.carouselImage, { backgroundColor: '#eee', alignItems: 'center', justifyContent: 'center' }]}> 
+            <Text style={{ color: '#bbb', fontSize: 24 }}>No Image</Text>
+          </View>
+        )}
 
         <View style={styles.infoSection}>
           <Text style={styles.prodInfo}>
-            <Text style={styles.label}>Bizna Account Number:</Text> {sokokntct}
+            <Text style={styles.label}>{t.biznaAccountNumber}</Text> {sokokntct}
           </Text>
           <Text style={styles.prodInfo}>
-            <Text style={styles.label}>Item Name:</Text> {sokoname}
+            <Text style={styles.label}>{t.itemName}</Text> {sokoname}
           </Text>
           <Text style={styles.prodInfo}>
-            <Text style={styles.label}>Item Price:</Text> {formatAmountSync((sokoprice), userCode, ratesMap)}
+            <Text style={styles.label}>{t.itemPrice}</Text> {formatAmountSync((sokoprice), userCode, ratesMap)}
           </Text>
           <Text style={styles.prodInfo}>
-            <Text style={styles.label}>Brand:</Text> {itemBrand}
+            <Text style={styles.label}>{t.brand}</Text> {itemBrand}
           </Text>
           <Text style={styles.prodInfo}>
-            <Text style={styles.label}>Bizna Contact:</Text> {bizContact}
+            <Text style={styles.label}>{t.biznaContact}</Text> {bizContact}
           </Text>
           <Text style={styles.prodInfo}>
-            <Text style={styles.label}>Bizna Name:</Text> {bizName}
+            <Text style={styles.label}>{t.biznaName}</Text> {bizName}
           </Text>
           <Text style={styles.prodInfo}>
-            <Text style={styles.label}>Business Type:</Text> {businessType}
+            <Text style={styles.label}>{t.businessType}</Text> {businessType}
           </Text>
           <Text style={styles.prodInfo}>
-            <Text style={styles.label}>Unit of Measure:</Text> {itemUnit}
+            <Text style={styles.label}>{t.unitOfMeasure}</Text> {itemUnit}
           </Text>
           <Text style={styles.prodInfo}>
-            <Text style={styles.label}>Number of Units:</Text> {unitQuantity}
+            <Text style={styles.label}>{t.numberOfUnits}</Text> {unitQuantity}
           </Text>
           {/* Optional video / URL display */}
           {sokotown && (
             <TouchableOpacity onPress={handleOpenLink} style={{ marginTop: 10 }}>
-              <Text style={[styles.prodInfo, { color: 'blue', textDecorationLine: 'underline' }]}>
-                View Related Link
-              </Text>
+              <Text style={[styles.prodInfo, { color: 'blue', textDecorationLine: 'underline' }]}>{t.viewRelatedLink}</Text>
             </TouchableOpacity>
           )}
           <Text style={styles.prodDesc}>{sokodesc}</Text>
-
-          
         </View>
       </View>
     </ScrollView>

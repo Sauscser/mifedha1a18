@@ -5,3 +5,8 @@ export const printAsync = async (options) => {
   // options: { html, ... }
   return await Print.printAsync(options);
 };
+
+export const printToFileAsync = async (options) => {
+  // options: { html, ... }
+  return await Print.printToFileAsync(options);
+};

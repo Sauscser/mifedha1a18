@@ -1,5 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { View, Text, Pressable, FlatList, Alert } from 'react-native';
+import { useTranslation } from 'react-i18next';
+import { translations } from './translation';
 import LnerStts from "../../../components/Transport/PurchaseDtls";
 import styles from './styles';
 import { useRoute } from '@react-navigation/core';
@@ -12,6 +14,10 @@ const FetchSMCovLns = props => {
   const [loading, setLoading] = useState(false);
   const [Loanees, setLoanees] = useState([]);
   const route = useRoute();
+  // i18n translation
+  const { i18n } = useTranslation();
+  const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+  const t = translations[lang] || translations.en;
   const fetchLoanees = async () => {
     const userInfo = await getCurrentUser();
     const attributes = await fetchUserAttributes();
@@ -49,8 +55,8 @@ const FetchSMCovLns = props => {
       alignItems: 'center'
     }} ListHeaderComponent={() => <>
             
-            <Text style={styles.label}>Click to View transport Offers</Text>
-            <Text style={styles.label}> (Please swipe down to reload)</Text>
+            <Text style={styles.label}>{t.viewTransportOffers}</Text>
+            <Text style={styles.label}>{t.swipeToReload}</Text>
           </>} />
     </View>;
 };

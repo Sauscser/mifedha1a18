@@ -1,24 +1,60 @@
 {
-  "mifedha": {
+  "temp": {
     "awscloudformation": {
-      "AuthRoleName": "amplify-mifedha1a-mifedha-c789c-authRole",
-      "UnauthRoleArn": "arn:aws:iam::870395359033:role/amplify-mifedha1a-mifedha-c789c-unauthRole",
-      "AuthRoleArn": "arn:aws:iam::870395359033:role/amplify-mifedha1a-mifedha-c789c-authRole",
+      "AuthRoleName": "amplify-mifedha1a-temp-a37cd-authRole",
+      "UnauthRoleArn": "arn:aws:iam::870395359033:role/amplify-mifedha1a-temp-a37cd-unauthRole",
+      "AuthRoleArn": "arn:aws:iam::870395359033:role/amplify-mifedha1a-temp-a37cd-authRole",
       "Region": "us-east-1",
-      "DeploymentBucketName": "amplify-mifedha1a-mifedha-c789c-deployment",
-      "UnauthRoleName": "amplify-mifedha1a-mifedha-c789c-unauthRole",
-      "StackName": "amplify-mifedha1a-mifedha-c789c",
-      "StackId": "arn:aws:cloudformation:us-east-1:870395359033:stack/amplify-mifedha1a-mifedha-c789c/d60117f0-6717-11f0-b1dd-1237f60c2ecb",
+      "DeploymentBucketName": "amplify-mifedha1a-temp-a37cd-deployment",
+      "UnauthRoleName": "amplify-mifedha1a-temp-a37cd-unauthRole",
+      "StackName": "amplify-mifedha1a-temp-a37cd",
+      "StackId": "arn:aws:cloudformation:us-east-1:870395359033:stack/amplify-mifedha1a-temp-a37cd/59304550-2762-11f1-8760-0affea00cfd5",
       "AmplifyAppId": "d1arm3vysbz59q"
     },
     "categories": {
+      "auth": {
+        "mifedha1a2418a4fd": {},
+        "userPoolGroups": {}
+      },
+      "function": {},
+      "hosting": {
+        "amplifyhosting": {
+          "appId": "d1arm3vysbz59q",
+          "type": "manual"
+        }
+      }
+    }
+  },
+  "mifedha": {
+    "awscloudformation": {
+      "AuthRoleName": "amplify-mifedha1a-mifedha-bcc38-authRole",
+      "UnauthRoleArn": "arn:aws:iam::870395359033:role/amplify-mifedha1a-mifedha-bcc38-unauthRole",
+      "AuthRoleArn": "arn:aws:iam::870395359033:role/amplify-mifedha1a-mifedha-bcc38-authRole",
+      "Region": "us-east-1",
+      "DeploymentBucketName": "amplify-mifedha1a-mifedha-bcc38-deployment",
+      "UnauthRoleName": "amplify-mifedha1a-mifedha-bcc38-unauthRole",
+      "StackName": "amplify-mifedha1a-mifedha-bcc38",
+      "StackId": "arn:aws:cloudformation:us-east-1:870395359033:stack/amplify-mifedha1a-mifedha-bcc38/b019ed80-2767-11f1-8760-0affea00cfd5",
+      "AmplifyAppId": "d1arm3vysbz59q"
+    },
+    "categories": {
+      "auth": {
+        "mifedha1a2418a4fd": {},
+        "userPoolGroups": {}
+      },
       "function": {
+        "loanrepaymentnotificationlambda": {
+          "deploymentBucketName": "amplify-mifedha1a-mifedha-bcc38-deployment",
+          "s3Key": "amplify-builds/loanrepaymentnotificationlambda-337644764a6e71617839-build.zip"
+        },
         "mifedhaSendNotification": {
           "projectId": "mifedha-bd808",
           "secretsPathAmplifyAppId": "d1arm3vysbz59q",
-          "deploymentBucketName": "amplify-mifedha1a-mifedha-c789c-deployment",
-          "s3Key": "amplify-builds/mifedhaSendNotification-674873486c7662366846-build.zip"
-        }
+          "deploymentBucketName": "amplify-mifedha1a-mifedha-bcc38-deployment",
+          "s3Key": "amplify-builds/mifedhaSendNotification-51586f762b2b36754134-build.zip"
+        },
+        "mifedha1a": {},
+        "mifedha1a2418a4fd": {}
       },
       "hosting": {
         "amplifyhosting": {
@@ -26,12 +62,12 @@
           "type": "manual"
         }
       },
-      "auth": {
-        "mifedha1a2418a4fd": {},
-        "userPoolGroups": {}
+      "api": {
+        "mifedha1a": {}
       },
       "storage": {
-        "MifedhaPhotos": {}
+        "MifedhaPhotos": {},
+        "laonrepaymentnotification": {}
       }
     }
   }

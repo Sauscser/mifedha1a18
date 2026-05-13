@@ -1,3 +1,28 @@
+  carouselContainer: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    alignSelf: 'center',
+    width: '90%',
+    backgroundColor: 'rgba(255,255,255,0.97)',
+    zIndex: 100,
+    paddingTop: 6,
+    borderRadius: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    paddingHorizontal: 0,
+  },
+  activeCard: {
+    borderColor: '#e58d29',
+    borderWidth: 2,
+  },
+  cardTitle: {
+    fontWeight: 'bold',
+    fontSize: 16,
+    marginBottom: 5,
+  },
 import { StyleSheet } from "react-native";
 
 const styles = StyleSheet.create({

@@ -14,6 +14,66 @@ export const sendNotification = /* GraphQL */ `
     }
   }
 `;
+export const createLaonRepaymentNotification = /* GraphQL */ `
+  mutation CreateLaonRepaymentNotification(
+    $input: CreateLaonRepaymentNotificationInput!
+    $condition: ModelLaonRepaymentNotificationConditionInput
+  ) {
+    createLaonRepaymentNotification(input: $input, condition: $condition) {
+      id
+      loanId
+      userId
+      dueDate
+      sent
+      notificationType
+      loanType
+      fcmToken
+      createdAt
+      updatedAt
+      __typename
+    }
+  }
+`;
+export const updateLaonRepaymentNotification = /* GraphQL */ `
+  mutation UpdateLaonRepaymentNotification(
+    $input: UpdateLaonRepaymentNotificationInput!
+    $condition: ModelLaonRepaymentNotificationConditionInput
+  ) {
+    updateLaonRepaymentNotification(input: $input, condition: $condition) {
+      id
+      loanId
+      userId
+      dueDate
+      sent
+      notificationType
+      loanType
+      fcmToken
+      createdAt
+      updatedAt
+      __typename
+    }
+  }
+`;
+export const deleteLaonRepaymentNotification = /* GraphQL */ `
+  mutation DeleteLaonRepaymentNotification(
+    $input: DeleteLaonRepaymentNotificationInput!
+    $condition: ModelLaonRepaymentNotificationConditionInput
+  ) {
+    deleteLaonRepaymentNotification(input: $input, condition: $condition) {
+      id
+      loanId
+      userId
+      dueDate
+      sent
+      notificationType
+      loanType
+      fcmToken
+      createdAt
+      updatedAt
+      __typename
+    }
+  }
+`;
 export const createSMAccount = /* GraphQL */ `
   mutation CreateSMAccount(
     $input: CreateSMAccountInput!
@@ -835,429 +895,6 @@ export const deleteBizPartners2 = /* GraphQL */ `
       updatedAt
       createdAt
       id
-      __typename
-    }
-  }
-`;
-export const createSMLoansCovered = /* GraphQL */ `
-  mutation CreateSMLoansCovered(
-    $input: CreateSMLoansCoveredInput!
-    $condition: ModelSMLoansCoveredConditionInput
-  ) {
-    createSMLoansCovered(input: $input, condition: $condition) {
-      loanID
-      loaneeid
-      loaneePhn
-      loanerLoanee
-      loanerLoaneeAdv
-      loanerPhn
-      advregnu
-      loanerId
-      amountgiven
-      clearanceAmt
-      clearanceAmt2
-      amountexpected
-      amountExpectedBackWthClrnc
-      dfltUpdate
-      dfltDeadLn
-      amountrepaid
-      lonBala
-      interest
-      lnType
-      loaneename
-      loanername
-      loanerEmail
-      repaymentPeriod
-      DefaultPenaltySM
-      DefaultPenaltySM2
-      timeExpBack
-      crtnDate
-      loaneeEmail
-      timeExpBack2
-      description
-      status
-      owner
-      createdAt
-      blOfficer
-      advEmail
-      installmentAmount
-      paymentFrequency
-      updatedAt
-      __typename
-    }
-  }
-`;
-export const updateSMLoansCovered = /* GraphQL */ `
-  mutation UpdateSMLoansCovered(
-    $input: UpdateSMLoansCoveredInput!
-    $condition: ModelSMLoansCoveredConditionInput
-  ) {
-    updateSMLoansCovered(input: $input, condition: $condition) {
-      loanID
-      loaneeid
-      loaneePhn
-      loanerLoanee
-      loanerLoaneeAdv
-      loanerPhn
-      advregnu
-      loanerId
-      amountgiven
-      clearanceAmt
-      clearanceAmt2
-      amountexpected
-      amountExpectedBackWthClrnc
-      dfltUpdate
-      dfltDeadLn
-      amountrepaid
-      lonBala
-      interest
-      lnType
-      loaneename
-      loanername
-      loanerEmail
-      repaymentPeriod
-      DefaultPenaltySM
-      DefaultPenaltySM2
-      timeExpBack
-      crtnDate
-      loaneeEmail
-      timeExpBack2
-      description
-      status
-      owner
-      createdAt
-      blOfficer
-      advEmail
-      installmentAmount
-      paymentFrequency
-      updatedAt
-      __typename
-    }
-  }
-`;
-export const deleteSMLoansCovered = /* GraphQL */ `
-  mutation DeleteSMLoansCovered(
-    $input: DeleteSMLoansCoveredInput!
-    $condition: ModelSMLoansCoveredConditionInput
-  ) {
-    deleteSMLoansCovered(input: $input, condition: $condition) {
-      loanID
-      loaneeid
-      loaneePhn
-      loanerLoanee
-      loanerLoaneeAdv
-      loanerPhn
-      advregnu
-      loanerId
-      amountgiven
-      clearanceAmt
-      clearanceAmt2
-      amountexpected
-      amountExpectedBackWthClrnc
-      dfltUpdate
-      dfltDeadLn
-      amountrepaid
-      lonBala
-      interest
-      lnType
-      loaneename
-      loanername
-      loanerEmail
-      repaymentPeriod
-      DefaultPenaltySM
-      DefaultPenaltySM2
-      timeExpBack
-      crtnDate
-      loaneeEmail
-      timeExpBack2
-      description
-      status
-      owner
-      createdAt
-      blOfficer
-      advEmail
-      installmentAmount
-      paymentFrequency
-      updatedAt
-      __typename
-    }
-  }
-`;
-export const createCovCreditSeller = /* GraphQL */ `
-  mutation CreateCovCreditSeller(
-    $input: CreateCovCreditSellerInput!
-    $condition: ModelCovCreditSellerConditionInput
-  ) {
-    createCovCreditSeller(input: $input, condition: $condition) {
-      loanID
-      itemName
-      interest
-      loanerLoanee
-      loanerLoaneeAdv
-      buyerContact
-      sellerContact
-      buyerID
-      advEmail
-      buyerName
-      SellerName
-      sellerID
-      amountSold
-      dfltUpdate
-      lnType
-      dfltDeadLn
-      amountexpectedBack
-      amountExpectedBackWthClrnc
-      amountRepaid
-      repaymentPeriod
-      clearanceAmt
-      clearanceAmt2
-      giverStatus
-      timeExpBack
-      timeExpBack2
-      lonBala
-      crtnDate
-      description
-      status
-      advregnu
-      DefaultPenaltyCredSl
-      DefaultPenaltyCredSl2
-      owner
-      createdAt
-      blOfficer
-      installmentAmount
-      paymentFrequency
-      updatedAt
-      __typename
-    }
-  }
-`;
-export const updateCovCreditSeller = /* GraphQL */ `
-  mutation UpdateCovCreditSeller(
-    $input: UpdateCovCreditSellerInput!
-    $condition: ModelCovCreditSellerConditionInput
-  ) {
-    updateCovCreditSeller(input: $input, condition: $condition) {
-      loanID
-      itemName
-      interest
-      loanerLoanee
-      loanerLoaneeAdv
-      buyerContact
-      sellerContact
-      buyerID
-      advEmail
-      buyerName
-      SellerName
-      sellerID
-      amountSold
-      dfltUpdate
-      lnType
-      dfltDeadLn
-      amountexpectedBack
-      amountExpectedBackWthClrnc
-      amountRepaid
-      repaymentPeriod
-      clearanceAmt
-      clearanceAmt2
-      giverStatus
-      timeExpBack
-      timeExpBack2
-      lonBala
-      crtnDate
-      description
-      status
-      advregnu
-      DefaultPenaltyCredSl
-      DefaultPenaltyCredSl2
-      owner
-      createdAt
-      blOfficer
-      installmentAmount
-      paymentFrequency
-      updatedAt
-      __typename
-    }
-  }
-`;
-export const deleteCovCreditSeller = /* GraphQL */ `
-  mutation DeleteCovCreditSeller(
-    $input: DeleteCovCreditSellerInput!
-    $condition: ModelCovCreditSellerConditionInput
-  ) {
-    deleteCovCreditSeller(input: $input, condition: $condition) {
-      loanID
-      itemName
-      interest
-      loanerLoanee
-      loanerLoaneeAdv
-      buyerContact
-      sellerContact
-      buyerID
-      advEmail
-      buyerName
-      SellerName
-      sellerID
-      amountSold
-      dfltUpdate
-      lnType
-      dfltDeadLn
-      amountexpectedBack
-      amountExpectedBackWthClrnc
-      amountRepaid
-      repaymentPeriod
-      clearanceAmt
-      clearanceAmt2
-      giverStatus
-      timeExpBack
-      timeExpBack2
-      lonBala
-      crtnDate
-      description
-      status
-      advregnu
-      DefaultPenaltyCredSl
-      DefaultPenaltyCredSl2
-      owner
-      createdAt
-      blOfficer
-      installmentAmount
-      paymentFrequency
-      updatedAt
-      __typename
-    }
-  }
-`;
-export const createCvrdGroupLoans = /* GraphQL */ `
-  mutation CreateCvrdGroupLoans(
-    $input: CreateCvrdGroupLoansInput!
-    $condition: ModelCvrdGroupLoansConditionInput
-  ) {
-    createCvrdGroupLoans(input: $input, condition: $condition) {
-      loanID
-      grpContact
-      loaneePhn
-      repaymentPeriod
-      loanerLoanee
-      loanerLoaneeAdv
-      amountGiven
-      interest
-      advEmail
-      amountExpectedBack
-      amountExpectedBackWthClrnc
-      clearanceAmt
-      clearanceAmt2
-      amountRepaid
-      description
-      dfltUpdate
-      dfltDeadLn
-      lonBala
-      lnType
-      memberId
-      advRegNu
-      loaneeName
-      LoanerName
-      timeExpBack
-      timeExpBack2
-      crtnDate
-      status
-      owner
-      DefaultPenaltyChm
-      DefaultPenaltyChm2
-      createdAt
-      blOfficer
-      installmentAmount
-      paymentFrequency
-      updatedAt
-      __typename
-    }
-  }
-`;
-export const updateCvrdGroupLoans = /* GraphQL */ `
-  mutation UpdateCvrdGroupLoans(
-    $input: UpdateCvrdGroupLoansInput!
-    $condition: ModelCvrdGroupLoansConditionInput
-  ) {
-    updateCvrdGroupLoans(input: $input, condition: $condition) {
-      loanID
-      grpContact
-      loaneePhn
-      repaymentPeriod
-      loanerLoanee
-      loanerLoaneeAdv
-      amountGiven
-      interest
-      advEmail
-      amountExpectedBack
-      amountExpectedBackWthClrnc
-      clearanceAmt
-      clearanceAmt2
-      amountRepaid
-      description
-      dfltUpdate
-      dfltDeadLn
-      lonBala
-      lnType
-      memberId
-      advRegNu
-      loaneeName
-      LoanerName
-      timeExpBack
-      timeExpBack2
-      crtnDate
-      status
-      owner
-      DefaultPenaltyChm
-      DefaultPenaltyChm2
-      createdAt
-      blOfficer
-      installmentAmount
-      paymentFrequency
-      updatedAt
-      __typename
-    }
-  }
-`;
-export const deleteCvrdGroupLoans = /* GraphQL */ `
-  mutation DeleteCvrdGroupLoans(
-    $input: DeleteCvrdGroupLoansInput!
-    $condition: ModelCvrdGroupLoansConditionInput
-  ) {
-    deleteCvrdGroupLoans(input: $input, condition: $condition) {
-      loanID
-      grpContact
-      loaneePhn
-      repaymentPeriod
-      loanerLoanee
-      loanerLoaneeAdv
-      amountGiven
-      interest
-      advEmail
-      amountExpectedBack
-      amountExpectedBackWthClrnc
-      clearanceAmt
-      clearanceAmt2
-      amountRepaid
-      description
-      dfltUpdate
-      dfltDeadLn
-      lonBala
-      lnType
-      memberId
-      advRegNu
-      loaneeName
-      LoanerName
-      timeExpBack
-      timeExpBack2
-      crtnDate
-      status
-      owner
-      DefaultPenaltyChm
-      DefaultPenaltyChm2
-      createdAt
-      blOfficer
-      installmentAmount
-      paymentFrequency
-      updatedAt
       __typename
     }
   }
@@ -5794,6 +5431,7 @@ export const createChamaAdminLnApply = /* GraphQL */ `
       grpMinutes
       status
       createdAt
+      loanInterest
       updatedAt
       owner
       __typename
@@ -5814,6 +5452,7 @@ export const updateChamaAdminLnApply = /* GraphQL */ `
       grpMinutes
       status
       createdAt
+      loanInterest
       updatedAt
       owner
       __typename
@@ -5834,6 +5473,7 @@ export const deleteChamaAdminLnApply = /* GraphQL */ `
       grpMinutes
       status
       createdAt
+      loanInterest
       updatedAt
       owner
       __typename
@@ -6310,51 +5950,6 @@ export const deleteRiderLocationUpdate = /* GraphQL */ `
       longitude
       updatedAt
       createdAt
-      __typename
-    }
-  }
-`;
-export const createMessages = /* GraphQL */ `
-  mutation CreateMessages(
-    $input: CreateMessagesInput!
-    $condition: ModelMessagesConditionInput
-  ) {
-    createMessages(input: $input, condition: $condition) {
-      id
-      senderEmail
-      messageBody
-      createdAt
-      updatedAt
-      __typename
-    }
-  }
-`;
-export const updateMessages = /* GraphQL */ `
-  mutation UpdateMessages(
-    $input: UpdateMessagesInput!
-    $condition: ModelMessagesConditionInput
-  ) {
-    updateMessages(input: $input, condition: $condition) {
-      id
-      senderEmail
-      messageBody
-      createdAt
-      updatedAt
-      __typename
-    }
-  }
-`;
-export const deleteMessages = /* GraphQL */ `
-  mutation DeleteMessages(
-    $input: DeleteMessagesInput!
-    $condition: ModelMessagesConditionInput
-  ) {
-    deleteMessages(input: $input, condition: $condition) {
-      id
-      senderEmail
-      messageBody
-      createdAt
-      updatedAt
       __typename
     }
   }
@@ -7069,6 +6664,480 @@ export const deleteChamaMeetingAttendance = /* GraphQL */ `
       markedAt
       createdAt
       updatedAt
+      __typename
+    }
+  }
+`;
+export const createSMLoansCovered = /* GraphQL */ `
+  mutation CreateSMLoansCovered(
+    $input: CreateSMLoansCoveredInput!
+    $condition: ModelSMLoansCoveredConditionInput
+  ) {
+    createSMLoansCovered(input: $input, condition: $condition) {
+      loanID
+      loaneeid
+      loaneePhn
+      loanerLoanee
+      loanerLoaneeAdv
+      loanerPhn
+      advregnu
+      loanerId
+      amountgiven
+      clearanceAmt
+      clearanceAmt2
+      amountexpected
+      amountExpectedBackWthClrnc
+      dfltUpdate
+      dfltDeadLn
+      amountrepaid
+      lonBala
+      interest
+      lnType
+      loaneename
+      loanername
+      loanerEmail
+      repaymentPeriod
+      DefaultPenaltySM
+      DefaultPenaltySM2
+      timeExpBack
+      crtnDate
+      loaneeEmail
+      timeExpBack2
+      description
+      status
+      owner
+      createdAt
+      blOfficer
+      advEmail
+      installmentAmount
+      paymentFrequency
+      updatedAt
+      __typename
+    }
+  }
+`;
+export const updateSMLoansCovered = /* GraphQL */ `
+  mutation UpdateSMLoansCovered(
+    $input: UpdateSMLoansCoveredInput!
+    $condition: ModelSMLoansCoveredConditionInput
+  ) {
+    updateSMLoansCovered(input: $input, condition: $condition) {
+      loanID
+      loaneeid
+      loaneePhn
+      loanerLoanee
+      loanerLoaneeAdv
+      loanerPhn
+      advregnu
+      loanerId
+      amountgiven
+      clearanceAmt
+      clearanceAmt2
+      amountexpected
+      amountExpectedBackWthClrnc
+      dfltUpdate
+      dfltDeadLn
+      amountrepaid
+      lonBala
+      interest
+      lnType
+      loaneename
+      loanername
+      loanerEmail
+      repaymentPeriod
+      DefaultPenaltySM
+      DefaultPenaltySM2
+      timeExpBack
+      crtnDate
+      loaneeEmail
+      timeExpBack2
+      description
+      status
+      owner
+      createdAt
+      blOfficer
+      advEmail
+      installmentAmount
+      paymentFrequency
+      updatedAt
+      __typename
+    }
+  }
+`;
+export const deleteSMLoansCovered = /* GraphQL */ `
+  mutation DeleteSMLoansCovered(
+    $input: DeleteSMLoansCoveredInput!
+    $condition: ModelSMLoansCoveredConditionInput
+  ) {
+    deleteSMLoansCovered(input: $input, condition: $condition) {
+      loanID
+      loaneeid
+      loaneePhn
+      loanerLoanee
+      loanerLoaneeAdv
+      loanerPhn
+      advregnu
+      loanerId
+      amountgiven
+      clearanceAmt
+      clearanceAmt2
+      amountexpected
+      amountExpectedBackWthClrnc
+      dfltUpdate
+      dfltDeadLn
+      amountrepaid
+      lonBala
+      interest
+      lnType
+      loaneename
+      loanername
+      loanerEmail
+      repaymentPeriod
+      DefaultPenaltySM
+      DefaultPenaltySM2
+      timeExpBack
+      crtnDate
+      loaneeEmail
+      timeExpBack2
+      description
+      status
+      owner
+      createdAt
+      blOfficer
+      advEmail
+      installmentAmount
+      paymentFrequency
+      updatedAt
+      __typename
+    }
+  }
+`;
+export const createCovCreditSeller = /* GraphQL */ `
+  mutation CreateCovCreditSeller(
+    $input: CreateCovCreditSellerInput!
+    $condition: ModelCovCreditSellerConditionInput
+  ) {
+    createCovCreditSeller(input: $input, condition: $condition) {
+      loanID
+      itemName
+      interest
+      loanerLoanee
+      loanerLoaneeAdv
+      buyerContact
+      sellerContact
+      buyerID
+      advEmail
+      buyerName
+      SellerName
+      sellerID
+      amountSold
+      dfltUpdate
+      lnType
+      dfltDeadLn
+      amountexpectedBack
+      amountExpectedBackWthClrnc
+      amountRepaid
+      repaymentPeriod
+      clearanceAmt
+      clearanceAmt2
+      giverStatus
+      timeExpBack
+      timeExpBack2
+      lonBala
+      crtnDate
+      description
+      status
+      advregnu
+      DefaultPenaltyCredSl
+      DefaultPenaltyCredSl2
+      owner
+      createdAt
+      blOfficer
+      installmentAmount
+      paymentFrequency
+      updatedAt
+      __typename
+    }
+  }
+`;
+export const updateCovCreditSeller = /* GraphQL */ `
+  mutation UpdateCovCreditSeller(
+    $input: UpdateCovCreditSellerInput!
+    $condition: ModelCovCreditSellerConditionInput
+  ) {
+    updateCovCreditSeller(input: $input, condition: $condition) {
+      loanID
+      itemName
+      interest
+      loanerLoanee
+      loanerLoaneeAdv
+      buyerContact
+      sellerContact
+      buyerID
+      advEmail
+      buyerName
+      SellerName
+      sellerID
+      amountSold
+      dfltUpdate
+      lnType
+      dfltDeadLn
+      amountexpectedBack
+      amountExpectedBackWthClrnc
+      amountRepaid
+      repaymentPeriod
+      clearanceAmt
+      clearanceAmt2
+      giverStatus
+      timeExpBack
+      timeExpBack2
+      lonBala
+      crtnDate
+      description
+      status
+      advregnu
+      DefaultPenaltyCredSl
+      DefaultPenaltyCredSl2
+      owner
+      createdAt
+      blOfficer
+      installmentAmount
+      paymentFrequency
+      updatedAt
+      __typename
+    }
+  }
+`;
+export const deleteCovCreditSeller = /* GraphQL */ `
+  mutation DeleteCovCreditSeller(
+    $input: DeleteCovCreditSellerInput!
+    $condition: ModelCovCreditSellerConditionInput
+  ) {
+    deleteCovCreditSeller(input: $input, condition: $condition) {
+      loanID
+      itemName
+      interest
+      loanerLoanee
+      loanerLoaneeAdv
+      buyerContact
+      sellerContact
+      buyerID
+      advEmail
+      buyerName
+      SellerName
+      sellerID
+      amountSold
+      dfltUpdate
+      lnType
+      dfltDeadLn
+      amountexpectedBack
+      amountExpectedBackWthClrnc
+      amountRepaid
+      repaymentPeriod
+      clearanceAmt
+      clearanceAmt2
+      giverStatus
+      timeExpBack
+      timeExpBack2
+      lonBala
+      crtnDate
+      description
+      status
+      advregnu
+      DefaultPenaltyCredSl
+      DefaultPenaltyCredSl2
+      owner
+      createdAt
+      blOfficer
+      installmentAmount
+      paymentFrequency
+      updatedAt
+      __typename
+    }
+  }
+`;
+export const createCvrdGroupLoans = /* GraphQL */ `
+  mutation CreateCvrdGroupLoans(
+    $input: CreateCvrdGroupLoansInput!
+    $condition: ModelCvrdGroupLoansConditionInput
+  ) {
+    createCvrdGroupLoans(input: $input, condition: $condition) {
+      loanID
+      grpContact
+      loaneePhn
+      repaymentPeriod
+      loanerLoanee
+      loanerLoaneeAdv
+      amountGiven
+      interest
+      advEmail
+      amountExpectedBack
+      amountExpectedBackWthClrnc
+      clearanceAmt
+      clearanceAmt2
+      amountRepaid
+      description
+      dfltUpdate
+      dfltDeadLn
+      lonBala
+      lnType
+      memberId
+      advRegNu
+      loaneeName
+      LoanerName
+      timeExpBack
+      timeExpBack2
+      crtnDate
+      status
+      owner
+      DefaultPenaltyChm
+      DefaultPenaltyChm2
+      createdAt
+      blOfficer
+      installmentAmount
+      paymentFrequency
+      updatedAt
+      __typename
+    }
+  }
+`;
+export const updateCvrdGroupLoans = /* GraphQL */ `
+  mutation UpdateCvrdGroupLoans(
+    $input: UpdateCvrdGroupLoansInput!
+    $condition: ModelCvrdGroupLoansConditionInput
+  ) {
+    updateCvrdGroupLoans(input: $input, condition: $condition) {
+      loanID
+      grpContact
+      loaneePhn
+      repaymentPeriod
+      loanerLoanee
+      loanerLoaneeAdv
+      amountGiven
+      interest
+      advEmail
+      amountExpectedBack
+      amountExpectedBackWthClrnc
+      clearanceAmt
+      clearanceAmt2
+      amountRepaid
+      description
+      dfltUpdate
+      dfltDeadLn
+      lonBala
+      lnType
+      memberId
+      advRegNu
+      loaneeName
+      LoanerName
+      timeExpBack
+      timeExpBack2
+      crtnDate
+      status
+      owner
+      DefaultPenaltyChm
+      DefaultPenaltyChm2
+      createdAt
+      blOfficer
+      installmentAmount
+      paymentFrequency
+      updatedAt
+      __typename
+    }
+  }
+`;
+export const deleteCvrdGroupLoans = /* GraphQL */ `
+  mutation DeleteCvrdGroupLoans(
+    $input: DeleteCvrdGroupLoansInput!
+    $condition: ModelCvrdGroupLoansConditionInput
+  ) {
+    deleteCvrdGroupLoans(input: $input, condition: $condition) {
+      loanID
+      grpContact
+      loaneePhn
+      repaymentPeriod
+      loanerLoanee
+      loanerLoaneeAdv
+      amountGiven
+      interest
+      advEmail
+      amountExpectedBack
+      amountExpectedBackWthClrnc
+      clearanceAmt
+      clearanceAmt2
+      amountRepaid
+      description
+      dfltUpdate
+      dfltDeadLn
+      lonBala
+      lnType
+      memberId
+      advRegNu
+      loaneeName
+      LoanerName
+      timeExpBack
+      timeExpBack2
+      crtnDate
+      status
+      owner
+      DefaultPenaltyChm
+      DefaultPenaltyChm2
+      createdAt
+      blOfficer
+      installmentAmount
+      paymentFrequency
+      updatedAt
+      __typename
+    }
+  }
+`;
+export const createMessages = /* GraphQL */ `
+  mutation CreateMessages(
+    $input: CreateMessagesInput!
+    $condition: ModelMessagesConditionInput
+  ) {
+    createMessages(input: $input, condition: $condition) {
+      id
+      senderEmail
+      messageBody
+      createdAt
+      readStatus
+      updatedAt
+      owner
+      __typename
+    }
+  }
+`;
+export const updateMessages = /* GraphQL */ `
+  mutation UpdateMessages(
+    $input: UpdateMessagesInput!
+    $condition: ModelMessagesConditionInput
+  ) {
+    updateMessages(input: $input, condition: $condition) {
+      id
+      senderEmail
+      messageBody
+      createdAt
+      readStatus
+      updatedAt
+      owner
+      __typename
+    }
+  }
+`;
+export const deleteMessages = /* GraphQL */ `
+  mutation DeleteMessages(
+    $input: DeleteMessagesInput!
+    $condition: ModelMessagesConditionInput
+  ) {
+    deleteMessages(input: $input, condition: $condition) {
+      id
+      senderEmail
+      messageBody
+      createdAt
+      readStatus
+      updatedAt
+      owner
       __typename
     }
   }

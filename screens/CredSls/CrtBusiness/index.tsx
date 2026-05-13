@@ -196,6 +196,32 @@ const CreateBiz = () => {
             noBL: 0,
             bankType: bankType,
             bankAccount: bankAccount,
+            TtlActvLonsTmsLnrCredSlsB2B: 0,
+            TtlActvLonsAmtLnrCredSlsB2B: 0,
+            TtlBLLonsTmsLnrCredSlsB2B: 0,
+            TtlBLLonsAmtLnrCredSlsB2B: 0,
+            TtlClrdLonsTmsLnrCredSlsB2B: 0,
+            TtlClrdLonsAmtLnrCredSlsB2B: 0,
+            TtlActvLonsTmsLneeCredSlsB2B: 0,
+            TtlActvLonsAmtLneeCredSlsB2B: 0,
+            TtlBLLonsTmsLneeCredSlsB2B: 0,
+            TtlBLLonsAmtLneeCredSlsB2B: 0,
+            TtlClrdLonsTmsLneeCredSlsB2B: 0,
+            TtlClrdLonsAmtLneeCredSlsB2B: 0,
+         
+            TtlActvLonsTmsLnrCredSlsB2P: 0,
+            TtlActvLonsAmtLnrCredSlsB2P: 0,
+            TtlBLLonsTmsLnrCredSlsB2P: 0,
+            TtlBLLonsAmtLnrCredSlsB2P: 0,
+            TtlClrdLonsTmsLnrCredSlsB2P: 0,
+            TtlClrdLonsAmtLnrCredSlsB2P: 0,
+            TtlActvLonsTmsLneeCredSlsP2B: 0,
+            TtlActvLonsAmtLneeCredSlsP2B: 0,
+            TtlBLLonsTmsLneeCredSlsP2B: 0,
+            TtlBLLonsAmtLneeCredSlsP2B: 0,
+            TtlClrdLonsTmsLneeCredSlsP2B: 0,
+            TtlClrdLonsAmtLneeCredSlsP2B: 0,
+           
             objectionStatus: "NotObjected",
             objOfficer: "None",
             objReason: "None",
@@ -294,50 +320,65 @@ const CreateBiz = () => {
               value={businessPhone}
               onChangeText={setBusinessPhone}
               style={styles.input}
+                              placeholderTextColor="#333"
+
             />
             <TextInput
               placeholder={t.businessNamePlaceholder}
               value={businessName}
               onChangeText={setBusinessName}
               style={styles.input}
+                              placeholderTextColor="#333"
+
             />
             <TextInput
               placeholder={t.licenseNumberPlaceholder}
               value={licenseNumber}
               onChangeText={setLicenseNumber}
               style={styles.input}
+                              placeholderTextColor="#333"
+
             />
             <TextInput
               placeholder={t.bizContactPlaceholder}
               value={bizContact}
               onChangeText={setbizContact}
               style={styles.input}
+                              placeholderTextColor="#333"
+
             />
             <TextInput
               placeholder={t.businessTypePlaceholder}
               value={businessType}
               onChangeText={setbusinessType}
               style={styles.input}
+                              placeholderTextColor="#333"
+
             />
             <TextInput
               placeholder={t.bankTypePlaceholder}
               value={bankType}
               onChangeText={setbankType}
               style={styles.input}
+                              placeholderTextColor="#333"
+
             />
             <TextInput
               placeholder={t.bankAccountPlaceholder}
               value={bankAccount}
               onChangeText={setbankAccount}
               style={styles.input}
+                              placeholderTextColor="#333"
+
             />
             <TextInput
               placeholder={t.descriptionPlaceholder}
               value={description}
               onChangeText={setDescription}
-              style={styles.input}
+              style={styles.BizDescnput}
               multiline={true}
               textAlignVertical="top"
+              placeholderTextColor="#333"
             />
             <View style={styles.passwordContainer}>
               <TextInput
@@ -346,7 +387,7 @@ const CreateBiz = () => {
                 value={password}
                 onChangeText={setPassword}
                 secureTextEntry={!isPasswordVisible}
-                placeholderTextColor="#ccc"
+                placeholderTextColor="#333"
               />
               <TouchableOpacity onPress={() => setIsPasswordVisible(!isPasswordVisible)}>
                 <Ionicons name={isPasswordVisible ? "eye" : "eye-off"} size={24} color="gray" />
@@ -359,7 +400,7 @@ const CreateBiz = () => {
                 value={confirmPassword}
                 onChangeText={setConfirmPassword}
                 secureTextEntry={!isPasswordVisible}
-                placeholderTextColor="#ccc"
+                placeholderTextColor="#333"
               />
               <TouchableOpacity onPress={() => setIsPasswordVisible(!isPasswordVisible)}>
                 <Ionicons name={isPasswordVisible ? "eye" : "eye-off"} size={24} color="gray" />
@@ -385,7 +426,8 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
-    padding: 20
+    padding: 20,
+    marginBottom: 280
   },
   loanTitleView: {
     marginBottom: 20,
@@ -412,6 +454,14 @@ const styles = StyleSheet.create({
   },
   input: {
     height: 45,
+    borderColor: '#ccc',
+    borderWidth: 1,
+    marginBottom: 15,
+    borderRadius: 5,
+    paddingLeft: 10
+  },
+  BizDescnput: {
+    height: 100,
     borderColor: '#ccc',
     borderWidth: 1,
     marginBottom: 15,

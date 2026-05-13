@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
-import { View, Text, TextInput, Button, ScrollView, StyleSheet, Alert, Image, TouchableOpacity } from "react-native";
+import { View, Text, TextInput, Button, StyleSheet, Alert, ScrollView, TouchableOpacity, ActivityIndicator } from "react-native";
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Picker } from '@react-native-picker/picker';
 import { useNavigation } from "@react-navigation/native";
@@ -14,6 +15,7 @@ const client = generateClient();
 const MinutesCreationScreen = ({
   userEmail
 }) => {
+  const [isSaving, setIsSaving] = useState(false);
   const { i18n } = useTranslation();
   const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
   const t = translations[lang] || translations.en;
@@ -28,6 +30,7 @@ const MinutesCreationScreen = ({
     minuteNumber: "",
     minuteContent: ""
   }]);
+  // Removed draftMinutesEntries and modal state
   const [attendanceList, setAttendanceList] = useState<any[]>([]);
   const [chairSignUrl, setChairSignUrl] = useState<string | null>(null);
   const [secSignUrl, setSecSignUrl] = useState<string | null>(null);
@@ -80,20 +83,12 @@ const MinutesCreationScreen = ({
         });
       }, 300);
       if (grp.chairSign) {
-        const {
-          url
-        } = await getUrl({
-          key: grp.chairSign
-        });
-        setChairSignUrl(url);
+        const { url } = await getUrl({ key: grp.chairSign });
+        setChairSignUrl(url.toString());
       } else setChairSignUrl(null);
       if (grp.secSign) {
-        const {
-          url
-        } = await getUrl({
-          key: grp.secSign
-        });
-        setSecSignUrl(url);
+        const { url } = await getUrl({ key: grp.secSign });
+        setSecSignUrl(url.toString());
       } else setSecSignUrl(null);
       const membersRes: any = await client.graphql({
         query: listChamaMembers,
@@ -146,6 +141,7 @@ const MinutesCreationScreen = ({
     if (!selectedMemberGroup || !groupDetails) return Alert.alert(t.error, t.selectGroupFirst);
     if (!venue.trim()) return Alert.alert(t.error, t.enterVenueFirst);
     if (minutesEntries.some(e => !e.minuteContent.trim())) return Alert.alert(t.error, t.fillMinuteContents);
+    setIsSaving(true);
     try {
       const sittingNumber = getSittingNumber();
       const minutesInput = {
@@ -199,6 +195,8 @@ const MinutesCreationScreen = ({
     } catch (err) {
       console.log(err);
       Alert.alert(t.error, t.errorSavingMinutes);
+    } finally {
+      setIsSaving(false);
     }
   };
   const presentCount = attendanceList.filter(m => m.attendanceStatus === "PRESENT").length;
@@ -207,7 +205,14 @@ const MinutesCreationScreen = ({
 
   // …render JSX here (unchanged)
 
-    return <ScrollView style={styles.container} ref={scrollRef}>
+    return (
+      <KeyboardAwareScrollView
+        style={styles.container}
+        contentContainerStyle={{ paddingBottom: 160 }}
+        keyboardShouldPersistTaps="handled"
+        enableOnAndroid={true}
+        extraScrollHeight={80}
+      >
       <Text style={styles.header}>{t.selectGroup}</Text>
       {groups.map(memberGroup => {
       const isSelected = selectedMemberGroup?.groupContact === memberGroup.groupContact;
@@ -244,23 +249,37 @@ const MinutesCreationScreen = ({
           <TextInput style={styles.input} value={venue} onChangeText={setVenue} placeholder={t.enterVenue} />
 
          
+
           <Text style={styles.header}>{t.minutesEntries}</Text>
-          {minutesEntries.map((entry, idx) => <View key={idx} style={styles.entryContainer}>
+          {minutesEntries.map((entry, idx) => (
+            <View key={idx} style={styles.entryContainer}>
               <Text style={styles.subHeader}>{t.entry} {entry.entryNumber}</Text>
-              <TextInput style={styles.input} placeholder={t.minuteNumberPlaceholder} value={entry.minuteNumber} onChangeText={text => {
-          const updated = [...minutesEntries];
-          updated[idx].minuteNumber = text;
-          setMinutesEntries(updated);
-        }} />
-              <TextInput style={[styles.input, {
-          height: 80
-        }]} placeholder={t.minuteContentPlaceholder} value={entry.minuteContent} onChangeText={text => {
-          const updated = [...minutesEntries];
-          updated[idx].minuteContent = text;
-          setMinutesEntries(updated);
-        }} multiline />
-              {minutesEntries.length > 1 && <Button title={t.removeMinute} color="#e29d58" onPress={() => removeMinuteEntry(idx)} />}
-            </View>)}
+              <TextInput
+                style={styles.input}
+                placeholder={t.minuteNumberPlaceholder}
+                value={entry.minuteNumber}
+                onChangeText={text => {
+                  const updated = [...minutesEntries];
+                  updated[idx].minuteNumber = text;
+                  setMinutesEntries(updated);
+                }}
+              />
+              <TextInput
+                style={[styles.input, { height: 80 }]}
+                placeholder={t.minuteContentPlaceholder}
+                value={entry.minuteContent}
+                onChangeText={text => {
+                  const updated = [...minutesEntries];
+                  updated[idx].minuteContent = text;
+                  setMinutesEntries(updated);
+                }}
+                multiline
+              />
+              {minutesEntries.length > 1 && (
+                <Button title={t.removeMinute} color="#e29d58" onPress={() => removeMinuteEntry(idx)} />
+              )}
+            </View>
+          ))}
           <Button title={t.addMinute} color="#e29d58" onPress={addMinuteEntry} />
 
           <Text style={styles.header}>{t.attendance}</Text>
@@ -288,20 +307,56 @@ const MinutesCreationScreen = ({
             <Text style={styles.summaryText}>{t.apology}: {apologyCount}</Text>
           </View>
 
-          <View style={{
-        marginVertical: 20
-      }}>
-            <Button title={t.saveMinutes} color="#e29d58" onPress={saveMinutes} />
+          <View style={{ marginVertical: 20 }}>
+            <Button
+              title={isSaving ? t.savingMinutes || 'Saving...' : t.saveMinutes}
+              color="#e29d58"
+              onPress={saveMinutes}
+              disabled={isSaving}
+            />
           </View>
+          {isSaving && (
+            <View style={styles.loadingOverlay} pointerEvents="auto">
+              <View style={styles.loadingBox}>
+                <ActivityIndicator size="large" color="#e29d58" />
+                <Text style={{ marginTop: 12, color: '#e29d58', fontWeight: 'bold' }}>{t.savingMinutes || 'Saving minutes...'}</Text>
+              </View>
+            </View>
+          )}
         </>}
-    </ScrollView>;
+      </KeyboardAwareScrollView>
+    );
 };
 export default MinutesCreationScreen;
 const styles = StyleSheet.create({
+    loadingOverlay: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: 'rgba(255,255,255,0.7)',
+      justifyContent: 'center',
+      alignItems: 'center',
+      zIndex: 1000,
+    },
+    loadingBox: {
+      backgroundColor: '#fff',
+      padding: 24,
+      borderRadius: 16,
+      alignItems: 'center',
+      elevation: 8,
+      shadowColor: '#000',
+      shadowOpacity: 0.15,
+      shadowRadius: 12,
+      shadowOffset: { width: 0, height: 4 },
+    },
+  // Modal and selectMinutesBtn styles removed
+    // minutesEntriesScrollContainer removed, handled by FlatList
   container: {
     flex: 1,
     padding: 16,
-    backgroundColor: "#f8f9fa"
+    backgroundColor: "#f8f9fa",
   },
   header: {
     fontSize: 18,

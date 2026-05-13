@@ -13,8 +13,7 @@ import {
 
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRoute } from '@react-navigation/native';
-import * as ImagePicker from 'expo-image-picker';
-import * as ImageManipulator from 'expo-image-manipulator';
+import * as DocumentPicker from 'expo-document-picker';
 import { createChamaAdminLnApply } from '../../../../src/graphql/mutations';
 import {
   getGroup,
@@ -83,10 +82,10 @@ const ViewMinutesModal = ({ visible, onClose, grpContact, onSelect }) => {
           const itemsRes = itemsResRaw as GraphQLResult<any>;
           const attendanceRes = attendanceResRaw as GraphQLResult<any>;
           const chairSignUrl = min.chairpersonId
-            ? (await getUrl({ key: min.chairpersonId }))?.url
+            ? (await getUrl({ key: min.chairpersonId }))?.url?.toString()
             : null;
           const secSignUrl = min.secretaryId
-            ? (await getUrl({ key: min.secretaryId }))?.url
+            ? (await getUrl({ key: min.secretaryId }))?.url?.toString()
             : null;
           return {
             ...min,
@@ -186,8 +185,8 @@ const CreateBiz = () => {
   const [pword, setPW] = useState('');
   const [grpMinutes, setGrpMinutes] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [minutesPhotoKey, setMinutesPhotoKey] = useState<string | null>(null);
-  const [minutesPhotoUri, setMinutesPhotoUri] = useState<string | null>(null);
+  const [minutesFileKey, setMinutesFileKey] = useState<string | null>(null);
+  const [minutesFileUri, setMinutesFileUri] = useState<string | null>(null);
   const [minutesModalVisible, setMinutesModalVisible] = useState(false);
   const route = useRoute();
   // FloatLnReq: {grpContact:string} in types.tsx
@@ -196,66 +195,32 @@ const CreateBiz = () => {
   const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
   const t = translations[lang] || translations.en;
 
-  /** IMAGE HANDLING **/
-  const pickImage = async () => {
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: false,
-      aspect: [4, 3],
-      quality: 1
-    });
-    if (!result.canceled && result.assets?.[0]?.uri) {
-      handleImage(result.assets[0].uri);
-    }
-  };
-
-  const takePhoto = async () => {
-    const result = await ImagePicker.launchCameraAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: false,
-      aspect: [4, 3],
-      quality: 1
-    });
-    if (!result.canceled && result.assets?.[0]?.uri) {
-      handleImage(result.assets[0].uri);
-    }
-  };
-
-  const handleImage = async (uri: string) => {
+  /** DOCUMENT/IMAGE HANDLING **/
+  const pickMinutesFile = async () => {
     try {
-      const manipResult = await ImageManipulator.manipulateAsync(
-        uri,
-        [{ resize: { width: 800 } }],
-        { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG }
-      );
-      const response = await fetch(manipResult.uri);
-      const blob = await response.blob();
-      const imageSizeMB = blob.size / (1024 * 1024);
-      if (imageSizeMB > MAX_IMAGE_SIZE_MB) {
-        Alert.alert(
-          'Image too large',
-          `Image is ${imageSizeMB.toFixed(2)}MB. Max ${MAX_IMAGE_SIZE_MB}MB.`
-        );
-        return;
+      const result = await DocumentPicker.getDocumentAsync({
+        type: ['application/pdf', 'image/*'],
+        copyToCacheDirectory: true,
+      });
+      if (result.assets && result.assets.length > 0) {
+        const asset = result.assets[0];
+        const response = await fetch(asset.uri);
+        const blob = await response.blob();
+        const ext = asset.name?.split('.').pop() || 'pdf';
+        const key = `minutes_${Date.now()}.${ext}`;
+        await uploadData({ key, data: blob, options: { contentType: blob.type } }).result;
+        setMinutesFileKey(key);
+        setMinutesFileUri(asset.uri);
+        Alert.alert('Success', 'Minutes file uploaded successfully.');
       }
-      const filename = `${Date.now()}_minutes.jpg`;
-      await uploadData({
-        key: filename,
-        data: blob,
-        options: { contentType: 'image/jpeg' }
-      }).result;
-      setMinutesPhotoKey(filename);
-      setMinutesPhotoUri(manipResult.uri);
-      Alert.alert('Success', 'Minutes image uploaded successfully.');
     } catch (err) {
-      console.error('Image upload failed:', err);
-      Alert.alert('Error', 'Failed to upload image. Please try again.');
+      Alert.alert('Error', 'Failed to upload minutes file.');
     }
   };
 
-  const clearMinutesImage = () => {
-    setMinutesPhotoKey(null);
-    setMinutesPhotoUri(null);
+  const clearMinutesFile = () => {
+    setMinutesFileKey(null);
+    setMinutesFileUri(null);
   };
 
   /** SUBMIT LOGIC **/
@@ -282,7 +247,7 @@ const CreateBiz = () => {
       }) as GraphQLResult<any>;
       const GrpDtls = accountDtl?.data?.getGroup;
 
-      if (!grpMinutes && !minutesPhotoKey) {
+      if (!grpMinutes && !minutesFileKey) {
         Alert.alert(t.attachOrUploadMinutes);
         setIsLoading(false);
         return;
@@ -295,7 +260,7 @@ const CreateBiz = () => {
             grpName: GrpDtls.grpName,
             ChamaAdminEmail: attributes.email,
             GrpAccount: GrpDtls.grpContact,
-            MemberEmail: minutesPhotoKey ? minutesPhotoKey : 'NoMinutesUploaded',
+            MemberEmail: minutesFileKey ? minutesFileKey : 'NoMinutesUploaded',
             grpMinutes: grpMinutes ? grpMinutes : 'NoMinutesProvided',
             status: 'AccountActive'
           }
@@ -305,7 +270,7 @@ const CreateBiz = () => {
       Alert.alert(t.success, t.loanFloatedSuccessfully);
       setPW('');
       setGrpMinutes(null);
-      clearMinutesImage();
+      clearMinutesFile();
     } catch (e) {
       console.error(e);
       Alert.alert(t.error, t.retryOrUpdateApp);
@@ -362,36 +327,35 @@ const CreateBiz = () => {
             <Text style={styles.helperText}>{t.enterMainAccountPassword}</Text>
           </View>
 
-          {/* IMAGE UPLOAD */}
+          {/* DOCUMENT/IMAGE UPLOAD */}
           <View style={styles.inputGroup}>
-            <TouchableOpacity onPress={pickImage} style={styles.submitButton}>
+            <TouchableOpacity onPress={pickMinutesFile} style={styles.submitButton}>
               <Text style={styles.submitButtonText}>
-                {minutesPhotoUri ? t.changeMinutesImage : t.uploadGroupMinutes}
+                {minutesFileUri ? t.changeMinutesImage : t.uploadGroupMinutes}
               </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              onPress={takePhoto}
-              style={[styles.submitButton, { marginTop: 10 }]}
-            >
-              <Text style={styles.submitButtonText}>{t.takePhotoOfMinutes}</Text>
             </TouchableOpacity>
           </View>
 
           {/* PREVIEW */}
-          {minutesPhotoUri && (
+          {minutesFileUri && (
             <View style={{ marginTop: 16, alignItems: 'center' }}>
-              <Image
-                source={{ uri: minutesPhotoUri }}
-                style={{
-                  width: 200,
-                  height: 150,
-                  borderRadius: 12,
-                  borderWidth: 1,
-                  borderColor: '#e5e7eb'
-                }}
-                resizeMode="cover"
-              />
+              {minutesFileUri.match(/\.(jpg|jpeg|png|gif)$/i) ? (
+                <Image
+                  source={{ uri: minutesFileUri }}
+                  style={{
+                    width: 200,
+                    height: 150,
+                    borderRadius: 12,
+                    borderWidth: 1,
+                    borderColor: '#e5e7eb'
+                  }}
+                  resizeMode="cover"
+                />
+              ) : minutesFileUri.match(/\.pdf$/i) ? (
+                <Text style={{ color: '#333', marginTop: 8 }}>PDF uploaded: {minutesFileUri.split('/').pop()}</Text>
+              ) : (
+                <Text>File uploaded: {minutesFileUri.split('/').pop()}</Text>
+              )}
               <Text
                 style={{
                   marginTop: 8,
@@ -403,7 +367,7 @@ const CreateBiz = () => {
               </Text>
 
               <TouchableOpacity
-                onPress={clearMinutesImage}
+                onPress={clearMinutesFile}
                 style={styles.removeButton}
               >
                 <Text style={styles.removeButtonText}>{t.removeImage}</Text>

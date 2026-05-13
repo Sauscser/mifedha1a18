@@ -4,8 +4,13 @@ import { View, Text, ImageBackground, Pressable, FlatList, SafeAreaView, ScrollV
 import styles from './styles';
 import { TouchableOpacity } from 'react-native-gesture-handler';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useTranslation } from 'react-i18next';
+import { translations } from './translation';
 const MyAccount = (props: any) => {
   const navigation = useNavigation<any>();
+  const { i18n } = useTranslation();
+  const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+  const t = translations[lang] || translations.en;
   const Section = ({
     title,
     options
@@ -93,47 +98,43 @@ const MyAccount = (props: any) => {
         x: 1,
         y: 1
       }} style={styles.clientsPressableGradient}>
-            
-        <Section title="Account" options={[
-        /*  { label: 'Deposit Money', onPress: DepositOptions, style: styles.ClientsPressables },
-        */
-        {
-          label: 'Register Transport - Transporter',
-          onPress: RegisterTransport,
-          style: (styles as any).ClientsPressables
-        }, {
-          label: 'View Account: Reset Location, Delete Account, Share Revenue, View Transport Revenue earnings and shares - Transporter',
-          onPress: VwTransportAccount,
-          style: styles.ClientsPressables
-        }, {
-          label: 'Ask for Transport - Buyer',
-          onPress: VwSalesDtls4Transport,
-          style: styles.ClientsPressables
-        }, {
-          label: 'View Transport Requests to: Accept - Transporter',
-          onPress: AcceptTransportRequest,
-          style: styles.ClientsPressables
-        }, {
-          label: 'View Transport Requests to: Receive Delivery, Cancel Delivery Request, change delivery Location - Buyer',
-          onPress: ReceiveDelivery,
-          style: styles.ClientsPressables
-        }, {
-          label: 'View Transport Requests to: Dispatch Delivery - Seller',
-          onPress: VwBiz2DispatchDelivery,
-          style: styles.ClientsPressables
-        }, {
-          label: 'Customer/Passenger',
-          onPress: PassengerRequestRide,
-          style: styles.ClientsPressables
-        }, {
-          label: 'Rider',
-          onPress: AcceptRideRequest,
-          style: styles.ClientsPressables
-        }]} />
-
+        <Section title={t.account} options={[
+          {
+            label: t.registerTransport,
+            onPress: RegisterTransport,
+            style: (styles as any).ClientsPressables
+          }, {
+            label: t.viewAccount,
+            onPress: VwTransportAccount,
+            style: styles.ClientsPressables
+          }, {
+            label: t.askForTransport,
+            onPress: VwSalesDtls4Transport,
+            style: styles.ClientsPressables
+          }, {
+            label: t.viewTransportRequestsAccept,
+            onPress: AcceptTransportRequest,
+            style: styles.ClientsPressables
+          }, {
+            label: t.viewTransportRequestsReceive,
+            onPress: ReceiveDelivery,
+            style: styles.ClientsPressables
+          }, {
+            label: t.viewTransportRequestsDispatch,
+            onPress: VwBiz2DispatchDelivery,
+            style: styles.ClientsPressables
+          }, {
+            label: t.customerPassenger,
+            onPress: PassengerRequestRide,
+            style: styles.ClientsPressables
+          }, {
+            label: t.rider,
+            onPress: AcceptRideRequest,
+            style: styles.ClientsPressables
+          }
+        ]} />
       </LinearGradient>
       </ScrollView>
-      
     </SafeAreaView>;
 };
 export default MyAccount;
