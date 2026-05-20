@@ -39,7 +39,13 @@ export interface SMAccount {
 
 const client = generateClient();
 
+import { useTranslation } from 'react-i18next';
+import { translations } from './translation';
+
 const ViewSMDeposts = ({ SMAc }: SMAccount) => {
+    const { i18n } = useTranslation();
+    const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+    const t = translations[lang] || translations.en;
   const {
     id,
     transportName,
@@ -111,12 +117,12 @@ const ViewSMDeposts = ({ SMAc }: SMAccount) => {
       const CompEarning = compEarningShare * parseFloat(orderDtlz.deliveryCost);
 
       if (orderDtlz.bizType === "TransportDispatched") {
-        Alert.alert("Sorry", "This delivery has already been Dispatched.");
+        Alert.alert(t.sorryDispatched, t.alreadyDispatched);
         return;
       }
 
       if (orderDtlz.transportRequest === "transportRequestNo") {
-        Alert.alert("Sorry", "This Transporter has not been requested.");
+        Alert.alert(t.sorryNotRequested, t.notRequested);
         return;
       } else {
         const updateOrdr: any = await client.graphql({
@@ -130,7 +136,7 @@ const ViewSMDeposts = ({ SMAc }: SMAccount) => {
         });
 
         if (updateOrdr?.data?.updateTransportOrder) {
-          Alert.alert("Success", "Delivery Dispatched!");
+          Alert.alert(t.success, t.deliveryDispatched);
           // Send SMS notification
           const sendSMS = (phoneNumber: string, message: string) => {
             const url = `sms:${phoneNumber}?body=${encodeURIComponent(message)}`;
@@ -139,20 +145,13 @@ const ViewSMDeposts = ({ SMAc }: SMAccount) => {
 
           sendSMS(
             orderDtlz.buyerContact,
-            orderDtlz.sellerName +
-              ' has dispatched your delivery of ' +
-              orderDtlz.deliveryDesc +
-              ' through your transport service of choice ' +
-              orderDtlz.transportName +
-              '.' +
-              ' You may contact them through ' +
-              orderDtlz.transportkntct
+            `${orderDtlz.sellerName} has dispatched your delivery of ${orderDtlz.deliveryDesc} through your transport service of choice ${orderDtlz.transportName}. You may contact them through ${orderDtlz.transportkntct}`
           );
         }
       }
     } catch (err) {
       console.error("Accept error:", err);
-      Alert.alert("Error", "Could not accept delivery.");
+      Alert.alert(t.error, t.couldNotAccept);
     } finally {
       setIsLoading(false);
     }
@@ -162,13 +161,13 @@ const ViewSMDeposts = ({ SMAc }: SMAccount) => {
     <View style={styles.pageContainer}>
       <Pressable style={styles.card}>
         <Text style={styles.prodInfo}>
-          {transportName} transport services || {sellerName} to {buyerName} ||
-          {(() => { const { nationality, ratesMap } = useExchange(); return <>Aerial Distance: {distance} Kilometer || Order Total Cost: {formatAmountSync(orderCost, userCode, ratesMap)} ||</> })()}
-          TransportCost: Ksh. {formatAmountSync(deliveryCost, userCode, ratesMap)} || Contact: {transportkntct} || {engagementStatus} ||
-          {bizType} || {transportRequest}
+          {transportName} {t.transportServices} || {sellerName} {t.to} {buyerName} ||
+          {(() => { const { nationality, ratesMap } = useExchange(); return <>{t.aerialDistance}: {distance} {t.kilometer} || {t.orderTotalCost}: {formatAmountSync(orderCost, userCode, ratesMap)} ||</> })()}
+          {t.transportCost}: Ksh. {formatAmountSync(deliveryCost, userCode, ratesMap)} || {t.contact}: {transportkntct} || {t.engagementStatus}: {engagementStatus} ||
+          {t.bizType}: {bizType} || {t.transportRequest}: {transportRequest}
         </Text>
 
-        <Text style={styles.prodDesc}>Order Description: {deliveryDesc}</Text>
+        <Text style={styles.prodDesc}>{t.orderDescription} {deliveryDesc}</Text>
       </Pressable>
 
       <View style={styles.buttonRow}>
@@ -190,7 +189,7 @@ const ViewSMDeposts = ({ SMAc }: SMAccount) => {
             <ActivityIndicator size="small" color="#fff" style={{ marginRight: 6 }} />
           )}
           <Text style={{ color: 'white', fontSize: 12 }}>
-            {isLoading ? 'Processing...' : 'Dispatch Delivery'}
+            {isLoading ? t.processing : t.dispatchDelivery}
           </Text>
         </TouchableOpacity>
       </View>

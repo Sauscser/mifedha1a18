@@ -1,9 +1,9 @@
 import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
-// import axios from 'axios';
+import axios from 'axios';
 import { View, Text, TouchableOpacity, Alert, ActivityIndicator, FlatList, Dimensions, Animated, AppState, StyleSheet } from 'react-native';
 import MapView, { Marker, Polyline, UrlTile } from 'react-native-maps';
 import * as Location from 'expo-location';
-import axios from 'axios';
+
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { listRideRequests, getSMAccount, getTransportRegister, getCompany, getRideRequest } from '../../../src/graphql/queries';
 import { onUpdateRideRequest } from '../../../src/graphql/subscriptions';
@@ -51,6 +51,11 @@ export default function RiderRideRequestScreen() {
   const natCode = nationalityToCode(safeNationality) || safeNationality || undefined;
   const carouselRef = useRef<FlatList | null>(null);
   // Triggers carousel re-render whenever distance/cost changes
+  // OSRM-based distances
+  // Store OSRM road distances for each ride
+  const [pickupToDestRoadDistance, setPickupToDestRoadDistance] = useState<Record<string, number>>({});
+  const [riderToPickupRoadDistance, setRiderToPickupRoadDistance] = useState<Record<string, number>>({});
+  const [roadDistanceLoading, setRoadDistanceLoading] = useState<Record<string, boolean>>({});
   const [rideMetricsTick, setRideMetricsTick] = useState(0);
   const carouselPosition = useRef(new Animated.Value(SCREEN_HEIGHT * 0.62)).current;
   const appState = useRef(AppState.currentState);
@@ -355,9 +360,15 @@ export default function RiderRideRequestScreen() {
       ...cache,
       [routeType]: coords
     };
-    if (routeType === 'pickup') routeToPickupRef.current = coords;else routeToDropRef.current = coords;
+    if (routeType === 'pickup') {
+      routeToPickupRef.current = coords;
+      setRiderToPickupRoadDistance(prev => ({ ...prev, [ride.id]: distanceKm }));
+    } else {
+      routeToDropRef.current = coords;
+      setPickupToDestRoadDistance(prev => ({ ...prev, [ride.id]: distanceKm }));
+    }
     setPolylineTick(t => t + 1);
-    // Update backend with new distance/cost if changed
+    // Update backend with new distance/cost if changed (always use OSRM road distance)
     const rate = Number(ride.riderRate || 0);
     if (distanceKm && (ride.distance !== distanceKm || ride.estimatedCost !== Math.round(rate * distanceKm))) {
       try {
@@ -576,6 +587,21 @@ export default function RiderRideRequestScreen() {
         Alert.alert('Payment', 'No fare to charge.');
         return false;
       }
+      // --- OSRM road distance for final trip ---
+      let osrmDistance = 0;
+      const pickup = { latitude: ride.pickupLatitude, longitude: ride.pickupLongitude };
+      const lastLoc = lastLocationRef.current;
+      if (pickup && lastLoc && lastLoc.latitude && lastLoc.longitude) {
+        try {
+          const url = `https://router.project-osrm.org/route/v1/driving/${pickup.longitude},${pickup.latitude};${lastLoc.longitude},${lastLoc.latitude}?overview=false`;
+          const res = await axios.get(url);
+          if (res.data.routes && res.data.routes.length > 0) {
+            osrmDistance = res.data.routes[0].distance / 1000;
+          }
+        } catch (err) {
+          osrmDistance = 0;
+        }
+      }
       const passengerEmail = ride.passengerEmail;
 
       // Get passenger SMAccount
@@ -614,7 +640,7 @@ export default function RiderRideRequestScreen() {
               paymentStatus: 'Pending',
               endTime: new Date().toISOString(),
               estimatedCost: totalFare,
-              distance: cumulativeDistanceRef.current[ride.id] || ride.distance || 0
+              distance: osrmDistance || cumulativeDistanceRef.current[ride.id] || ride.distance || 0
             }
           }
         });
@@ -699,7 +725,7 @@ export default function RiderRideRequestScreen() {
             paymentStatus: 'Cleared',
             endTime: new Date().toISOString(),
             estimatedCost: totalFare,
-            distance: cumulativeDistanceRef.current[ride.id] || ride.distance || 0
+            distance: osrmDistance || cumulativeDistanceRef.current[ride.id] || ride.distance || 0
           }
         }
       });
@@ -727,6 +753,21 @@ export default function RiderRideRequestScreen() {
       if (totalFare <= 0) {
         Alert.alert('No fare', 'No fare recorded to clear.');
         return false;
+      }
+      // --- OSRM road distance for final trip ---
+      let osrmDistance = 0;
+      const pickup = { latitude: ride.pickupLatitude, longitude: ride.pickupLongitude };
+      const lastLoc = lastLocationRef.current;
+      if (pickup && lastLoc && lastLoc.latitude && lastLoc.longitude) {
+        try {
+          const url = `https://router.project-osrm.org/route/v1/driving/${pickup.longitude},${pickup.latitude};${lastLoc.longitude},${lastLoc.latitude}?overview=false`;
+          const res = await axios.get(url);
+          if (res.data.routes && res.data.routes.length > 0) {
+            osrmDistance = res.data.routes[0].distance / 1000;
+          }
+        } catch (err) {
+          osrmDistance = 0;
+        }
       }
       const transporterRes: any = await client.graphql({
         query: getTransportRegister,
@@ -828,7 +869,7 @@ export default function RiderRideRequestScreen() {
             paymentStatus: 'Cleared',
             endTime: new Date().toISOString(),
             estimatedCost: totalFare,
-            distance: cumulativeDistanceRef.current[ride.id] || ride.distance || 0
+            distance: osrmDistance || cumulativeDistanceRef.current[ride.id] || ride.distance || 0
           }
         }
       });
@@ -1246,25 +1287,29 @@ export default function RiderRideRequestScreen() {
         } = item;
         let distanceText = '';
         let costText = '';
-        // Live trip metrics when trip started and this ride is selected
+        // Always use OSRM road distance between pickup and destination for cost
+        const roadDist = pickupToDestRoadDistance[item.id];
+        const est = roadDist != null ? Math.round((item.riderRate || 0) * roadDist) : 0;
+        // Always show OSRM road distance for cost
+        costText = `${formatAmountSync(est, natCode, ratesMap || {})}`;
         if (tripStarted && isSelected) {
           const distance = cumulativeDistanceRef.current[item.id] ?? 0;
-          const cost = cumulativeCostRef.current[item.id] ?? item.estimatedCost ?? 0;
           distanceText = `Distance: ${distance.toFixed(2)} km`;
-          costText = `${formatAmountSync(cost, natCode, ratesMap || {})}`;
         } else if (isSelected && rideStatus !== 'Active') {
-          // When selected and trip not started, show distance-to-pickup (if available) and approx pickup->destination cost
-          if (riderLocation) {
-            const distanceToPickup = getDistanceKm(riderLocation.latitude, riderLocation.longitude, item.pickupLatitude, item.pickupLongitude);
-            distanceText = `Distance to pickup: ${distanceToPickup.toFixed(2)} km`;
+          if (riderToPickupRoadDistance[item.id] != null) {
+            distanceText = `Distance to pickup: ${riderToPickupRoadDistance[item.id].toFixed(2)} km`;
           }
-          // Use server-estimated cost if available; otherwise compute from straight-line pickup->destination
-          const est = item.estimatedCost ?? Math.round((item.riderRate || 0) * getDistanceKm(item.pickupLatitude, item.pickupLongitude, item.destinationLatitude, item.destinationLongitude));
           costText = `Approx cost: ${formatAmountSync(est, natCode, ratesMap || {})}`;
-        } else if (riderLocation && rideStatus === 'TransportApproved') {
-          const distanceToPickup = getDistanceKm(riderLocation.latitude, riderLocation.longitude, item.pickupLatitude, item.pickupLongitude);
-          distanceText = `Distance to pickup: ${distanceToPickup.toFixed(2)} km`;
-          costText = `Estimated cost: ${formatAmountSync(Number(item.estimatedCost ?? 0), natCode, ratesMap || {})}`;
+        } else if (riderToPickupRoadDistance[item.id] != null && rideStatus === 'TransportApproved') {
+          distanceText = `Distance to pickup: ${riderToPickupRoadDistance[item.id].toFixed(2)} km`;
+          costText = `Estimated cost: ${formatAmountSync(est, natCode, ratesMap || {})}`;
+        }
+        // Only show OSRM road distance for pickup->destination
+        let routeDistanceText = '';
+        if (pickupToDestRoadDistance[item.id] != null) {
+          routeDistanceText = `Route distance: ${pickupToDestRoadDistance[item.id].toFixed(2)} km`;
+        } else {
+          routeDistanceText = `Route distance: ${(item.distance ?? 0).toFixed(2)} km`;
         }
         return <View key={item.id} style={{
           backgroundColor: '#fff',
@@ -1289,8 +1334,8 @@ export default function RiderRideRequestScreen() {
               fontSize: 16
             }}>{item.passengerContact}</Text>
                   <Text>Status: {rideStatus} {item.paymentStatus ? `| ${item.paymentStatus}` : ''}</Text>
-                  {/* Route distance between pickup and destination */}
-                  <Text>Route distance: {(item.distance ?? getDistanceKm(item.pickupLatitude, item.pickupLongitude, item.destinationLatitude, item.destinationLongitude)).toFixed(2)} km</Text>
+                  {/* Route distance between pickup and destination: show both OSRM and radius */}
+                  <Text>{routeDistanceText}</Text>
                   {distanceText ? <Text>{distanceText} || {costText}</Text> : <Text>{costText}</Text>}
                 </TouchableOpacity>
 

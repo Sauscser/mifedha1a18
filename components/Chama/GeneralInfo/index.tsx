@@ -117,7 +117,7 @@ const ChmInfo = (props:ChmaInfo) => {
         query: getSMAccount,
         variables: { awsemail: user.email },
         });
-        setUserNationality(userData.data.getSMAccount.nationality);
+        setUserNationality((userData as any).data.getSMAccount.nationality);
         console.log('User Data:', userData);
         } catch (error) {
         console.error('Error fetching user data:', error);

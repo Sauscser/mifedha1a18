@@ -1,6 +1,14 @@
 
+
 import React, { useState, useMemo, useEffect } from 'react';
-import {View, Text,  ScrollView, Pressable, TouchableOpacity, ActivityIndicator, Alert} from 'react-native';
+import {View, Text,  ScrollView, Pressable, TouchableOpacity, ActivityIndicator, Alert, FlatList, Dimensions, Animated, StyleSheet} from 'react-native';
+import { PanResponder } from 'react-native';
+const screenWidth = Dimensions.get('window').width;
+const screenHeight = Dimensions.get('window').height;
+const CAROUSEL_HEIGHT = 180;
+const MIN_CAROUSEL_TOP = 60;
+const MAX_CAROUSEL_TOP = screenHeight - CAROUSEL_HEIGHT - 60;
+import MapView, { Marker } from 'react-native-maps';
 
 import styles from './styles';
 import { useExchange } from '../../../src/contexts/ExchangeContext';
@@ -536,21 +544,186 @@ const [distanceMeters, setDistanceMeters] = useState<number>(0);
        }
      };
    
-    return (
-      <View style = {styles.pageContainer}>              
-            
 
-      <Pressable  style = {styles.card}>
-        <Text style={styles.prodInfo}>
-          {transportName} transport services ||
-          {sellerName} to {buyerName}
-          || Aerial Distance: {distance} Kilometer ||
-          Order Total Cost: {orderCostDisplay} || Transport Cost: {deliveryCostDisplay}
-          || Contact: {transportkntct} || {engagementStatus}
-          || {((Date.now() - deliveryStart)/3600000).toFixed(4)} hours ago
-        </Text>
-        <Text style={styles.prodDesc}>Order Description: {deliveryDesc}</Text>
-      </Pressable>
+    // Placeholder data for carousel; replace with real data as needed
+    const cards = [
+      {
+        id,
+        transportName,
+        sellerName,
+        buyerName,
+        deliveryCost,
+        distance,
+        orderCost,
+        buyerContact,
+        transportRequest,
+        deliveryDesc,
+        engagementStatus,
+        deliveryStart,
+        transportkntct,
+        orderCostDisplay,
+        deliveryCostDisplay,
+      },
+    ];
+
+    // Floating carousel state
+    const INITIAL_CAROUSEL_TOP = screenHeight - (CAROUSEL_HEIGHT + 40) - 20;
+    const carouselPosition = React.useRef(new Animated.Value(INITIAL_CAROUSEL_TOP)).current;
+    const lastTop = React.useRef(INITIAL_CAROUSEL_TOP);
+    const panResponder = React.useRef(
+      PanResponder.create({
+        onStartShouldSetPanResponder: () => true,
+        onMoveShouldSetPanResponder: () => true,
+        onPanResponderGrant: () => {
+          carouselPosition.stopAnimation();
+        },
+        onPanResponderMove: (evt, gestureState) => {
+          let newTop = lastTop.current + gestureState.dy;
+          newTop = Math.max(MIN_CAROUSEL_TOP, Math.min(newTop, MAX_CAROUSEL_TOP));
+          carouselPosition.setValue(newTop);
+        },
+        onPanResponderRelease: (evt, gestureState) => {
+          let newTop = lastTop.current + gestureState.dy;
+          newTop = Math.max(MIN_CAROUSEL_TOP, Math.min(newTop, MAX_CAROUSEL_TOP));
+          // Snap to closest position
+          let snapTo = (newTop < (MIN_CAROUSEL_TOP + MAX_CAROUSEL_TOP) / 2) ? MIN_CAROUSEL_TOP : MAX_CAROUSEL_TOP;
+          Animated.spring(carouselPosition, {
+            toValue: snapTo,
+            useNativeDriver: false
+          }).start(() => {
+            lastTop.current = snapTo;
+          });
+        },
+      })
+    ).current;
+
+    return (
+      <View style={{ flex: 1 }}>
+        {/* MapView as background */}
+        <MapView
+          style={{ flex: 1 }}
+          initialRegion={{
+            latitude: -1.2921,
+            longitude: 36.8219,
+            latitudeDelta: 0.05,
+            longitudeDelta: 0.05,
+          }}
+        >
+          <Marker
+            coordinate={{ latitude: -1.2921, longitude: 36.8219 }}
+            title="Transporter"
+            description="Current location"
+          />
+        </MapView>
+
+        {/* Floating horizontal carousel */}
+        <Animated.View
+          style={{
+            position: 'absolute',
+            left: 0,
+            right: 0,
+            zIndex: 100,
+            top: carouselPosition,
+            minHeight: CAROUSEL_HEIGHT,
+            maxHeight: screenHeight * 0.85,
+            pointerEvents: 'box-none',
+            overflow: 'visible',
+          }}
+          {...panResponder.panHandlers}
+        >
+          <View style={{ alignItems: 'center', paddingVertical: 6 }}>
+            <View style={{ width: 40, height: 6, borderRadius: 3, backgroundColor: '#ccc', marginBottom: 4 }} />
+          </View>
+          <FlatList
+            horizontal
+            pagingEnabled
+            data={cards}
+            keyExtractor={item => item.id}
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ paddingBottom: 16 }}
+            renderItem={({ item }) => (
+              <View style={[styles.card, { marginHorizontal: 8, width: 320, minHeight: 140, flexGrow: 1, paddingBottom: 24, justifyContent: 'flex-start' }]}> 
+                <Text style={styles.prodInfo}>
+                  {item.transportName} transport services ||
+                  {item.sellerName} to {item.buyerName}
+                  || Aerial Distance: {item.distance} Kilometer ||
+                  Order Total Cost: {item.orderCostDisplay} || Transport Cost: {item.deliveryCostDisplay}
+                  || Contact: {item.transportkntct} || {item.engagementStatus}
+                  || {((Date.now() - (item.deliveryStart))/3600000).toFixed(4)} hours ago
+                </Text>
+                <Text style={styles.prodDesc}>Order Description: {item.deliveryDesc}</Text>
+                {/* Action buttons */}
+                <View style={styles.buttonRow}>
+                  <TouchableOpacity
+                    onPress={() => handleAcceptDelivery()}
+                    style={[
+                      styles.loanFriendButton,
+                      {
+                        backgroundColor: '#e58d29',
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        opacity: isLoading ? 0.7 : 1,
+                      },
+                    ]}
+                    disabled={isLoading}
+                  >
+                    {isLoading && (
+                      <ActivityIndicator size="small" color="#fff" style={{ marginRight: 6 }} />
+                    )}
+                    <Text style={{ color: 'white', fontSize: 12 }}>
+                      {isLoading ? 'Processing...' : 'Accept Delivery'}
+                    </Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    onPress={() => CancelRequest()}
+                    style={[
+                      styles.loanFriendButton,
+                      {
+                        backgroundColor: '#e58d29',
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        opacity: isLoading ? 0.7 : 1,
+                      },
+                    ]}
+                    disabled={isLoading2}
+                  >
+                    {isLoading2 && (
+                      <ActivityIndicator size="small" color="#fff" style={{ marginRight: 6 }} />
+                    )}
+                    <Text style={{ color: 'white', fontSize: 12 }}>
+                      {isLoading2 ? 'Processing...' : 'Cancel Request'}
+                    </Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    onPress={() => ChangeDeliveryLocation()}
+                    style={[
+                      styles.loanFriendButton,
+                      {
+                        backgroundColor: '#e58d29',
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        opacity: isLoading ? 0.7 : 1,
+                      },
+                    ]}
+                    disabled={isLoading3}
+                  >
+                    {isLoading3 && (
+                      <ActivityIndicator size="small" color="#fff" style={{ marginRight: 6 }} />
+                    )}
+                    <Text style={{ color: 'white', fontSize: 12 }}>
+                      {isLoading3 ? 'Processing...' : 'Change Delivery Location'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
+          />
+        </Animated.View>
 
               <View style = {styles.buttonRow}>
              <TouchableOpacity

@@ -8,7 +8,7 @@ import { getCurrentUser } from 'aws-amplify/auth';
 import { getTransportOrder, getSMAccount, getBizna, getGroup, getChamaMembers } from '../../../src/graphql/queries';
 import { updateTransportOrder, updateSMAccount, updateGroup } from '../../../src/graphql/mutations';
 import { Linking } from 'react-native';
-import { useRoute } from '@react-navigation/native';
+import { useRoute, RouteProp } from '@react-navigation/native';
 
 export interface ChamaMmbrshpInfo {
   ChamaMmbrshpDtls: {
@@ -39,6 +39,8 @@ export interface ChamaMmbrshpInfo {
 
 const client = generateClient();
 
+type VwGrp2CommitRouteParams = { id: string };
+
 const ChmMbrShpInfo = (props: ChamaMmbrshpInfo) => {
   const {
     ChamaMmbrshpDtls: {
@@ -68,7 +70,7 @@ const ChmMbrShpInfo = (props: ChamaMmbrshpInfo) => {
   } = props;
 
   const [isLoading, setIsLoading] = useState(false);
-  const route = useRoute();
+  const route = useRoute<RouteProp<Record<string, VwGrp2CommitRouteParams>, string>>();
 
   const handleAcceptDelivery = async () => {
     setIsLoading(true);

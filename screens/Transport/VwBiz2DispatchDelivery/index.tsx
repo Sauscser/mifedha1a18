@@ -6,12 +6,17 @@ import { useRoute } from '@react-navigation/core';
 import { ByBuyerEmail, listGroups, listNonLoans, listPersonels, listSokoAds, listTransportOrders, VwMySntMny } from '../../../src/graphql/queries';
 import { getCurrentUser, fetchUserAttributes } from "aws-amplify/auth";
 import { generateClient } from "aws-amplify/api";
+import { useTranslation } from 'react-i18next';
+import { translations } from './translation';
 const client = generateClient();
 const FetchSMCovLns = props => {
   const [LneePhn, setLneePhn] = useState(null);
   const [loading, setLoading] = useState(false);
   const [Loanees, setLoanees] = useState([]);
   const route = useRoute();
+  const { i18n } = useTranslation();
+  const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+  const t = translations[lang] || translations.en;
   const fetchLoanees = async () => {
     const userInfo = await getCurrentUser();
     const attributes = await fetchUserAttributes();
@@ -29,7 +34,8 @@ const FetchSMCovLns = props => {
       });
       setLoanees(Lonees.data.listPersonels.items);
     } catch (e) {
-      console.log(e);
+      console.log(t.errorFetching, e);
+      Alert.alert(t.errorFetching, e?.message || String(e));
     } finally {
       setLoading(false);
     }
@@ -45,9 +51,8 @@ const FetchSMCovLns = props => {
     }) => <LnerStts SMAc={item} />} keyExtractor={(item, index) => index.toString()} onRefresh={fetchLoanees} refreshing={loading} showsVerticalScrollIndicator={false} ListHeaderComponentStyle={{
       alignItems: 'center'
     }} ListHeaderComponent={() => <>
-            
-            <Text style={styles.label}>Click Biz to View Delivery Requests</Text>
-            <Text style={styles.label}> (Please swipe down to reload)</Text>
+            <Text style={styles.label}>{t.clickBiz}</Text>
+            <Text style={styles.label}>{t.swipeToReload}</Text>
           </>} />
     </View>;
 };

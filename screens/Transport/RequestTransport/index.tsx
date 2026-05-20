@@ -7,7 +7,7 @@ import { View, Text, TextInput, FlatList, TouchableOpacity, StyleSheet, Dimensio
 import { useRoute } from '@react-navigation/native';
 import MapView, { Marker } from 'react-native-maps';
 import * as Location from 'expo-location';
-import { getDistance } from 'geolib';
+import axios from 'axios';
 import { useTranslation } from 'react-i18next';
 import { translations } from './translation';
 import { getBizna, getCompany, getNonLoans, getSokoAd, getTransportRegister, listTransportRegisters } from '../../../src/graphql/queries';
@@ -75,6 +75,8 @@ export default function SalesItemMapScreen({
     longitude: number;
   } | null>(null);
   const [distanceMeters, setDistanceMeters] = useState<number>(0);
+  const [roadDistance, setRoadDistance] = useState<number>(0);
+  const [roadDistanceLoading, setRoadDistanceLoading] = useState<boolean>(false);
   const [userNationality, setUserNationality] = useState<string | null>(null);
   const [userRateData, setUserRateData] = useState<{ buyingPrice: number; sellingPrice: number; symbol?: string } | null>(null);
   const route = useRoute();
@@ -123,25 +125,36 @@ export default function SalesItemMapScreen({
     deliveryStart: number;
     itemID: string;
   };
-  const sellerBuyerDistance = useMemo(() => {
-    if (
-      sellerlatitude2 && sellerlongitude2 &&
-      userLocation &&
-      typeof userLocation.latitude === 'number' &&
-      typeof userLocation.longitude === 'number' &&
-      !isNaN(Number(sellerlatitude2)) && !isNaN(Number(sellerlongitude2))
-    ) {
-      const distanceMeters = getDistance({
-        latitude: Number(sellerlatitude2),
-        longitude: Number(sellerlongitude2)
-      }, {
-        latitude: userLocation.latitude,
-        longitude: userLocation.longitude
-      });
-      setDistanceMeters(distanceMeters);
-      return distanceMeters / 1000; // convert to kilometers
-    }
-    return 0;
+  // Fetch road distance using OSRM
+  useEffect(() => {
+    const fetchRoadDistance = async () => {
+      if (
+        sellerlatitude2 && sellerlongitude2 &&
+        userLocation &&
+        typeof userLocation.latitude === 'number' &&
+        typeof userLocation.longitude === 'number' &&
+        !isNaN(Number(sellerlatitude2)) && !isNaN(Number(sellerlongitude2))
+      ) {
+        setRoadDistanceLoading(true);
+        try {
+          // OSRM expects lng,lat order
+          const url = `https://router.project-osrm.org/route/v1/driving/${userLocation.longitude},${userLocation.latitude};${Number(sellerlongitude2)},${Number(sellerlatitude2)}?overview=false`;
+          const res = await axios.get(url);
+          if (res.data.routes && res.data.routes.length > 0) {
+            setRoadDistance(res.data.routes[0].distance);
+          } else {
+            setRoadDistance(0);
+          }
+        } catch (e) {
+          setRoadDistance(0);
+        } finally {
+          setRoadDistanceLoading(false);
+        }
+      } else {
+        setRoadDistance(0);
+      }
+    };
+    fetchRoadDistance();
   }, [sellerlatitude2, sellerlongitude2, userLocation]);
   useEffect(() => {
     const keyboardDidShowListener = Keyboard.addListener('keyboardDidShow', () => {
@@ -573,50 +586,65 @@ export default function SalesItemMapScreen({
           dutyStatus: 'TransportOnduty',
           engagementStatus: 'TransportNotEngaged'
         });
-        // Send SMS notification
-        const sendSMS = (phoneNumber: string, message: string) => {
-          const url = `sms:${phoneNumber}?body=${encodeURIComponent(message)}`;
-          Linking.openURL(url);
-        };
-        // Use translation for SMS body
-        const smsBody = t.transportRequestNotifBody
-          ? t.transportRequestNotifBody.replace('{name}', senderName)
-          : `${senderName} requests transport from you. Go to MiFedha app > Transport > View Transport Requests to Accept - Transporter.`;
-        sendSMS(
-          ItemDtls6.transportkntct,
-          smsBody
-        );
 
-        // --- Notification and Message Logic ---
+
+        // --- Notification and Message Logic for Delivery Receipt ---
         try {
-          // Compose translated title and body
-          const notifTitle = t.transportRequestNotifTitle || 'Transport Request';
-          const notifBody = t.transportRequestNotifBody
-            ? t.transportRequestNotifBody.replace('{name}', senderName)
-            : `${senderName} requests transport from you. Go to MiFedha app > Transport > View Transport Requests to Accept - Transporter.`;
-          // Create message record
+          // Notify transporter (transportOwnerEmail of TransportOrder)
+          const notifTitleTransporter = t.deliveryReceiptTitle || 'Delivery Receipt';
+          const notifBodyTransporter = t.deliveryReceiptNotifTransporter
+            ? t.deliveryReceiptNotifTransporter.replace('{name}', senderName)
+            : `${senderName} has received the delivery. Thank you for your service!`;
           await client.graphql({
             query: createMessages,
             variables: {
               input: {
                 senderEmail: ItemDtls6.transportOwnerEmail,
-                messageBody: notifBody
+                messageBody: notifBodyTransporter
               }
             }
           });
-          // Send push/email notification
           await client.graphql({
             query: sendNotification,
             variables: {
               riderEmail: ItemDtls6.transportOwnerEmail,
-              title: notifTitle,
-              body: notifBody
+              title: notifTitleTransporter,
+              body: notifBodyTransporter
             }
           });
+
+          // Notify seller (getBizna.email via sellerContact)
+          if (AdDtls.sokokntct) {
+            const biznaRes = await client.graphql({ query: getBizna, variables: { BusKntct: AdDtls.sokokntct } });
+            const bizna = biznaRes?.data?.getBizna;
+            if (bizna && bizna.email) {
+              const notifTitleSeller = t.deliveryReceiptTitle || 'Delivery Receipt';
+              const notifBodySeller = t.deliveryReceiptNotifSeller
+                ? t.deliveryReceiptNotifSeller.replace('{name}', senderName)
+                : `${senderName} has received the delivery. Your order is complete.`;
+              await client.graphql({
+                query: createMessages,
+                variables: {
+                  input: {
+                    senderEmail: bizna.email,
+                    messageBody: notifBodySeller
+                  }
+                }
+              });
+              await client.graphql({
+                query: sendNotification,
+                variables: {
+                  riderEmail: bizna.email,
+                  title: notifTitleSeller,
+                  body: notifBodySeller
+                }
+              });
+            }
+          }
         } catch (notifyErr) {
           console.error('Notification/message error:', notifyErr);
         }
-        // --- End Notification and Message Logic ---
+        // --- End Notification and Message Logic for Delivery Receipt ---
       }
     } catch (err) {
       console.error('Transport request failed:', err);
@@ -809,7 +837,7 @@ export default function SalesItemMapScreen({
           keyExtractor={item => item.id}
           renderItem={({ item, index }) => {
             const qty = quantities[item.id] || 1;
-            const total = sellerBuyerDistance * item.transportRate;
+            const total = (roadDistance / 1000) * item.transportRate;
             return (
               <TouchableOpacity
                 style={[
@@ -837,7 +865,7 @@ export default function SalesItemMapScreen({
                     {t.offering || 'offering'} {item.transportType} {t.services || 'services'} @{' '}
                     {formatAmountSync(item.transportRate, nationalityToCode(nationality), ratesMap)} / KM ={' '}
                     {formatAmountSync(total, nationalityToCode(nationality), ratesMap)} {t.forLabel || 'for'}{' '}
-                    {distanceMeters / 1000} {t.aerialKilometers || 'Aerial KiloMeters'}. {t.contact || 'Contact'}:
+                    {roadDistanceLoading ? t.loadingRoadDistance || 'Loading road distance...' : `${(roadDistance / 1000).toFixed(2)} ${t.roadDistance || 'Road Kilometers'}`}. {t.contact || 'Contact'}:
                     {item.transportkntct} | {t.longPressRequest || 'Long press to Request transport'}
                   </Text>
                   <View style={styles.buttonRow}>

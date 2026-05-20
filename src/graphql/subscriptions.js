@@ -1419,6 +1419,7 @@ export const onCreateTransportOrder = /* GraphQL */ `
     onCreateTransportOrder(filter: $filter, owner: $owner) {
       id
       transportkntct
+      purchaseType
       transportRate
       transportdesc
       transportPhoto
@@ -1478,6 +1479,7 @@ export const onUpdateTransportOrder = /* GraphQL */ `
     onUpdateTransportOrder(filter: $filter, owner: $owner) {
       id
       transportkntct
+      purchaseType
       transportRate
       transportdesc
       transportPhoto
@@ -1537,6 +1539,7 @@ export const onDeleteTransportOrder = /* GraphQL */ `
     onDeleteTransportOrder(filter: $filter, owner: $owner) {
       id
       transportkntct
+      purchaseType
       transportRate
       transportdesc
       transportPhoto

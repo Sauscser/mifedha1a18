@@ -5,7 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Easing } from 'react-native';
 import MapView, { Marker, Polyline } from 'react-native-maps';
 import * as Location from 'expo-location';
-import { getDistance } from 'geolib';
+// import { getDistance } from 'geolib';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { listTransportRegisters, listRideRequests, getSMAccount, getTransportRegister } from '../../../src/graphql/queries';
@@ -16,6 +16,8 @@ import { getCurrentUser, fetchUserAttributes } from "aws-amplify/auth";
 import { useExchange } from '../../../src/contexts/ExchangeContext';
 import { formatAmountSync, getUserNationalityByEmail, convertForeignToKsh } from '../../../src/utils/exchange';
 import { nationalityToCode } from '../../../src/utils/nationalityToCode';
+import { useTranslation } from 'react-i18next';
+import { translations } from './translation';
 import { generateClient } from "aws-amplify/api";
 import { getUrl } from 'aws-amplify/storage';
 const client = generateClient();
@@ -27,6 +29,10 @@ export default function RideRequestMapScreen({
 }: {
   navigation: any;
 }) {
+  // i18n translation pattern (as in RequestTransport)
+  const { i18n } = useTranslation();
+  const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+  const t = translations[lang] || translations.en;
   // Collapsible filter panel state
   const [filterPanelCollapsed, setFilterPanelCollapsed] = useState(false);
   const [pendingCheckDone, setPendingCheckDone] = useState(false);
@@ -92,11 +98,11 @@ export default function RideRequestMapScreen({
         const effectivePending = pending.length > 0 ? pending : fallbackMatches;
         if (effectivePending.length > 0) {
           Alert.alert(
-            'Pending Rides',
-            'You have pending ride requests. Do you want to go to your pending rides?',
+            t.pendingRidesTitle,
+            t.pendingRidesBody,
             [
               {
-                text: 'Go to Pending Rides',
+                text: t.goToPendingRides,
                 onPress: () => {
                   setPendingRides(effectivePending);
                   navigation.replace('RideTrackingScreen', { pendingRides: effectivePending });
@@ -104,7 +110,7 @@ export default function RideRequestMapScreen({
                 style: 'default'
               },
               {
-                text: 'Continue',
+                text: t.continue,
                 onPress: () => setPendingCheckDone(true),
                 style: 'cancel'
               }
@@ -116,6 +122,7 @@ export default function RideRequestMapScreen({
         }
       } catch (err) {
         console.error('PassengerRequestRide: pending check error', err);
+        Alert.alert(t.error, t.errorRequestRide);
         setPendingCheckDone(true);
       }
     })();
@@ -187,53 +194,73 @@ export default function RideRequestMapScreen({
   useEffect(() => {
     const fetchEstimates = async () => {
       setFilteringLoading(true);
-      // If destination is NOT set, do a simple radius-only filter around pickup.
-      if (!filters.destination) {
-        if (!filters.pickup) {
-          setFilteredRiders([]);
-          setFilteringLoading(false);
-          return;
-        }
-        const radius = Math.max(0.05, parseFloat(filters.radiusKm) || 0.05); // in km
-        const filtered = allRiders
-          .map(rider => {
-            const dist = getDistance(
-              { latitude: filters.pickup!.latitude, longitude: filters.pickup!.longitude },
-              { latitude: rider.latitude, longitude: rider.longitude }
-            ) / 1000;
-            return {
-              ...rider,
-              _distanceKm: dist
-            };
-          })
-          .filter(rider => rider._distanceKm <= radius)
-          .sort((a, b) => a._distanceKm - b._distanceKm);
-        setFilteredRiders(filtered);
+      // Determine pickup point: use filters.pickup if set, else use userLocation
+      const pickupPoint = filters.pickup || userLocation;
+      // If no pickup point (user location not available), block
+      if (!pickupPoint) {
+        setFilteredRiders([]);
         setFilteringLoading(false);
         return;
       }
-      // If both pickup and destination are set, calculate trip distance and cost for each rider
+      // If destination is NOT set, do a simple radius-only filter around pickup using OSRM road distance
+      if (!filters.destination) {
+        const radius = Math.max(0.05, parseFloat(filters.radiusKm) || 0.05); // in km
+        // Use OSRM for each rider to pickup
+        const promises = allRiders.map(async rider => {
+          let dist = 0;
+          try {
+            const url = `https://router.project-osrm.org/route/v1/driving/${rider.longitude},${rider.latitude};${pickupPoint.longitude},${pickupPoint.latitude}?overview=false`;
+            const res = await axios.get(url);
+            if (res.data.routes && res.data.routes.length > 0) {
+              dist = res.data.routes[0].distance / 1000;
+            } else {
+              dist = null;
+            }
+          } catch (err) {
+            dist = null;
+          }
+          if (dist == null) return null;
+          return {
+            ...rider,
+            _distanceKm: dist
+          };
+        });
+        const ridersWithRoadDist = (await Promise.all(promises)).filter(Boolean).filter(rider => rider._distanceKm <= radius).sort((a, b) => a._distanceKm - b._distanceKm);
+        setFilteredRiders(ridersWithRoadDist);
+        setFilteringLoading(false);
+        return;
+      }
+      // If both pickup and destination are set, calculate trip distance and cost for each rider using OSRM for both legs
       const radius = Math.max(0.05, parseFloat(filters.radiusKm) || 0.05); // in km
       const promises = allRiders.map(async rider => {
-        let distToPickup = getDistance(
-          { latitude: filters.pickup!.latitude, longitude: filters.pickup!.longitude },
-          { latitude: rider.latitude, longitude: rider.longitude }
-        ) / 1000;
-        if (distToPickup > radius) return null;
-        // Use OSRM to get route distance from pickup to destination
+        // OSRM for rider to pickup
+        let distToPickup = 0;
+        try {
+          const url = `https://router.project-osrm.org/route/v1/driving/${rider.longitude},${rider.latitude};${pickupPoint.longitude},${pickupPoint.latitude}?overview=false`;
+          const res = await axios.get(url);
+          if (res.data.routes && res.data.routes.length > 0) {
+            distToPickup = res.data.routes[0].distance / 1000;
+          } else {
+            distToPickup = null;
+          }
+        } catch (err) {
+          distToPickup = null;
+        }
+        if (distToPickup == null || distToPickup > radius) return null;
+        // OSRM for pickup to destination
         let tripDistanceKm = 0;
         try {
-          const url = `https://router.project-osrm.org/route/v1/driving/${filters.pickup!.longitude},${filters.pickup!.latitude};${filters.destination!.longitude},${filters.destination!.latitude}?overview=false`;
+          const url = `https://router.project-osrm.org/route/v1/driving/${pickupPoint.longitude},${pickupPoint.latitude};${filters.destination!.longitude},${filters.destination!.latitude}?overview=false`;
           const res = await axios.get(url);
           if (res.data.routes && res.data.routes.length > 0) {
             tripDistanceKm = res.data.routes[0].distance / 1000;
           } else {
-            // fallback to geolib
-            tripDistanceKm = getDistance(filters.pickup!, filters.destination!) / 1000;
+            tripDistanceKm = null;
           }
         } catch (err) {
-          tripDistanceKm = getDistance(filters.pickup!, filters.destination!) / 1000;
+          tripDistanceKm = null;
         }
+        if (tripDistanceKm == null) return null;
         const estimatedCost = Math.round((rider.transportRate || 0) * tripDistanceKm);
         return {
           ...rider,
@@ -247,7 +274,7 @@ export default function RideRequestMapScreen({
       setFilteringLoading(false);
     };
     fetchEstimates();
-  }, [allRiders, filters.pickup, filters.radiusKm, filters.destination]);
+  }, [allRiders, filters.pickup, filters.radiusKm, filters.destination, userLocation]);
 
   // Polyline state for showing route from selected rider to pickup
   const [polylineCoords, setPolylineCoords] = useState<Array<{ latitude: number; longitude: number }>>([]);
@@ -387,7 +414,7 @@ export default function RideRequestMapScreen({
     [id: string]: boolean;
   }>({});
   const [paymentMethod, setPaymentMethod] = useState<'NiSenti' | 'Cash'>('Cash');
-  const [pickupText, setPickupText] = useState('Current Location');
+  const [pickupText, setPickupText] = useState(t.currentLocation);
   const [destinationText, setDestinationText] = useState('');
   const mapRef = useRef<MapView | null>(null);
   const carouselRef = useRef<FlatList | null>(null);
@@ -440,7 +467,7 @@ export default function RideRequestMapScreen({
   // ---------- Notification Handlers ----------
   useEffect(() => {
     const unsubscribe = messaging().onMessage(async remoteMessage => {
-      Alert.alert(remoteMessage.notification?.title || "Notification", remoteMessage.notification?.body || "You have a new message");
+      Alert.alert(remoteMessage.notification?.title || t.notification, remoteMessage.notification?.body || t.newMessage);
     });
     messaging().setBackgroundMessageHandler(async remoteMessage => {
       console.log("Background notification:", remoteMessage);
@@ -506,10 +533,10 @@ export default function RideRequestMapScreen({
       [type]: place.location
     }));
     if (type === 'pickup') {
-      setPickupText(place.displayName || 'Pickup');
+      setPickupText(place.displayName || t.pickup);
       setPickupInput(place.displayName || '');
     } else {
-      setDestinationText(place.displayName || 'Destination');
+      setDestinationText(place.displayName || t.destination);
       setDestinationInput(place.displayName || '');
     }
   };
@@ -517,19 +544,26 @@ export default function RideRequestMapScreen({
   // ---------- Confirm ride ----------
   const confirmAndRequestRide = (rider: any) => {
     const est = formatAmountSync(Math.round(rider._estimatedCost || 0), natCode, ratesMap);
-    Alert.alert('Confirm Ride', `Request ride from ${rider.transportName || 'Rider'}?\nEstimated cost: ${est}\nDistance: ${(rider._tripDistanceKm || 0).toFixed(2)} km`, [{
-      text: 'Cancel',
-      style: 'cancel'
-    }, {
-      text: 'Confirm',
-      onPress: () => requestRide(rider)
-    }]);
+    Alert.alert(
+      t.confirmRideTitle,
+      t.confirmRideBody(rider.transportName || 'Rider', est, (rider._tripDistanceKm || 0).toFixed(2)),
+      [
+        {
+          text: t.cancel,
+          style: 'cancel'
+        },
+        {
+          text: t.confirm,
+          onPress: () => requestRide(rider)
+        }
+      ]
+    );
   };
 
   // ---------- Request ride ----------
   const requestRide = async (rider: any) => {
     if (!filters.pickup || !filters.destination) {
-      Alert.alert('Pick locations', 'Select both pickup and destination.');
+      Alert.alert(t.pickLocations, t.pickLocationsBody);
       return;
     }
     try {
@@ -550,108 +584,146 @@ export default function RideRequestMapScreen({
       const pendingRides = pendingRes?.data?.listRideRequests?.items || [];
       if (pendingRides.length > 0) {
         Alert.alert(
-          'Pending Rides',
-          'You have pending ride requests. Do you want to proceed with a new request or view your pending rides?',
+          t.pendingRidesTitle,
+          t.pendingRidesProceedBody,
           [
             {
-              text: 'Go to Pending Rides',
-              onPress: () => navigation.navigate('RideTrackingScreen', { pendingRides })
+              text: t.goToPendingRides,
+              onPress: () => {
+                setLoadingRiders(prev => ({ ...prev, [rider.id]: false }));
+                navigation.navigate('RideTrackingScreen', { pendingRides });
+              }
             },
             {
-              text: 'Proceed',
-              onPress: async () => await actuallyRequestRide(rider, attributes, user)
+              text: t.proceed,
+              onPress: async () => {
+                await actuallyRequestRide(rider, attributes, user, () => setLoadingRiders(prev => ({ ...prev, [rider.id]: false })));
+              }
             },
-            { text: 'Cancel', style: 'cancel' }
+            { text: t.cancel, style: 'cancel', onPress: () => setLoadingRiders(prev => ({ ...prev, [rider.id]: false })) }
           ]
         );
-        setLoadingRiders(prev => ({ ...prev, [rider.id]: false }));
         return;
       }
-      await actuallyRequestRide(rider, attributes, user);
+      await actuallyRequestRide(rider, attributes, user, () => setLoadingRiders(prev => ({ ...prev, [rider.id]: false })));
     } catch (err) {
       console.error(err);
-      Alert.alert('Error', 'Failed to request ride.');
-    } finally {
+      Alert.alert(t.error, t.errorRequestRide);
       setLoadingRiders(prev => ({ ...prev, [rider.id]: false }));
     }
   };
 
   // Helper to actually request ride
-  const actuallyRequestRide = async (rider: any, attributes: any, user: any) => {
-    const userDtls: any = await client.graphql({
-      query: getSMAccount,
-      variables: { awsemail: attributes.email }
-    });
-    const passengerInfo = userDtls.data.getSMAccount;
-    if (!passengerInfo) {
-      Alert.alert('No Account', 'Please create a Main Account first.');
-      return;
-    }
-
-    // Ensure we use authoritative TransportRegister data for the rider
-    let transporter: any = null;
+  const actuallyRequestRide = async (
+    rider: any,
+    attributes: any,
+    user: any,
+    loadingCallback?: () => void
+  ) => {
     try {
-      const trRes: any = await client.graphql({ query: getTransportRegister, variables: { id: rider.id } });
-      transporter = trRes?.data?.getTransportRegister || null;
-    } catch (err) {
-      console.warn('Failed to fetch transport register for rider, falling back to card data', err);
-      transporter = null;
-    }
-
-    const selectedRider = transporter || rider;
-
-    // Convert estimated cost (which is in rider currency) to KES for storage
-    let sellerNationality = selectedRider?.nationality || null;
-    if (!sellerNationality && selectedRider?.transportOwnerEmail) sellerNationality = await getUserNationalityByEmail(selectedRider.transportOwnerEmail);
-    // normalize seller nationality to the code used in ratesMap
-    const sellerNatCode = nationalityToCode(sellerNationality) || sellerNationality || undefined;
-    const estimatedCostRaw = Number(rider._estimatedCost || 0);
-    const estimatedCostKes = sellerNatCode ? await convertForeignToKsh(estimatedCostRaw, sellerNatCode) : estimatedCostRaw;
-
-    const input = {
-      passengerEmail: attributes.email,
-      passengerName: passengerInfo.name,
-      passengerContact: attributes.phone_contact,
-      pickupLatitude: filters.pickup!.latitude,
-      pickupLongitude: filters.pickup!.longitude,
-      destinationLatitude: filters.destination!.latitude,
-      destinationLongitude: filters.destination!.longitude,
-      distance: rider._tripDistanceKm || 0,
-      estimatedCost: estimatedCostKes,
-      selectedRiderID: selectedRider.id,
-      riderName: selectedRider.transportName || selectedRider.transportName,
-      riderContact: selectedRider.transportkntct || selectedRider.transportkntct,
-      riderRate: selectedRider.transportRate || selectedRider.transportRate || 0,
-      paymentMethod,
-      paymentStatus: 'NotCleared',
-      rideStatus: 'transportRequestYes',
-      startTime: new Date().toISOString(),
-      endTime: new Date().toISOString(),
-      riderLatitude: Number(selectedRider.latitude) || Number(rider.latitude) || 0,
-      riderLongitude: Number(selectedRider.longitude) || Number(rider.longitude) || 0
-    };
-    const rideRes: any = await client.graphql({
-      query: createRideRequest,
-      variables: { input }
-    });
-    const ride = rideRes?.data?.createRideRequest;
-    if (ride) {
-      Alert.alert('Ride requested', `Ride request sent to ${rider.transportName || 'Rider'}.`);
-      // 🔔 Trigger backend Lambda to send push notification
-      const riderEmail = rider.transportOwnerEmail;
-      if (!riderEmail) {
-        Alert.alert('Error', 'Rider email is missing. Cannot send notification.');
-      } else {
-        await client.graphql({
-          query: sendNotification,
-          variables: {
-            riderEmail,
-            title: "NiSenti: New Ride Request",
-            body: `Passenger ${ride.passengerName} requested a ride. Estimated cost: ${formatAmountSync(ride.estimatedCost, natCode, ratesMap)}`
-          }
-        });
+      // Alert.alert('Debug', 'Entered actuallyRequestRide');
+      const userDtls: any = await client.graphql({
+        query: getSMAccount,
+        variables: { awsemail: attributes.email }
+      });
+      const passengerInfo = userDtls.data.getSMAccount;
+      if (!passengerInfo) {
+        Alert.alert(t.noAccountTitle, t.noAccountBody);
+        if (loadingCallback) loadingCallback();
+        return;
       }
-      navigation.navigate('RideTrackingScreen', { rideId: ride.id });
+
+      // Ensure we use authoritative TransportRegister data for the rider
+      let transporter: any = null;
+      try {
+        const trRes: any = await client.graphql({ query: getTransportRegister, variables: { id: rider.id } });
+        transporter = trRes?.data?.getTransportRegister || null;
+      } catch (err) {
+        console.warn('Failed to fetch transport register for rider, falling back to card data', err);
+        transporter = null;
+      }
+
+      const selectedRider = transporter || rider;
+
+      // Convert estimated cost (which is in rider currency) to KES for storage
+      let sellerNationality = selectedRider?.nationality || null;
+      if (!sellerNationality && selectedRider?.transportOwnerEmail) sellerNationality = await getUserNationalityByEmail(selectedRider.transportOwnerEmail);
+      // normalize seller nationality to the code used in ratesMap
+      const sellerNatCode = nationalityToCode(sellerNationality) || sellerNationality || undefined;
+      const estimatedCostRaw = Number(rider._estimatedCost || 0);
+      const estimatedCostKes = sellerNatCode ? await convertForeignToKsh(estimatedCostRaw, sellerNatCode) : estimatedCostRaw;
+
+      const input = {
+        passengerEmail: attributes.email,
+        passengerName: passengerInfo.name,
+        passengerContact: attributes.phone_contact,
+        pickupLatitude: filters.pickup!.latitude,
+        pickupLongitude: filters.pickup!.longitude,
+        destinationLatitude: filters.destination!.latitude,
+        destinationLongitude: filters.destination!.longitude,
+        distance: rider._tripDistanceKm || 0,
+        estimatedCost: estimatedCostKes,
+        selectedRiderID: selectedRider.id,
+        riderName: selectedRider.transportName || selectedRider.transportName,
+        riderContact: selectedRider.transportkntct || selectedRider.transportkntct,
+        riderRate: selectedRider.transportRate || selectedRider.transportRate || 0,
+        paymentMethod,
+        paymentStatus: 'NotCleared',
+        rideStatus: 'transportRequestYes',
+        startTime: new Date().toISOString(),
+        endTime: new Date().toISOString(),
+        riderLatitude: Number(selectedRider.latitude) || Number(rider.latitude) || 0,
+        riderLongitude: Number(selectedRider.longitude) || Number(rider.longitude) || 0
+      };
+      const rideRes: any = await client.graphql({
+        query: createRideRequest,
+        variables: { input }
+      });
+      const ride = rideRes?.data?.createRideRequest;
+      if (ride) {
+        Alert.alert(t.rideRequestedTitle, t.rideRequestedBody(rider.transportName || 'Rider'));
+        // 🔔 Trigger backend Lambda to send push notification
+        const riderEmail = rider.transportOwnerEmail;
+        if (!riderEmail) {
+          Alert.alert(t.error, t.errorRiderEmail);
+        } else {
+          // Format estimated cost in user's currency for notification
+          const formattedCost = formatAmountSync(ride.estimatedCost, natCode, ratesMap);
+          const notifTitle = "NiSenti: New Ride Request";
+          const notifBody = `Passenger ${ride.passengerName} requested a ride. Estimated cost: ${formattedCost}`;
+          try {
+            // Send notification
+            await client.graphql({
+              query: sendNotification,
+              variables: {
+                riderEmail: riderEmail,
+                title: notifTitle,
+                body: notifBody
+              }
+            });
+            // Log message in createMessages
+            await client.graphql({
+              query: require('../../../src/graphql/mutations').createMessages,
+              variables: {
+                input: {
+                  senderEmail: ride.passengerEmail,
+                  messageBody: notifBody
+                }
+              }
+            });
+          } catch (notifErr) {
+            Alert.alert(t.errorNotification, t.errorNotificationBody(notifErr && notifErr.message ? notifErr.message : JSON.stringify(notifErr)));
+          }
+        }
+        // Alert.alert('Debug', 'Navigation to RideTrackingScreen about to happen.');
+        if (loadingCallback) loadingCallback();
+        navigation.navigate('RideTrackingScreen', { rideId: ride.id });
+      } else {
+        if (loadingCallback) loadingCallback();
+      }
+    } catch (err) {
+      Alert.alert(t.error, t.errorRequestRide);
+      if (loadingCallback) loadingCallback();
     }
   };
   // Keep map fitted to current polylines when they change
@@ -734,19 +806,19 @@ export default function RideRequestMapScreen({
           onPress={() => setFilterPanelCollapsed(c => !c)}
           style={{ position: 'absolute', top: 4, right: 8, zIndex: 10, backgroundColor: '#e58d29', borderRadius: 12, paddingHorizontal: 10, paddingVertical: 2 }}
         >
-          <Text style={{ color: '#fff', fontWeight: 'bold' }}>{filterPanelCollapsed ? '▼ Show Filters' : '▲ Hide Filters'}</Text>
+          <Text style={{ color: '#fff', fontWeight: 'bold' }}>{filterPanelCollapsed ? `▼ ${t.showFilters}` : `▲ ${t.hideFilters}`}</Text>
         </TouchableOpacity>
         {!filterPanelCollapsed && (
           <>
             <GooglePlacesAutocompleteNew
-              placeholder="Pickup location"
+              placeholder={t.pickupLocation}
               value={pickupInput}
               onValueChange={setPickupInput}
               onPlaceSelected={(place: any) => fetchPlaceDetails(place, 'pickup')}
               clearOnSelect={false}
             />
             <GooglePlacesAutocompleteNew
-              placeholder="Destination"
+              placeholder={t.destination}
               value={destinationInput}
               onValueChange={setDestinationInput}
               onPlaceSelected={(place: any) => fetchPlaceDetails(place, 'destination')}
@@ -754,7 +826,7 @@ export default function RideRequestMapScreen({
             />
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
               <TextInput
-                placeholder="Radius (km)"
+                placeholder={t.radiusKm}
                 value={filters.radiusKm}
                 keyboardType="numeric"
                 onChangeText={t => setFilters(f => ({ ...f, radiusKm: t }))}
@@ -764,7 +836,7 @@ export default function RideRequestMapScreen({
                 <ActivityIndicator size="small" color="#e58d29" style={{ marginLeft: 8, marginTop: 6 }} />
               )}
               <TouchableOpacity onPress={fetchRiders} style={styles.refreshBtn}>
-                {loadingAllRiders ? <ActivityIndicator size="small" color="#1f8ef1" style={{ marginLeft: 8, marginTop: 6 }} /> : <Text style={styles.refreshTxt}>Refresh</Text>}
+                {loadingAllRiders ? <ActivityIndicator size="small" color="#1f8ef1" style={{ marginLeft: 8, marginTop: 6 }} /> : <Text style={styles.refreshTxt}>{t.refresh}</Text>}
               </TouchableOpacity>
             </View>
           </>
@@ -776,7 +848,7 @@ export default function RideRequestMapScreen({
       {!filterPanelCollapsed && (
         <View style={styles.paymentToggle}>
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-            <Text style={{ fontWeight: 'bold', fontSize: 16, marginLeft: 4 }}>Payment method</Text>
+            <Text style={{ fontWeight: 'bold', fontSize: 16, marginLeft: 4 }}>{t.paymentMethod}</Text>
             <TouchableOpacity
               onPress={() => setFilterPanelCollapsed(true)}
               style={styles.collapseBtn}
@@ -787,12 +859,12 @@ export default function RideRequestMapScreen({
           </View>
           <TouchableOpacity style={[styles.payBtn, paymentMethod === 'Cash' && styles.payBtnActive]} onPress={() => setPaymentMethod('Cash')}>
             <Text style={[styles.payTxt, paymentMethod === 'Cash' && styles.payTxtActive]}>
-              Cash
+              {t.cash}
             </Text>
           </TouchableOpacity>
           <TouchableOpacity style={[styles.payBtn, paymentMethod === 'NiSenti' && styles.payBtnActive]} onPress={() => setPaymentMethod('NiSenti')}>
             <Text style={[styles.payTxt, paymentMethod === 'NiSenti' && styles.payTxtActive]}>
-              NiSenti
+              {t.nisenti}
             </Text>
           </TouchableOpacity>
         </View>
@@ -849,24 +921,101 @@ export default function RideRequestMapScreen({
                   </View>
                 )}
                 <View style={{ flex: 1, paddingLeft: 10 }}>
-                  <Text style={{ fontWeight: '700' }}>{item.transportName || 'Rider'}</Text>
+                  <Text style={{ fontWeight: '700' }}>{item.transportName || t.rider}</Text>
                   <Text style={{ fontSize: 12 }}>
-                    {item.transportType} • {formatAmountSync(item.transportRate, nationality, ratesMap)}/km
+                    {item.transportType} • {formatAmountSync(item.transportRate, natCode, ratesMap)}/{t.km}
                   </Text>
                   <Text style={{ fontSize: 12 }}>
-                    Est: {formatAmountSync(Math.round(item._estimatedCost || 0), natCode, ratesMap)} || {selectedRiderId === item.id && selectedRouteDistanceKm != null ? selectedRouteDistanceKm.toFixed(2) : (item._tripDistanceKm || 0).toFixed(2)} km
+                    {t.est}: {formatAmountSync(Math.round(item._estimatedCost || 0), natCode, ratesMap)} || {selectedRiderId === item.id && selectedRouteDistanceKm != null ? selectedRouteDistanceKm.toFixed(2) : (item._tripDistanceKm || 0).toFixed(2)} {t.km}
                   </Text>
                   {/* New button for TransportDetails */}
                   <TouchableOpacity
                     style={[styles.requestBtn, { backgroundColor: '#4CAF50', marginTop: 6 }]}
                     onPress={() => navigation.navigate('TransportDetails', { id: item.id })}
                   >
-                    <Text style={{ color: '#fff' }}>View Details</Text>
+                    <Text style={{ color: '#fff' }}>{t.viewDetails}</Text>
                   </TouchableOpacity>
                 </View>
-                <TouchableOpacity style={styles.requestBtn} onPress={() => confirmAndRequestRide(item)}>
-                  {loadingRiders[item.id] ? <ActivityIndicator color="#fff" /> : <Text style={{ color: '#fff' }}>Request</Text>}
+                <TouchableOpacity style={styles.requestBtn} onPress={async () => {
+                  // Notify transport owner of ride request intent
+                  if (item.transportOwnerEmail) {
+                    try {
+                      await client.graphql({
+                        query: sendNotification,
+                        variables: {
+                          riderEmail: item.transportOwnerEmail,
+                          title: t.notifRequestInitiatedTitle,
+                          body: t.notifRequestInitiatedBody(item.transportName || 'your vehicle'),
+                        }
+                      });
+                    } catch (err) {
+                      // Optionally log or alert
+                    }
+                  }
+                  confirmAndRequestRide(item);
+                }}>
+                  {loadingRiders[item.id] ? <ActivityIndicator color="#fff" /> : <Text style={{ color: '#fff' }}>{t.request}</Text>}
                 </TouchableOpacity>
+
+                {/* Example: Complete, Pay, Cancel buttons with notification logic */}
+                {/*
+                <TouchableOpacity style={styles.requestBtn} onPress={async () => {
+                  // Complete Ride
+                  if (item.transportOwnerEmail) {
+                    try {
+                      await client.graphql({
+                        query: sendNotification,
+                        variables: {
+                          riderEmail: item.transportOwnerEmail,
+                          title: 'NiSenti: Ride Completed',
+                          body: `A passenger has marked the ride as complete for ${item.transportName || 'your vehicle'}.`
+                        }
+                      });
+                    } catch (err) {}
+                  }
+                  // ...complete ride logic...
+                }}>
+                  <Text style={{ color: '#fff' }}>Complete</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity style={styles.requestBtn} onPress={async () => {
+                  // Pay Ride
+                  if (item.transportOwnerEmail) {
+                    try {
+                      await client.graphql({
+                        query: sendNotification,
+                        variables: {
+                          riderEmail: item.transportOwnerEmail,
+                          title: 'NiSenti: Ride Paid',
+                          body: `A passenger has paid for the ride for ${item.transportName || 'your vehicle'}.`
+                        }
+                      });
+                    } catch (err) {}
+                  }
+                  // ...pay ride logic...
+                }}>
+                  <Text style={{ color: '#fff' }}>Pay</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity style={styles.requestBtn} onPress={async () => {
+                  // Cancel Ride
+                  if (item.transportOwnerEmail) {
+                    try {
+                      await client.graphql({
+                        query: sendNotification,
+                        variables: {
+                          riderEmail: item.transportOwnerEmail,
+                          title: 'NiSenti: Ride Cancelled',
+                          body: `A passenger has cancelled the ride for ${item.transportName || 'your vehicle'}.`
+                        }
+                      });
+                    } catch (err) {}
+                  }
+                  // ...cancel ride logic...
+                }}>
+                  <Text style={{ color: '#fff' }}>Cancel</Text>
+                </TouchableOpacity>
+                */}
               </View>
             </TouchableOpacity>
           )}

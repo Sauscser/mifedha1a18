@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, FlatList, Alert, TouchableOpacity, KeyboardAvoidingView, Platform, StyleSheet } from 'react-native';
+import { useTranslation } from 'react-i18next';
+import { translations } from './translation';
 import LnerStts from "../../../components/Transport/DispatchDelivery";
 import { BySellerAccount, listBenProd2s, listTransportOrders } from '../../../src/graphql/queries';
 import { useNavigation, useRoute } from '@react-navigation/native';
@@ -12,6 +14,9 @@ const FetchSMNonCovLns = props => {
   const [loading, setLoading] = useState(false);
   const [awsEmail, setAWSEmail] = useState("");
   const route = useRoute();
+  const { i18n } = useTranslation();
+  const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+  const t = translations[lang] || translations.en;
   useEffect(() => {
     fetchLoanees();
   }, []);
@@ -29,7 +34,8 @@ const FetchSMNonCovLns = props => {
       });
       setLoanees(Lonees.data.BySellerAccount.items);
     } catch (e) {
-      console.error("Error fetching accounts:", e);
+      console.error(t.errorFetching, e);
+      Alert.alert(t.errorFetching, e?.message || String(e));
     } finally {
       setLoading(false);
     }
@@ -47,7 +53,7 @@ const FetchSMNonCovLns = props => {
             <View style={styles.container}>
                 {/* Search Bar */}
                 <View style={styles.searchBar}>
-                    <TextInput placeholder="Search by Transporter name..." value={awsEmail} onChangeText={handleSearch} style={styles.searchInput} />
+                    <TextInput placeholder={t.searchPlaceholder} value={awsEmail} onChangeText={handleSearch} style={styles.searchInput} />
                 </View>
 
                 {/* Results */}
@@ -58,7 +64,7 @@ const FetchSMNonCovLns = props => {
       }) => <View>
                                 <LnerStts SMAc={item} />
                             </View>} keyExtractor={(item, index) => index.toString()} refreshing={loading} keyboardShouldPersistTaps="handled" /> : <Text style={styles.placeholderText}>
-                        Start typing Transporter name.
+                        {t.startTyping}
                     </Text>}
             </View>
         </KeyboardAvoidingView>;

@@ -15,19 +15,45 @@ const client = generateClient();
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const SCREEN_HEIGHT = Dimensions.get('window').height;
 
-const getDistanceKm = (lat1: number, lon1: number, lat2: number, lon2: number) => {
-  const toRad = (x: number) => x * Math.PI / 180;
-  const R = 6371;
-  const dLat = toRad(lat2 - lat1);
-  const dLon = toRad(lon2 - lon1);
-  const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return R * c;
-};
+
+
 
 import { updateRideRequest } from '../../../src/graphql/mutations';
+import { useTranslation } from 'react-i18next';
+import { translations } from './translation';
 
 export default function RideTrackingScreen({ navigation }: any) {
+    // 1-minute polling fallback for live ride updates
+    useEffect(() => {
+      let interval: any = null;
+      let isMounted = true;
+      (async () => {
+        try {
+          const user = await getCurrentUser();
+          const attributes = await fetchUserAttributes();
+          if (!attributes.email) return;
+          interval = setInterval(async () => {
+            try {
+              const res: any = await client.graphql({
+                query: listRideRequests,
+                variables: {
+                  filter: { passengerEmail: { eq: attributes.email } },
+                  limit: 20,
+                  sortDirection: 'DESC',
+                }
+              });
+              const items = res?.data?.listRideRequests?.items || [];
+              items.sort((a: any, b: any) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+              if (isMounted) setRides(items);
+            } catch {}
+          }, 60000); // 1 minute
+        } catch {}
+      })();
+      return () => { isMounted = false; if (interval) clearInterval(interval); };
+    }, []);
+  const { i18n } = useTranslation();
+  const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+  const t = translations[lang] || translations.en;
   const [rides, setRides] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedIdx, setSelectedIdx] = useState(0);
@@ -301,22 +327,36 @@ export default function RideTrackingScreen({ navigation }: any) {
         renderItem={({ item, index }) => {
           const estCostNum = (selectedIdx === index && routeDistanceKm != null) ? ((item.riderRate || 0) * routeDistanceKm) : (item.estimatedCost || 0);
           return (
-            <View style={[styles.card, selectedIdx === index && { borderColor: '#1f8ef1', borderWidth: 2 }]}
+            <View style={[styles.card, selectedIdx === index && { borderColor: '#1f8ef1', borderWidth: 2 }]} 
               onTouchStart={() => setSelectedIdx(index)}>
-              <Text style={styles.cardTitle}>{item.riderName || 'Rider'}</Text>
-              <Text>Status: {item.rideStatus}</Text>
+              <Text style={styles.cardTitle}>{item.riderName || t.transporter}</Text>
+              <Text>{t.status}: {item.rideStatus}</Text>
               {/* Route distance (pickup -> destination) */}
-              <Text>Route distance: {(selectedIdx === index && routeDistanceKm != null) ? routeDistanceKm.toFixed(2) : (item.distance || 0).toFixed(2)} km</Text>
+              <Text>{t.tripDistance}: {(selectedIdx === index && routeDistanceKm != null) ? routeDistanceKm.toFixed(2) : (item.distance ? item.distance.toFixed(2) : '...')} km</Text>
+              <Text>{t.tripCost}: {(selectedIdx === index && routeDistanceKm != null)
+                ? formatAmountSync((item.riderRate || 0) * routeDistanceKm, natCode, ratesMap)
+                : (item.estimatedCost ? formatAmountSync(item.estimatedCost, natCode, ratesMap) : '...')}</Text>
               {/* Estimated / live cost */}
-              <Text>Est. Cost: {formatAmountSync(estCostNum, natCode, ratesMap)}</Text>
+              <Text>{t.cost}: {formatAmountSync(estCostNum, natCode, ratesMap)}</Text>
+              {/* Live backend-saved distance and cost */}
+              <Text style={{ color: '#1f8ef1', fontWeight: 'bold' }}>{t.liveDistance}: {item.distance ? item.distance.toFixed(2) : '...'} km</Text>
+              <Text style={{ color: '#1f8ef1', fontWeight: 'bold' }}>{t.liveCost}: {item.estimatedCost ? formatAmountSync(item.estimatedCost, natCode, ratesMap) : '...'}</Text>
               {/* Distance to pickup or live trip metrics for selected ride */}
-              {selectedIdx === index && item.riderLatitude && item.riderLongitude && item.rideStatus !== 'Active' ? <Text>Distance to pickup: {getDistanceKm(item.riderLatitude, item.riderLongitude, item.pickupLatitude, item.pickupLongitude).toFixed(2)} km</Text> : null}
-              {selectedIdx === index && item.rideStatus === 'Active' ? <Text>Live distance: {(item.distance || 0).toFixed(2)} km • Cost: {formatAmountSync(item.estimatedCost || 0, natCode, ratesMap)}</Text> : null}
-              <Text>Requested: {item.createdAt ? new Date(item.createdAt).toLocaleString() : ''}</Text>
+              {/* Distance to pickup (OSRM road distance) */}
+              {selectedIdx === index && item.riderLatitude && item.riderLongitude && item.rideStatus !== 'Active' && routeToPickup.length > 1 && (
+                <Text>{t.distanceToPickup}: {(() => {
+                  if (routeToPickup.length > 1) {
+                    return (routeCache.current[item.id]?.pickupDistanceKm ?? '...');
+                  }
+                  return '...';
+                })()} km</Text>
+              )}
+              {selectedIdx === index && item.rideStatus === 'Active' && routeDistanceKm != null ? <Text>{t.liveDistance}: {routeDistanceKm.toFixed(2)} km • {t.cost}: {formatAmountSync(item.estimatedCost || 0, natCode, ratesMap)}</Text> : null}
+              <Text>{t.requested}: {item.createdAt ? new Date(item.createdAt).toLocaleString() : ''}</Text>
               {/* Action buttons depending on status */}
               <View style={{ flexDirection: 'row', marginTop: 8 }}>
                   {item.rideStatus === 'transportRequestYes' && (
-                  <Text style={styles.actionBtn} onPress={() => updateRideStatus(item, 'Cancelled')}>Cancel Ride</Text>
+                  <Text style={styles.actionBtn} onPress={() => updateRideStatus(item, 'Cancelled')}>{t.cancelRide}</Text>
                 )}
                 {/* Passenger cannot start/complete trips; those actions are performed by the transporter */}
               </View>

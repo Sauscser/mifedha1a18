@@ -1435,6 +1435,7 @@ export const createTransportOrder = /* GraphQL */ `
     createTransportOrder(input: $input, condition: $condition) {
       id
       transportkntct
+      purchaseType
       transportRate
       transportdesc
       transportPhoto
@@ -1494,6 +1495,7 @@ export const updateTransportOrder = /* GraphQL */ `
     updateTransportOrder(input: $input, condition: $condition) {
       id
       transportkntct
+      purchaseType
       transportRate
       transportdesc
       transportPhoto
@@ -1553,6 +1555,7 @@ export const deleteTransportOrder = /* GraphQL */ `
     deleteTransportOrder(input: $input, condition: $condition) {
       id
       transportkntct
+      purchaseType
       transportRate
       transportdesc
       transportPhoto

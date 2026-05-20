@@ -1,0 +1,26 @@
+export const translations = {
+  en: {
+    sorryDispatched: 'Sorry',
+    alreadyDispatched: 'This delivery has already been Dispatched.',
+    sorryNotRequested: 'Sorry',
+    notRequested: 'This Transporter has not been requested.',
+    success: 'Success',
+    deliveryDispatched: 'Delivery Dispatched!',
+    error: 'Error',
+    couldNotAccept: 'Could not accept delivery.',
+    processing: 'Processing...',
+    dispatchDelivery: 'Dispatch Delivery',
+    orderDescription: 'Order Description:',
+    aerialDistance: 'Aerial Distance',
+    kilometer: 'Kilometer',
+    orderTotalCost: 'Order Total Cost',
+    transportCost: 'TransportCost',
+    contact: 'Contact',
+    engagementStatus: 'Engagement Status',
+    bizType: 'Business Type',
+    transportRequest: 'Transport Request',
+    transportServices: 'transport services',
+    to: 'to',
+  },
+  // ... (other languages as needed)
+};

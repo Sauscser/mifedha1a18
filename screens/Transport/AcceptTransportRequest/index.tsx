@@ -160,6 +160,36 @@ const TransportMapScreen = () => {
   const [loadingItemId, setLoadingItemId] = useState<string | null>(null);
   const [loadingType, setLoadingType] = useState<"accept" | "view" | "offload" | null>(null);
   const [distanceMeters, setDistanceMeters] = useState<number>(0);
+  const [roadDistance, setRoadDistance] = useState<number>(0);
+  const [roadDistanceLoading, setRoadDistanceLoading] = useState<boolean>(false);
+
+  // Fetch and set road distance for active card
+  const fetchRoadDistance = async (item) => {
+    if (
+      item &&
+      item.sellerLatitude && item.sellerLongitude &&
+      item.deliveryLatitude && item.deliveryLongitude &&
+      !isNaN(Number(item.sellerLatitude)) && !isNaN(Number(item.sellerLongitude)) &&
+      !isNaN(Number(item.deliveryLatitude)) && !isNaN(Number(item.deliveryLongitude))
+    ) {
+      setRoadDistanceLoading(true);
+      try {
+        const url = `https://router.project-osrm.org/route/v1/driving/${item.sellerLongitude},${item.sellerLatitude};${item.deliveryLongitude},${item.deliveryLatitude}?overview=false`;
+        const res = await axios.get(url);
+        if (res.data.routes && res.data.routes.length > 0) {
+          setRoadDistance(res.data.routes[0].distance);
+        } else {
+          setRoadDistance(0);
+        }
+      } catch (e) {
+        setRoadDistance(0);
+      } finally {
+        setRoadDistanceLoading(false);
+      }
+    } else {
+      setRoadDistance(0);
+    }
+  };
   const [userNationality, setUserNationality] = useState<string | null>(null);
   // No need for userRateData, use ratesMap from useExchange
   const navigation = useNavigation();
@@ -276,7 +306,11 @@ const TransportMapScreen = () => {
   useEffect(() => {
     // No need to fetch nationality/rates, handled by useExchange
     setUserNationality(nationality);
-  }, [nationality]);
+    // Fetch road distance for active card
+    if (registerData[activeIndex]) {
+      fetchRoadDistance(registerData[activeIndex]);
+    }
+  }, [nationality, activeIndex, registerData]);
   const fetchRegisterData = async () => {
     try {
       const userInfo = await getCurrentUser();
@@ -342,11 +376,21 @@ const TransportMapScreen = () => {
       const sellerLat = Number(orderDtlz.sellerLatitude);
       const sellerLng = Number(orderDtlz.sellerLongitude);
       if (!isNaN(sellerLat) && !isNaN(sellerLng)) {
-        const distToSeller = getDistance(
-          { latitude: transporterLat, longitude: transporterLng },
-          { latitude: sellerLat, longitude: sellerLng }
-        );
-        if (distToSeller > 50) {
+        // Use OSRM for transporter-to-seller road distance
+        try {
+          const url = `https://router.project-osrm.org/route/v1/driving/${transporterLng},${transporterLat};${sellerLng},${sellerLat}?overview=false`;
+          const res = await axios.get(url);
+          let distToSeller = 0;
+          if (res.data.routes && res.data.routes.length > 0) {
+            distToSeller = res.data.routes[0].distance;
+          }
+          if (distToSeller > 50) {
+            Alert.alert(t.sorry, t.mustBeNearSeller);
+            setLoadingItemId(null);
+            setLoadingType(null);
+            return;
+          }
+        } catch (e) {
           Alert.alert(t.sorry, t.mustBeNearSeller);
           setLoadingItemId(null);
           setLoadingType(null);
@@ -378,15 +422,20 @@ const TransportMapScreen = () => {
       const orderCostKes =  orderCostUser;
       let computedDistance = 0;
       if (orderDtlz.sellerLatitude && orderDtlz.sellerLongitude && orderDtlz.deliveryLatitude && orderDtlz.deliveryLongitude && !isNaN(Number(orderDtlz.sellerLatitude)) && !isNaN(Number(orderDtlz.sellerLongitude)) && !isNaN(Number(orderDtlz.deliveryLatitude)) && !isNaN(Number(orderDtlz.deliveryLongitude))) {
-        const rawDistance = getDistance({
-          latitude: Number(orderDtlz.sellerLatitude),
-          longitude: Number(orderDtlz.sellerLongitude)
-        }, {
-          latitude: Number(orderDtlz.deliveryLatitude),
-          longitude: Number(orderDtlz.deliveryLongitude)
-        });
-        setDistanceMeters(rawDistance);
-        computedDistance = rawDistance / 1000; // convert to km
+        // Use OSRM for seller-to-buyer road distance
+        try {
+          const url = `https://router.project-osrm.org/route/v1/driving/${orderDtlz.sellerLongitude},${orderDtlz.sellerLatitude};${orderDtlz.deliveryLongitude},${orderDtlz.deliveryLatitude}?overview=false`;
+          const res = await axios.get(url);
+          let rawDistance = 0;
+          if (res.data.routes && res.data.routes.length > 0) {
+            rawDistance = res.data.routes[0].distance;
+          }
+          setDistanceMeters(rawDistance);
+          computedDistance = rawDistance / 1000;
+        } catch (e) {
+          setDistanceMeters(0);
+          computedDistance = 0;
+        }
       }
       if (deliveryCostUser > buyerBalance) {
         Alert.alert(t.sorry, t.buyerCannotCover);
@@ -562,7 +611,8 @@ const TransportMapScreen = () => {
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeIndex, transporterCoords, registerData]);
-  return <View style={{
+
+return <View style={{
     flex: 1
   }}>
     {/* Floating Refresh Spinner Button */}
@@ -671,7 +721,7 @@ const TransportMapScreen = () => {
         <FlatList
           horizontal
           pagingEnabled
-          data={registerData}
+          data={registerData.filter(item => item.engagementStatus === "TransportEngaged")}
           keyExtractor={item => item.id}
           onMomentumScrollEnd={handleScroll}
           showsHorizontalScrollIndicator={false}
@@ -680,20 +730,10 @@ const TransportMapScreen = () => {
             <View style={[styles.card, index === activeIndex && styles.activeCard, { minHeight: 140, flexGrow: 1, paddingBottom: 24, justifyContent: 'flex-start' }]}> 
               <Text style={styles.cardTitle}>
                 {t.fromTo(item.sellerName, item.buyerName)} ||
-                {/* Calculate and show aerial distance between seller and buyer */}
-                {(() => {
-                  if (
-                    item.sellerLatitude && item.sellerLongitude &&
-                    item.deliveryLatitude && item.deliveryLongitude
-                  ) {
-                    const aerialDist = getDistance(
-                      { latitude: Number(item.sellerLatitude), longitude: Number(item.sellerLongitude) },
-                      { latitude: Number(item.deliveryLatitude), longitude: Number(item.deliveryLongitude) }
-                    ) / 1000;
-                    return `${t.sellerBuyerDistance || 'Seller-Buyer Distance'}: ${aerialDist.toFixed(2)} ${t.km || 'km'} || `;
-                  }
-                  return '';
-                })()}
+                {/* Show actual road distance between seller and buyer */}
+                {roadDistanceLoading
+                  ? (t.loadingRoadDistance || 'Loading road distance...')
+                  : `${t.roadDistance || 'Road Distance'}: ${(roadDistance / 1000).toFixed(2)} ${t.km || 'km'} || `}
                 {t.rates || 'Rates'}: {formatAmountSync(Number(item.transportRate ?? 0), nationalityToCode(nationality), ratesMap)} ||
                 {t.contact} {item.buyerContact} || {t.transportRequest} {item.transportRequest} || {t.engagementStatus} {item.engagementStatus}
               </Text>

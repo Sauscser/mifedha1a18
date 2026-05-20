@@ -31,7 +31,7 @@ const FetchSMCovLns = props => {
           limit: 100,
           filter: {
             status: {
-              eq: "cashSales"
+              eq: "Biz2Pal"
             }
           }
         }

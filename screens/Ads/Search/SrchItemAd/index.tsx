@@ -3,7 +3,10 @@
 // Responsive design with draggable filter, collapsible cart, responsive carousel spacing
 
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
-import { View, Text, TextInput, FlatList, TouchableOpacity, StyleSheet, Dimensions, ActivityIndicator, Animated, PanResponder, ScrollView, Alert, KeyboardAvoidingView, TouchableWithoutFeedback, Keyboard, Platform, Easing } from 'react-native';
+import { View, Text, TextInput, FlatList, TouchableOpacity, StyleSheet, 
+  Dimensions, ActivityIndicator, Animated, PanResponder, ScrollView, 
+  Alert, KeyboardAvoidingView, TouchableWithoutFeedback, Keyboard, 
+  Platform, Easing } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import MapView, { Marker, Polyline } from 'react-native-maps';
 import axios from 'axios';
@@ -11,6 +14,7 @@ import * as Location from 'expo-location';
 import { getDistance } from 'geolib';
 import {useTranslation} from 'react-i18next';
 import { translations } from './translation';
+import { ShoppingModeProvider, useShoppingMode } from '../ShoppingModeContext';
 import { generateClient } from 'aws-amplify/api';
 import { getCurrentUser, fetchUserAttributes } from 'aws-amplify/auth';
 import { listSokoAds, getBizna, getCompany, getSMAccount, listCovCreditSellers, listCvrdGroupLoans, listSMLoansCovereds } from '../../../../src/graphql/queries';
@@ -36,7 +40,21 @@ const PLACEHOLDERS: Record<string,string> = {
   cheapestRank: 'Cost Rank',
   bizName: 'BizName'
 };
-export default function SalesItemMapScreen({ navigation }: { navigation: any }) {
+function SalesItemMapScreenInner({ navigation }: { navigation: any }) {
+    // Shopping mode context
+    const { mode, setMode } = useShoppingMode();
+    const [showModeModal, setShowModeModal] = useState(false);
+
+    // Show modal if mode is not set
+    useEffect(() => {
+      if (!mode) setShowModeModal(true);
+      else setShowModeModal(false);
+    }, [mode]);
+
+    const handleSelectMode = (selectedMode: 'B2C' | 'B2B') => {
+      setMode(selectedMode);
+      setShowModeModal(false);
+    };
   // Polyline state for showing route from user to selected item
   const [polylineCoords, setPolylineCoords] = useState<Array<{ latitude: number; longitude: number }>>([]);
   // Dynamic currency context
@@ -391,12 +409,12 @@ export default function SalesItemMapScreen({ navigation }: { navigation: any }) 
     const attributes = await fetchUserAttributes();
     if (cart.length === 0) {
       setIsLoading2(false);
-      Alert.alert("Error", "Add items to cart.");
+      Alert.alert(t.error, t.addItemsToCart);
       return;
     }
     if (!password) {
       setIsLoading2(false);
-      Alert.alert("Error", "Enter your password to proceed.");
+      Alert.alert(t.error, t.enterPasswordToProceed);
       return;
     }
     try {
@@ -474,7 +492,7 @@ export default function SalesItemMapScreen({ navigation }: { navigation: any }) 
       const sender = userResult.data.getSMAccount;
       if (!sender || sender.pw !== password) {
         setIsLoading2(false);
-        Alert.alert("Authentication Failed", "Incorrect password.");
+        Alert.alert(t.authenticationFailed, t.incorrectPassword);
         return;
       }
       const companyResult: any = await client.graphql({
@@ -503,7 +521,7 @@ export default function SalesItemMapScreen({ navigation }: { navigation: any }) 
         const compEarnings = fee - 2 * benefit;
         if (parseFloat(sender.balance) < totalDebit) {
           setIsLoading2(false);
-          Alert.alert(t.insufficientFunds);
+          Alert.alert(t.insufficientFundsTitle, t.insufficientFunds);
           return;
         }
         await client.graphql({
@@ -533,7 +551,7 @@ export default function SalesItemMapScreen({ navigation }: { navigation: any }) 
         if (!biz) {
           console.warn('[DEBUG] getBizna returned undefined/null for', item.sokokntct, 'raw result:', bizResult);
           setIsLoading2(false);
-          Alert.alert(`${t.couldNotFindAccount} ${item.bizName}`);
+          Alert.alert(t.couldNotFindAccount, item.bizName);
           return;
         }
         const description = `${qty} ${item.itemUnit} of ${item.sokoname} @ ${item.sokoprice} = ${itemCost} bought at ${item.bizName} ${item.businessType}`;
@@ -575,7 +593,7 @@ export default function SalesItemMapScreen({ navigation }: { navigation: any }) 
           console.warn('[DEBUG] getBizna returned undefined/null for', sokokntct, 'raw result:', bizResult);
           console.error('[FATAL] Tried to access biz properties but biz is undefined for', sokokntct, 'raw result:', bizResult);
           setIsLoading2(false);
-          Alert.alert("Error", "Could not find Bizna record for this seller.");
+          Alert.alert(t.error, t.couldNotFindBiznaRecord);
           continue;
         }
         // All arithmetic and backend writes use KES values directly (totals.totalItemCost, totals.totalBenefit)
@@ -606,9 +624,7 @@ export default function SalesItemMapScreen({ navigation }: { navigation: any }) 
             variables: {
               input: {
                 BusKntct: sokokntct,
-                netEarnings: (netEarnings + Number(totals.totalItemCost)).toFixed(0),
-                earningsBal: (earningsBal + Number(totals.totalItemCost)).toFixed(0),
-                benefitsAmount: benefitsAmount + Number(totals.totalBenefit)
+                
               }
             }
           });
@@ -628,7 +644,7 @@ export default function SalesItemMapScreen({ navigation }: { navigation: any }) 
               description: totals.description.join('\n'),
               RecName: biz ? biz.busName : '',
               SenderName: usrDtlsx.name,
-              status: "cashSales",
+              status: "Biz2Pal",
               owner: allItemsID
             }
           }
@@ -641,14 +657,11 @@ export default function SalesItemMapScreen({ navigation }: { navigation: any }) 
         variables: {
           input: {
             awsemail: attributes.email,
-            ttlNonLonsSentSM: parseFloat(sender.ttlNonLonsSentSM) + (totalCostKes || totalCost),
             balance: parseFloat(sender.balance) - OverallTotalDebit,
-            benefitsAmount: parseFloat(sender.benefitsAmount) + totalBenefit
           }
         }
       });
-      Alert.alert("Success", "Transaction completed successfully.");
-        Alert.alert(t.success, t.transactionCompleted);
+      Alert.alert(t.success, t.transactionCompleted);
       setCart([]);
       setQuantities({});
       setPassword('');
@@ -968,7 +981,33 @@ export default function SalesItemMapScreen({ navigation }: { navigation: any }) 
         <Text>{t.locating}</Text>
       </View>;
   }
-  return <View style={{ flex: 1 }}>
+  return (
+    <>
+      {/* Inline modal for shopping mode selection */}
+      {showModeModal && (
+        <View style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0,0,0,0.5)',
+          zIndex: 999,
+          justifyContent: 'center',
+          alignItems: 'center',
+        }}>
+          <View style={{ backgroundColor: 'white', borderRadius: 12, padding: 24, alignItems: 'center', width: 300 }}>
+            <Text style={{ fontWeight: 'bold', fontSize: 18, marginBottom: 16 }}>{t.selectShoppingMode}</Text>
+            <TouchableOpacity style={{ marginVertical: 8, padding: 12, backgroundColor: '#e58d29', borderRadius: 8, width: 220, alignItems: 'center' }} onPress={() => handleSelectMode('B2C')}>
+              <Text style={{ color: 'white', fontWeight: 'bold' }}>{t.b2c || 'Business to Customer Shopping'}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={{ marginVertical: 8, padding: 12, backgroundColor: '#2a7be4', borderRadius: 8, width: 220, alignItems: 'center' }} onPress={() => handleSelectMode('B2B')}>
+              <Text style={{ color: 'white', fontWeight: 'bold' }}>{t.b2b || 'Business to Business Shopping'}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
+      <View style={{ flex: 1 }}>
       {/* MapView with floating refresh icon */}
       <View style={{ flex: 1 }}>
         <MapView
@@ -1172,13 +1211,25 @@ export default function SalesItemMapScreen({ navigation }: { navigation: any }) 
                           </TouchableOpacity>
                         </View>
             <TouchableOpacity onPress={validateAndTransact2} style={styles.checkoutBtn}>
-              {isLoading2 ? <ActivityIndicator color="white" /> : <Text style={{
-            color: 'white'
-          }}>{t.quickCheckout}</Text>}
+              {isLoading2 ? <ActivityIndicator color="white" /> : <Text style={{ color: 'white' }}>{t.quickCheckout}</Text>}
+            </TouchableOpacity>
+            <TouchableOpacity onPress={validateAndTransact2} style={[styles.checkoutBtn, { marginTop: 10, backgroundColor: '#2a7be4' }]}> 
+              {isLoading2 ? <ActivityIndicator color="white" /> : <Text style={{ color: 'white', fontWeight: 'bold' }}>Purchase (Ask for Transport)</Text>}
             </TouchableOpacity>
           </ScrollView>}
       </View>
     </View>;
+    </>
+  );
+}
+
+export default function SalesItemMapScreen(props: any) {
+  // Wrap with ShoppingModeProvider for context
+  return (
+    <ShoppingModeProvider>
+      <SalesItemMapScreenInner {...props} />
+    </ShoppingModeProvider>
+  );
 }
 const styles = StyleSheet.create({
   loadingContainer: {
