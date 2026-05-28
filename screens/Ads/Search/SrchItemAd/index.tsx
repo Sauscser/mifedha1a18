@@ -17,7 +17,7 @@ import { translations } from './translation';
 import { ShoppingModeProvider, useShoppingMode } from '../ShoppingModeContext';
 import { generateClient } from 'aws-amplify/api';
 import { getCurrentUser, fetchUserAttributes } from 'aws-amplify/auth';
-import { listSokoAds, getBizna, getCompany, getSMAccount, listCovCreditSellers, listCvrdGroupLoans, listSMLoansCovereds } from '../../../../src/graphql/queries';
+import { listSokoAds, getBizna, getCompany, getSMAccount, listCovCreditSellers, listCvrdGroupLoans, listSMLoansCovereds, listBiznas } from '../../../../src/graphql/queries';
 import { createBenefitContributions2, createNonLoans, updateCompany, updateSMAccount, updateBizna, createMarketConsumption } from '../../../../src/graphql/mutations';
 import { getUrl } from 'aws-amplify/storage';
 import { formatAmountSync, convertForeignToKsh, getUserNationalityByEmail } from '../../../../src/utils/exchange';
@@ -41,20 +41,84 @@ const PLACEHOLDERS: Record<string,string> = {
   bizName: 'BizName'
 };
 function SalesItemMapScreenInner({ navigation }: { navigation: any }) {
-    // Shopping mode context
-    const { mode, setMode } = useShoppingMode();
-    const [showModeModal, setShowModeModal] = useState(false);
-
-    // Show modal if mode is not set
-    useEffect(() => {
-      if (!mode) setShowModeModal(true);
-      else setShowModeModal(false);
-    }, [mode]);
+    // Fetch signed-in user's email and then fetch Biznas
+    const fetchUserEmailAndBiznas = async () => {
+      console.log('fetchUserEmailAndBiznas CALLED');
+      setLoadingBiznas(true);
+      try {
+        const user = await getCurrentUser();
+        const attributes = await fetchUserAttributes();
+        const email = attributes.email;
+        setUserEmail(email);
+        // Query all Biznas (pagination omitted for brevity)
+        const res: any = await client.graphql({ query: listBiznas });
+        const allBiznas = res.data.listBiznas.items || [];
+        // Debug logs for diagnostics
+        console.log('User email:', email);
+        console.log('All businesses:', allBiznas);
+        // Filter where user is admin
+        const filtered = allBiznas.filter((biz: any) => {
+          // Log the current Bizna being checked
+          console.log('Buyer Bizna:', biz.busName, '| Contact:', biz.BusKntct, '| Admin1:', biz.Admin1);
+          for (let i = 1; i <= 50; ++i) {
+            const adminVal = biz[`Admin${i}`];
+            if (adminVal && adminVal !== 'None') {
+              // Debug log for comparison
+              console.log('Comparing admin:', adminVal, 'with user:', email);
+              if (adminVal.toLowerCase().trim() === email.toLowerCase().trim()) return true;
+            }
+          }
+          return false;
+        });
+        setBiznas(filtered);
+      } catch (err) {
+        console.log('fetchUserEmailAndBiznas ERROR:', err);
+        setBiznas([]);
+      }
+      setLoadingBiznas(false);
+    };
 
     const handleSelectMode = (selectedMode: 'B2C' | 'B2B') => {
       setMode(selectedMode);
       setShowModeModal(false);
     };
+
+    const handleSelectBizna = (bizna: any) => {
+      // Prevent business from buying from itself
+      if (cart && cart.length > 0) {
+        const hasSelf = cart.some(item => item.sokokntct && bizna.BusKntct && item.sokokntct === bizna.BusKntct);
+        if (hasSelf) {
+          Alert.alert(t.error, 'A business cannot buy from itself.');
+          return;
+        }
+      }
+      setSelectedBizna(bizna);
+      setShowBiznaModal(false);
+    };
+  // Shopping mode context
+  const { mode, setMode, selectedBizna, setSelectedBizna } = useShoppingMode();
+  const [showModeModal, setShowModeModal] = useState(false);
+  const [showBiznaModal, setShowBiznaModal] = useState(false);
+  const [biznas, setBiznas] = useState<any[]>([]);
+  const [loadingBiznas, setLoadingBiznas] = useState(false);
+  const [userEmail, setUserEmail] = useState<string | null>(null);
+
+  // Show mode modal if mode is not set
+  useEffect(() => {
+    if (!mode) setShowModeModal(true);
+    else setShowModeModal(false);
+  }, [mode]);
+
+  // When B2B is selected, fetch Biznas where user is admin
+  useEffect(() => {
+    if (mode === 'B2B' && !selectedBizna) {
+      setShowBiznaModal(true);
+      fetchUserEmailAndBiznas();
+    } else {
+      setShowBiznaModal(false);
+    }
+    // eslint-disable-next-line
+  }, [mode, selectedBizna]);
   // Polyline state for showing route from user to selected item
   const [polylineCoords, setPolylineCoords] = useState<Array<{ latitude: number; longitude: number }>>([]);
   // Dynamic currency context
@@ -119,11 +183,12 @@ function SalesItemMapScreenInner({ navigation }: { navigation: any }) {
   const [Ttl, setFilteredItems3] = useState<any[]>([]);
   const [company, setCompany] = useState<any | null>(null);
   const VwSalesDtls4Transport = () => {
-    navigation.navigate('VwSalesDtls4Transport');
+    navigation.navigate('VwSalesDtls4Transport', { mode, selectedBizna });
   };
   const [OverallTotalDebit, setOverallTotalDebit] = useState(0);
   const carouselPosition = useRef(new Animated.Value(SCREEN_HEIGHT * 0.55)).current;
-  const [isLoading2, setIsLoading2] = useState(false);
+  const [isLoading2, setIsLoading2] = useState(false); // For Quick Checkout
+  const [isLoadingTransport, setIsLoadingTransport] = useState(false); // For Purchase (Ask for Transport)
   const [isLoading, setIsLoading] = useState(false);
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const mapRef = useRef<any>(null);
@@ -360,6 +425,11 @@ function SalesItemMapScreenInner({ navigation }: { navigation: any }) {
   // Cart management
   const onAddToCart = (item: any) => {
     const exists = cart.find(c => c.id === item.id);
+    // Only check in B2B mode with a selected business
+    if (mode === 'B2B' && selectedBizna && selectedBizna.BusKntct && item.sokokntct === selectedBizna.BusKntct) {
+      Alert.alert(t.error, 'A business cannot buy from itself.');
+      return;
+    }
     if (!exists) setCart([...cart, item]);
   };
   const removeFromCart = (id: string) => {
@@ -402,18 +472,24 @@ function SalesItemMapScreenInner({ navigation }: { navigation: any }) {
   }, [cart, quantities, company]);
 
   // Transaction logic (pivoted)
-  const validateAndTransact2 = async () => {
-    if (isLoading2) return;
-    setIsLoading2(true);
+  // Accepts a param to distinguish which button was pressed
+  const validateAndTransact2 = async (modeParam?: 'quick' | 'transport') => {
+    if (modeParam === 'transport') {
+      if (isLoadingTransport) return;
+      setIsLoadingTransport(true);
+    } else {
+      if (isLoading2) return;
+      setIsLoading2(true);
+    }
     const user = await getCurrentUser();
     const attributes = await fetchUserAttributes();
     if (cart.length === 0) {
-      setIsLoading2(false);
+      if (modeParam === 'transport') setIsLoadingTransport(false); else setIsLoading2(false);
       Alert.alert(t.error, t.addItemsToCart);
       return;
     }
     if (!password) {
-      setIsLoading2(false);
+      if (modeParam === 'transport') setIsLoadingTransport(false); else setIsLoading2(false);
       Alert.alert(t.error, t.enterPasswordToProceed);
       return;
     }
@@ -483,17 +559,35 @@ function SalesItemMapScreenInner({ navigation }: { navigation: any }) {
       if (hasLoan) return navigateToChmRepay();
 
       // User account
-      const userResult: any = await client.graphql({
-        query: getSMAccount,
-        variables: {
-          awsemail: attributes.email
+      let sender;
+      if (mode === 'B2B' && selectedBizna && selectedBizna.BusKntct) {
+        // Use Bizna as buyer
+        const biznaResult: any = await client.graphql({
+          query: getBizna,
+          variables: { BusKntct: selectedBizna.BusKntct }
+        });
+        sender = biznaResult.data.getBizna;
+        // Optionally, you may want to check a Bizna password or other field here if needed
+        // For now, we skip password check for Bizna
+        if (!sender) {
+          if (modeParam === 'transport') setIsLoadingTransport(false); else setIsLoading2(false);
+          Alert.alert(t.error, t.couldNotFindBiznaRecord);
+          return;
         }
-      });
-      const sender = userResult.data.getSMAccount;
-      if (!sender || sender.pw !== password) {
-        setIsLoading2(false);
-        Alert.alert(t.authenticationFailed, t.incorrectPassword);
-        return;
+      } else {
+        // Use user account as buyer (B2C)
+        const userResult: any = await client.graphql({
+          query: getSMAccount,
+          variables: {
+            awsemail: attributes.email
+          }
+        });
+        sender = userResult.data.getSMAccount;
+        if (!sender || sender.pw !== password) {
+          if (modeParam === 'transport') setIsLoadingTransport(false); else setIsLoading2(false);
+          Alert.alert(t.authenticationFailed, t.incorrectPassword);
+          return;
+        }
       }
       const companyResult: any = await client.graphql({
         query: getCompany,
@@ -520,7 +614,7 @@ function SalesItemMapScreenInner({ navigation }: { navigation: any }) {
         const benefit = fee * parseFloat(company.p2BBenCom) * 0.01;
         const compEarnings = fee - 2 * benefit;
         if (parseFloat(sender.balance) < totalDebit) {
-          setIsLoading2(false);
+          if (modeParam === 'transport') setIsLoadingTransport(false); else setIsLoading2(false);
           Alert.alert(t.insufficientFundsTitle, t.insufficientFunds);
           return;
         }
@@ -550,11 +644,14 @@ function SalesItemMapScreenInner({ navigation }: { navigation: any }) {
         console.log('[DEBUG] getBizna result for', item.sokokntct, ':', biz);
         if (!biz) {
           console.warn('[DEBUG] getBizna returned undefined/null for', item.sokokntct, 'raw result:', bizResult);
-          setIsLoading2(false);
+          if (modeParam === 'transport') setIsLoadingTransport(false); else setIsLoading2(false);
           Alert.alert(t.couldNotFindAccount, item.bizName);
           return;
         }
-        const description = `${qty} ${item.itemUnit} of ${item.sokoname} @ ${item.sokoprice} = ${itemCost} bought at ${item.bizName} ${item.businessType}`;
+        // Convert itemCost (KES) to user's currency and attach symbol
+        const userCurrencyKey = natCode;
+        const itemCostDisplay = formatAmountSync(itemCost, userCurrencyKey, ratesMap);
+        const description = `${qty} ${item.itemUnit} of ${item.sokoname} @ $ ${itemCostDisplay} bought at ${item.bizName} ${item.businessType}`;
         if (!sellerTotals[item.sokokntct]) {
           sellerTotals[item.sokokntct] = {
             totalItemCost: 0,
@@ -592,19 +689,30 @@ function SalesItemMapScreenInner({ navigation }: { navigation: any }) {
         if (!biz) {
           console.warn('[DEBUG] getBizna returned undefined/null for', sokokntct, 'raw result:', bizResult);
           console.error('[FATAL] Tried to access biz properties but biz is undefined for', sokokntct, 'raw result:', bizResult);
-          setIsLoading2(false);
+          if (modeParam === 'transport') setIsLoadingTransport(false); else setIsLoading2(false);
           Alert.alert(t.error, t.couldNotFindBiznaRecord);
           continue;
         }
         // All arithmetic and backend writes use KES values directly (totals.totalItemCost, totals.totalBenefit)
         totalCostKes += Number(totals.totalItemCost);
-        const usrDtls: any = await client.graphql({
-          query: getSMAccount,
-          variables: {
-            awsemail: attributes.email
-          }
-        });
-        const usrDtlsx = usrDtls.data.getSMAccount;
+        let usrDtlsx;
+        if (mode === 'B2B' && selectedBizna && selectedBizna.BusKntct) {
+          // Use Bizna as buyer
+          const biznaResult: any = await client.graphql({
+            query: getBizna,
+            variables: { BusKntct: selectedBizna.BusKntct }
+          });
+          usrDtlsx = biznaResult.data.getBizna;
+        } else {
+          // Use user account as buyer (B2C)
+          const usrDtls: any = await client.graphql({
+            query: getSMAccount,
+            variables: {
+              awsemail: attributes.email
+            }
+          });
+          usrDtlsx = usrDtls.data.getSMAccount;
+        }
         // Defensive: check before every use of biz and all mutation values, log error if invalid
         const netEarnings = parseFloat(biz.netEarnings);
         const earningsBal = parseFloat(biz.earningsBal);
@@ -639,28 +747,43 @@ function SalesItemMapScreenInner({ navigation }: { navigation: any }) {
           variables: {
             input: {
               recPhn: sokokntct,
-              senderPhn: attributes.email,
+              senderPhn: mode === 'B2B' && selectedBizna && selectedBizna.BusKntct ? selectedBizna.BusKntct : attributes.email,
               amount: Number(totals.totalItemCost).toFixed(0),
               description: totals.description.join('\n'),
               RecName: biz ? biz.busName : '',
-              SenderName: usrDtlsx.name,
-              status: "Biz2Pal",
+              SenderName: mode === 'B2B' && selectedBizna && selectedBizna.busName ? selectedBizna.busName : usrDtlsx.name,
+              status: mode === 'B2B' ? 'Biz2Biz' : 'Biz2Pal',
               owner: allItemsID
             }
           }
         });
       }
 
-      // Update user (use KES totals where available)
-      await client.graphql({
-        query: updateSMAccount,
-        variables: {
-          input: {
-            awsemail: attributes.email,
-            balance: parseFloat(sender.balance) - OverallTotalDebit,
+      // Update buyer account or Bizna depending on mode
+      if (mode === 'B2B' && selectedBizna && selectedBizna.BusKntct) {
+        // Subtract from Bizna's earningsBal
+        await client.graphql({
+          query: updateBizna,
+          variables: {
+            input: {
+              BusKntct: selectedBizna.BusKntct,
+              earningsBal: parseFloat(selectedBizna.earningsBal) - OverallTotalDebit,
+              netEarnings: parseFloat(selectedBizna.netEarnings) - OverallTotalDebit,
+            }
           }
-        }
-      });
+        });
+      } else {
+        // Update user (use KES totals where available)
+        await client.graphql({
+          query: updateSMAccount,
+          variables: {
+            input: {
+              awsemail: attributes.email,
+              balance: parseFloat(sender.balance) - OverallTotalDebit,
+            }
+          }
+        });
+      }
       Alert.alert(t.success, t.transactionCompleted);
       setCart([]);
       setQuantities({});
@@ -670,7 +793,7 @@ function SalesItemMapScreenInner({ navigation }: { navigation: any }) {
       console.error("Transaction error:", err);
       Alert.alert(t.error, t.somethingWentWrong);
     } finally {
-      setIsLoading2(false);
+      if (modeParam === 'transport') setIsLoadingTransport(false); else setIsLoading2(false);
     }
   };
   const validateAndTransact = async () => {
@@ -753,18 +876,35 @@ function SalesItemMapScreenInner({ navigation }: { navigation: any }) {
       const hasLoan = loan1.data.listSMLoansCovereds.items.length > 0 || loan2.data.listCovCreditSellers.items.length > 0 || loan3.data.listCvrdGroupLoans.items.length > 0;
       if (hasLoan) return navigateToChmRepay();
 
-      // User account
-      const userResult: any = await client.graphql({
-        query: getSMAccount,
-        variables: {
-          awsemail: attributes.email
+      // User or Bizna account depending on shopping mode
+      let sender;
+      if (mode === 'B2B' && selectedBizna && selectedBizna.BusKntct) {
+        // Use Bizna as buyer
+        const biznaResult: any = await client.graphql({
+          query: getBizna,
+          variables: { BusKntct: selectedBizna.BusKntct }
+        });
+        sender = biznaResult.data.getBizna;
+        if (!sender) {
+          setIsLoading(false);
+          Alert.alert(t.error, t.couldNotFindBiznaRecord);
+          return;
         }
-      });
-      const sender = userResult.data.getSMAccount;
-      if (!sender || sender.pw !== password) {
-        setIsLoading(false);
-        Alert.alert(t.authenticationFailed, t.incorrectPassword);
-        return;
+        // Optionally, you may want to check a Bizna password or other field here if needed
+      } else {
+        // Use user account as buyer (B2C)
+        const userResult: any = await client.graphql({
+          query: getSMAccount,
+          variables: {
+            awsemail: attributes.email
+          }
+        });
+        sender = userResult.data.getSMAccount;
+        if (!sender || sender.pw !== password) {
+          setIsLoading(false);
+          Alert.alert(t.authenticationFailed, t.incorrectPassword);
+          return;
+        }
       }
       const companyResult: any = await client.graphql({
         query: getCompany,
@@ -824,7 +964,10 @@ function SalesItemMapScreenInner({ navigation }: { navigation: any }) {
             Alert.alert(t.success, t.transactionCompleted);
           return;
         }
-        const description = `${qty} ${item.itemUnit} of ${item.sokoname} @ ${item.sokoprice} = ${itemCost} bought at ${item.bizName} ${item.businessType}`;
+        // Convert itemCost (KES) to user's currency and attach symbol
+        const userCurrencyKey = natCode;
+        const itemCostDisplay = formatAmountSync(itemCost, userCurrencyKey, ratesMap);
+        const description = `${qty} ${item.itemUnit} of ${item.sokoname} @ ${itemCostDisplay} bought at ${item.bizName} ${item.businessType}`;
         if (!sellerTotals[item.sokokntct]) {
           sellerTotals[item.sokokntct] = {
             totalItemCost: 0,
@@ -869,13 +1012,25 @@ function SalesItemMapScreenInner({ navigation }: { navigation: any }) {
         const totalInKes = totals.totalItemCost;
         const benefitInKes = totals.totalBenefit;
         totalCostKes += Number(totalInKes || 0);
-        const usrDt: any = await client.graphql({
-          query: getSMAccount,
-          variables: {
-            awsemail: attributes.email
-          }
-        });
-        const usrDts = usrDt.data.getSMAccount;
+
+        
+        // Buyer details depending on shopping mode
+        let usrDts;
+        if (mode === 'B2B' && selectedBizna && selectedBizna.BusKntct) {
+          const biznaResult: any = await client.graphql({
+            query: getBizna,
+            variables: { BusKntct: selectedBizna.BusKntct }
+          });
+          usrDts = biznaResult.data.getBizna;
+        } else {
+          const usrDt: any = await client.graphql({
+            query: getSMAccount,
+            variables: {
+              awsemail: attributes.email
+            }
+          });
+          usrDts = usrDt.data.getSMAccount;
+        }
         // Defensive: check before every use of biz and all mutation values
         if (biz) {
           const netEarnings = isNaN(parseFloat(biz.netEarnings)) ? 0 : parseFloat(biz.netEarnings);
@@ -899,12 +1054,12 @@ function SalesItemMapScreenInner({ navigation }: { navigation: any }) {
           variables: {
             input: {
               recPhn: sokokntct,
-              senderPhn: attributes.email,
+              senderPhn: mode === 'B2B' && selectedBizna && selectedBizna.BusKntct ? selectedBizna.BusKntct : attributes.email,
               amount: totalInKes.toFixed(0),
               description: totals.description.join('\n'),
               RecName: biz ? biz.busName : '',
-              SenderName: usrDts.name,
-              status: "cashSales",
+              SenderName: mode === 'B2B' && selectedBizna && selectedBizna.busName ? selectedBizna.busName : usrDts.name,
+              status: mode === 'B2B' ? 'Biz2Biz' : 'Biz2Pal',
               owner: allItemsID
             }
           }
@@ -925,18 +1080,32 @@ function SalesItemMapScreenInner({ navigation }: { navigation: any }) {
         }
       });
 
-      // Update user + contribution
-      await client.graphql({
-        query: updateSMAccount,
-        variables: {
-          input: {
-            awsemail: attributes.email,
-            ttlNonLonsSentSM: parseFloat(sender.ttlNonLonsSentSM) + (totalCostKes || totalCost),
-            balance: parseFloat(sender.balance) - OverallTotalDebit,
-            benefitsAmount: parseFloat(sender.benefitsAmount) + totalBenefit
+      // Update user or Bizna + contribution based on shopping mode
+      if (mode === 'B2B' && selectedBizna && selectedBizna.BusKntct) {
+        await client.graphql({
+          query: updateBizna,
+          variables: {
+            input: {
+              BusKntct: selectedBizna.BusKntct,
+              earningsBal: parseFloat(sender.earningsBal) - OverallTotalDebit,
+              netEarnings: parseFloat(sender.netEarnings) - OverallTotalDebit,
+              benefitsAmount: parseFloat(sender.benefitsAmount) + totalBenefit
+            }
           }
-        }
-      });
+        });
+      } else {
+        await client.graphql({
+          query: updateSMAccount,
+          variables: {
+            input: {
+              awsemail: attributes.email,
+              ttlNonLonsSentSM: parseFloat(sender.ttlNonLonsSentSM) + (totalCostKes || totalCost),
+              balance: parseFloat(sender.balance) - OverallTotalDebit,
+              benefitsAmount: parseFloat(sender.benefitsAmount) + totalBenefit
+            }
+          }
+        });
+      }
       await client.graphql({
         query: createBenefitContributions2,
         variables: {
@@ -997,13 +1166,67 @@ function SalesItemMapScreenInner({ navigation }: { navigation: any }) {
           alignItems: 'center',
         }}>
           <View style={{ backgroundColor: 'white', borderRadius: 12, padding: 24, alignItems: 'center', width: 300 }}>
-            <Text style={{ fontWeight: 'bold', fontSize: 18, marginBottom: 16 }}>{t.selectShoppingMode}</Text>
+            <Text style={{ fontWeight: 'bold', fontSize: 18, marginBottom: 16 }}>{typeof t.selectShoppingMode === 'string' && t.selectShoppingMode.trim() ? t.selectShoppingMode : 'Select Shopping Mode'}</Text>
             <TouchableOpacity style={{ marginVertical: 8, padding: 12, backgroundColor: '#e58d29', borderRadius: 8, width: 220, alignItems: 'center' }} onPress={() => handleSelectMode('B2C')}>
-              <Text style={{ color: 'white', fontWeight: 'bold' }}>{t.b2c || 'Business to Customer Shopping'}</Text>
+              <Text style={{ color: 'white', fontWeight: 'bold' }}>{typeof t.b2c === 'string' && t.b2c.trim() ? t.b2c : 'Business to Customer Shopping'}</Text>
             </TouchableOpacity>
             <TouchableOpacity style={{ marginVertical: 8, padding: 12, backgroundColor: '#2a7be4', borderRadius: 8, width: 220, alignItems: 'center' }} onPress={() => handleSelectMode('B2B')}>
-              <Text style={{ color: 'white', fontWeight: 'bold' }}>{t.b2b || 'Business to Business Shopping'}</Text>
+              <Text style={{ color: 'white', fontWeight: 'bold' }}>{typeof t.b2b === 'string' && t.b2b.trim() ? t.b2b : 'Business to Business Shopping'}</Text>
             </TouchableOpacity>
+          </View>
+        </View>
+      )}
+      {/* Inline modal for Bizna selection if B2B */}
+      {showBiznaModal && (
+        <View style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0,0,0,0.5)',
+          zIndex: 1000,
+          justifyContent: 'center',
+          alignItems: 'center',
+        }}>
+          <View style={{ backgroundColor: 'white', borderRadius: 12, padding: 24, alignItems: 'center', width: 340, maxHeight: 420 }}>
+            <Text style={{ fontWeight: 'bold', fontSize: 18, marginBottom: 16 }}>Select Business</Text>
+            {loadingBiznas ? (
+              <ActivityIndicator size="large" />
+            ) : (
+              <>
+                {biznas.length === 0 && (
+                  <Text>No businesses found where you are an admin.</Text>
+                )}
+                <ScrollView style={{ width: '100%', maxHeight: 260 }}>
+                  {biznas.map((biz, idx) => (
+                    <TouchableOpacity
+                      key={biz.BusKntct}
+                      style={{
+                        marginVertical: 6,
+                        padding: 12,
+                        backgroundColor: '#e58d29',
+                        borderRadius: 8,
+                        alignItems: 'center',
+                      }}
+                      onPress={() => handleSelectBizna(biz)}
+                    >
+                      <Text style={{ color: 'white', fontWeight: 'bold' }}>{biz.busName}</Text>
+                      <Text style={{ color: '#fff', fontSize: 12 }}>{biz.BusKntct}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+                <TouchableOpacity
+                  style={{ marginTop: 16, padding: 12, backgroundColor: '#2a7be4', borderRadius: 8, alignItems: 'center' }}
+                  onPress={() => {
+                    setShowBiznaModal(false);
+                    setMode(undefined); // Reset mode so user can re-select
+                  }}
+                >
+                  <Text style={{ color: 'white', fontWeight: 'bold' }}>Back to Shopping Mode Selection</Text>
+                </TouchableOpacity>
+              </>
+            )}
           </View>
         </View>
       )}
@@ -1044,7 +1267,10 @@ function SalesItemMapScreenInner({ navigation }: { navigation: any }) {
         </MapView>
         {/* Floating Refresh Icon (on top of map) */}
         <TouchableOpacity
-          onPress={isRefreshing ? undefined : fetchAds}
+          onPress={isRefreshing ? undefined : () => {
+            fetchAds();
+            setShowModeModal(true);
+          }}
           style={{
             position: 'absolute',
             top: 24,
@@ -1210,11 +1436,11 @@ function SalesItemMapScreenInner({ navigation }: { navigation: any }) {
                             <FontAwesome name={isPasswordVisible ? 'eye-slash' : 'eye'} size={20} color="#888" />
                           </TouchableOpacity>
                         </View>
-            <TouchableOpacity onPress={validateAndTransact2} style={styles.checkoutBtn}>
+            <TouchableOpacity onPress={() => validateAndTransact2('quick')} style={styles.checkoutBtn}>
               {isLoading2 ? <ActivityIndicator color="white" /> : <Text style={{ color: 'white' }}>{t.quickCheckout}</Text>}
             </TouchableOpacity>
-            <TouchableOpacity onPress={validateAndTransact2} style={[styles.checkoutBtn, { marginTop: 10, backgroundColor: '#2a7be4' }]}> 
-              {isLoading2 ? <ActivityIndicator color="white" /> : <Text style={{ color: 'white', fontWeight: 'bold' }}>Purchase (Ask for Transport)</Text>}
+            <TouchableOpacity onPress={() => validateAndTransact2('transport')} style={[styles.checkoutBtn, { marginTop: 10, backgroundColor: '#2a7be4' }]}> 
+              {isLoadingTransport ? <ActivityIndicator color="white" /> : <Text style={{ color: 'white', fontWeight: 'bold' }}>Purchase (Ask for Transport)</Text>}
             </TouchableOpacity>
           </ScrollView>}
       </View>

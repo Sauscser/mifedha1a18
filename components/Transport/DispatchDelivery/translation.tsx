@@ -17,7 +17,7 @@ export const translations = {
     transportCost: 'TransportCost',
     contact: 'Contact',
     engagementStatus: 'Engagement Status',
-    bizType: 'Business Type',
+    bizType: 'Dispatch Status',
     transportRequest: 'Transport Request',
     transportServices: 'transport services',
     to: 'to',

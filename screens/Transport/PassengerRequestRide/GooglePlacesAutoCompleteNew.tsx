@@ -50,7 +50,7 @@ export default function GooglePlacesAutocompleteNew({
 
   // Debounce typing
   const debouncedFetch = useMemo(() => {
-    let timer: NodeJS.Timeout | null = null;
+    let timer: ReturnType<typeof setTimeout> | null = null;
     return (text: string) => {
       if (timer) clearTimeout(timer);
       timer = setTimeout(() => {

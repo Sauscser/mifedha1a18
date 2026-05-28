@@ -1011,6 +1011,7 @@ export const getTransportOrder = /* GraphQL */ `
       id
       transportkntct
       purchaseType
+      buyerOfficerEmail
       transportRate
       transportdesc
       transportPhoto
@@ -1073,6 +1074,7 @@ export const listTransportOrders = /* GraphQL */ `
         id
         transportkntct
         purchaseType
+        buyerOfficerEmail
         transportRate
         transportdesc
         transportPhoto
@@ -5514,6 +5516,7 @@ export const BytransprtOwnrEmail = /* GraphQL */ `
         id
         transportkntct
         purchaseType
+        buyerOfficerEmail
         transportRate
         transportdesc
         transportPhoto
@@ -5589,6 +5592,7 @@ export const ByBuyerEmail = /* GraphQL */ `
         id
         transportkntct
         purchaseType
+        buyerOfficerEmail
         transportRate
         transportdesc
         transportPhoto
@@ -5664,6 +5668,7 @@ export const BySellerAccount = /* GraphQL */ `
         id
         transportkntct
         purchaseType
+        buyerOfficerEmail
         transportRate
         transportdesc
         transportPhoto

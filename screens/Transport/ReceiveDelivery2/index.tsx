@@ -26,6 +26,8 @@ const styles = StyleSheet.create({
   // Filter orders for carousel and map
 
 import React, { useState, useEffect, useRef } from "react";
+import { TextInput } from "react-native";
+import * as Location from 'expo-location';
 import {
   View,
   Text,
@@ -45,6 +47,8 @@ import MapView, { Marker, Polyline } from "react-native-maps";
 import { getDistance } from "geolib";
 // Removed PanResponder import
 import { useNavigation } from "@react-navigation/native";
+
+import GooglePlacesAutocompleteNew from '../PassengerRequestRide/GooglePlacesAutoCompleteNew';
 
 import { useExchange } from "../../../src/contexts/ExchangeContext";
 import { formatAmountSync } from "../../../src/utils/exchange";
@@ -89,6 +93,51 @@ const MAX_CAROUSEL_TOP = screenHeight - CAROUSEL_HEIGHT - 60;
 const client = generateClient();
 
 const TransportOrdersScreen = () => {
+  // Place picker modal state (must be inside component)
+  const [placePickerVisible, setPlacePickerVisible] = useState(false);
+  const [placePickerLoading, setPlacePickerLoading] = useState(false);
+
+  // Handler for Photon place picker (must be inside component)
+  const handlePlaceSelected = async (place: any) => {
+    setPlacePickerVisible(false);
+    if (!changeLocOrder || !place?.location) return;
+    setChangeLocLoading(true);
+    setChangeLocError("");
+    try {
+      // Only allow if engaged and distance >= 200m
+      if (changeLocOrder.engagementStatus === "TransportEngaged") {
+        const buyerLat = Number(changeLocOrder.deliveryLatitude);
+        const buyerLng = Number(changeLocOrder.deliveryLongitude);
+        const transporterLat = place.location.latitude;
+        const transporterLng = place.location.longitude;
+        const dist = getRadialDistance(buyerLat, buyerLng, transporterLat, transporterLng);
+        if (dist < 200) {
+          setChangeLocError("Transporter must be at least 200 meters from buyer to change location.");
+          setChangeLocLoading(false);
+          return;
+        }
+      }
+      // Update delivery location
+      await client.graphql({
+        query: updateTransportOrder,
+        variables: {
+          input: {
+            id: changeLocOrder.id,
+            deliveryLatitude: place.location.latitude.toString(),
+            deliveryLongitude: place.location.longitude.toString(),
+          },
+        },
+      });
+      Alert.alert(t.success, "Delivery location updated successfully.");
+      setChangeLocModalVisible(false);
+      setChangeLocOrder(null);
+      handleRefresh();
+    } catch (err) {
+      setChangeLocError("Failed to update delivery location. Try again.");
+    } finally {
+      setChangeLocLoading(false);
+    }
+  };
 
   // i18n translation setup
   const { i18n } = useTranslation();
@@ -113,7 +162,7 @@ const TransportOrdersScreen = () => {
   // Filter orders for carousel and map (must be after orders and userEmail are declared)
   const filteredOrders = orders.filter(
     (item) =>
-      item.customerEmail === userEmail &&
+      item.buyerOfficerEmail === userEmail &&
       item.transportRequest === "transportRequestYes"
   );
 
@@ -214,7 +263,6 @@ const TransportOrdersScreen = () => {
           query: listTransportOrders,
           variables: {
             nextToken,
-            
           },
         });
         const { items, nextToken: newToken } = result.data.listTransportOrders;
@@ -222,6 +270,9 @@ const TransportOrdersScreen = () => {
         nextToken = newToken;
       } while (nextToken);
       setOrders(allOrders);
+      // Force polyline redraw by resetting lastPolylineOrderId and sellerToBuyerCoords
+      setLastPolylineOrderId(null);
+      setSellerToBuyerCoords([]);
     } catch (err) {
       Alert.alert(t.error, t.errorRefreshOrders);
     } finally {
@@ -268,8 +319,138 @@ const TransportOrdersScreen = () => {
   const { nationality, ratesMap } = useExchange();
   const userCurrencyKey = nationalityToCode(nationality);
 
-  const ChangeDeliveryLocation = (id: string) => {
-    navigation.navigate("ChangeDeliveryLocation", { id });
+
+  // Inline modal state for Change Delivery Location
+  const [changeLocModalVisible, setChangeLocModalVisible] = useState(false);
+  const [changeLocOrder, setChangeLocOrder] = useState<any | null>(null);
+  const [manualLocModalVisible, setManualLocModalVisible] = useState(false);
+  const [manualLat, setManualLat] = useState("");
+  const [manualLng, setManualLng] = useState("");
+  const [changeLocLoading, setChangeLocLoading] = useState(false);
+  const [changeLocError, setChangeLocError] = useState("");
+
+  // Helper: get radial distance in meters
+  const getRadialDistance = (lat1: number, lng1: number, lat2: number, lng2: number) => {
+    return getDistance(
+      { latitude: lat1, longitude: lng1 },
+      { latitude: lat2, longitude: lng2 }
+    );
+  };
+
+  // Handler for "Change Location" button
+  const openChangeLocModal = (order: any) => {
+    setChangeLocOrder(order);
+    setChangeLocModalVisible(true);
+    setChangeLocError("");
+  };
+
+  // Handler for auto location
+  const handleAutoLocation = async () => {
+    if (!changeLocOrder) return;
+    setChangeLocLoading(true);
+    setChangeLocError("");
+    try {
+      let { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== "granted") {
+        setChangeLocError("Permission to access location was denied.");
+        setChangeLocLoading(false);
+        return;
+      }
+      const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.BestForNavigation });
+      const coords = { latitude: loc.coords.latitude, longitude: loc.coords.longitude };
+      // Only allow if engaged and distance >= 200m
+      if (changeLocOrder.engagementStatus === "TransportEngaged") {
+        const buyerLat = Number(changeLocOrder.deliveryLatitude);
+        const buyerLng = Number(changeLocOrder.deliveryLongitude);
+        const transporterLat = coords.latitude;
+        const transporterLng = coords.longitude;
+        const dist = getRadialDistance(buyerLat, buyerLng, transporterLat, transporterLng);
+        console.log('Radial distance between buyer and transporter:', dist, 'meters');
+        if (dist < 200) {
+          setChangeLocError("Transporter must be at least 200 meters from buyer to change location.");
+          setChangeLocLoading(false);
+          return;
+        }
+      }
+      // Update delivery location
+      await client.graphql({
+        query: updateTransportOrder,
+        variables: {
+          input: {
+            id: changeLocOrder.id,
+            deliveryLatitude: coords.latitude.toString(),
+            deliveryLongitude: coords.longitude.toString(),
+          },
+        },
+      });
+      Alert.alert(t.success, "Delivery location updated successfully.");
+      setChangeLocModalVisible(false);
+      setChangeLocOrder(null);
+      handleRefresh();
+    } catch (err) {
+      setChangeLocError("Failed to update delivery location. Try again.");
+    } finally {
+      setChangeLocLoading(false);
+    }
+  };
+
+  // Handler for manual location
+  const handleManualLocation = async () => {
+    if (!changeLocOrder) return;
+    setChangeLocLoading(true);
+    setChangeLocError("");
+    try {
+      // Validation: must not be empty and must be valid numbers
+      if (!manualLat || !manualLng || isNaN(Number(manualLat)) || isNaN(Number(manualLng))) {
+        setChangeLocError("Please enter valid latitude and longitude.");
+        setChangeLocLoading(false);
+        return;
+      }
+      // Fetch user and order for password check (as in ChangeDeliveryLocation)
+      const attributes = await fetchUserAttributes();
+      const accRes: any = await client.graphql({
+        query: getSMAccount,
+        variables: { awsemail: attributes.email },
+      });
+      const account = accRes && 'data' in accRes ? accRes.data.getSMAccount : null;
+      // Optionally, prompt for password (not implemented here for brevity)
+      // Only allow if engaged and distance >= 200m
+      if (changeLocOrder.engagementStatus === "TransportEngaged") {
+        const buyerLat = Number(changeLocOrder.deliveryLatitude);
+        const buyerLng = Number(changeLocOrder.deliveryLongitude);
+        const transporterLat = Number(manualLat);
+        const transporterLng = Number(manualLng);
+        const dist = getRadialDistance(buyerLat, buyerLng, transporterLat, transporterLng);
+        console.log('Radial distance between buyer and transporter (manual):', dist, 'meters');
+        if (dist < 200) {
+          setChangeLocError("Transporter must be at least 200 meters from buyer to change location.");
+          setChangeLocLoading(false);
+          return;
+        }
+      }
+      // Update delivery location
+      await client.graphql({
+        query: updateTransportOrder,
+        variables: {
+          input: {
+            id: changeLocOrder.id,
+            deliveryLatitude: manualLat,
+            deliveryLongitude: manualLng,
+          },
+        },
+      });
+      Alert.alert(t.success, "Delivery location updated successfully.");
+      setManualLocModalVisible(false);
+      setChangeLocModalVisible(false);
+      setChangeLocOrder(null);
+      setManualLat("");
+      setManualLng("");
+      handleRefresh();
+    } catch (err) {
+      setChangeLocError("Failed to update delivery location. Try again.");
+    } finally {
+      setChangeLocLoading(false);
+    }
   };
 
 
@@ -325,24 +506,13 @@ const TransportOrdersScreen = () => {
         }
       }
 
+
       // ...existing code for all other mutations...
       const TransportDtls: any = await client.graphql({
         query: getTransportRegister,
         variables: { id: orderDtlz.bizAc },
       });
       const transportDtlz = TransportDtls.data.getTransportRegister;
-
-      const bizResult: any = await client.graphql({
-        query: getBizna,
-        variables: { BusKntct: orderDtlz.sellerContact },
-      });
-      const biz = bizResult.data.getBizna;
-
-      const buyerDtls: any = await client.graphql({
-        query: getSMAccount,
-        variables: { awsemail: orderDtlz.customerEmail },
-      });
-      const buyerDtlsz = buyerDtls.data.getSMAccount;
 
       const CompDtls: any = await client.graphql({
         query: getCompany,
@@ -372,29 +542,48 @@ const TransportOrdersScreen = () => {
         },
       });
 
-      await client.graphql({
-        query: updateBizna,
-        variables: {
-          input: {
-            BusKntct: orderDtlz.sellerContact,
-            netEarnings: (biz.netEarnings + orderDtlz.orderCost).toFixed(0),
-            earningsBal: (biz.earningsBal + orderDtlz.orderCost).toFixed(0),
-            benefitsAmount: parseFloat(biz.benefitsAmount) + benefit,
-          },
-        },
-      });
-
-      await client.graphql({
-        query: updateSMAccount,
-        variables: {
-          input: {
-            awsemail: orderDtlz.customerEmail,
-            benefitsAmount: parseFloat(buyerDtlsz.benefitsAmount) + benefit,
-            ttlNonLonsSentSM: parseFloat(buyerDtlsz.ttlNonLonsSentSM) + parseFloat(orderDtlz.orderCost),
-
-          },
-        },
-      });
+      // Buyer refund/benefit logic based on purchaseType
+      if (orderDtlz.purchaseType === "B2B") {
+        // Buyer is a business (Bizna)
+        const buyerBiznaRes = await client.graphql({
+          query: getBizna,
+          variables: { BusKntct: orderDtlz.customerEmail },
+        });
+        const buyerBizna = 'data' in buyerBiznaRes ? buyerBiznaRes.data.getBizna : null;
+        var buyerDtlsz = buyerBizna;
+        if (buyerBizna) {
+          await client.graphql({
+            query: updateBizna,
+            variables: {
+              input: {
+                BusKntct: orderDtlz.customerEmail,
+                earningsBal: (parseFloat(buyerBizna.earningsBal) + parseFloat(orderDtlz.orderCost)).toFixed(0),
+                netEarnings: (parseFloat(buyerBizna.netEarnings) + parseFloat(orderDtlz.orderCost)).toFixed(0),
+                benefitsAmount: parseFloat(buyerBizna.benefitsAmount) + benefit,
+              },
+            },
+          });
+        }
+      } else if (orderDtlz.purchaseType === "B2C") {
+        // Buyer is an individual (SMAccount)
+        const buyerDtls: any = await client.graphql({
+          query: getSMAccount,
+          variables: { awsemail: orderDtlz.customerEmail },
+        });
+        var buyerDtlsz = 'data' in buyerDtls ? buyerDtls.data.getSMAccount : null;
+        if (buyerDtlsz) {
+          await client.graphql({
+            query: updateSMAccount,
+            variables: {
+              input: {
+                awsemail: orderDtlz.customerEmail,
+                benefitsAmount: parseFloat(buyerDtlsz.benefitsAmount) + benefit,
+                ttlNonLonsSentSM: parseFloat(buyerDtlsz.ttlNonLonsSentSM) + parseFloat(orderDtlz.orderCost),
+              },
+            },
+          });
+        }
+      }
 
       await client.graphql({
         query: createBenefitContributions2,
@@ -429,6 +618,20 @@ const TransportOrdersScreen = () => {
           },
         },
       });
+
+          await client.graphql({
+                                 query: createNonLoans,
+                                 variables: {
+                                   input: {
+                                     senderPhn: orderDtlz.customerEmail,
+                                     recPhn: orderDtlz.transportOwnerEmail,
+                                     RecName: orderDtlz.transportName,
+                                     description: `Payment for delivery of ${orderDtlz.deliveryDesc} to ${orderDtlz.buyerName}.`,
+                                     SenderName: orderDtlz.buyerName,
+                                     amount: parseFloat(orderDtlz.deliveryCost) - CompEarning,
+                                     status: "DeliveryPayment",
+                                     owner: user.userId,
+                                 }}})
 
       await client.graphql({
         query: updateTransportRegister,
@@ -535,7 +738,7 @@ const TransportOrdersScreen = () => {
         }}
       >
         {filteredOrders.map((item, idx) => (
-          <React.Fragment key={item.id}>
+          <React.Fragment key={item.id + '_' + idx}>
             {/* Polyline from buyer to seller (road-following, orange) for selected card/marker only */}
             {selectedIndex === idx && item.sellerLatitude && item.sellerLongitude && item.deliveryLatitude && item.deliveryLongitude && sellerToBuyerCoords.length >= 2 && (
               <Polyline
@@ -666,7 +869,7 @@ const TransportOrdersScreen = () => {
           return (
             <View
               style={{
-                width: screenWidth * 0.85,
+                width: screenWidth * 0.95,
                 marginRight: 16,
                 paddingVertical: 8,
                 paddingHorizontal: 12,
@@ -716,15 +919,24 @@ const TransportOrdersScreen = () => {
               {/* Button logic below */}
               <View style={{ flexDirection: 'row', marginTop: 14, gap: 12 }}>
                 {/* Receive Delivery button */}
+
                 {item.engagementStatus === "TransportEngaged" && item.dutyStatus === "TransportNotOnduty" && (
-                  <TouchableOpacity
-                    style={{ backgroundColor: '#38b6ff', paddingVertical: 6, paddingHorizontal: 18, borderRadius: 8 }}
-                    onPress={() => handleAcceptDelivery(item.id)}
-                    disabled={isLoading}
-                  >
-                    <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 15 }}>Receive Delivery</Text>
-                                      <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 15 }}>{t.receiveDelivery}</Text>
-                  </TouchableOpacity>
+                  <>
+                    <TouchableOpacity
+                      style={{ backgroundColor: '#38b6ff', paddingVertical: 6, paddingHorizontal: 18, borderRadius: 8 }}
+                      onPress={() => handleAcceptDelivery(item.id)}
+                      disabled={isLoading}
+                    >
+                      <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 15 }}>{t.receiveDelivery}</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={{ backgroundColor: '#0077cc', paddingVertical: 6, paddingHorizontal: 18, borderRadius: 8 }}
+                      onPress={() => openChangeLocModal(item)}
+                      disabled={isLoading2}
+                    >
+                      <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 15 }}>{t.changeLocation}</Text>
+                    </TouchableOpacity>
+                  </>
                 )}
 
                 {/* Change Location and Cancel buttons */}
@@ -732,19 +944,17 @@ const TransportOrdersScreen = () => {
                   <>
                     <TouchableOpacity
                       style={{ backgroundColor: '#0077cc', paddingVertical: 6, paddingHorizontal: 18, borderRadius: 8 }}
-                      onPress={() => ChangeDeliveryLocation(item.id)}
+                      onPress={() => openChangeLocModal(item)}
                       disabled={isLoading2}
                     >
-                      <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 15 }}>Change Location</Text>
-                                          <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 15 }}>{t.changeLocation}</Text>
+                      <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 15 }}>{t.changeLocation}</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
                       style={{ backgroundColor: '#e58d29', paddingVertical: 6, paddingHorizontal: 18, borderRadius: 8 }}
                       onPress={() => CancelRequest(item.id)}
                       disabled={isLoading2}
                     >
-                      <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 15 }}>Cancel</Text>
-                                          <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 15 }}>{t.cancel}</Text>
+                      <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 15 }}>{t.cancel}</Text>
                     </TouchableOpacity>
                   </>
                 )}
@@ -762,8 +972,7 @@ const TransportOrdersScreen = () => {
       >
         <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.3)', justifyContent: 'center', alignItems: 'center' }}>
           <View style={{ width: '85%', backgroundColor: '#fff', borderRadius: 16, padding: 24, elevation: 8 }}>
-            <Text style={{ fontWeight: 'bold', fontSize: 18, marginBottom: 8 }}>Order Details</Text>
-                        <Text style={{ fontWeight: 'bold', fontSize: 18, marginBottom: 8 }}>{t.orderDetails}</Text>
+            <Text style={{ fontWeight: 'bold', fontSize: 18, marginBottom: 8 }}>{t.orderDetails}</Text>
             {modalOrder && (() => {
               // Calculate delivery cost as transportRate * road distance (if available)
               let computedDeliveryCost = modalOrder.deliveryCost;
@@ -812,12 +1021,128 @@ const TransportOrdersScreen = () => {
               onPress={() => setModalVisible(false)}
               style={{ marginTop: 18, alignSelf: 'center', backgroundColor: '#e58d29', borderRadius: 8, paddingVertical: 10, paddingHorizontal: 32 }}
             >
-              <Text style={{ color: 'white', fontWeight: 'bold' }}>Close</Text>
-                          <Text style={{ color: 'white', fontWeight: 'bold' }}>{t.close}</Text>
+              <Text style={{ color: 'white', fontWeight: 'bold' }}>{t.close}</Text>
             </TouchableOpacity>
           </View>
         </View>
       </Modal>
+    {/* Inline Modal for Change Delivery Location */}
+    <Modal
+      visible={changeLocModalVisible}
+      animationType="slide"
+      transparent
+      onRequestClose={() => {
+        setChangeLocModalVisible(false);
+        setChangeLocOrder(null);
+        setChangeLocError("");
+      }}
+    >
+      <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.3)', justifyContent: 'center', alignItems: 'center' }}>
+        <View style={{ width: '85%', backgroundColor: '#fff', borderRadius: 16, padding: 24, elevation: 8 }}>
+          <Text style={{ fontWeight: 'bold', fontSize: 18, marginBottom: 8 }}>{t.changeLocation}</Text>
+          <Text style={{ marginBottom: 12 }}>How do you want to set the new delivery location?</Text>
+          {changeLocError ? <Text style={{ color: 'red', marginBottom: 8 }}>{changeLocError}</Text> : null}
+          <TouchableOpacity
+            style={{ backgroundColor: '#38b6ff', paddingVertical: 10, borderRadius: 8, marginBottom: 10, alignItems: 'center' }}
+            onPress={handleAutoLocation}
+            disabled={changeLocLoading}
+          >
+            <Text style={{ color: 'white', fontWeight: 'bold' }}>Automatically pick current location</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={{ backgroundColor: '#e58d29', paddingVertical: 10, borderRadius: 8, alignItems: 'center', marginBottom: 10 }}
+            onPress={() => setPlacePickerVisible(true)}
+            disabled={changeLocLoading}
+          >
+            <Text style={{ color: 'white', fontWeight: 'bold' }}>Choose delivery location</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={{ backgroundColor: '#888', paddingVertical: 10, borderRadius: 8, alignItems: 'center' }}
+            onPress={() => { setManualLocModalVisible(true); setChangeLocError(""); }}
+            disabled={changeLocLoading}
+          >
+            <Text style={{ color: 'white', fontWeight: 'bold' }}>Enter location manually</Text>
+          </TouchableOpacity>
+              {/* Modal for Photon place picker */}
+              <Modal
+                visible={placePickerVisible}
+                animationType="slide"
+                transparent
+                onRequestClose={() => setPlacePickerVisible(false)}
+              >
+                <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.3)', justifyContent: 'center', alignItems: 'center' }}>
+                  <View style={{ width: '90%', backgroundColor: '#fff', borderRadius: 16, padding: 18, elevation: 8 }}>
+                    <Text style={{ fontWeight: 'bold', fontSize: 18, marginBottom: 8 }}>Search Delivery Location</Text>
+                    <GooglePlacesAutocompleteNew
+                      placeholder="Search location"
+                      onPlaceSelected={handlePlaceSelected}
+                      debounceMs={300}
+                    />
+                    {placePickerLoading && <ActivityIndicator style={{ marginTop: 12 }} />}
+                    <TouchableOpacity
+                      style={{ marginTop: 18, alignSelf: 'center', backgroundColor: '#ccc', borderRadius: 8, paddingVertical: 10, paddingHorizontal: 32 }}
+                      onPress={() => setPlacePickerVisible(false)}
+                    >
+                      <Text style={{ color: '#333', fontWeight: 'bold' }}>{t.close}</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </Modal>
+          <TouchableOpacity
+            onPress={() => { setChangeLocModalVisible(false); setChangeLocOrder(null); setChangeLocError(""); }}
+            style={{ marginTop: 18, alignSelf: 'center', backgroundColor: '#ccc', borderRadius: 8, paddingVertical: 10, paddingHorizontal: 32 }}
+          >
+            <Text style={{ color: '#333', fontWeight: 'bold' }}>{t.close}</Text>
+          </TouchableOpacity>
+          {changeLocLoading && <ActivityIndicator color="#0077cc" style={{ marginTop: 10 }} />}
+        </View>
+      </View>
+    </Modal>
+
+    {/* Modal for manual lat/lng entry */}
+    <Modal
+      visible={manualLocModalVisible}
+      animationType="slide"
+      transparent
+      onRequestClose={() => setManualLocModalVisible(false)}
+    >
+      <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.3)', justifyContent: 'center', alignItems: 'center' }}>
+        <View style={{ width: '85%', backgroundColor: '#fff', borderRadius: 16, padding: 24, elevation: 8 }}>
+          <Text style={{ fontWeight: 'bold', fontSize: 18, marginBottom: 8 }}>Enter Latitude and Longitude</Text>
+          {changeLocError ? <Text style={{ color: 'red', marginBottom: 8 }}>{changeLocError}</Text> : null}
+          <TextInput
+            placeholder="Latitude"
+            value={manualLat}
+            onChangeText={setManualLat}
+            keyboardType="numeric"
+            style={{ backgroundColor: '#f2f2f2', borderRadius: 8, padding: 10, marginBottom: 10 }}
+            placeholderTextColor="#888"
+          />
+          <TextInput
+            placeholder="Longitude"
+            value={manualLng}
+            onChangeText={setManualLng}
+            keyboardType="numeric"
+            style={{ backgroundColor: '#f2f2f2', borderRadius: 8, padding: 10, marginBottom: 10 }}
+            placeholderTextColor="#888"
+          />
+          <TouchableOpacity
+            style={{ backgroundColor: '#38b6ff', paddingVertical: 10, borderRadius: 8, alignItems: 'center', marginBottom: 10 }}
+            onPress={handleManualLocation}
+            disabled={changeLocLoading}
+          >
+            <Text style={{ color: 'white', fontWeight: 'bold' }}>Submit</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => setManualLocModalVisible(false)}
+            style={{ alignSelf: 'center', backgroundColor: '#ccc', borderRadius: 8, paddingVertical: 10, paddingHorizontal: 32 }}
+          >
+            <Text style={{ color: '#333', fontWeight: 'bold' }}>{t.close}</Text>
+          </TouchableOpacity>
+          {changeLocLoading && <ActivityIndicator color="#0077cc" style={{ marginTop: 10 }} />}
+        </View>
+      </View>
+    </Modal>
     </View>
   </View>
 );

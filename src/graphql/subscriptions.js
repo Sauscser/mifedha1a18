@@ -1420,6 +1420,7 @@ export const onCreateTransportOrder = /* GraphQL */ `
       id
       transportkntct
       purchaseType
+      buyerOfficerEmail
       transportRate
       transportdesc
       transportPhoto
@@ -1480,6 +1481,7 @@ export const onUpdateTransportOrder = /* GraphQL */ `
       id
       transportkntct
       purchaseType
+      buyerOfficerEmail
       transportRate
       transportdesc
       transportPhoto
@@ -1540,6 +1542,7 @@ export const onDeleteTransportOrder = /* GraphQL */ `
       id
       transportkntct
       purchaseType
+      buyerOfficerEmail
       transportRate
       transportdesc
       transportPhoto

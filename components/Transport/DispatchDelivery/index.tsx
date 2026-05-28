@@ -34,6 +34,7 @@ export interface SMAccount {
     chmAcNumber: string;
     bizType: string;
     transportkntct: string;
+    transportRate: number;
   };
 }
 
@@ -61,6 +62,7 @@ const ViewSMDeposts = ({ SMAc }: SMAccount) => {
     engagementStatus,
     bizType,
     transportkntct,
+    transportRate,
   } = SMAc;
 
   const [loadingItemId, setLoadingItemId] = useState<string | null>(null);
@@ -87,7 +89,7 @@ const ViewSMDeposts = ({ SMAc }: SMAccount) => {
                             query: getSMAccount,
                             variables: { awsemail: user.email },
                         });
-                        setUserNationality(userData.data.getSMAccount.nationality);
+                        setUserNationality((userData as any).data.getSMAccount.nationality);
                         console.log('User Data:', userData);
                     } catch (error) {
                         console.error('Error fetching user data:', error);
@@ -124,7 +126,9 @@ const ViewSMDeposts = ({ SMAc }: SMAccount) => {
       if (orderDtlz.transportRequest === "transportRequestNo") {
         Alert.alert(t.sorryNotRequested, t.notRequested);
         return;
-      } else {
+      }
+      
+   else {
         const updateOrdr: any = await client.graphql({
           query: updateTransportOrder,
           variables: {
@@ -137,16 +141,70 @@ const ViewSMDeposts = ({ SMAc }: SMAccount) => {
 
         if (updateOrdr?.data?.updateTransportOrder) {
           Alert.alert(t.success, t.deliveryDispatched);
-          // Send SMS notification
-          const sendSMS = (phoneNumber: string, message: string) => {
-            const url = `sms:${phoneNumber}?body=${encodeURIComponent(message)}`;
-            Linking.openURL(url);
-          };
+          // --- Notification/Message Logic for Dispatching Delivery ---
+          try {
+            // Determine purchaseType and buyer email
+            let buyerEmail = orderDtlz.customerEmail;
+            if (orderDtlz.purchaseType === 'B2B' && orderDtlz.customerEmail) {
+              // For B2B, customerEmail is BusKntct; get actual email from getBizna
+              const biznaRes = await client.graphql({ query: getBizna, variables: { BusKntct: orderDtlz.customerEmail } });
+              const bizna = (biznaRes as any)?.data?.getBizna;
+              const user2 = await fetchUserAttributes();
 
-          sendSMS(
-            orderDtlz.buyerContact,
-            `${orderDtlz.sellerName} has dispatched your delivery of ${orderDtlz.deliveryDesc} through your transport service of choice ${orderDtlz.transportName}. You may contact them through ${orderDtlz.transportkntct}`
-          );
+              if (bizna && bizna.email) {
+
+                buyerEmail = user2.email;
+              }
+            }
+            // Notify Transporter (transportOwnerEmail)
+            const notifTitleTransporter = t.dispatchDeliveryTitle || 'Delivery Dispatched';
+            const notifBodyTransporter = t.dispatchDeliveryNotifTransporter
+              ? t.dispatchDeliveryNotifTransporter.replace('{deliveryID}', orderDtlz.deliveryID)
+              : `Delivery ${orderDtlz.deliveryID} has been dispatched.`;
+            await client.graphql({
+              query: require('../../../src/graphql/mutations').createMessages,
+              variables: {
+                input: {
+                  senderEmail: orderDtlz.transportOwnerEmail,
+                  messageBody: notifBodyTransporter
+                }
+              }
+            });
+            await client.graphql({
+              query: require('../../../src/graphql/mutations').sendNotification,
+              variables: {
+                riderEmail: orderDtlz.transportOwnerEmail,
+                title: notifTitleTransporter,
+                body: notifBodyTransporter
+              }
+            });
+            // Notify Buyer
+            if (buyerEmail) {
+              const notifTitleBuyer = t.dispatchDeliveryTitle || 'Delivery Dispatched';
+              const notifBodyBuyer = t.dispatchDeliveryNotifBuyer
+                ? t.dispatchDeliveryNotifBuyer.replace('{deliveryID}', orderDtlz.deliveryID)
+                : `Your delivery ${orderDtlz.deliveryID} has been dispatched.`;
+              await client.graphql({
+                query: require('../../../src/graphql/mutations').createMessages,
+                variables: {
+                  input: {
+                    senderEmail: buyerEmail,
+                    messageBody: notifBodyBuyer
+                  }
+                }
+              });
+              await client.graphql({
+                query: require('../../../src/graphql/mutations').sendNotification,
+                variables: {
+                  riderEmail: buyerEmail,
+                  title: notifTitleBuyer,
+                  body: notifBodyBuyer
+                }
+              });
+            }
+          } catch (notifyErr) {
+            console.error('[DispatchDelivery] Notification error:', notifyErr);
+          }
         }
       }
     } catch (err) {
@@ -159,11 +217,28 @@ const ViewSMDeposts = ({ SMAc }: SMAccount) => {
 
   return (
     <View style={styles.pageContainer}>
-      <Pressable style={styles.card}>
+      <Pressable style={styles.card} onPress={() => {
+        console.log('[Order Card Pressed]', {
+          id,
+          transportName,
+          sellerName,
+          buyerName,
+          deliveryCost,
+          distance,
+          chmAcNumber,
+          orderCost,
+          buyerContact,
+          transportRequest,
+          deliveryDesc,
+          engagementStatus,
+          bizType,
+          transportkntct
+        });
+      }}>
         <Text style={styles.prodInfo}>
           {transportName} {t.transportServices} || {sellerName} {t.to} {buyerName} ||
           {(() => { const { nationality, ratesMap } = useExchange(); return <>{t.aerialDistance}: {distance} {t.kilometer} || {t.orderTotalCost}: {formatAmountSync(orderCost, userCode, ratesMap)} ||</> })()}
-          {t.transportCost}: Ksh. {formatAmountSync(deliveryCost, userCode, ratesMap)} || {t.contact}: {transportkntct} || {t.engagementStatus}: {engagementStatus} ||
+          {t.transportCost}: Ksh. {formatAmountSync(distance * transportRate, userCode, ratesMap)} || {t.contact}: {transportkntct} || {t.engagementStatus}: {engagementStatus} ||
           {t.bizType}: {bizType} || {t.transportRequest}: {transportRequest}
         </Text>
 

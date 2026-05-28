@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { View, Text, FlatList, TouchableOpacity, ActivityIndicator, Alert, Dimensions, Linking, Animated, StyleSheet } from "react-native";
-import { PanResponder } from 'react-native';
+// import { PanResponder } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
 import MapView, { Marker, Polyline } from "react-native-maps";
 import { BytransprtOwnrEmail, getSMAccount, getTransportOrder } from "../../../src/graphql/queries";
@@ -20,42 +20,12 @@ import axios from 'axios';
 const client = generateClient();
 const screenWidth = Dimensions.get("window").width;
 const screenHeight = Dimensions.get("window").height;
-const CAROUSEL_HEIGHT = 220;
+const CAROUSEL_HEIGHT = 110;
 const MIN_CAROUSEL_TOP = 60; // px from top
 const MAX_CAROUSEL_TOP = screenHeight - CAROUSEL_HEIGHT - 60; // px from bottom
 
 const TransportMapScreen = () => {
-  // Draggable carousel state (PassengerRequestRide pattern)
-  // Start with the bottom of the card about 20px from the bottom of the screen
-  const INITIAL_CAROUSEL_TOP = screenHeight - (CAROUSEL_HEIGHT + 40) - 20;
-  const carouselPosition = useRef(new Animated.Value(INITIAL_CAROUSEL_TOP)).current;
-  const lastTop = useRef(INITIAL_CAROUSEL_TOP);
-  const panResponder = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponder: () => true,
-      onPanResponderGrant: () => {
-        carouselPosition.stopAnimation();
-      },
-      onPanResponderMove: (evt, gestureState) => {
-        let newTop = lastTop.current + gestureState.dy;
-        newTop = Math.max(MIN_CAROUSEL_TOP, Math.min(newTop, MAX_CAROUSEL_TOP));
-        carouselPosition.setValue(newTop);
-      },
-      onPanResponderRelease: (evt, gestureState) => {
-        let newTop = lastTop.current + gestureState.dy;
-        newTop = Math.max(MIN_CAROUSEL_TOP, Math.min(newTop, MAX_CAROUSEL_TOP));
-        // Snap to closest position
-        let snapTo = (newTop < (MIN_CAROUSEL_TOP + MAX_CAROUSEL_TOP) / 2) ? MIN_CAROUSEL_TOP : MAX_CAROUSEL_TOP;
-        Animated.spring(carouselPosition, {
-          toValue: snapTo,
-          useNativeDriver: false
-        }).start(() => {
-          lastTop.current = snapTo;
-        });
-      },
-    })
-  ).current;
+  // Removed draggable carousel logic
     const { i18n } = useTranslation();
     const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
     const t = translations[lang] || translations.en;
@@ -158,7 +128,7 @@ const TransportMapScreen = () => {
   const [registerData, setRegisterData] = useState([]);
   const [activeIndex, setActiveIndex] = useState(0);
   const [loadingItemId, setLoadingItemId] = useState<string | null>(null);
-  const [loadingType, setLoadingType] = useState<"accept" | "view" | "offload" | null>(null);
+  const [loadingType, setLoadingType] = useState<"accept" | "view" | "offload" | "cancel" | null>(null);
   const [distanceMeters, setDistanceMeters] = useState<number>(0);
   const [roadDistance, setRoadDistance] = useState<number>(0);
   const [roadDistanceLoading, setRoadDistanceLoading] = useState<boolean>(false);
@@ -328,8 +298,10 @@ const TransportMapScreen = () => {
         }
       });
       if ('data' in res && res.data?.BytransprtOwnrEmail?.items) {
+        console.log('[fetchRegisterData] items:', res.data.BytransprtOwnrEmail.items);
         setRegisterData(res.data.BytransprtOwnrEmail.items);
       } else {
+        console.log('[fetchRegisterData] No items found');
         setRegisterData([]);
       }
     } catch (error) {
@@ -384,7 +356,7 @@ const TransportMapScreen = () => {
           if (res.data.routes && res.data.routes.length > 0) {
             distToSeller = res.data.routes[0].distance;
           }
-          if (distToSeller > 50) {
+          if (distToSeller > 200) {
             Alert.alert(t.sorry, t.mustBeNearSeller);
             setLoadingItemId(null);
             setLoadingType(null);
@@ -497,7 +469,7 @@ const TransportMapScreen = () => {
             query: createMessages,
             variables: {
               input: {
-                senderEmail: user.email,
+                senderEmail: item.buyingOfficerEmail,
                 messageBody: notifBody
               }
             }
@@ -505,7 +477,7 @@ const TransportMapScreen = () => {
           await client.graphql({
             query: sendNotification,
             variables: {
-              riderEmail: item.customerEmail,
+              riderEmail: item.buyingOfficerEmail,
               title: notifTitle,
               body: notifBody
             }
@@ -519,7 +491,7 @@ const TransportMapScreen = () => {
                 query: createMessages,
                 variables: {
                   input: {
-                    senderEmail: user.email,
+                    senderEmail: bizna.email,
                     messageBody: notifBody
                   }
                 }
@@ -703,9 +675,12 @@ return <View style={{
         style={[
           styles.carouselContainer,
           {
-            top: carouselPosition,
-            minHeight: CAROUSEL_HEIGHT + 40, // add space for handle and buttons
-            maxHeight: screenHeight * 0.85, // allow more room for content
+            position: 'absolute',
+            left: 0,
+            right: 0,
+            bottom: 0,
+            minHeight: CAROUSEL_HEIGHT + 20, // add space for handle and buttons
+            maxHeight: screenHeight * 0.45, // allow more room for content
             zIndex: 100,
             borderWidth: 2,
             borderColor: '#e58d29',
@@ -713,140 +688,274 @@ return <View style={{
             overflow: 'visible',
           },
         ]}
-        {...panResponder.panHandlers}
       >
-        <View style={{ alignItems: 'center', paddingVertical: 6 }}>
-          <View style={{ width: 40, height: 6, borderRadius: 3, backgroundColor: '#ccc', marginBottom: 4 }} />
-        </View>
+        {/* Removed handle since dragging is disabled */}
         <FlatList
           horizontal
           pagingEnabled
-          data={registerData.filter(item => item.engagementStatus === "TransportEngaged")}
+          data={registerData}
           keyExtractor={item => item.id}
           onMomentumScrollEnd={handleScroll}
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={{ paddingBottom: 16 }}
-          renderItem={({ item, index }) => (
-            <View style={[styles.card, index === activeIndex && styles.activeCard, { minHeight: 140, flexGrow: 1, paddingBottom: 24, justifyContent: 'flex-start' }]}> 
-              <Text style={styles.cardTitle}>
-                {t.fromTo(item.sellerName, item.buyerName)} ||
-                {/* Show actual road distance between seller and buyer */}
-                {roadDistanceLoading
-                  ? (t.loadingRoadDistance || 'Loading road distance...')
-                  : `${t.roadDistance || 'Road Distance'}: ${(roadDistance / 1000).toFixed(2)} ${t.km || 'km'} || `}
-                {t.rates || 'Rates'}: {formatAmountSync(Number(item.transportRate ?? 0), nationalityToCode(nationality), ratesMap)} ||
-                {t.contact} {item.buyerContact} || {t.transportRequest} {item.transportRequest} || {t.engagementStatus} {item.engagementStatus}
-              </Text>
-              {/* Show backend cumulative distance and cost if engaged */}
-              {item.engagementStatus === "TransportEngaged" && (
-                <Text style={{ color: '#e58d29', fontWeight: 'bold', marginBottom: 0 }}>
-                  {t.liveDistance || 'Live Distance'}: {(item.distance || 0).toFixed(2)} {t.km || 'km'} | {t.liveCost || 'Live Cost'}: {formatAmountSync(item.Earnings || 0, nationalityToCode(nationality), ratesMap)}
+          renderItem={({ item, index }) => {
+            console.log('[FlatList renderItem] item:', item);
+            return (
+              <View style={[styles.card, index === activeIndex && styles.activeCard, { flex: 1, height: '100%', width: screenWidth, justifyContent: 'center', alignItems: 'center', marginVertical: 0, marginHorizontal: 0, borderRadius: 0, paddingBottom: 0 }]}> 
+                <Text style={styles.cardTitle}>
+                  {t.fromTo ? t.fromTo(item.sellerName, item.buyerName) : `${item.sellerName} (${t.seller || 'Seller'}) → ${item.buyerName} (${t.buyer || 'Buyer'})`}
                 </Text>
-              )}
-              <Text numberOfLines={2} ellipsizeMode="tail">
-                {/* Example: "Order Description: 2 bags of Maize bought at Nairobi" */}
-              </Text>
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 0, flexWrap: 'wrap' }}>
-                {item.engagementStatus !== "TransportEngaged" ? (
-                  <TouchableOpacity
-                    onPress={() => {
-                      setLoadingItemId(item.id);
-                      setLoadingType("accept");
-                      handleAcceptDelivery(item);
-                    }}
-                    style={[styles.acceptBtn, { opacity: loadingItemId === item.id && loadingType === "accept" ? 0.7 : 1 }]}
-                    disabled={loadingItemId === item.id && loadingType === "accept"}
-                  >
-                    {loadingItemId === item.id && loadingType === "accept" && (
-                      <ActivityIndicator size="small" color="#fff" style={{ marginRight: 6 }} />
-                    )}
-                    <Text style={{ color: 'white', fontSize: 12 }}>
-                      {loadingItemId === item.id && loadingType === "accept" ? t.processing : t.acceptDelivery}
-                    </Text>
-                  </TouchableOpacity>
-                ) : (
-                  <TouchableOpacity
-                    onPress={async () => {
-                      setLoadingItemId(item.id);
-                      setLoadingType("offload");
-                      try {
-                        // Get current location
-                        const locPerm = await Location.requestForegroundPermissionsAsync();
-                        if (locPerm.status !== "granted") {
-                          Alert.alert(t.permissionDenied, t.locationPermissionRequired);
+                <Text style={{ color: '#e58d29', fontWeight: 'bold', marginBottom: 0 }}>
+                  {(t.transportCost || t.rates || 'Transport Cost') + ': '} {formatAmountSync(Number(item.transportRate ?? 0), nationalityToCode(nationality), ratesMap)}
+                </Text>
+                <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 0, flexWrap: 'wrap' }}>
+                  {/* Accept Request button */}
+                  {item.transportRequest === "transportRequestYes" && item.bizType === "TransportDispatched" && item.engagementStatus !== "TransportEngaged" && (
+                    <TouchableOpacity
+                      onPress={() => handleAcceptDelivery(item)}
+                      style={[styles.acceptBtn, { backgroundColor: '#2196f3', opacity: loadingItemId === item.id && loadingType === "accept" ? 0.7 : 1, minWidth: 40, maxWidth: 90, alignSelf: 'flex-end' }]}
+                      disabled={loadingItemId === item.id && loadingType === "accept"}
+                    >
+                      {loadingItemId === item.id && loadingType === "accept" && (
+                        <ActivityIndicator size="small" color="#fff" style={{ marginRight: 6 }} />
+                      )}
+                      <Text style={{ color: 'white', fontSize: 12, fontWeight: 'bold' }}>
+                        {loadingItemId === item.id && loadingType === "accept" ? t.processing : t.accept || "Accept"}
+                      </Text>
+                    </TouchableOpacity>
+                  )}
+                  {/* Cancel Request button */}
+                  {item.transportRequest === "transportRequestYes" && item.bizType === "TransportDispatched" && item.engagementStatus !== "TransportEngaged" && (
+                    <TouchableOpacity
+                      onPress={async () => {
+                        setLoadingItemId(item.id);
+                        setLoadingType("cancel");
+                        try {
+                          await client.graphql({
+                            query: updateTransportOrder,
+                            variables: {
+                              input: {
+                                id: item.id,
+                                transportRequest: "transportRequestNo"
+                              }
+                            }
+                          });
+                          // --- Notification and Message Logic for Cancel ---
+                          const notifTitle = t.cancelTitle || "Transport Request Cancelled";
+                          const notifBody = t.cancelNotif ? t.cancelNotif(item.transportName, item.sellerName, item.transportkntct) : `Transport request for ${item.transportName} has been cancelled.`;
+                          // Send to buyer (buyerOfficerEmail)
+                          if (item.buyerOfficerEmail) {
+                            await client.graphql({
+                              query: createMessages,
+                              variables: {
+                                input: {
+                                  senderEmail: item.buyerOfficerEmail,
+                                  messageBody: notifBody
+                                }
+                              }
+                            });
+                            await client.graphql({
+                              query: sendNotification,
+                              variables: {
+                                riderEmail: item.buyerOfficerEmail,
+                                title: notifTitle,
+                                body: notifBody
+                              }
+                            });
+                          }
+                          // Send to seller (Bizna email)
+                          if (item.sellerContact) {
+                            try {
+                              const biznaRes = await client.graphql({ query: getBizna, variables: { BusKntct: item.sellerContact } });
+                              const bizna = (biznaRes as any)?.data?.getBizna;
+                              if (bizna && bizna.email) {
+                                await client.graphql({
+                                  query: createMessages,
+                                  variables: {
+                                    input: {
+                                      senderEmail: bizna.email,
+                                      messageBody: notifBody
+                                    }
+                                  }
+                                });
+                                await client.graphql({
+                                  query: sendNotification,
+                                  variables: {
+                                    riderEmail: bizna.email,
+                                    title: notifTitle,
+                                    body: notifBody
+                                  }
+                                });
+                              }
+                            } catch (err) {
+                              console.warn('Cancel notification to Bizna failed', err);
+                            }
+                          }
+                          Alert.alert(t.success, t.cancelSuccess || "Request cancelled.");
+                          fetchRegisterData();
+                        } catch (err) {
+                          console.error("Cancel error:", err);
+                          Alert.alert(t.error, t.cancelError || "Failed to cancel request.");
+                        } finally {
                           setLoadingItemId(null);
                           setLoadingType(null);
-                          return;
                         }
-                        const currentLoc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.BestForNavigation });
-                        const transporterLat = currentLoc.coords.latitude;
-                        const transporterLng = currentLoc.coords.longitude;
-                        const buyerLat = Number(item.deliveryLatitude);
-                        const buyerLng = Number(item.deliveryLongitude);
-                        if (!isNaN(buyerLat) && !isNaN(buyerLng)) {
-                          const distToBuyer = getDistance(
-                            { latitude: transporterLat, longitude: transporterLng },
-                            { latitude: buyerLat, longitude: buyerLng }
-                          );
-                          if (distToBuyer > 50) {
-                            Alert.alert(t.sorry, t.mustBeNearBuyer || 'You must be within 50 meters of the buyer to off load.');
+                      }}
+                      style={[styles.acceptBtn, { backgroundColor: '#f44336', opacity: loadingItemId === item.id && loadingType === "cancel" ? 0.7 : 1, minWidth: 40, maxWidth: 90, alignSelf: 'flex-end' }]}
+                      disabled={loadingItemId === item.id && loadingType === "cancel"}
+                    >
+                      {loadingItemId === item.id && loadingType === "cancel" && (
+                        <ActivityIndicator size="small" color="#fff" style={{ marginRight: 6 }} />
+                      )}
+                      <Text style={{ color: 'white', fontSize: 12, fontWeight: 'bold' }}>
+                        {loadingItemId === item.id && loadingType === "cancel" ? t.processing : t.cancel || "Cancel"}
+                      </Text>
+                    </TouchableOpacity>
+                  )}
+                  {/* Offload button: only show if engaged */}
+                  {item.engagementStatus === "TransportEngaged" && (
+                    <TouchableOpacity
+                      onPress={async () => {
+                        setLoadingItemId(item.id);
+                        setLoadingType("offload");
+                        try {
+                          // Get live GPS
+                          const locPerm = await Location.requestForegroundPermissionsAsync();
+                          if (locPerm.status !== "granted") {
+                            Alert.alert(t.permissionDenied, t.locationPermissionRequired);
                             setLoadingItemId(null);
                             setLoadingType(null);
                             return;
                           }
-                        }
-                        // Update dutyStatus to TransportNotOnduty
-                        await client.graphql({
-                          query: updateTransportOrder,
-                          variables: {
-                            input: {
-                              id: item.id,
-                              dutyStatus: "TransportNotOnduty"
+                          const currentLoc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.BestForNavigation });
+                          const transporterLat = currentLoc.coords.latitude;
+                          const transporterLng = currentLoc.coords.longitude;
+                          const sellerLat = Number(item.sellerLatitude);
+                          const sellerLng = Number(item.sellerLongitude);
+                          if (isNaN(sellerLat) || isNaN(sellerLng)) {
+                            Alert.alert(t.error, t.sellerLocationMissing || "Seller location missing");
+                            setLoadingItemId(null);
+                            setLoadingType(null);
+                            return;
+                          }
+                          // Calculate radial distance (meters)
+                          const dist = getDistance(
+                            { latitude: transporterLat, longitude: transporterLng },
+                            { latitude: sellerLat, longitude: sellerLng }
+                          );
+                          if (dist > 200) {
+                            Alert.alert(t.sorry, t.mustBeNearSeller || "You must be within 200 meters of the seller to offload.");
+                            setLoadingItemId(null);
+                            setLoadingType(null);
+                            return;
+                          }
+                          // Update dutyStatus
+                          await client.graphql({
+                            query: updateTransportOrder,
+                            variables: {
+                              input: {
+                                id: item.id,
+                                dutyStatus: "TransportNotOnduty"
+                              }
+                            }
+                          });
+                          // --- Notification and Message Logic for Offload ---
+                          const notifTitle = t.offLoadTitle || "Transport Offloaded";
+                          const notifBody = t.offLoadNotif ? t.offLoadNotif(item.transportName, item.sellerName, item.transportkntct) : `Transport for ${item.transportName} has been offloaded.`;
+                          // Send to buyer (buyerOfficerEmail)
+                          if (item.buyerOfficerEmail) {
+                            await client.graphql({
+                              query: createMessages,
+                              variables: {
+                                input: {
+                                  senderEmail: item.buyerOfficerEmail,
+                                  messageBody: notifBody
+                                }
+                              }
+                            });
+                            await client.graphql({
+                              query: sendNotification,
+                              variables: {
+                                riderEmail: item.buyerOfficerEmail,
+                                title: notifTitle,
+                                body: notifBody
+                              }
+                            });
+                          }
+                          // Send to seller (Bizna email)
+                          if (item.sellerContact) {
+                            try {
+                              const biznaRes = await client.graphql({ query: getBizna, variables: { BusKntct: item.sellerContact } });
+                              const bizna = (biznaRes as any)?.data?.getBizna;
+                              if (bizna && bizna.email) {
+                                await client.graphql({
+                                  query: createMessages,
+                                  variables: {
+                                    input: {
+                                      senderEmail: bizna.email,
+                                      messageBody: notifBody
+                                    }
+                                  }
+                                });
+                                await client.graphql({
+                                  query: sendNotification,
+                                  variables: {
+                                    riderEmail: bizna.email,
+                                    title: notifTitle,
+                                    body: notifBody
+                                  }
+                                });
+                              }
+                            } catch (err) {
+                              console.warn('Offload notification to Bizna failed', err);
                             }
                           }
-                        });
-                        Alert.alert(t.success, t.offLoadSuccess || 'Off load successful!');
-                        fetchRegisterData();
-                      } catch (err) {
-                        console.error('Off load error:', err);
-                        Alert.alert(t.error, t.offLoadError || 'Failed to off load.');
-                      } finally {
-                        setLoadingItemId(null);
-                        setLoadingType(null);
-                      }
+                          Alert.alert(t.success, t.offLoadSuccess || "Off load successful!");
+                          fetchRegisterData();
+                        } catch (err) {
+                          console.error("Offload error:", err);
+                          Alert.alert(t.error, t.offLoadError || "Failed to off load.");
+                        } finally {
+                          setLoadingItemId(null);
+                          setLoadingType(null);
+                        }
+                      }}
+                      style={[styles.acceptBtn, { backgroundColor: '#4caf50', opacity: loadingItemId === item.id && loadingType === "offload" ? 0.7 : 1, minWidth: 40, maxWidth: 70, alignSelf: 'flex-end' }]} 
+                      disabled={loadingItemId === item.id && loadingType === "offload"}
+                    >
+                      {loadingItemId === item.id && loadingType === "offload" && (
+                        <ActivityIndicator size="small" color="#fff" style={{ marginRight: 6 }} />
+                      )}
+                      <Text style={{ color: 'white', fontSize: 12, fontWeight: 'bold' }}>
+                        {loadingItemId === item.id && loadingType === "offload" ? t.processing : t.offLoad || "Off Load"}
+                      </Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+                {/* View Details button below the row */}
+                <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 4 }}>
+                  <TouchableOpacity
+                    onPress={() => {
+                      setLoadingItemId(item.id);
+                      setLoadingType("view");
+                      navigation.navigate("VwTransprtReqDtls", { id: item.id });
+                      setLoadingItemId(null);
+                      setLoadingType(null);
                     }}
-                    style={[styles.acceptBtn, { backgroundColor: '#8B4513', opacity: loadingItemId === item.id && loadingType === "offload" ? 0.7 : 1 }]}
-                    disabled={loadingItemId === item.id && loadingType === "offload"}
+                    style={[styles.acceptBtn, { backgroundColor: '#e29d58', opacity: loadingItemId === item.id && loadingType === "view" ? 0.7 : 1, minWidth: 40, maxWidth: 110, alignSelf: 'flex-end' }]}
+                    disabled={loadingItemId === item.id && loadingType === "view"}
                   >
-                    {loadingItemId === item.id && loadingType === "offload" && (
+                    {loadingItemId === item.id && loadingType === "view" && (
                       <ActivityIndicator size="small" color="#fff" style={{ marginRight: 6 }} />
                     )}
-                    <Text style={{ color: 'white', fontSize: 12 }}>
-                      {loadingItemId === item.id && loadingType === "offload" ? t.processing : (t.offLoad || 'Off Load')}
+                    <Text style={{ color: 'white', fontSize: 12, fontWeight: 'bold' }}>
+                        {loadingItemId === item.id && loadingType === "view" ? t.processing : t.view || "View"}
                     </Text>
                   </TouchableOpacity>
-                )}
-                <TouchableOpacity
-                  onPress={() => {
-                    setLoadingItemId(item.id);
-                    setLoadingType("view");
-                    navigation.navigate("VwTransprtReqDtls", { id: item.id });
-                    setLoadingItemId(null);
-                    setLoadingType(null);
-                  }}
-                  style={[styles.acceptBtn, { opacity: loadingItemId === item.id && loadingType === "view" ? 0.7 : 1 }]}
-                  disabled={loadingItemId === item.id && loadingType === "view"}
-                >
-                  {loadingItemId === item.id && loadingType === "view" && (
-                    <ActivityIndicator size="small" color="#fff" style={{ marginRight: 6 }} />
-                  )}
-                  <Text style={{ color: 'white', fontSize: 12 }}>
-                    {loadingItemId === item.id && loadingType === "view" ? t.processing : t.viewDetails}
-                  </Text>
-                </TouchableOpacity>
+                </View>
               </View>
-            </View>
-          )}
+            );
+          }}
         />
       </Animated.View>
     </View>;
@@ -864,8 +973,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 0,
     right: 0,
-    alignSelf: 'center',
-    width: screenWidth * 0.90,
+    width: '100%',
     backgroundColor: 'rgba(255,255,255,0.97)',
     zIndex: 100,
     paddingTop: 6,
@@ -889,7 +997,7 @@ const styles = StyleSheet.create({
       height: 2
     },
     shadowRadius: 5,
-    padding: 10
+    padding: 16
   },
   activeCard: {
     borderColor: "#e58d29",
@@ -902,13 +1010,16 @@ const styles = StyleSheet.create({
   },
   acceptBtn: {
     backgroundColor: "#e58d29",
-    padding: 10,
+    paddingVertical: 6, // reduce height
+    paddingHorizontal: 10,
     borderRadius: 10,
     flex: 1,
     marginHorizontal: 5,
     alignItems: "center",
     flexDirection: "row",
-    justifyContent: "center"
+    justifyContent: "center",
+    minHeight: 28, // set a smaller min height
+    maxHeight: 32
   }
 });
 export default TransportMapScreen;

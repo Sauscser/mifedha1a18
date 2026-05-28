@@ -31,7 +31,7 @@ export interface SMAccount {
 }
 
 const ViewSMDeposts = 
-({ SMAc }: SMAccount) => {
+({ SMAc, mode, selectedBizna }: SMAccount & { mode?: string, selectedBizna?: any }) => {
   const {
      id,
     senderPhn,
@@ -52,9 +52,26 @@ const ViewSMDeposts =
   
   const navigation = useNavigation();
   
+
   const RequestTransport = () => {
-      navigation.navigate ("RequestTransport", {id})
-   } 
+    let purchaseType = 'B2C';
+    let buyerContact = Uzer;
+    let customerEmail = Uzer;
+    if (mode === 'B2B' && selectedBizna && selectedBizna.BusKntct) {
+      purchaseType = 'B2B';
+      buyerContact = selectedBizna.BusKntct;
+      customerEmail = selectedBizna.BusKntct;
+    }
+    navigation.navigate("RequestTransport", {
+      id,
+      // mode is only passed if the target screen expects it; remove if not needed by navigation type
+      ...(mode ? { mode } : {}),
+      selectedBizna,
+      purchaseType,
+      buyerContact,
+      customerEmail
+    });
+  }
 
    const client = generateClient();
        const [Uzer, setUzer] = useState<string>(null);
@@ -75,7 +92,7 @@ const ViewSMDeposts =
                              query: getSMAccount,
                              variables: { awsemail: user.email },
                          });
-                         setUserNationality(userData.data.getSMAccount.nationality);
+                         setUserNationality((userData as any).data.getSMAccount.nationality);
                          console.log('User Data:', userData);
                      } catch (error) {
                          console.error('Error fetching user data:', error);
@@ -99,6 +116,7 @@ const ViewSMDeposts =
           <Text style={styles.prodInfo}>
             <Text style={styles.label}>{t.buyerName}</Text> {SenderName}
           </Text>
+         
           <Text style={styles.prodInfo}>
             <Text style={styles.label}>{t.purchaseDescription}</Text> {description}
           </Text>

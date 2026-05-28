@@ -1052,6 +1052,7 @@ type TransportOrder
   id:ID! 
   transportkntct: String!  
   purchaseType: String
+  buyerOfficerEmail: String
   transportRate: Float! 
   transportdesc: String! 
   transportPhoto: String 

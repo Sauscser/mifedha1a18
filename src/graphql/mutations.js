@@ -1436,6 +1436,7 @@ export const createTransportOrder = /* GraphQL */ `
       id
       transportkntct
       purchaseType
+      buyerOfficerEmail
       transportRate
       transportdesc
       transportPhoto
@@ -1496,6 +1497,7 @@ export const updateTransportOrder = /* GraphQL */ `
       id
       transportkntct
       purchaseType
+      buyerOfficerEmail
       transportRate
       transportdesc
       transportPhoto
@@ -1556,6 +1558,7 @@ export const deleteTransportOrder = /* GraphQL */ `
       id
       transportkntct
       purchaseType
+      buyerOfficerEmail
       transportRate
       transportdesc
       transportPhoto

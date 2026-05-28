@@ -86,7 +86,7 @@ const client = generateClient();
          
          <Text style={styles.prodInfo}> 
            {t.sellerToBuyer(sellerName, buyerName)}
-           || {t.aerialDistance}: {distance} {t.kilometer} || {t.orderTotalCost}: {formatAmountSync(orderCost, userCode, ratesMap)} || {t.transportCost}: {formatAmountSync(deliveryCost, userCode, ratesMap)}
+           || {t.aerialDistance}: {distance} {t.kilometer} || {t.orderTotalCost}: {formatAmountSync(orderCost, userCode, ratesMap)} || {t.transportCost}: {formatAmountSync((distance * SMAc.transportRate), userCode, ratesMap)}
            || {t.contact}: {buyerContact} || {t.transportRequest}: {transportRequest} || {t.engagementStatus}: {engagementStatus}
          </Text>
          <Text style={styles.prodDesc}>{(t.orderDescription || 'Order Description:')} {deliveryDesc}</Text>

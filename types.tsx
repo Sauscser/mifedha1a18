@@ -154,7 +154,14 @@ ViewMinutes: {
       ShareCredSlsRev2Grp:undefined;
       RegisterTransport:undefined;
       VwSalesDtls4Transport:undefined;
-      RequestTransport:{id: string};
+      RequestTransport:{
+        id: string;
+        mode?: string;
+        selectedBizna?: any;
+        purchaseType?: string;
+        buyerContact?: string;
+        customerEmail?: string;
+      };
       TransportDetails:{id: string};
       AcceptTransportRequest:undefined;
       ViewChama2CommitTransport:{id: string};

@@ -8,6 +8,7 @@ import { useRoute } from '@react-navigation/native';
 import MapView, { Marker } from 'react-native-maps';
 import * as Location from 'expo-location';
 import axios from 'axios';
+
 import { useTranslation } from 'react-i18next';
 import { translations } from './translation';
 import { getBizna, getCompany, getNonLoans, getSokoAd, getTransportRegister, listTransportRegisters } from '../../../src/graphql/queries';
@@ -41,6 +42,7 @@ export default function SalesItemMapScreen({
 }) {
   // Dynamic currency context
   const { nationality, ratesMap } = useExchange();
+  // No local state for mode/business; always use route.params
   // i18n translation
   const { i18n } = useTranslation();
   const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
@@ -126,6 +128,17 @@ export default function SalesItemMapScreen({
     itemID: string;
   };
   // Fetch road distance using OSRM
+
+  let getDistance: any;
+try {
+  // Dynamically import geolib for environments where static import fails
+  getDistance = require('geolib').getDistance;
+  if (typeof getDistance !== 'function') throw new Error('getDistance is not a function');
+} catch (e) {
+  getDistance = (...args: any[]) => {
+    throw new Error('getDistance is not available. Please ensure geolib is installed and properly imported.');
+  };
+}
   useEffect(() => {
     const fetchRoadDistance = async () => {
       if (
@@ -251,7 +264,7 @@ export default function SalesItemMapScreen({
           query: listTransportRegisters
         });
         const rawItems = res.data.listTransportRegisters.items || [];
-        console.log('Fetched riders:', rawItems.length, rawItems);
+        console.log('Hi');
         const ads = await Promise.all(rawItems.map(async (item: any) => {
           let signedUrl = null;
           const photoKey = item.photoKey || item.transportPhoto || item.itemPhoto;
@@ -276,7 +289,7 @@ export default function SalesItemMapScreen({
         }));
         setAllItems(ads);
       } catch (err) {
-        console.error('Error fetching Transporters:', err);
+        console.error('HI');
       }
     })();
   }, []);
@@ -299,11 +312,11 @@ export default function SalesItemMapScreen({
         });
         const sellerlatitude = res.data.getSokoAd.latitude;
         const sellerlongitude = res.data.getSokoAd.longitude;
-        console.log(sellerlatitude, sellerlongitude);
+        console.log();
         setsellerlatitude(sellerlatitude);
         setsellerlongitude(sellerlongitude);
       } catch (err) {
-        console.error('Error fetching Transporters:', err);
+        console.error('Hi');
       }
     })();
   }, []);
@@ -325,7 +338,7 @@ export default function SalesItemMapScreen({
       }) / 1000 : Infinity;
       const passes = distance <= radius && (!filters.transportType || item.transportType?.toLowerCase().includes(filters.transportType.toLowerCase())) && (!filters.transportName || item.transportName?.toLowerCase().includes(filters.transportName.toLowerCase())) && (!filters.dutyStatus || item.dutyStatus?.toLowerCase().includes(filters.dutyStatus.toLowerCase())) && (!filters.transportRequest || item.transportRequest?.toLowerCase().includes(filters.transportRequest.toLowerCase())) && (!filters.engagementStatus || item.engagementStatus?.toLowerCase().includes(filters.engagementStatus.toLowerCase()));
       if (!passes) {
-        console.log('Filtered out:', item, {distance, radius, filters});
+        console.log('Hi');
       }
       return passes;
     });
@@ -338,7 +351,6 @@ export default function SalesItemMapScreen({
         signedUrl: original && original.signedUrl ? original.signedUrl : item.signedUrl || null
       };
     });
-    console.log('Filtered riders:', filteredWithSignedUrl.length, filteredWithSignedUrl);
     return filteredWithSignedUrl.sort((a, b) => a.transportRate - b.transportRate).slice(0, rank);
   }, [filters, allItems, userLocation]);
   useEffect(() => {
@@ -384,7 +396,6 @@ export default function SalesItemMapScreen({
         });
         setCompany(result.data.getCompany);
       } catch (err) {
-        console.error("Error fetching company:", err);
       }
     };
     fetchCompany();
@@ -464,7 +475,14 @@ export default function SalesItemMapScreen({
     [key: string]: any;
   }
   const registerTransport = async (item: SokoItem): Promise<void> => {
+    console.log('[registerTransport] called for item:', item);
     const userInfo: AuthUser = await fetchUserAttributes();
+    if (!userInfo || !userInfo.email) {
+      console.log('[registerTransport] No userInfo or email');
+      Alert.alert("User Error", "Could not retrieve your email. Please re-login.");
+      setLoadingItemId(null);
+      return;
+    }
     setLoadingItemId(item.id);
     const coords: {
       latitude: number;
@@ -474,18 +492,28 @@ export default function SalesItemMapScreen({
       longitude: 0
     };
 
-    // Fetch sender name from SMAccount using awsemail
+    // Always use route.params for mode/business (assume present)
+    const effectiveMode = route?.params?.mode;
+    const effectiveBizna = route?.params?.selectedBizna;
+    // Set senderName based on mode
     let senderName = userInfo?.email;
-    try {
-      const smAccountRes = await client.graphql({
-        query: getSMAccount,
-        variables: { awsemail: userInfo?.email }
-      });
-      senderName = smAccountRes?.data?.getSMAccount?.name;
-    } catch (err) {
-      // fallback to email if error
+    if (effectiveMode === 'B2B' && effectiveBizna && effectiveBizna.busName) {
+      senderName = effectiveBizna.busName;
+    } else {
+      try {
+        const smAccountRes = await client.graphql({
+          query: getSMAccount,
+          variables: { awsemail: userInfo?.email }
+        });
+        senderName = smAccountRes?.data?.getSMAccount?.name;
+      } catch (err) {
+        // fallback to email if error
+      }
     }
+    console.log('[registerTransport] senderName:', senderName);
     try {
+      console.log('[registerTransport] Fetching NonLoans, SokoAd, TransportRegister');
+      // --- Calculate costs and then check buyer's available funds before proceeding ---
       const res4 = await client.graphql({
         query: getNonLoans,
         variables: {
@@ -507,18 +535,82 @@ export default function SalesItemMapScreen({
         }
       });
       const ItemDtls6: SokoAdDetails = res6.data.getTransportRegister;
+      if (!userLocation || typeof userLocation.latitude !== 'number' || typeof userLocation.longitude !== 'number') {
+        console.log('[registerTransport] Invalid userLocation:', userLocation);
+        Alert.alert(t.locationErrorTitle || "Location Error", t.locationErrorMsg || "Unable to get your current location. Please check location permissions and try again.");
+        setLoadingItemId(null);
+        return;
+      }
+      // determine seller nationality and convert computed amounts to KES for storage
+      let sellerNationality = ItemDtls6?.nationality || null;
+      if (!sellerNationality && ItemDtls6?.transportOwnerEmail) sellerNationality = await getUserNationalityByEmail(ItemDtls6.transportOwnerEmail);
+      const deliveryCostRaw = Number(((roadDistance / 1000) * item.transportRate).toFixed(0));
+      const orderCostRaw = Number(ItemDtls4.amount);
+      const deliveryCostKes = sellerNationality ? await convertForeignToKsh(deliveryCostRaw, sellerNationality) : deliveryCostRaw;
+      const orderCostKes = sellerNationality ? await convertForeignToKsh(orderCostRaw, sellerNationality) : orderCostRaw;
+      console.log('[registerTransport] deliveryCostRaw:', deliveryCostRaw, 'orderCostRaw:', orderCostRaw, 'deliveryCostKes:', deliveryCostKes, 'orderCostKes:', orderCostKes);
+      // Extra log for debugging deliveryCostKes
+      console.log('[registerTransport] DEBUG deliveryCostKes to be sent:', deliveryCostKes);
+      // Determine purchaseType and customerEmail based on mode
+      let purchaseType = 'B2C';
+      let customerEmail = userInfo.email ?? '';
+      if (route?.params?.mode === 'B2B' && route?.params?.selectedBizna && route.params.selectedBizna.BusKntct) {
+        purchaseType = 'B2B';
+        customerEmail = route.params.selectedBizna.BusKntct;
+      }
+      console.log('[registerTransport] purchaseType:', purchaseType, 'customerEmail:', customerEmail);
+      // --- Now check buyer's available funds ---
+      let hasSufficientFunds = false;
+      if (route?.params?.mode === 'B2B' && route?.params?.selectedBizna && route.params.selectedBizna.BusKntct) {
+        // B2B: Check Bizna earningsBal only
+        const biznaRes = await client.graphql({ query: getBizna, variables: { BusKntct: route.params.selectedBizna.BusKntct } });
+        const bizna = biznaRes?.data?.getBizna;
+        const earningsBal = parseFloat(bizna?.earningsBal || '0');
+        console.log('[registerTransport] B2B earningsBal:', earningsBal, 'deliveryCostKes:', deliveryCostKes);
+        if (earningsBal >= deliveryCostKes) {
+          hasSufficientFunds = true;
+        } else {
+          console.log('[registerTransport] Insufficient B2B funds:', earningsBal, deliveryCostKes);
+          Alert.alert(
+            t.insufficientFundsTitle || 'Insufficient Funds',
+            t.insufficientFundsMsgB2B || 'Your business account does not have enough funds to request transport.'
+          );
+          setLoadingItemId(null);
+          return;
+        }
+      } else {
+        // B2C: Check SMAccount balance
+        const smAccountRes = await client.graphql({ query: getSMAccount, variables: { awsemail: userInfo.email } });
+        const smAccount = smAccountRes?.data?.getSMAccount;
+        const balance = parseFloat(smAccount?.balance || '0');
+        console.log('[registerTransport] B2C balance:', balance, 'deliveryCostKes:', deliveryCostKes);
+        if (balance >= deliveryCostKes) {
+          hasSufficientFunds = true;
+        } else {
+          console.log('[registerTransport] Insufficient B2C funds:', balance, deliveryCostKes);
+          Alert.alert(
+            t.insufficientFundsTitle || 'Insufficient Funds',
+            t.insufficientFundsMsgB2C || 'Your account does not have enough funds to request transport.'
+          );
+          setLoadingItemId(null);
+          return;
+        }
+      }
+     
+      
+      
       const attributes = await fetchUserAttributes();
       if (!userLocation || typeof userLocation.latitude !== 'number' || typeof userLocation.longitude !== 'number') {
         Alert.alert(t.locationErrorTitle || "Location Error", t.locationErrorMsg || "Unable to get your current location. Please check location permissions and try again.");
         return;
       }
       // determine seller nationality and convert computed amounts to KES for storage
-      let sellerNationality = ItemDtls6?.nationality || null;
       if (!sellerNationality && ItemDtls6?.transportOwnerEmail) sellerNationality = await getUserNationalityByEmail(ItemDtls6.transportOwnerEmail);
-      const deliveryCostRaw = Number((sellerBuyerDistance * item.transportRate).toFixed(0));
-      const orderCostRaw = Number(ItemDtls4.amount);
-      const deliveryCostKes = sellerNationality ? await convertForeignToKsh(deliveryCostRaw, sellerNationality) : deliveryCostRaw;
-      const orderCostKes = sellerNationality ? await convertForeignToKsh(orderCostRaw, sellerNationality) : orderCostRaw;
+      // Determine purchaseType and customerEmail based on mode
+      if (effectiveMode === 'B2B' && effectiveBizna && effectiveBizna.BusKntct) {
+        purchaseType = 'B2B';
+        customerEmail = effectiveBizna.BusKntct;
+      }
       const input: RegisterTransportInput = {
         transportkntct: ItemDtls6.transportkntct,
         transportRate: ItemDtls6.transportRate,
@@ -533,6 +625,7 @@ export default function SalesItemMapScreen({
         engagementStatus: "TransportNotEngaged",
         transportRequest: "transportRequestYes",
         transportOwnerEmail: ItemDtls6.transportOwnerEmail,
+        buyerOfficerEmail: userInfo.email,
         Earnings: 0,
         UsrAcCommitment: 0,
         ChmAcCommitment: 0,
@@ -544,7 +637,8 @@ export default function SalesItemMapScreen({
         buyerContact: attributes.phone_number ?? '',
         deliveryID: ItemDtls4.id,
         deliveryCost: deliveryCostKes,
-        customerEmail: attributes.email ?? '',
+        purchaseType,
+        customerEmail,
         deliveryDesc: ItemDtls4.description,
         //transport account id
         bizAc: ItemDtls6.id,
@@ -557,13 +651,19 @@ export default function SalesItemMapScreen({
         sellerName: AdDtls.bizName,
         sellerLatitude: Number(sellerlatitude2),
         sellerLongitude: Number(sellerlongitude2),
-        distance: Number(sellerBuyerDistance),
+        distance: Number(roadDistance / 1000),
         orderCost: orderCostKes
       };
-      if (ItemDtls6.transportOwnerEmail === attributes.email) {
+      console.log('[registerTransport] route.params:', route?.params);
+      console.log('[registerTransport] effectiveMode:', effectiveMode, 'effectiveBizna:', effectiveBizna);
+      console.log('[registerTransport] purchaseType:', purchaseType, 'customerEmail:', customerEmail);
+      if (ItemDtls6.transportOwnerEmail === userInfo.email && purchaseType === 'B2C') {
+        console.log('[registerTransport] Blocked self-transport for B2C');
         Alert.alert(t.sorryTitle || "Sorry", t.cannotRequestOwnTransport || "You cannot request your own transport.");
+        setLoadingItemId(null);
         return;
       }
+      console.log('[registerTransport] Submitting transport order mutation', input);
       const mutationResult = (await client.graphql({
         query: createTransportOrder,
         variables: {
@@ -572,7 +672,10 @@ export default function SalesItemMapScreen({
       })) as {
         data?: any;
       };
+      // Log the mutation response for debugging
+      console.log('[registerTransport] createTransportOrder mutation response:', mutationResult);
       if (mutationResult?.data?.createTransportOrder) {
+        console.log('[registerTransport] Transport order created successfully');
         Alert.alert(t.transportRequestSuccess || 'Transport Request Successful');
         setSelectedItemId(null);
         setQuantities({});
@@ -586,69 +689,68 @@ export default function SalesItemMapScreen({
           dutyStatus: 'TransportOnduty',
           engagementStatus: 'TransportNotEngaged'
         });
-
-
-        // --- Notification and Message Logic for Delivery Receipt ---
-        try {
-          // Notify transporter (transportOwnerEmail of TransportOrder)
-          const notifTitleTransporter = t.deliveryReceiptTitle || 'Delivery Receipt';
-          const notifBodyTransporter = t.deliveryReceiptNotifTransporter
-            ? t.deliveryReceiptNotifTransporter.replace('{name}', senderName)
-            : `${senderName} has received the delivery. Thank you for your service!`;
-          await client.graphql({
-            query: createMessages,
-            variables: {
-              input: {
-                senderEmail: ItemDtls6.transportOwnerEmail,
-                messageBody: notifBodyTransporter
-              }
-            }
-          });
-          await client.graphql({
-            query: sendNotification,
-            variables: {
-              riderEmail: ItemDtls6.transportOwnerEmail,
-              title: notifTitleTransporter,
-              body: notifBodyTransporter
-            }
-          });
-
-          // Notify seller (getBizna.email via sellerContact)
-          if (AdDtls.sokokntct) {
-            const biznaRes = await client.graphql({ query: getBizna, variables: { BusKntct: AdDtls.sokokntct } });
-            const bizna = biznaRes?.data?.getBizna;
-            if (bizna && bizna.email) {
-              const notifTitleSeller = t.deliveryReceiptTitle || 'Delivery Receipt';
-              const notifBodySeller = t.deliveryReceiptNotifSeller
-                ? t.deliveryReceiptNotifSeller.replace('{name}', senderName)
-                : `${senderName} has received the delivery. Your order is complete.`;
-              await client.graphql({
-                query: createMessages,
-                variables: {
-                  input: {
-                    senderEmail: bizna.email,
-                    messageBody: notifBodySeller
-                  }
-                }
-              });
-              await client.graphql({
-                query: sendNotification,
-                variables: {
-                  riderEmail: bizna.email,
-                  title: notifTitleSeller,
-                  body: notifBodySeller
-                }
-              });
+      } else {
+        console.log('[registerTransport] Transport order mutation failed', mutationResult);
+      }
+      // --- Notification and Message Logic for Delivery Receipt ---
+      try {
+        // Notify transporter (transportOwnerEmail of TransportOrder)
+        const notifTitleTransporter = t.transportRequestTitle || 'New Transport Request';
+        const notifBodyTransporter = t.transportRequestNotifTransporter
+          ? t.transportRequestNotifTransporter.replace('{name}', senderName)
+          : `${senderName} has placed a new transport request. Please review and accept if available.`;
+        await client.graphql({
+          query: createMessages,
+          variables: {
+            input: {
+              senderEmail: ItemDtls6.transportOwnerEmail,
+              messageBody: notifBodyTransporter
             }
           }
-        } catch (notifyErr) {
-          console.error('Notification/message error:', notifyErr);
+        });
+        await client.graphql({
+          query: sendNotification,
+          variables: {
+            riderEmail: ItemDtls6.transportOwnerEmail,
+            title: notifTitleTransporter,
+            body: notifBodyTransporter
+          }
+        });
+
+        // Notify seller (getBizna.email via sellerContact)
+        if (AdDtls.sokokntct) {
+          const biznaRes = await client.graphql({ query: getBizna, variables: { BusKntct: AdDtls.sokokntct } });
+          const bizna = biznaRes?.data?.getBizna;
+          if (bizna && bizna.email) {
+            const notifTitleSeller = t.transportRequestTitle || 'New Transport Request';
+            const notifBodySeller = t.transportRequestNotifSeller
+              ? t.transportRequestNotifSeller.replace('{name}', senderName)
+              : `${senderName} has placed a new transport request for your order. Please dispatch when ready.`;
+            await client.graphql({
+              query: createMessages,
+              variables: {
+                input: {
+                  senderEmail: bizna.email,
+                  messageBody: notifBodySeller
+                }
+              }
+            });
+            await client.graphql({
+              query: sendNotification,
+              variables: {
+                riderEmail: bizna.email,
+                title: notifTitleSeller,
+                body: notifBodySeller
+              }
+            });
+          }
         }
-        // --- End Notification and Message Logic for Delivery Receipt ---
+      } catch (notifyErr) {
       }
+      // --- End Notification and Message Logic for Delivery Receipt ---
     } catch (err) {
-      console.error('Transport request failed:', err);
       Alert.alert(t.errorTitle || 'Error', t.failedRequestTransport || 'Failed to request transport. Try again.');
+      console.log('[registerTransport] Caught error:', err);
     } finally {
       setLoadingItemId(null);
     }
@@ -698,7 +800,7 @@ export default function SalesItemMapScreen({
               onPress={() => onSelectItem(item, index)}
             >
               <View style={[styles.markerContainer, selectedItemId === item.id && styles.selectedMarker]}>
-                <Text style={styles.markerText}>{(sellerBuyerDistance * item.transportRate).toFixed(0)}</Text>
+                <Text style={styles.markerText}>{((roadDistance / 1000) * item.transportRate).toFixed(0)}</Text>
               </View>
             </Marker>
           ))}
