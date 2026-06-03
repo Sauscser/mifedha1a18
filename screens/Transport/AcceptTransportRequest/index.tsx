@@ -3,9 +3,9 @@ import { View, Text, FlatList, TouchableOpacity, ActivityIndicator, Alert, Dimen
 // import { PanResponder } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
 import MapView, { Marker, Polyline } from "react-native-maps";
-import { BytransprtOwnrEmail, getSMAccount, getTransportOrder } from "../../../src/graphql/queries";
+import { BytransprtOwnrEmail, getSMAccount, getTransportOrder, getTransportBizna } from "../../../src/graphql/queries";
 import { getDistance } from 'geolib';
-import { updateSMAccount, updateTransportOrder, createMessages, sendNotification, updateBizna } from "../../../src/graphql/mutations";
+import { updateSMAccount, updateTransportOrder, createMessages, sendNotification, updateBizna, updateTransportBizna } from "../../../src/graphql/mutations";
 import { getBizna } from "../../../src/graphql/queries";
 import * as Location from "expo-location";
 import { useNavigation } from "@react-navigation/native";
@@ -369,13 +369,28 @@ const TransportMapScreen = () => {
           return;
         }
       }
-      const userDtlsRes = await client.graphql({
-        query: getSMAccount,
-        variables: {
-          awsemail: user.email
-        }
-      });
-      const userDtlsz = 'data' in userDtlsRes ? userDtlsRes.data.getSMAccount : null;
+      const isCompanyOwned = orderDtlz?.ownerShipType === "Company" && !!orderDtlz?.transportOwnerAc;
+
+      let userDtlsz: any = null;
+      if (!isCompanyOwned) {
+        const userDtlsRes = await client.graphql({
+          query: getSMAccount,
+          variables: {
+            awsemail: user.email
+          }
+        });
+        userDtlsz = 'data' in userDtlsRes ? userDtlsRes.data.getSMAccount : null;
+      }
+
+      let companyTransportBizna: any = null;
+      if (isCompanyOwned) {
+        const companyBiznaRes: any = await client.graphql({
+          query: getTransportBizna,
+          variables: { BizAc: orderDtlz.transportOwnerAc }
+        });
+        companyTransportBizna = companyBiznaRes?.data?.getTransportBizna || null;
+      }
+
       const buyerDtlsRes = await client.graphql({
         query: getBizna,
         variables: {
@@ -387,7 +402,8 @@ const TransportMapScreen = () => {
       const userCurrencyKey = nationalityToCode(nationality);
       const orderCostUser = parseFloat(orderDtlz.orderCost);
       const deliveryCostUser = parseFloat(orderDtlz.deliveryCost);
-      const userBalance = parseFloat(userDtlsz.balance);
+      const userBalance = userDtlsz ? parseFloat(userDtlsz.balance) : 0;
+      const companyBizFund = companyTransportBizna ? parseFloat(companyTransportBizna.bizFund || 0) : 0;
       const buyerBalance = parseFloat(buyerDtlsz.earningsBal);
       const buyerBalance2 = parseFloat(buyerDtlsz.netEarnings);
       // Convert user input to KES for backend
@@ -415,23 +431,38 @@ const TransportMapScreen = () => {
       } else if (orderDtlz.customerEmail === user.email) {
         Alert.alert(t.sorry, t.cannotBeClientAndTransporter);
         return;
-      } else if (orderCostUser > userBalance) {
+      } else if (!isCompanyOwned && orderCostUser > userBalance) {
         navigation.navigate("ViewChama2CommitTransport", {
           id: item.id
         });
         return;
+      } else if (isCompanyOwned && orderCostUser > companyBizFund) {
+        Alert.alert(t.sorry, t.companyBizFundCannotCover || "Company bizFund cannot cover this order security amount.");
+        return;
       }
 
-      // Deduct balances (in user's currency)
-      await client.graphql({
-        query: updateSMAccount,
-        variables: {
-          input: {
-            awsemail: user.email,
-            balance: userBalance - orderCostUser
+      // Security commitment source depends on ownership type.
+      if (isCompanyOwned && companyTransportBizna) {
+        await client.graphql({
+          query: updateTransportBizna,
+          variables: {
+            input: {
+              BizAc: companyTransportBizna.BizAc,
+              bizFund: companyBizFund - orderCostUser,
+            },
+          },
+        });
+      } else {
+        await client.graphql({
+          query: updateSMAccount,
+          variables: {
+            input: {
+              awsemail: user.email,
+              balance: userBalance - orderCostUser
+            }
           }
-        }
-      });
+        });
+      }
 
       
       await client.graphql({

@@ -54,6 +54,7 @@ const KFNdogoScreen = () => {
           <CustomButton title="User Deposit" onPress={nav('DpstMney')} />
           <CustomButton title="Chama Deposit" onPress={nav('SignitoryDepositss')} />
           <CustomButton title="Biz Deposit" onPress={nav('MakeBizDpsts')} />
+          <CustomButton title="Transport Biz Deposit" onPress={nav('MakeTransportBizDpsts')} />
          <CustomButton title="View Deposit" onPress={nav('VwBizDpstsMFN')} />
           <CustomButton title="View Withdrawals" onPress={nav('VwUsrWthdrwlss')} />
        </Section>

@@ -1252,6 +1252,69 @@ export const onDeleteSokoAd = /* GraphQL */ `
     }
   }
 `;
+export const onCreateTransportBizna = /* GraphQL */ `
+  subscription OnCreateTransportBizna(
+    $filter: ModelSubscriptionTransportBiznaFilterInput
+    $owner: String
+  ) {
+    onCreateTransportBizna(filter: $filter, owner: $owner) {
+      BizAc
+      transportRate
+      transportdesc
+      owner
+      createdAt
+      shareRates
+      transportName
+      biznaOwnerEmail
+      Earnings
+      bizFund
+      updatedAt
+      __typename
+    }
+  }
+`;
+export const onUpdateTransportBizna = /* GraphQL */ `
+  subscription OnUpdateTransportBizna(
+    $filter: ModelSubscriptionTransportBiznaFilterInput
+    $owner: String
+  ) {
+    onUpdateTransportBizna(filter: $filter, owner: $owner) {
+      BizAc
+      transportRate
+      transportdesc
+      owner
+      createdAt
+      shareRates
+      transportName
+      biznaOwnerEmail
+      Earnings
+      bizFund
+      updatedAt
+      __typename
+    }
+  }
+`;
+export const onDeleteTransportBizna = /* GraphQL */ `
+  subscription OnDeleteTransportBizna(
+    $filter: ModelSubscriptionTransportBiznaFilterInput
+    $owner: String
+  ) {
+    onDeleteTransportBizna(filter: $filter, owner: $owner) {
+      BizAc
+      transportRate
+      transportdesc
+      owner
+      createdAt
+      shareRates
+      transportName
+      biznaOwnerEmail
+      Earnings
+      bizFund
+      updatedAt
+      __typename
+    }
+  }
+`;
 export const onCreateTransportRegister = /* GraphQL */ `
   subscription OnCreateTransportRegister(
     $filter: ModelSubscriptionTransportRegisterFilterInput
@@ -1260,6 +1323,8 @@ export const onCreateTransportRegister = /* GraphQL */ `
     onCreateTransportRegister(filter: $filter, owner: $owner) {
       id
       transportkntct
+      ownerShipType
+      transportOwnerAc
       transportRate
       transportdesc
       transportPhoto
@@ -1313,6 +1378,8 @@ export const onUpdateTransportRegister = /* GraphQL */ `
     onUpdateTransportRegister(filter: $filter, owner: $owner) {
       id
       transportkntct
+      ownerShipType
+      transportOwnerAc
       transportRate
       transportdesc
       transportPhoto
@@ -1366,6 +1433,8 @@ export const onDeleteTransportRegister = /* GraphQL */ `
     onDeleteTransportRegister(filter: $filter, owner: $owner) {
       id
       transportkntct
+      ownerShipType
+      transportOwnerAc
       transportRate
       transportdesc
       transportPhoto
@@ -1419,6 +1488,8 @@ export const onCreateTransportOrder = /* GraphQL */ `
     onCreateTransportOrder(filter: $filter, owner: $owner) {
       id
       transportkntct
+      ownerShipType
+      transportOwnerAc
       purchaseType
       buyerOfficerEmail
       transportRate
@@ -1480,6 +1551,8 @@ export const onUpdateTransportOrder = /* GraphQL */ `
     onUpdateTransportOrder(filter: $filter, owner: $owner) {
       id
       transportkntct
+      ownerShipType
+      transportOwnerAc
       purchaseType
       buyerOfficerEmail
       transportRate
@@ -1541,6 +1614,8 @@ export const onDeleteTransportOrder = /* GraphQL */ `
     onDeleteTransportOrder(filter: $filter, owner: $owner) {
       id
       transportkntct
+      ownerShipType
+      transportOwnerAc
       purchaseType
       buyerOfficerEmail
       transportRate
@@ -4151,6 +4226,7 @@ export const onCreateGroup = /* GraphQL */ `
   ) {
     onCreateGroup(filter: $filter, owner: $owner) {
       grpContact
+      transportShareRates
       regNo
       signitoryContact
       SignitoryNatid
@@ -4247,6 +4323,7 @@ export const onUpdateGroup = /* GraphQL */ `
   ) {
     onUpdateGroup(filter: $filter, owner: $owner) {
       grpContact
+      transportShareRates
       regNo
       signitoryContact
       SignitoryNatid
@@ -4343,6 +4420,7 @@ export const onDeleteGroup = /* GraphQL */ `
   ) {
     onDeleteGroup(filter: $filter, owner: $owner) {
       grpContact
+      transportShareRates
       regNo
       signitoryContact
       SignitoryNatid
@@ -5669,6 +5747,8 @@ export const onCreateRideRequest = /* GraphQL */ `
   ) {
     onCreateRideRequest(filter: $filter, owner: $owner) {
       id
+      ownerShipType
+      transportOwnerAc
       passengerEmail
       passengerName
       passengerContact
@@ -5703,6 +5783,8 @@ export const onUpdateRideRequest = /* GraphQL */ `
   ) {
     onUpdateRideRequest(filter: $filter, owner: $owner) {
       id
+      ownerShipType
+      transportOwnerAc
       passengerEmail
       passengerName
       passengerContact
@@ -5737,6 +5819,8 @@ export const onDeleteRideRequest = /* GraphQL */ `
   ) {
     onDeleteRideRequest(filter: $filter, owner: $owner) {
       id
+      ownerShipType
+      transportOwnerAc
       passengerEmail
       passengerName
       passengerContact

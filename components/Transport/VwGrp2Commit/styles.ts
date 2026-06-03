@@ -65,6 +65,81 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: 'bold',
   },
+
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.35)',
+    paddingHorizontal: 20,
+  },
+
+  modalCard: {
+    width: '100%',
+    maxWidth: 380,
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 16,
+  },
+
+  modalTitle: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: '#222',
+    marginBottom: 6,
+  },
+
+  modalSubtitle: {
+    fontSize: 14,
+    color: '#444',
+    marginBottom: 10,
+  },
+
+  modalInput: {
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    marginBottom: 8,
+    fontWeight: 'bold',
+    color: '#222',
+  },
+
+  modalHint: {
+    fontSize: 12,
+    color: '#666',
+    marginBottom: 14,
+  },
+
+  modalActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    gap: 12,
+  },
+
+  modalCancelButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+  },
+
+  modalCancelText: {
+    color: '#e58d29',
+    fontWeight: '700',
+  },
+
+  modalConfirmButton: {
+    backgroundColor: '#e58d29',
+    borderRadius: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+  },
+
+  modalConfirmText: {
+    color: '#fff',
+    fontWeight: '700',
+  },
 });
 
 export default styles;

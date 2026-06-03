@@ -7,7 +7,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { getCurrentUser, fetchUserAttributes } from 'aws-amplify/auth';
 import { generateClient } from 'aws-amplify/api';
 import { useExchange } from '../../../../src/contexts/ExchangeContext';
-import { formatAmountSync } from '../../../../src/utils/exchange';
+import { convertForeignToKsh, formatAmountSync } from '../../../../src/utils/exchange';
 import { nationalityToCode } from '../../../../src/utils/nationalityToCode';
 const client = generateClient();
 const SMADepositForm = props => {
@@ -18,7 +18,9 @@ const SMADepositForm = props => {
   const [UsrId, setUsrId] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [ownr, setownr] = useState(null);
-  const { ratesMap } = useExchange();
+  const { nationality, ratesMap } = useExchange();
+  const userCurrencyKey = nationalityToCode(nationality);
+  const currencySymbol = ratesMap?.[userCurrencyKey]?.symbol || 'KES';
   const fetchAcDtls = async () => {
     if (isLoading) return;
     setIsLoading(true);
@@ -65,6 +67,16 @@ const SMADepositForm = props => {
       const nationalidz = compDtlsxz.data.getSMAccount.nationalid;
       const rawNationality = accountDtl.data.getBizna.Nationality || (attributes as any).nationality;
       const userCode = nationalityToCode(rawNationality) || rawNationality || 'KE';
+      const userCurrency = nationalityToCode(rawNationality) || userCurrencyKey || 'KE';
+      const enteredAmount = parseFloat(amount);
+      if (Number.isNaN(enteredAmount) || enteredAmount <= 0) {
+        Alert.alert("Invalid Amount", "Please enter a valid deposit amount greater than 0.");
+        setIsLoading(false);
+        return;
+      }
+      const amountKES = userCurrency
+        ? await convertForeignToKsh(enteredAmount, userCurrency)
+        : enteredAmount;
 
       // Validation checks
       if (usrStts === "AccountInactive") {
@@ -77,7 +89,7 @@ const SMADepositForm = props => {
         setIsLoading(false);
         return;
       }
-      if (parseFloat(agtFltBl) < parseFloat(amount)) {
+      if (parseFloat(agtFltBl) < amountKES) {
         Alert.alert("Insufficient NSNdogo Balance: " + formatAmountSync(parseFloat(agtFltBl), userCode, ratesMap));
         setIsLoading(false);
         return;
@@ -97,7 +109,7 @@ const SMADepositForm = props => {
             agContact: AgentPhn,
             agentName: agentNames,
             userName: names,
-            amount: amount,
+            amount: amountKES.toFixed(2),
             status: 'AccountActive'
           }
         }
@@ -109,9 +121,9 @@ const SMADepositForm = props => {
         variables: {
           input: {
             BusKntct: nationalId,
-            TtlEarnings: (parseFloat(TtlEarnings) + parseFloat(amount)).toFixed(2),
-            earningsBal: (parseFloat(earningsBal) + parseFloat(amount)).toFixed(2),
-            netEarnings: (parseFloat(netEarnings) + parseFloat(amount)).toFixed(2)
+            TtlEarnings: (parseFloat(TtlEarnings) + amountKES).toFixed(2),
+            earningsBal: (parseFloat(earningsBal) + amountKES).toFixed(2),
+            netEarnings: (parseFloat(netEarnings) + amountKES).toFixed(2)
           }
         }
       });
@@ -122,8 +134,8 @@ const SMADepositForm = props => {
         variables: {
           input: {
             phonecontact: AgentPhn,
-            TtlFltOut: (parseFloat(agtTtlFtOut) + parseFloat(amount)).toFixed(2),
-            floatBal: (parseFloat(agtFltBl) - parseFloat(amount)).toFixed(2)
+            TtlFltOut: (parseFloat(agtTtlFtOut) + amountKES).toFixed(2),
+            floatBal: (parseFloat(agtFltBl) - amountKES).toFixed(2)
           }
         }
       });
@@ -134,13 +146,13 @@ const SMADepositForm = props => {
         variables: {
           input: {
             AdminId: "BaruchHabaB'ShemAdonai2",
-            ttlUsrDep: parseFloat(ttlUsrDpsts) + parseFloat(amount),
-            agentFloatOut: parseFloat(agentFloatOuts) + parseFloat(amount)
+            ttlUsrDep: parseFloat(ttlUsrDpsts) + amountKES,
+            agentFloatOut: parseFloat(agentFloatOuts) + amountKES
           }
         }
       });
-      Alert.alert(formatAmountSync(parseFloat(amount), userCode, ratesMap) + " deposited in " + names + "'s NSNdogo account");
-      const depositMessage2 = 'Confirmed. You have successfully deposited ' + formatAmountSync(parseFloat(amount), userCode, ratesMap) + ' into your Business account.' + ' Please confirm this deposit record is on your NiSenti app. Thank you. NiSenti';
+      Alert.alert(formatAmountSync(amountKES, userCode, ratesMap) + " deposited in " + names + "'s NSNdogo account");
+      const depositMessage2 = 'Confirmed. You have successfully deposited ' + formatAmountSync(amountKES, userCode, ratesMap) + ' into your Business account.' + ' Please confirm this deposit record is on your NiSenti app. Thank you. NiSenti';
       try {
         const msgRes = await client.graphql({
           query: createMessages,
@@ -183,8 +195,8 @@ const SMADepositForm = props => {
         </View>
 
         <View style={styles.inputGroup}>
-          <Text style={styles.label}>Amount</Text>
-          <TextInput placeholder="e.g. 500" keyboardType="decimal-pad" value={amount} onChangeText={setAmount} style={styles.input} placeholderTextColor="#95A5A6" />
+          <Text style={styles.label}>Amount ({currencySymbol})</Text>
+          <TextInput placeholder={`e.g. 500 ${currencySymbol}`} keyboardType="decimal-pad" value={amount} onChangeText={setAmount} style={styles.input} placeholderTextColor="#95A5A6" />
         </View>
 
         <View style={styles.inputGroup}>

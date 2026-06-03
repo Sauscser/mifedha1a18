@@ -76,6 +76,12 @@ const MyAccount = (props: any) => {
   const RegisterTransport = () => {
     navigation.navigate('RegisterTransport');
   };
+  const RegisterTransportBizna = () => {
+    navigation.navigate('RegisterTransportBizna');
+  };
+  const ViewTransportBiznaAccount = () => {
+    navigation.navigate('ViewTransportBiznaAccount');
+  };
 
   const nav: any = navigation;
   useEffect(() => {
@@ -103,6 +109,14 @@ const MyAccount = (props: any) => {
             label: t.registerTransport,
             onPress: RegisterTransport,
             style: (styles as any).ClientsPressables
+          }, {
+            label: 'Register Transport - Company',
+            onPress: RegisterTransportBizna,
+            style: styles.ClientsPressables
+          }, {
+            label: 'View Transport Company Account',
+            onPress: ViewTransportBiznaAccount,
+            style: styles.ClientsPressables
           }, {
             label: t.viewAccount,
             onPress: VwTransportAccount,

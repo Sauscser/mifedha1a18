@@ -5,10 +5,10 @@ import MapView, { Marker, Polyline, UrlTile } from 'react-native-maps';
 import * as Location from 'expo-location';
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { listRideRequests, getSMAccount, getTransportRegister, getCompany, getRideRequest } from '../../../src/graphql/queries';
+import { listRideRequests, getSMAccount, getTransportRegister, getCompany, getRideRequest, getTransportBizna } from '../../../src/graphql/queries';
 import { onUpdateRideRequest } from '../../../src/graphql/subscriptions';
 import { Observable } from 'zen-observable-ts';
-import { updateRideRequest, updateSMAccount, updateTransportRegister, updateCompany } from '../../../src/graphql/mutations';
+import { updateRideRequest, updateSMAccount, updateTransportRegister, updateCompany, updateTransportBizna } from '../../../src/graphql/mutations';
 import { getCurrentUser, fetchUserAttributes } from "aws-amplify/auth";
 import { useExchange } from '../../../src/contexts/ExchangeContext';
 import { formatAmountSync, getUserNationalityByEmail, convertForeignToKsh } from '../../../src/utils/exchange';
@@ -672,6 +672,27 @@ export default function RiderRideRequestScreen() {
       const companyShare = totalFareKes * companySharePct;
       const transporterShare = totalFareKes - companyShare;
 
+      // If the ride belongs to a company transporter, split transporter share between TransportRegister and TransportBizna.
+      let transportRegisterShare = transporterShare;
+      let transportBiznaShare = 0;
+      let transportBizna: any = null;
+      if (ride.ownerShipType === 'Company' && ride.transportOwnerAc) {
+        try {
+          const biznaRes: any = await client.graphql({
+            query: getTransportBizna,
+            variables: { BizAc: ride.transportOwnerAc }
+          });
+          transportBizna = biznaRes?.data?.getTransportBizna || null;
+          if (transportBizna) {
+            const rate = Math.max(0, Math.min(100, Number(transportBizna.shareRates ?? 0)));
+            transportRegisterShare = Number((transporterShare * (rate / 100)).toFixed(2));
+            transportBiznaShare = Number((transporterShare - transportRegisterShare).toFixed(2));
+          }
+        } catch (e) {
+          console.warn('Failed to load TransportBizna for earnings split; falling back to TransportRegister only', e);
+        }
+      }
+
       // Deduct passenger balance (use KES)
       await client.graphql({
         query: updateSMAccount,
@@ -685,7 +706,7 @@ export default function RiderRideRequestScreen() {
 
       // Update transporter earnings
       if (transporter) {
-        const newEarnings = Number(transporter.Earnings ?? 0) + transporterShare;
+        const newEarnings = Number(transporter.Earnings ?? 0) + transportRegisterShare;
         await client.graphql({
           query: updateTransportRegister,
           variables: {
@@ -694,6 +715,20 @@ export default function RiderRideRequestScreen() {
               Earnings: newEarnings,
               lastForwardedTime: new Date().toISOString(),
               overdue: false
+            }
+          }
+        });
+      }
+
+      // Update TransportBizna earnings only for company-owned rides.
+      if (transportBizna && transportBiznaShare > 0) {
+        const newBiznaEarnings = Number(transportBizna.Earnings ?? 0) + transportBiznaShare;
+        await client.graphql({
+          query: updateTransportBizna,
+          variables: {
+            input: {
+              BizAc: transportBizna.BizAc,
+              Earnings: Number(newBiznaEarnings.toFixed(2))
             }
           }
         });
@@ -793,6 +828,27 @@ export default function RiderRideRequestScreen() {
       const companyShare = totalFareKesManual * companySharePct;
       const transporterShare = totalFareKesManual - companyShare;
 
+      // If the ride belongs to a company transporter, split transporter share between TransportRegister and TransportBizna.
+      let transportRegisterShare = transporterShare;
+      let transportBiznaShare = 0;
+      let transportBizna: any = null;
+      if (ride.ownerShipType === 'Company' && ride.transportOwnerAc) {
+        try {
+          const biznaRes: any = await client.graphql({
+            query: getTransportBizna,
+            variables: { BizAc: ride.transportOwnerAc }
+          });
+          transportBizna = biznaRes?.data?.getTransportBizna || null;
+          if (transportBizna) {
+            const rate = Math.max(0, Math.min(100, Number(transportBizna.shareRates ?? 0)));
+            transportRegisterShare = Number((transporterShare * (rate / 100)).toFixed(2));
+            transportBiznaShare = Number((transporterShare - transportRegisterShare).toFixed(2));
+          }
+        } catch (e) {
+          console.warn('Failed to load TransportBizna for earnings split; falling back to TransportRegister only', e);
+        }
+      }
+
       // Deduct company share from transporter SMAccount
       const transporterEmail = transporter.transportOwnerEmail; // authenticated user
       const smRes: any = await client.graphql({
@@ -830,7 +886,7 @@ export default function RiderRideRequestScreen() {
       });
 
       // Update transporter earnings (KES)
-      const newEarnings = Number(transporter.Earnings ?? 0) + transporterShare;
+      const newEarnings = Number(transporter.Earnings ?? 0) + transportRegisterShare;
       await client.graphql({
         query: updateTransportRegister,
         variables: {
@@ -842,6 +898,20 @@ export default function RiderRideRequestScreen() {
           }
         }
       });
+
+      // Update TransportBizna earnings only for company-owned rides.
+      if (transportBizna && transportBiznaShare > 0) {
+        const newBiznaEarnings = Number(transportBizna.Earnings ?? 0) + transportBiznaShare;
+        await client.graphql({
+          query: updateTransportBizna,
+          variables: {
+            input: {
+              BizAc: transportBizna.BizAc,
+              Earnings: Number(newBiznaEarnings.toFixed(2))
+            }
+          }
+        });
+      }
 
       // Update company earnings
       if (company) {

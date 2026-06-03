@@ -1,13 +1,13 @@
 // @ts-nocheck
 import React, { useEffect, useState } from 'react';
-import { View, Text, TextInput, ScrollView, TouchableOpacity, Alert, ActivityIndicator, StyleSheet, Image } from 'react-native';
+import { View, Text, TextInput, ScrollView, TouchableOpacity, Alert, ActivityIndicator, StyleSheet, Image, Modal } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import * as ImagePicker from 'expo-image-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
 import { createSokoAd, createTransportRegister } from '../../../src/graphql/mutations';
-import { getSMAccount, getBizna, listPersonels } from '../../../src/graphql/queries';
+import { getSMAccount, listTransportBiznas } from '../../../src/graphql/queries';
 import { Route, useRoute } from '@react-navigation/native';
 import { getCurrentUser, fetchUserAttributes } from "aws-amplify/auth";
 import { useExchange } from '../../../src/contexts/ExchangeContext';
@@ -46,6 +46,12 @@ const CreateBiz = () => {
     longitude: number;
   } | null>(null);
   const [businessOwnerNationality, setBusinessOwnerNationality] = useState<string | null>(null);
+  const [ownershipModalVisible, setOwnershipModalVisible] = useState(false);
+  const [companyModalVisible, setCompanyModalVisible] = useState(false);
+  const [isFetchingCompanies, setIsFetchingCompanies] = useState(false);
+  const [companyOptions, setCompanyOptions] = useState<any[]>([]);
+  const [selectedOwnershipType, setSelectedOwnershipType] = useState<'Individual' | 'Company' | null>(null);
+  const [selectedCompany, setSelectedCompany] = useState<any | null>(null);
   const route = useRoute();
   const { nationality, ratesMap } = useExchange();
   const updateForm = (key: string, value: string) => setFormData(prev => ({
@@ -195,7 +201,73 @@ const CreateBiz = () => {
     setItemPhotoKey(null);
     setItemPhotoUri(null);
   };
-  const handleAdCreation = async () => {
+
+  const openOwnershipSelection = () => {
+    if (isLoading || isFetchingCompanies) return;
+    setOwnershipModalVisible(true);
+  };
+
+  const loadOwnedTransportBiznas = async () => {
+    setIsFetchingCompanies(true);
+    try {
+      const attributes = await fetchUserAttributes();
+      const userEmail = attributes.email;
+      const response: any = await client.graphql({
+        query: listTransportBiznas,
+        variables: {
+          filter: {
+            biznaOwnerEmail: { eq: userEmail }
+          },
+          limit: 100,
+        },
+      });
+      const items = (response?.data?.listTransportBiznas?.items || []).filter(Boolean);
+      setCompanyOptions(items);
+      if (items.length < 1) {
+        Alert.alert('No Company Found', 'No TransportBizna account found for your email.');
+        return;
+      }
+      setCompanyModalVisible(true);
+    } catch (error) {
+      console.log('Error loading transport companies:', error);
+      Alert.alert('Error', 'Failed to load your transport companies.');
+    } finally {
+      setIsFetchingCompanies(false);
+    }
+  };
+
+  const handleOwnershipSelected = async (type: 'Individual' | 'Company') => {
+    setOwnershipModalVisible(false);
+    setSelectedOwnershipType(type);
+    if (type === 'Individual') {
+      setSelectedCompany(null);
+      return;
+    }
+    await loadOwnedTransportBiznas();
+  };
+
+  const handleCompanySelected = async (company: any) => {
+    setCompanyModalVisible(false);
+    setSelectedCompany(company);
+  };
+
+  const handleSubmit = async () => {
+    if (selectedOwnershipType === 'Company') {
+      if (!selectedCompany) {
+        await loadOwnedTransportBiznas();
+        return;
+      }
+      await handleAdCreation('Company', selectedCompany);
+      return;
+    }
+    if (!selectedOwnershipType) {
+      setOwnershipModalVisible(true);
+      return;
+    }
+    await handleAdCreation('Individual');
+  };
+
+  const handleAdCreation = async (ownershipType: 'Individual' | 'Company' = 'Individual', selectedCompany: any = null) => {
     if (isLoading) return;
     setIsLoading(true);
     const {
@@ -231,19 +303,41 @@ const CreateBiz = () => {
         longitude: 0
       };
 
-      // --- Currency conversion pattern: convert user-keyed amount to KES before saving ---
       const userCode = nationalityToCode(businessOwnerNationality);
       let transportRateKES = parseFloat(itemPrice);
-      if (userCode) {
-        // Use async convertForeignToKsh from src/utils/exchange
-        const { convertForeignToKsh } = await import('../../../src/utils/exchange');
-        transportRateKES = await convertForeignToKsh(parseFloat(itemPrice), userCode);
+      let transportOwnerAc = account.email;
+      let ownerShipType = 'Individual';
+      let transportOwnerEmail = account.awsemail;
+      let transportName = itemName;
+
+      if (ownershipType === 'Company') {
+        if (!selectedCompany) {
+          Alert.alert('No Company Selected', 'Please select a transport company first.');
+          return;
+        }
+        transportRateKES = Number(selectedCompany.transportRate || 0);
+        transportOwnerAc = selectedCompany.BizAc;
+        ownerShipType = 'Company';
+        transportOwnerEmail = selectedCompany.biznaOwnerEmail || account.awsemail;
+        transportName = selectedCompany.transportName || itemName;
+      } else {
+        if (Number.isNaN(transportRateKES) || transportRateKES <= 0) {
+          Alert.alert('Invalid Rate', 'Please enter a valid transport rate per kilometer.');
+          return;
+        }
+        if (userCode) {
+          // Use async convertForeignToKsh from src/utils/exchange
+          const { convertForeignToKsh } = await import('../../../src/utils/exchange');
+          transportRateKES = await convertForeignToKsh(parseFloat(itemPrice), userCode);
+        }
       }
 
       const adInput = {
         transportkntct: account.phonecontact,
         // Store in KES for backend
         transportRate: transportRateKES,
+        transportOwnerAc,
+        ownerShipType,
         transportdesc: itemDesc,
         transportPhoto: itemPhotoKey,
         owner: account.owner,
@@ -252,12 +346,12 @@ const CreateBiz = () => {
         sellerLatitude: 0,
         sellerLongitude: 0,
         distance: 0,
-        transportName: itemName,
+        transportName,
         transportType: brandName,
         dutyStatus: "TransportOnduty",
         engagementStatus: "TransportNotEngaged",
         transportRequest: "transportRequestNo",
-        transportOwnerEmail: account.awsemail,
+        transportOwnerEmail,
         Earnings: 0,
         UsrAcCommitment: 0,
         ChmAcCommitment: 0,
@@ -310,9 +404,19 @@ const CreateBiz = () => {
   }}>
       <ScrollView contentContainerStyle={styles.container}>
         <Text style={styles.title}>{t.registerTransport}</Text>
-        <InputField label={t.transportBusinessName} value={formData.itemName} onChange={v => updateForm('itemName', v)} />
+        <TouchableOpacity style={styles.ownershipSelector} onPress={openOwnershipSelection} disabled={isLoading || isFetchingCompanies}>
+          <Text style={styles.ownershipSelectorText}>
+            Ownership Type: {selectedOwnershipType || 'Click to choose'}
+          </Text>
+          {selectedOwnershipType === 'Company' && selectedCompany ? (
+            <Text style={styles.ownershipHintText}>Selected: {selectedCompany.transportName || 'TransportBizna'} ({selectedCompany.BizAc})</Text>
+          ) : null}
+        </TouchableOpacity>
+        {selectedOwnershipType !== 'Company' ? (
+          <InputField label={t.transportBusinessName} value={formData.itemName} onChange={v => updateForm('itemName', v)} />
+        ) : null}
         <InputField label={t.meansOfTransport} value={formData.brandName} onChange={v => updateForm('brandName', v)} />
-        {businessOwnerNationality ? (
+        {selectedOwnershipType !== 'Company' ? businessOwnerNationality ? (
           <>
             <InputField label={`${t.costPerKm} (${ratesMap?.[nationalityToCode(businessOwnerNationality)]?.symbol || ratesMap?.[nationality]?.symbol || 'KES'})`} value={formData.itemPrice} onChange={v => updateForm('itemPrice', v)} keyboardType="numeric" />
             {formData.itemPrice ? <Text style={styles.helperText}></Text> : null}
@@ -321,7 +425,7 @@ const CreateBiz = () => {
           <>
             <InputField label={`${t.costPerKm} (${t.loading})`} value={formData.itemPrice} onChange={v => updateForm('itemPrice', v)} keyboardType="numeric" />
           </>
-        )}
+        ) : null}
         <InputField label={t.moreTransportDesc} value={formData.itemDesc} onChange={v => updateForm('itemDesc', v)} multiline height={100} />
         <InputField label={t.transportNumberPlate} value={formData.numberPlate} onChange={v => updateForm('numberPlate', v)} />
         <InputField label={t.imageUrlOptional} value={formData.ImageUrl} onChange={v => updateForm('ImageUrl', v)} />
@@ -345,12 +449,60 @@ const CreateBiz = () => {
             <Ionicons name={isPasswordVisible ? 'eye' : 'eye-off'} size={24} color="gray" />
           </TouchableOpacity>
         </View>
-        <TouchableOpacity style={styles.button} onPress={handleAdCreation}>
-          <Text style={styles.buttonText}>{t.clickToAdd}</Text>
-          {isLoading && <ActivityIndicator color="#fff" style={{
+        <TouchableOpacity style={styles.button} onPress={handleSubmit} disabled={isLoading || isFetchingCompanies}>
+          <Text style={styles.buttonText}>{isFetchingCompanies ? 'Loading companies...' : t.clickToAdd}</Text>
+          {(isLoading || isFetchingCompanies) && <ActivityIndicator color="#fff" style={{
           marginTop: 10
         }} />}
         </TouchableOpacity>
+
+        <Modal visible={ownershipModalVisible} animationType="fade" transparent>
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalCard}>
+              <Text style={styles.modalTitle}>Select Transport Ownership</Text>
+              <Text style={styles.modalSubtitle}>Choose how this transport should be registered.</Text>
+
+              <TouchableOpacity style={styles.modalOption} onPress={() => handleOwnershipSelected('Individual')}>
+                <Text style={styles.modalOptionText}>Individual Transport</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.modalOption} onPress={() => handleOwnershipSelected('Company')}>
+                <Text style={styles.modalOptionText}>Company Transport</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity style={styles.modalCancel} onPress={() => setOwnershipModalVisible(false)}>
+                <Text style={styles.modalCancelText}>Cancel</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
+
+        <Modal visible={companyModalVisible} animationType="fade" transparent onRequestClose={() => {}}>
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalCard}>
+              <Text style={styles.modalTitle}>Select Transport Company</Text>
+              <Text style={styles.modalSubtitle}>Pick one of your TransportBizna accounts to continue.</Text>
+
+              <ScrollView style={{ maxHeight: 260, width: '100%' }}>
+                {companyOptions.map((company) => (
+                  <TouchableOpacity
+                    key={company.BizAc}
+                    style={styles.modalOption}
+                    onPress={() => handleCompanySelected(company)}
+                  >
+                    <Text style={styles.modalOptionText}>{company.transportName || 'TransportBizna'} ({company.BizAc})</Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+          </View>
+        </Modal>
+
+        {isFetchingCompanies ? (
+          <View style={styles.blockingOverlay}>
+            <ActivityIndicator size="large" color="#fff" />
+            <Text style={styles.blockingOverlayText}>Loading transport companies...</Text>
+          </View>
+        ) : null}
       </ScrollView>
     </LinearGradient>;
 };
@@ -429,6 +581,88 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 13,
     marginTop: 6
+  },
+  ownershipSelector: {
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.35)',
+  },
+  ownershipSelectorText: {
+    color: '#fff',
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  ownershipHintText: {
+    color: '#f2f2f2',
+    fontSize: 12,
+    marginTop: 6,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 20,
+  },
+  modalCard: {
+    width: '100%',
+    maxWidth: 420,
+    borderRadius: 12,
+    backgroundColor: '#fff',
+    padding: 16,
+    alignItems: 'center',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#1b1b1b',
+    marginBottom: 6,
+  },
+  modalSubtitle: {
+    fontSize: 13,
+    color: '#4a4a4a',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  modalOption: {
+    width: '100%',
+    borderRadius: 10,
+    backgroundColor: '#f5f5f5',
+    paddingVertical: 12,
+    paddingHorizontal: 10,
+    marginBottom: 8,
+  },
+  modalOptionText: {
+    color: '#1b1b1b',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  modalCancel: {
+    marginTop: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 10,
+    backgroundColor: '#efefef',
+  },
+  modalCancelText: {
+    color: '#333',
+    fontWeight: '700',
+  },
+  blockingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 999,
+  },
+  blockingOverlayText: {
+    color: '#fff',
+    marginTop: 12,
+    fontSize: 15,
+    fontWeight: '700',
   }
 });
 export default CreateBiz;

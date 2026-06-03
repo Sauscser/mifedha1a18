@@ -32,7 +32,7 @@ export default function RideRequestMapScreen({
   // i18n translation pattern (as in RequestTransport)
   const { i18n } = useTranslation();
   const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
-  const t = translations[lang] || translations.en;
+  const t = { ...translations.en, ...(translations[lang] || {}) };
   // Collapsible filter panel state
   const [filterPanelCollapsed, setFilterPanelCollapsed] = useState(false);
   const [pendingCheckDone, setPendingCheckDone] = useState(false);
@@ -546,7 +546,7 @@ export default function RideRequestMapScreen({
     const est = formatAmountSync(Math.round(rider._estimatedCost || 0), natCode, ratesMap);
     Alert.alert(
       t.confirmRideTitle,
-      t.confirmRideBody(rider.transportName || 'Rider', est, (rider._tripDistanceKm || 0).toFixed(2)),
+      t.confirmRideBody(rider.transportName || t.rider, est, (rider._tripDistanceKm || 0).toFixed(2)),
       [
         {
           text: t.cancel,
@@ -667,6 +667,8 @@ export default function RideRequestMapScreen({
         riderName: selectedRider.transportName || selectedRider.transportName,
         riderContact: selectedRider.transportkntct || selectedRider.transportkntct,
         riderRate: selectedRider.transportRate || selectedRider.transportRate || 0,
+        ownerShipType: selectedRider.ownerShipType,
+        transportOwnerAc: selectedRider.transportOwnerAc,
         paymentMethod,
         paymentStatus: 'NotCleared',
         rideStatus: 'transportRequestYes',
@@ -681,7 +683,7 @@ export default function RideRequestMapScreen({
       });
       const ride = rideRes?.data?.createRideRequest;
       if (ride) {
-        Alert.alert(t.rideRequestedTitle, t.rideRequestedBody(rider.transportName || 'Rider'));
+        Alert.alert(t.rideRequestedTitle, t.rideRequestedBody(rider.transportName || t.rider));
         // 🔔 Trigger backend Lambda to send push notification
         const riderEmail = rider.transportOwnerEmail;
         if (!riderEmail) {
@@ -689,8 +691,8 @@ export default function RideRequestMapScreen({
         } else {
           // Format estimated cost in user's currency for notification
           const formattedCost = formatAmountSync(ride.estimatedCost, natCode, ratesMap);
-          const notifTitle = "NiSenti: New Ride Request";
-          const notifBody = `Passenger ${ride.passengerName} requested a ride. Estimated cost: ${formattedCost}`;
+          const notifTitle = t.notifNewRideTitle;
+          const notifBody = t.notifNewRideBody(ride.passengerName, formattedCost);
           try {
             // Send notification
             await client.graphql({
@@ -743,7 +745,7 @@ export default function RideRequestMapScreen({
   if (!pendingCheckDone || !userLocation) {
     return <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" />
-        <Text>Loading…</Text>
+        <Text>{t.loading}</Text>
       </View>;
   }
 

@@ -38,6 +38,7 @@ export const translations = {
     transportRequest: "Request:",
     refresh: "Refresh",
     mustBeNearSeller: "You must be within 50 meters of the seller to accept this delivery.",
+    companyBizFundCannotCover: "Company bizFund cannot cover this order security amount.",
     offLoad: "Off Load",
     offLoadSuccess: "Off load successful!",
     offLoadError: "Failed to off load.",
@@ -82,7 +83,8 @@ export const translations = {
     engagementStatus: "الحالة:",
     transportRequest: "الطلب:",
     refresh: "تحديث",
-    mustBeNearSeller: "يجب أن تكون على بعد 50 مترًا أو أقل من البائع لقبول هذه التوصيلة."
+    mustBeNearSeller: "يجب أن تكون على بعد 50 مترًا أو أقل من البائع لقبول هذه التوصيلة.",
+    companyBizFundCannotCover: "لا يمكن لـ bizFund الخاص بالشركة تغطية مبلغ تأمين هذا الطلب."
   },
   zh: {
         offLoad: "卸载",
@@ -123,7 +125,8 @@ export const translations = {
     engagementStatus: "状态：",
     transportRequest: "请求：",
     refresh: "刷新",
-    mustBeNearSeller: "您必须在距离卖家50米以内才能接受此配送。"
+    mustBeNearSeller: "您必须在距离卖家50米以内才能接受此配送。",
+    companyBizFundCannotCover: "公司 bizFund 无法覆盖该订单的担保金额。"
   },
   ru: {
         offLoad: "Разгрузить",
@@ -164,7 +167,8 @@ export const translations = {
     engagementStatus: "Статус:",
     transportRequest: "Запрос:",
     refresh: "Обновить",
-    mustBeNearSeller: "Вы должны находиться в пределах 50 метров от продавца, чтобы принять эту доставку."
+    mustBeNearSeller: "Вы должны находиться в пределах 50 метров от продавца, чтобы принять эту доставку.",
+    companyBizFundCannotCover: "Средств bizFund компании недостаточно для обеспечения этого заказа."
   },
   sw: {
         offLoad: "Ondoa Mizigo",
@@ -205,7 +209,8 @@ export const translations = {
     engagementStatus: "Hali:",
     transportRequest: "Ombi:",
     refresh: "Sasisha",
-    mustBeNearSeller: "Lazima uwe ndani ya mita 50 kutoka kwa muuzaji ili ukubali uwasilishaji huu."
+    mustBeNearSeller: "Lazima uwe ndani ya mita 50 kutoka kwa muuzaji ili ukubali uwasilishaji huu.",
+    companyBizFundCannotCover: "bizFund ya kampuni haiwezi kufidia kiasi cha dhamana ya oda hii."
   },
   fr: {
         offLoad: "Décharger",
@@ -246,7 +251,8 @@ export const translations = {
     engagementStatus: "Statut :",
     transportRequest: "Demande :",
     refresh: "Actualiser",
-    mustBeNearSeller: "Vous devez être à moins de 50 mètres du vendeur pour accepter cette livraison."
+    mustBeNearSeller: "Vous devez être à moins de 50 mètres du vendeur pour accepter cette livraison.",
+    companyBizFundCannotCover: "Le bizFund de l'entreprise ne peut pas couvrir le montant de garantie de cette commande."
   },
   es: {
       offLoad: "Descargar",
@@ -287,7 +293,8 @@ export const translations = {
     engagementStatus: "Estado:",
     transportRequest: "Solicitud:",
     refresh: "Actualizar",
-    mustBeNearSeller: "Debes estar a menos de 50 metros del vendedor para aceptar esta entrega."
+    mustBeNearSeller: "Debes estar a menos de 50 metros del vendedor para aceptar esta entrega.",
+    companyBizFundCannotCover: "El bizFund de la empresa no puede cubrir el monto de garantía de este pedido."
   },
   de: {
       offLoad: "Entladen",
@@ -328,7 +335,8 @@ export const translations = {
     engagementStatus: "Status:",
     transportRequest: "Anfrage:",
     refresh: "Aktualisieren",
-    mustBeNearSeller: "Sie müssen sich innerhalb von 50 Metern vom Verkäufer befinden, um diese Lieferung anzunehmen."
+    mustBeNearSeller: "Sie müssen sich innerhalb von 50 Metern vom Verkäufer befinden, um diese Lieferung anzunehmen.",
+    companyBizFundCannotCover: "Der bizFund des Unternehmens kann den Sicherungsbetrag für diesen Auftrag nicht abdecken."
   },
   pt: {
       offLoad: "Descarregar",
@@ -369,7 +377,8 @@ export const translations = {
     engagementStatus: "Status:",
     transportRequest: "Solicitação:",
     refresh: "Atualizar",
-    mustBeNearSeller: "Você deve estar a menos de 50 metros do vendedor para aceitar esta entrega."
+    mustBeNearSeller: "Você deve estar a menos de 50 metros do vendedor para aceitar esta entrega.",
+    companyBizFundCannotCover: "O bizFund da empresa não pode cobrir o valor de garantia deste pedido."
   },
   it: {
       offLoad: "Scarica",
@@ -410,7 +419,8 @@ export const translations = {
     engagementStatus: "Stato:",
     transportRequest: "Richiesta:",
     refresh: "Aggiorna",
-    mustBeNearSeller: "Devi essere entro 50 metri dal venditore per accettare questa consegna."
+    mustBeNearSeller: "Devi essere entro 50 metri dal venditore per accettare questa consegna.",
+    companyBizFundCannotCover: "Il bizFund dell'azienda non può coprire l'importo di garanzia di questo ordine."
   },
   he: {
       offLoad: "פרוק",
@@ -451,7 +461,8 @@ export const translations = {
     engagementStatus: "סטטוס:",
     transportRequest: "בקשה:",
     refresh: "רענן",
-    mustBeNearSeller: "עליך להיות בטווח של 50 מטר מהמוכר כדי לקבל משלוח זה."
+    mustBeNearSeller: "עליך להיות בטווח של 50 מטר מהמוכר כדי לקבל משלוח זה.",
+    companyBizFundCannotCover: "ה-bizFund של החברה לא יכול לכסות את סכום הבטוחה להזמנה זו."
   },
   hi: {
       offLoad: "माल उतारें",
@@ -492,7 +503,8 @@ export const translations = {
     engagementStatus: "स्थिति:",
     transportRequest: "अनुरोध:",
     refresh: "रीफ्रेश करें",
-    mustBeNearSeller: "इस डिलीवरी को स्वीकार करने के लिए आपको विक्रेता से 50 मीटर के भीतर होना चाहिए।"
+    mustBeNearSeller: "इस डिलीवरी को स्वीकार करने के लिए आपको विक्रेता से 50 मीटर के भीतर होना चाहिए।",
+    companyBizFundCannotCover: "कंपनी का bizFund इस ऑर्डर की सुरक्षा राशि को कवर नहीं कर सकता।"
   },
   am: {
       offLoad: "አስወርድ",
@@ -533,6 +545,7 @@ export const translations = {
     engagementStatus: "ሁኔታ:",
     transportRequest: "ጥያቄ:",
     refresh: "ዳግም አድስ",
-    mustBeNearSeller: "ይህን መላኪያ ለመቀበል ከሻጭ 50 ሜትር ውስጥ መሆን አለብዎት።"
+    mustBeNearSeller: "ይህን መላኪያ ለመቀበል ከሻጭ 50 ሜትር ውስጥ መሆን አለብዎት።",
+    companyBizFundCannotCover: "የኩባንያው bizFund የዚህን ትዕዛዝ የዋስትና መጠን ማሸፈን አይችልም።"
   },
 };

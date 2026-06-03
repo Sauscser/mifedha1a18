@@ -153,6 +153,9 @@ ViewMinutes: {
       PayCash3:undefined;
       ShareCredSlsRev2Grp:undefined;
       RegisterTransport:undefined;
+      RegisterTransportBizna:undefined;
+      ViewTransportBiznaAccount:undefined;
+      MakeTransportBizDpsts:undefined;
       VwSalesDtls4Transport:undefined;
       RequestTransport:{
         id: string;

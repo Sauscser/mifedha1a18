@@ -893,11 +893,65 @@ export const listSokoAds = /* GraphQL */ `
     }
   }
 `;
+export const getTransportBizna = /* GraphQL */ `
+  query GetTransportBizna($BizAc: String!) {
+    getTransportBizna(BizAc: $BizAc) {
+      BizAc
+      transportRate
+      transportdesc
+      owner
+      createdAt
+      shareRates
+      transportName
+      biznaOwnerEmail
+      Earnings
+      bizFund
+      updatedAt
+      __typename
+    }
+  }
+`;
+export const listTransportBiznas = /* GraphQL */ `
+  query ListTransportBiznas(
+    $BizAc: String
+    $filter: ModelTransportBiznaFilterInput
+    $limit: Int
+    $nextToken: String
+    $sortDirection: ModelSortDirection
+  ) {
+    listTransportBiznas(
+      BizAc: $BizAc
+      filter: $filter
+      limit: $limit
+      nextToken: $nextToken
+      sortDirection: $sortDirection
+    ) {
+      items {
+        BizAc
+        transportRate
+        transportdesc
+        owner
+        createdAt
+        shareRates
+        transportName
+        biznaOwnerEmail
+        Earnings
+        bizFund
+        updatedAt
+        __typename
+      }
+      nextToken
+      __typename
+    }
+  }
+`;
 export const getTransportRegister = /* GraphQL */ `
   query GetTransportRegister($id: ID!) {
     getTransportRegister(id: $id) {
       id
       transportkntct
+      ownerShipType
+      transportOwnerAc
       transportRate
       transportdesc
       transportPhoto
@@ -957,6 +1011,8 @@ export const listTransportRegisters = /* GraphQL */ `
       items {
         id
         transportkntct
+        ownerShipType
+        transportOwnerAc
         transportRate
         transportdesc
         transportPhoto
@@ -1010,6 +1066,8 @@ export const getTransportOrder = /* GraphQL */ `
     getTransportOrder(id: $id) {
       id
       transportkntct
+      ownerShipType
+      transportOwnerAc
       purchaseType
       buyerOfficerEmail
       transportRate
@@ -1073,6 +1131,8 @@ export const listTransportOrders = /* GraphQL */ `
       items {
         id
         transportkntct
+        ownerShipType
+        transportOwnerAc
         purchaseType
         buyerOfficerEmail
         transportRate
@@ -3001,6 +3061,7 @@ export const getGroup = /* GraphQL */ `
   query GetGroup($grpContact: String!) {
     getGroup(grpContact: $grpContact) {
       grpContact
+      transportShareRates
       regNo
       signitoryContact
       SignitoryNatid
@@ -3107,6 +3168,7 @@ export const listGroups = /* GraphQL */ `
     ) {
       items {
         grpContact
+        transportShareRates
         regNo
         signitoryContact
         SignitoryNatid
@@ -4095,6 +4157,8 @@ export const getRideRequest = /* GraphQL */ `
   query GetRideRequest($id: ID!) {
     getRideRequest(id: $id) {
       id
+      ownerShipType
+      transportOwnerAc
       passengerEmail
       passengerName
       passengerContact
@@ -4131,6 +4195,8 @@ export const listRideRequests = /* GraphQL */ `
     listRideRequests(filter: $filter, limit: $limit, nextToken: $nextToken) {
       items {
         id
+        ownerShipType
+        transportOwnerAc
         passengerEmail
         passengerName
         passengerContact
@@ -5427,6 +5493,42 @@ export const DakaByName = /* GraphQL */ `
     }
   }
 `;
+export const transportByName = /* GraphQL */ `
+  query TransportByName(
+    $transportName: String!
+    $createdAt: ModelStringKeyConditionInput
+    $sortDirection: ModelSortDirection
+    $filter: ModelTransportBiznaFilterInput
+    $limit: Int
+    $nextToken: String
+  ) {
+    transportByName(
+      transportName: $transportName
+      createdAt: $createdAt
+      sortDirection: $sortDirection
+      filter: $filter
+      limit: $limit
+      nextToken: $nextToken
+    ) {
+      items {
+        BizAc
+        transportRate
+        transportdesc
+        owner
+        createdAt
+        shareRates
+        transportName
+        biznaOwnerEmail
+        Earnings
+        bizFund
+        updatedAt
+        __typename
+      }
+      nextToken
+      __typename
+    }
+  }
+`;
 export const Daka2ByName = /* GraphQL */ `
   query Daka2ByName(
     $transportName: String!
@@ -5447,6 +5549,8 @@ export const Daka2ByName = /* GraphQL */ `
       items {
         id
         transportkntct
+        ownerShipType
+        transportOwnerAc
         transportRate
         transportdesc
         transportPhoto
@@ -5515,6 +5619,8 @@ export const BytransprtOwnrEmail = /* GraphQL */ `
       items {
         id
         transportkntct
+        ownerShipType
+        transportOwnerAc
         purchaseType
         buyerOfficerEmail
         transportRate
@@ -5591,6 +5697,8 @@ export const ByBuyerEmail = /* GraphQL */ `
       items {
         id
         transportkntct
+        ownerShipType
+        transportOwnerAc
         purchaseType
         buyerOfficerEmail
         transportRate
@@ -5667,6 +5775,8 @@ export const BySellerAccount = /* GraphQL */ `
       items {
         id
         transportkntct
+        ownerShipType
+        transportOwnerAc
         purchaseType
         buyerOfficerEmail
         transportRate
@@ -6484,6 +6594,7 @@ export const VwNatIdentitysz = /* GraphQL */ `
     ) {
       items {
         grpContact
+        transportShareRates
         regNo
         signitoryContact
         SignitoryNatid
@@ -6595,6 +6706,7 @@ export const ViaChmArea = /* GraphQL */ `
     ) {
       items {
         grpContact
+        transportShareRates
         regNo
         signitoryContact
         SignitoryNatid
@@ -6706,6 +6818,7 @@ export const ViaChmVenture = /* GraphQL */ `
     ) {
       items {
         grpContact
+        transportShareRates
         regNo
         signitoryContact
         SignitoryNatid
@@ -7618,6 +7731,8 @@ export const rideRequestsByPassenger = /* GraphQL */ `
     ) {
       items {
         id
+        ownerShipType
+        transportOwnerAc
         passengerEmail
         passengerName
         passengerContact
@@ -7665,6 +7780,8 @@ export const rideRequestsByRider = /* GraphQL */ `
     ) {
       items {
         id
+        ownerShipType
+        transportOwnerAc
         passengerEmail
         passengerName
         passengerContact

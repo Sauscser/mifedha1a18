@@ -66,6 +66,7 @@ import {
   getGroup,
   getCompany,
   getTransportRegister,
+  getTransportBizna,
 } from "../../../src/graphql/queries";
 import {
   updateTransportOrder,
@@ -74,6 +75,7 @@ import {
   updateCompany,
   createNonLoans,
   updateTransportRegister,
+  updateTransportBizna,
   updateBizna,
   createBenefitContributions2,
   sendNotification,
@@ -464,28 +466,34 @@ const TransportOrdersScreen = () => {
 
       const orderDtl: any = await client.graphql({ query: getTransportOrder, variables: { id } });
       const orderDtlz = orderDtl.data.getTransportOrder;
+      const orderCost = parseFloat(orderDtlz.orderCost || 0);
+      const isCompanyOwned = orderDtlz?.ownerShipType === "Company" && !!orderDtlz?.transportOwnerAc;
+      let companyTransportBizna: any = null;
+      let companyBizFundAfterRefund = 0;
+
+      let currentGrpBal = 0;
+      let transportShareRates = 0;
 
       // --- REFUND LOGIC ---
-      if (orderDtlz.chmAcCommitmentStatus === "TransportChmCommitmentYes") {
-        // Refund group (chama)
-        // Fetch group to get current balance
+      if (isCompanyOwned) {
+        const companyBiznaRes: any = await client.graphql({
+          query: getTransportBizna,
+          variables: { BizAc: orderDtlz.transportOwnerAc },
+        });
+        companyTransportBizna = companyBiznaRes?.data?.getTransportBizna || null;
+        if (!companyTransportBizna) {
+          throw new Error("Company TransportBizna account not found for refund.");
+        }
+        companyBizFundAfterRefund = parseFloat(companyTransportBizna.bizFund || 0) + orderCost;
+      } else if (orderDtlz.chmAcCommitmentStatus === "TransportChmCommitmentYes") {
+        // Fetch group values now; final group update happens after earnings are computed.
         const groupRes = await client.graphql({
           query: getGroup,
           variables: { grpContact: orderDtlz.chmAcNumber },
         });
         const group = 'data' in groupRes ? groupRes.data.getGroup : null;
-        const currentGrpBal = group && group.grpBal ? parseFloat(group.grpBal) : 0;
-
-
-        await client.graphql({
-          query: updateGroup,
-          variables: {
-            input: {
-              grpContact: orderDtlz.chmAcNumber,
-              grpBal: currentGrpBal + parseFloat(orderDtlz.orderCost),
-            },
-          },
-        });
+        currentGrpBal = group && group.grpBal ? parseFloat(group.grpBal) : 0;
+        transportShareRates = group && group.transportShareRates ? parseFloat(group.transportShareRates) : 0;
       } else if (orderDtlz.chmAcCommitmentStatus === "TransportChmCommitmentNo") {
         // Refund transporter SMAccount
         const smAccountRes = await client.graphql({
@@ -499,7 +507,7 @@ const TransportOrdersScreen = () => {
             variables: {
               input: {
                 awsemail: orderDtlz.transportOwnerEmail,
-                balance: parseFloat(smAccount.balance) + parseFloat(orderDtlz.orderCost),
+                balance: parseFloat(smAccount.balance) + orderCost,
               },
             },
           });
@@ -523,6 +531,47 @@ const TransportOrdersScreen = () => {
       const compEarningShare = compDtls.transportCompanyShare;
       const CompEarning = compEarningShare * parseFloat(orderDtlz.deliveryCost);
       const TransporterEarning = parseFloat(orderDtlz.deliveryCost) - CompEarning;
+      let transporterNetEarning = TransporterEarning;
+      let transportRegisterEarning = TransporterEarning;
+
+      if (isCompanyOwned) {
+        const shareRate = Math.max(0, Math.min(100, parseFloat(companyTransportBizna?.shareRates || 0)));
+        const transportRegisterShare = (shareRate / 100) * TransporterEarning;
+        const transportBiznaShare = TransporterEarning - transportRegisterShare;
+
+        transportRegisterEarning = transportRegisterShare;
+        transporterNetEarning = transportRegisterShare;
+
+        await client.graphql({
+          query: updateTransportBizna,
+          variables: {
+            input: {
+              BizAc: companyTransportBizna.BizAc,
+              bizFund: companyBizFundAfterRefund,
+              Earnings: parseFloat(companyTransportBizna.Earnings ) + transportBiznaShare,
+            },
+          },
+        });
+      } else if (orderDtlz.chmAcCommitmentStatus === "TransportChmCommitmentYes") {
+        const clampedRate = Math.max(0, Math.min(100, transportShareRates));
+        const groupTransportShare = (clampedRate / 100) * TransporterEarning;
+        transporterNetEarning = TransporterEarning - groupTransportShare;
+        transportRegisterEarning = transporterNetEarning;
+
+        await client.graphql({
+          query: updateGroup,
+          variables: {
+            input: {
+              grpContact: orderDtlz.chmAcNumber,
+              // Keep existing refund (orderCost) and add group's share of TransporterEarning.
+              grpBal: currentGrpBal + orderCost + groupTransportShare,
+            },
+          },
+        });
+      } else {
+        transportRegisterEarning = TransporterEarning;
+      }
+      
 
       const fee = parseFloat(orderDtlz.orderCost) * parseFloat(compDtls.biznaCashSaleFee);
       const benefit = fee * parseFloat(compDtls.p2BBenCom) * 0.01;
@@ -628,7 +677,7 @@ const TransportOrdersScreen = () => {
                                      RecName: orderDtlz.transportName,
                                      description: `Payment for delivery of ${orderDtlz.deliveryDesc} to ${orderDtlz.buyerName}.`,
                                      SenderName: orderDtlz.buyerName,
-                                     amount: parseFloat(orderDtlz.deliveryCost) - CompEarning,
+                                     amount: transporterNetEarning,
                                      status: "DeliveryPayment",
                                      owner: user.userId,
                                  }}})
@@ -638,7 +687,7 @@ const TransportOrdersScreen = () => {
         variables: {
           input: {
             id: orderDtlz.bizAc,
-            Earnings: TransporterEarning + parseFloat(transportDtlz.Earnings),
+            Earnings: transportRegisterEarning + parseFloat(transportDtlz.Earnings),
           },
         },
       });

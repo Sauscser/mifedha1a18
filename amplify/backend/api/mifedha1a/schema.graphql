@@ -969,6 +969,32 @@ type SokoAd
 
 }
 
+type TransportBizna
+  @model
+  @auth(
+    rules: [
+      { allow: owner, operations: [read, update, delete] }
+      { allow: private, operations: [read, create, update] }
+      { allow: groups, groups: ["BranchAdminTwo"], operations: [read, update] }
+      { allow: groups, groups: ["Executive"], operations: [read, create, update, delete] }
+    ]
+  )
+{
+  BizAc: String! @primaryKey
+  transportRate: Float!
+  transportdesc: String!
+  owner: String!
+  createdAt: String!
+  shareRates: String!
+  transportName: String! 
+    @index(name: "transportName", sortKeyFields: ["createdAt"], queryField: "transportByName")
+  
+  biznaOwnerEmail: String!
+  Earnings: Float!
+  bizFund: Float!
+  
+}
+
 type TransportRegister
   @model
   @auth(
@@ -982,6 +1008,8 @@ type TransportRegister
 {
   id: ID!
   transportkntct: String!
+  ownerShipType: String!
+  transportOwnerAc: String!
   transportRate: Float!
   transportdesc: String!
   transportPhoto: String
@@ -1051,6 +1079,8 @@ type TransportOrder
  
   id:ID! 
   transportkntct: String!  
+  ownerShipType: String!
+  transportOwnerAc: String!
   purchaseType: String
   buyerOfficerEmail: String
   transportRate: Float! 
@@ -2586,6 +2616,8 @@ type Group
  
   {
   grpContact: String! @primaryKey
+  transportShareRates: Float
+
   regNo:String!
   signitoryContact: String!
   SignitoryNatid: String! @index(name: "byNatIdentitysz", sortKeyFields: ["createdAt"], queryField: "VwNatIdentitysz")
@@ -2596,6 +2628,7 @@ type Group
   venture: String! @index(name: "byChmVenture", sortKeyFields: ["createdAt"], queryField: "ViaChmVenture")
   signatory2Email: String!
   signitory2Sub: String!
+
   WithdrawCnfrmtn: String!
    Signatory3Email:String!
    WithdrawCnfrmtnAmt: Float!
@@ -2744,6 +2777,7 @@ type ChamaMembers
   subscriptionAmt: Float!
   lateSubscriptionPenalty:Float!
   transportApproved: Status
+  
 }
 
 type ChamasNPwnBrkrs
@@ -3412,6 +3446,8 @@ type RideRequest
   )
 {
   id: ID!
+  ownerShipType: String!
+  transportOwnerAc: String!
   passengerEmail: String! @index(name: "byPassengerEmail", queryField: "rideRequestsByPassenger")
   passengerName: String!
   passengerContact: String

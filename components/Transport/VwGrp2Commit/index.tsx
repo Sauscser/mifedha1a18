@@ -1,6 +1,6 @@
 import { useNavigation } from '@react-navigation/core';
 import React, { useState } from 'react';
-import { View, Text, Pressable, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, Pressable, TouchableOpacity, ActivityIndicator, Alert, Modal, TextInput } from 'react-native';
 
 import styles from './styles';
 import { generateClient } from 'aws-amplify/api';
@@ -70,9 +70,36 @@ const ChmMbrShpInfo = (props: ChamaMmbrshpInfo) => {
   } = props;
 
   const [isLoading, setIsLoading] = useState(false);
+  const [shareRateModalVisible, setShareRateModalVisible] = useState(false);
+  const [transportShareRateInput, setTransportShareRateInput] = useState('20');
+  const [isApplyingShareRate, setIsApplyingShareRate] = useState(false);
   const route = useRoute<RouteProp<Record<string, VwGrp2CommitRouteParams>, string>>();
 
-  const handleAcceptDelivery = async () => {
+  const openShareRateModal = () => {
+    setTransportShareRateInput('20');
+    setShareRateModalVisible(true);
+  };
+
+  const closeShareRateModal = () => {
+    if (isApplyingShareRate) return;
+    setShareRateModalVisible(false);
+  };
+
+  const validateShareRate = () => {
+    const trimmedValue = transportShareRateInput.trim();
+    const parsedRate = Number(trimmedValue);
+    if (!trimmedValue || Number.isNaN(parsedRate)) {
+      Alert.alert('Invalid Rate', 'Please enter a transport share rate between 1 and 100.');
+      return null;
+    }
+    if (parsedRate < 1 || parsedRate > 100) {
+      Alert.alert('Invalid Rate', 'Transport share rate must be between 1 and 100.');
+      return null;
+    }
+    return parsedRate;
+  };
+
+  const handleAcceptDelivery = async (transportShareRate: number) => {
     setIsLoading(true);
     try {
       const user = await getCurrentUser();
@@ -124,6 +151,7 @@ const ChmMbrShpInfo = (props: ChamaMmbrshpInfo) => {
           variables: {
             input: {
               grpContact: groupContact,
+              transportShareRates: transportShareRate,
               grpBal: parseFloat(userDtlsz.grpBal) - parseFloat(orderDtlz.orderCost),
             },
           },
@@ -179,6 +207,19 @@ const ChmMbrShpInfo = (props: ChamaMmbrshpInfo) => {
     }
   };
 
+  const handleConfirmShareRate = async () => {
+    const parsedRate = validateShareRate();
+    if (parsedRate === null) return;
+
+    setIsApplyingShareRate(true);
+    try {
+      setShareRateModalVisible(false);
+      await handleAcceptDelivery(parsedRate);
+    } finally {
+      setIsApplyingShareRate(false);
+    }
+  };
+
   return (
     <View style={styles.pageContainer}>
       <Pressable style={styles.card}>
@@ -190,7 +231,7 @@ const ChmMbrShpInfo = (props: ChamaMmbrshpInfo) => {
 
       <View style={styles.buttonRow}>
         <TouchableOpacity
-          onPress={handleAcceptDelivery}
+          onPress={openShareRateModal}
           style={[
             styles.loanFriendButton,
             {
@@ -208,6 +249,44 @@ const ChmMbrShpInfo = (props: ChamaMmbrshpInfo) => {
             {isLoading ? "Processing..." : "Accept Transport Request"}
           </Text>
         </TouchableOpacity>
+
+        <Modal
+          visible={shareRateModalVisible}
+          animationType="fade"
+          transparent={true}
+          onRequestClose={closeShareRateModal}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalCard}>
+              <Text style={styles.modalTitle}>Set Group Transport Share Rate</Text>
+              <Text style={styles.modalSubtitle}>{groupName} Self Help Group</Text>
+              <TextInput
+                value={transportShareRateInput}
+                onChangeText={setTransportShareRateInput}
+                keyboardType="number-pad"
+                style={styles.modalInput}
+                placeholder="Enter rate 1-100"
+                placeholderTextColor="#444"
+                maxLength={3}
+              />
+              <Text style={styles.modalHint}>Allowed range: 1 to 100</Text>
+              <View style={styles.modalActions}>
+                <TouchableOpacity onPress={closeShareRateModal} style={styles.modalCancelButton}>
+                  <Text style={styles.modalCancelText}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={handleConfirmShareRate}
+                  style={[styles.modalConfirmButton, isApplyingShareRate ? { opacity: 0.7 } : null]}
+                  disabled={isApplyingShareRate}
+                >
+                  <Text style={styles.modalConfirmText}>
+                    {isApplyingShareRate ? 'Processing...' : 'Continue'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
       </View>
     </View>
   );

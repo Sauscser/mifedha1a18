@@ -1268,6 +1268,69 @@ export const deleteSokoAd = /* GraphQL */ `
     }
   }
 `;
+export const createTransportBizna = /* GraphQL */ `
+  mutation CreateTransportBizna(
+    $input: CreateTransportBiznaInput!
+    $condition: ModelTransportBiznaConditionInput
+  ) {
+    createTransportBizna(input: $input, condition: $condition) {
+      BizAc
+      transportRate
+      transportdesc
+      owner
+      createdAt
+      shareRates
+      transportName
+      biznaOwnerEmail
+      Earnings
+      bizFund
+      updatedAt
+      __typename
+    }
+  }
+`;
+export const updateTransportBizna = /* GraphQL */ `
+  mutation UpdateTransportBizna(
+    $input: UpdateTransportBiznaInput!
+    $condition: ModelTransportBiznaConditionInput
+  ) {
+    updateTransportBizna(input: $input, condition: $condition) {
+      BizAc
+      transportRate
+      transportdesc
+      owner
+      createdAt
+      shareRates
+      transportName
+      biznaOwnerEmail
+      Earnings
+      bizFund
+      updatedAt
+      __typename
+    }
+  }
+`;
+export const deleteTransportBizna = /* GraphQL */ `
+  mutation DeleteTransportBizna(
+    $input: DeleteTransportBiznaInput!
+    $condition: ModelTransportBiznaConditionInput
+  ) {
+    deleteTransportBizna(input: $input, condition: $condition) {
+      BizAc
+      transportRate
+      transportdesc
+      owner
+      createdAt
+      shareRates
+      transportName
+      biznaOwnerEmail
+      Earnings
+      bizFund
+      updatedAt
+      __typename
+    }
+  }
+`;
 export const createTransportRegister = /* GraphQL */ `
   mutation CreateTransportRegister(
     $input: CreateTransportRegisterInput!
@@ -1276,6 +1339,8 @@ export const createTransportRegister = /* GraphQL */ `
     createTransportRegister(input: $input, condition: $condition) {
       id
       transportkntct
+      ownerShipType
+      transportOwnerAc
       transportRate
       transportdesc
       transportPhoto
@@ -1329,6 +1394,8 @@ export const updateTransportRegister = /* GraphQL */ `
     updateTransportRegister(input: $input, condition: $condition) {
       id
       transportkntct
+      ownerShipType
+      transportOwnerAc
       transportRate
       transportdesc
       transportPhoto
@@ -1382,6 +1449,8 @@ export const deleteTransportRegister = /* GraphQL */ `
     deleteTransportRegister(input: $input, condition: $condition) {
       id
       transportkntct
+      ownerShipType
+      transportOwnerAc
       transportRate
       transportdesc
       transportPhoto
@@ -1435,6 +1504,8 @@ export const createTransportOrder = /* GraphQL */ `
     createTransportOrder(input: $input, condition: $condition) {
       id
       transportkntct
+      ownerShipType
+      transportOwnerAc
       purchaseType
       buyerOfficerEmail
       transportRate
@@ -1496,6 +1567,8 @@ export const updateTransportOrder = /* GraphQL */ `
     updateTransportOrder(input: $input, condition: $condition) {
       id
       transportkntct
+      ownerShipType
+      transportOwnerAc
       purchaseType
       buyerOfficerEmail
       transportRate
@@ -1557,6 +1630,8 @@ export const deleteTransportOrder = /* GraphQL */ `
     deleteTransportOrder(input: $input, condition: $condition) {
       id
       transportkntct
+      ownerShipType
+      transportOwnerAc
       purchaseType
       buyerOfficerEmail
       transportRate
@@ -4176,6 +4251,7 @@ export const createGroup = /* GraphQL */ `
   ) {
     createGroup(input: $input, condition: $condition) {
       grpContact
+      transportShareRates
       regNo
       signitoryContact
       SignitoryNatid
@@ -4272,6 +4348,7 @@ export const updateGroup = /* GraphQL */ `
   ) {
     updateGroup(input: $input, condition: $condition) {
       grpContact
+      transportShareRates
       regNo
       signitoryContact
       SignitoryNatid
@@ -4368,6 +4445,7 @@ export const deleteGroup = /* GraphQL */ `
   ) {
     deleteGroup(input: $input, condition: $condition) {
       grpContact
+      transportShareRates
       regNo
       signitoryContact
       SignitoryNatid
@@ -5706,6 +5784,8 @@ export const createRideRequest = /* GraphQL */ `
   ) {
     createRideRequest(input: $input, condition: $condition) {
       id
+      ownerShipType
+      transportOwnerAc
       passengerEmail
       passengerName
       passengerContact
@@ -5740,6 +5820,8 @@ export const updateRideRequest = /* GraphQL */ `
   ) {
     updateRideRequest(input: $input, condition: $condition) {
       id
+      ownerShipType
+      transportOwnerAc
       passengerEmail
       passengerName
       passengerContact
@@ -5774,6 +5856,8 @@ export const deleteRideRequest = /* GraphQL */ `
   ) {
     deleteRideRequest(input: $input, condition: $condition) {
       id
+      ownerShipType
+      transportOwnerAc
       passengerEmail
       passengerName
       passengerContact

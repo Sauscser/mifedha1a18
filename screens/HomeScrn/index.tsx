@@ -13,6 +13,8 @@
 
 
 import React, { useState, useEffect, useRef } from 'react';
+import { useSessionTimeout } from '../../src/contexts/SessionTimeoutProvider';
+import { useAuthenticator } from '../../src/contexts/AuthContext';
 import { Animated as RNAnimated } from 'react-native';
 import messaging from '@react-native-firebase/messaging';
 import { View, Text, SafeAreaView, TouchableOpacity, StyleSheet, Pressable, Dimensions, Linking, Animated, Alert, Image, ActivityIndicator, ScrollView } from 'react-native';
@@ -35,6 +37,8 @@ const {
 const isCompact = height < 780;
 const client = generateClient();
 const HomeScreen = () => {
+    const { resetTimer } = useSessionTimeout();
+    const { isSignedIn, user } = useAuthenticator();
     const { t } = useTranslation();
     const [, setRerender] = useState(0);
     const [i18nReady, setI18nReady] = useState(i18n.isInitialized && !!i18n.language);
@@ -163,8 +167,8 @@ const HomeScreen = () => {
                     query: getNotification,
                     variables: { awsemail: email }
                 });
-                const mainAccExists = userDtls.data.getSMAccount;
-                const noteDtls = note.data.getNotification;
+                const mainAccExists = (userDtls as any).data.getSMAccount;
+                const noteDtls = (note as any).data.getNotification;
 
                 // ================= FETCH USER PHOTO =================
                 if (mainAccExists) {
@@ -234,6 +238,10 @@ const HomeScreen = () => {
 
     useFocusEffect(
         React.useCallback(() => {
+            // Always check current state on focus
+            if (isSignedIn && user) {
+                resetTimer();
+            }
             let isActive = true;
 
             const refreshPhotoOnFocus = async () => {
@@ -259,7 +267,7 @@ const HomeScreen = () => {
             return () => {
                 isActive = false;
             };
-        }, [])
+        }, [isSignedIn, resetTimer, user])
     );
     // const screenT = screenTranslations[lang] || screenTranslations.en;
     // console.log('HomeScreen i18n.language:', i18n.language, 'lang:', lang, 'screenT.messages:', screenT.messages);
