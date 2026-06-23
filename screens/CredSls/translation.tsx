@@ -1,3 +1,164 @@
+// Centralized translations for CredSls/index.tsx UI labels
+const translations = {
+  en: {
+    bizProducts: 'Business Products',
+    benefitProductCreate: 'Create Benefit Product',
+    viewBusinessBenefitsShared: 'View Shared Business Benefits',
+    shareBusinessBenefits: 'Share Business Benefits',
+    linkBeneficiary: 'Link Beneficiary',
+    boostPooledBenefits: 'Boost Pooled Benefits',
+    viewAsProductCreator: 'View As Product Creator',
+
+    manageBusiness: 'Manage Business',
+    createBizInstitution: 'Create Business Institution',
+    addItem: 'Add Item',
+    deleteSalesItem: 'Delete Sales Item',
+    updateBiz: 'Update Business',
+    registerSalesOfficer: 'Register Sales Officer',
+    deregSalesOfficer: 'Deregister Sales Officer',
+    viewAccount: 'View Account',
+
+    makeCreditSalesRequests: 'Make Credit Sales Requests',
+    pal2pal: 'Pal → Pal',
+    pal2biz: 'Pal → Biz',
+    biz2pal: 'Biz → Pal',
+    biz2biz: 'Biz → Biz',
+
+    creditSalesLoanStatusBiz: 'Credit Sales Loan Status (Biz)',
+    bizpalLoaners: 'Biz→Pal Loaners',
+    bizpalLoanees: 'Biz→Pal Loanees',
+    bizbizLoaners: 'Biz→Biz Loaners',
+    bizbizLoanees: 'Biz→Biz Loanees',
+
+    creditSalesLoanStatusPal: 'Credit Sales Loan Status (Pal)',
+    palpalLoaners: 'Pal→Pal Loaners',
+    palpalLoanees: 'Pal→Pal Loanees',
+    palbizLoaners: 'Pal→Biz Loaners',
+    palbizLoanees: 'Pal→Biz Loanees',
+
+    cashSalesPurchasesDeposits: 'Cash Sales, Purchases & Deposits',
+    cashSales: 'Cash Sales',
+    makeDeposits: 'Make Deposits',
+    viewDeposits: 'View Deposits',
+
+    businessCashTransfers: 'Business Cash Transfers',
+    sendCashToPal: 'Send Cash To Pal',
+    sendCashToBiz: 'Send Cash To Biz',
+    viewCashSentToPal: 'View Cash Sent To Pal',
+    viewCashReceivedFromBiz: 'View Cash Received From Biz',
+    viewCashSentToBiz: 'View Cash Sent To Biz',
+
+    bizAdverts: 'Business Adverts',
+    transferOwnership: 'Transfer Ownership',
+    receiveOwnership: 'Receive Ownership',
+  },
+  sw: {
+    bizProducts: 'Bidhaa za Biashara',
+    benefitProductCreate: 'Tengeneza Bidhaa ya Faida',
+    viewBusinessBenefitsShared: 'Tazama Faida zilizoshirikiwa',
+    shareBusinessBenefits: 'Shiriki Faida za Biashara',
+    linkBeneficiary: 'Unganisha Mfanani',
+    boostPooledBenefits: 'Ongeza Faida za Pooled',
+    viewAsProductCreator: 'Tazama kama Muumba wa Bidhaa',
+
+    manageBusiness: 'Sajili Biashara',
+    createBizInstitution: 'Tengeneza Taasisi ya Biashara',
+    addItem: 'Ongeza Kifaa',
+    deleteSalesItem: 'Futa Bidhaa ya Mauzo',
+    updateBiz: 'Sasisha Biashara',
+    registerSalesOfficer: 'Sajili Afisa Mauzo',
+    deregSalesOfficer: 'Ondoa Afisa Mauzo',
+    viewAccount: 'Tazama Akaunti',
+
+    makeCreditSalesRequests: 'Fanya Maombi ya Mauzo ya Mikopo',
+    pal2pal: 'Pal → Pal',
+    pal2biz: 'Pal → Biz',
+    biz2pal: 'Biz → Pal',
+    biz2biz: 'Biz → Biz',
+
+    creditSalesLoanStatusBiz: 'Hali ya Mkopo (Biz)',
+    bizpalLoaners: 'Mtoa Mkopo Biz→Pal',
+    bizpalLoanees: 'Mkopaji Biz→Pal',
+    bizbizLoaners: 'Mtoa Mkopo Biz→Biz',
+    bizbizLoanees: 'Mkopaji Biz→Biz',
+
+    creditSalesLoanStatusPal: 'Hali ya Mkopo (Pal)',
+    palpalLoaners: 'Mtoa Mkopo Pal→Pal',
+    palpalLoanees: 'Mkopaji Pal→Pal',
+    palbizLoaners: 'Mtoa Mkopo Pal→Biz',
+    palbizLoanees: 'Mkopaji Pal→Biz',
+
+    cashSalesPurchasesDeposits: 'Mauzo ya Fedha & Amana',
+    cashSales: 'Mauzo ya Fedha',
+    makeDeposits: 'Weka Amana',
+    viewDeposits: 'Tazama Amanu',
+
+    businessCashTransfers: 'Uhamisho wa Fedha za Biashara',
+    sendCashToPal: 'Tuma Fedha kwa Pal',
+    sendCashToBiz: 'Tuma Fedha kwa Biz',
+    viewCashSentToPal: 'Angalia Fedha Zimetumwa kwa Pal',
+    viewCashReceivedFromBiz: 'Angalia Fedha Zilipokelewa kutoka Biz',
+    viewCashSentToBiz: 'Angalia Fedha Zimetumwa kwa Biz',
+
+    bizAdverts: 'Matangazo ya Biashara',
+    transferOwnership: 'Hamisha Umiliki',
+    receiveOwnership: 'Pokea Umiliki',
+  },
+  fr: {
+    bizProducts: 'Produits d\'entreprise',
+    benefitProductCreate: 'Créer un produit bénéfice',
+    viewBusinessBenefitsShared: 'Voir les avantages partagés',
+    shareBusinessBenefits: 'Partager les avantages',
+    linkBeneficiary: 'Lier Bénéficiaire',
+    boostPooledBenefits: 'Booster les avantages groupés',
+    viewAsProductCreator: 'Voir en tant que créateur',
+
+    manageBusiness: 'Gérer l\'entreprise',
+    createBizInstitution: 'Créer une institution',
+    addItem: 'Ajouter un article',
+    deleteSalesItem: 'Supprimer l\'article',
+    updateBiz: 'Mettre à jour l\'entreprise',
+    registerSalesOfficer: 'Enregistrer un agent de vente',
+    deregSalesOfficer: 'Désinscrire l\'agent',
+    viewAccount: 'Voir le compte',
+
+    makeCreditSalesRequests: 'Faire une demande de crédit',
+    pal2pal: 'Pal → Pal',
+    pal2biz: 'Pal → Biz',
+    biz2pal: 'Biz → Pal',
+    biz2biz: 'Biz → Biz',
+
+    creditSalesLoanStatusBiz: 'Statut du prêt (Biz)',
+    bizpalLoaners: 'Prêteurs Biz→Pal',
+    bizpalLoanees: 'Emprunteurs Biz→Pal',
+    bizbizLoaners: 'Prêteurs Biz→Biz',
+    bizbizLoanees: 'Emprunteurs Biz→Biz',
+
+    creditSalesLoanStatusPal: 'Statut du prêt (Pal)',
+    palpalLoaners: 'Prêteurs Pal→Pal',
+    palpalLoanees: 'Emprunteurs Pal→Pal',
+    palbizLoaners: 'Prêteurs Pal→Biz',
+    palbizLoanees: 'Emprunteurs Pal→Biz',
+
+    cashSalesPurchasesDeposits: 'Ventes en espèces & dépôts',
+    cashSales: 'Ventes en espèces',
+    makeDeposits: 'Faire des dépôts',
+    viewDeposits: 'Voir les dépôts',
+
+    businessCashTransfers: 'Transferts de trésorerie',
+    sendCashToPal: 'Envoyer de l\'argent à Pal',
+    sendCashToBiz: 'Envoyer de l\'argent à Biz',
+    viewCashSentToPal: 'Voir l\'argent envoyé à Pal',
+    viewCashReceivedFromBiz: 'Voir l\'argent reçu de Biz',
+    viewCashSentToBiz: 'Voir l\'argent envoyé à Biz',
+
+    bizAdverts: 'Annonces commerciales',
+    transferOwnership: 'Transférer la propriété',
+    receiveOwnership: 'Recevoir la propriété',
+  },
+};
+
+export default translations;
 // translations for CredSls
 const translations = {
   en: {

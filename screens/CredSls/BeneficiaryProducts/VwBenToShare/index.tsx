@@ -5,12 +5,17 @@ import { listLinkBeneficiary2s } from '../../../../src/graphql/queries';
 import * as Clipboard from 'expo-clipboard';
 import { getCurrentUser, fetchUserAttributes } from 'aws-amplify/auth';
 import { generateClient } from 'aws-amplify/api';
+import { useTranslation } from 'react-i18next';
+import translations from './translation';
 const client = generateClient();
 const FetchSMNonCovLns = props => {
   const [Loanees, setLoanees] = useState([]); // Stores fetched accounts
   const [loading, setLoading] = useState(false);
   const [awsEmail, setAWSEmail] = useState("");
   const [awsEmail2, setAWSEmail2] = useState("");
+  const { i18n } = useTranslation();
+  const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+  const t = translations[lang] || translations.en;
   const fetchLoanees = async () => {
     setLoading(true);
     try {
@@ -46,9 +51,9 @@ const FetchSMNonCovLns = props => {
   }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <View style={styles.container}>
         <View style={styles.searchBar}>
-          <TextInput placeholder="Benefactor Business Name..." value={awsEmail} onChangeText={setAWSEmail} autoCapitalize="none" style={styles.searchInput} />
+          <TextInput placeholder={t.benefactorSearchPlaceholder} value={awsEmail} onChangeText={setAWSEmail} autoCapitalize="none" style={styles.searchInput} />
 
-          <TextInput placeholder="Beneficiary Name...even partially" value={awsEmail2} onChangeText={setAWSEmail2} autoCapitalize="none" style={styles.searchInput} />
+          <TextInput placeholder={t.beneficiarySearchPlaceholder} value={awsEmail2} onChangeText={setAWSEmail2} autoCapitalize="none" style={styles.searchInput} />
         </View>
 
         <FlatList style={{
@@ -56,7 +61,7 @@ const FetchSMNonCovLns = props => {
       }} data={Loanees} renderItem={({
         item
       }) => <LnerStts SMAc={item} />} keyExtractor={(item, index) => index.toString()} onRefresh={fetchLoanees} refreshing={loading} showsVerticalScrollIndicator={false} ListHeaderComponent={() => <Text style={styles.placeholderText}>
-              Swipe down to load or refresh.
+              {t.swipeToRefresh}
             </Text>} />
       </View>
     </KeyboardAvoidingView>;

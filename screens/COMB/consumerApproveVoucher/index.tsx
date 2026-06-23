@@ -1,6 +1,7 @@
 // @ts-nocheck
 import React, { useState, useEffect, useMemo } from 'react';
 import { View, Text, FlatList, TextInput, StyleSheet, ActivityIndicator, Alert, Pressable } from 'react-native';
+import * as Location from 'expo-location';
 import { generateClient } from 'aws-amplify/api';
 import { getCurrentUser, fetchUserAttributes } from 'aws-amplify/auth';
 import { listCombContractVouchers, getSMAccount, getBizna, getCompany, getCombContract } from '../../../src/graphql/queries';
@@ -105,6 +106,45 @@ const ConsumerApproveVoucherScreen = () => {
   const t = translations[lang] || translations.en;
   const [consumerNationality, setConsumerNationality] = useState<string | null>(null);
   const { nationality, ratesMap } = useExchange();
+
+  const getCurrentLocation = async () => {
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        console.warn('Location permission not granted');
+        return { latitude: null, longitude: null };
+      }
+      try {
+        const loc = await Location.getCurrentPositionAsync({
+          accuracy: Location.Accuracy.Highest,
+          maximumAge: 10000,
+          timeout: 20000
+        });
+        if (loc?.coords?.latitude != null && loc?.coords?.longitude != null) {
+          console.log('Consumer current location obtained', loc.coords);
+          return {
+            latitude: loc.coords.latitude,
+            longitude: loc.coords.longitude
+          };
+        }
+      } catch (positionErr) {
+        console.warn('Primary location fetch failed, trying last known location', positionErr);
+      }
+      const lastKnown = await Location.getLastKnownPositionAsync({});
+      if (lastKnown?.coords?.latitude != null && lastKnown?.coords?.longitude != null) {
+        console.log('Consumer last known location obtained', lastKnown.coords);
+        return {
+          latitude: lastKnown.coords.latitude,
+          longitude: lastKnown.coords.longitude
+        };
+      }
+      console.warn('Consumer location unavailable after all attempts');
+      return { latitude: null, longitude: null };
+    } catch (err) {
+      console.warn('Unable to obtain consumer location', err);
+      return { latitude: null, longitude: null };
+    }
+  };
 
   /* ---------------- Fetch vouchers ---------------- */
   const fetchVouchers = async (token?: string) => {
@@ -299,19 +339,38 @@ const ConsumerApproveVoucherScreen = () => {
     setVouchers(prev => prev.filter(v => v.id !== voucher.id));
     const now = Date.now();
     const returnAmount = Number(voucher.itemPrice || 0) * Number(voucher.numberOfItems || 0);
+    const consumerLocation = await getCurrentLocation();
+    const buyerLatitude = consumerLocation.latitude;
+    const buyerLongitude = consumerLocation.longitude;
+    console.log('Buyer GPS check before approval:', {
+      voucherId: voucher.id,
+      consumerLocation,
+      buyerLatitude,
+      buyerLongitude
+    });
+    const buyerLocationPayload: Record<string, any> = {};
+    if (buyerLatitude != null && buyerLongitude != null) {
+      buyerLocationPayload.buyerLatitude = buyerLatitude;
+      buyerLocationPayload.buyerLongitude = buyerLongitude;
+      console.log('Sending buyer GPS payload', buyerLocationPayload);
+    } else {
+      console.warn('No consumer GPS payload to send for voucher', voucher.id, consumerLocation);
+    }
     try {
       // 1️⃣ Check expiry
       const expiry = Number(voucher.voucherLastUpdate) + Number(voucher.updateFrequency) * 24 * 60 * 60 * 1000;
       if (voucher.consumptionMarginStatus === 'Active' && now > expiry) {
-        await client.graphql({
+        const updateRes: any = await client.graphql({
           query: updateCombContractVoucher,
           variables: {
             input: {
               id: voucher.id,
-              accStatus: 'Declined'
+              accStatus: 'Declined',
+              ...buyerLocationPayload
             }
           }
         });
+        console.log('updateCombContractVoucher expiry-decline response', updateRes?.data?.updateCombContractVoucher);
         // return funds to parent contract consumptionCapping
         try {
           const parentId = voucher.combContractID;
@@ -349,17 +408,19 @@ const ConsumerApproveVoucherScreen = () => {
         return;
       }
       if (voucher.consumptionMarginStatus === 'Active' && expiry > now) {
-        await client.graphql({
+        const updateRes: any = await client.graphql({
           query: updateCombContractVoucher,
           variables: {
             input: {
               id: voucher.id,
               accStatus: status,
               voucherLastUpdate: now,
-              settlementTime: new Date().toISOString()
+              settlementTime: new Date().toISOString(),
+              ...buyerLocationPayload
             }
           }
         });
+        console.log('updateCombContractVoucher active response', updateRes?.data?.updateCombContractVoucher);
         // if consumer declined, release funds back to contract
         if (status === 'Declined') {
           try {
@@ -624,7 +685,8 @@ const ConsumerApproveVoucherScreen = () => {
           variables: {
             input: {
               id: voucher.id,
-              accStatus: 'Cleared'
+              accStatus: 'Cleared',
+              ...buyerLocationPayload
             }
           }
         });

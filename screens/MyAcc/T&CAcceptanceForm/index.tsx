@@ -1,5 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, FlatList, ActivityIndicator } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import { useMainAccountGuard } from '../../../src/contexts/MainAccountGuardContext';
 import LnerStts from "../../../components/CompTC";
 import styles from './styles';
 import { listReqLoans } from '../../../src/graphql/queries';
@@ -10,6 +12,8 @@ import { useTranslation } from 'react-i18next';
 import translations from './translation';
 const client = generateClient();
 const FetchSMNonCovLns = props => {
+    const navigation = useNavigation();
+    const { setRestrictNavigation } = useMainAccountGuard();
     const { i18n } = useTranslation();
     const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
     const t = translations[lang] || translations.en;
@@ -37,7 +41,11 @@ const FetchSMNonCovLns = props => {
     setLneePhn(attributes.email);
   };
   useEffect(() => {
+    setRestrictNavigation(true);
     fetchUser();
+    return () => {
+      setRestrictNavigation(false);
+    };
   }, []);
   const fetchLoanees = async () => {
     setLoading(true);
@@ -79,7 +87,7 @@ const FetchSMNonCovLns = props => {
         ListHeaderComponentStyle={{ alignItems: 'center' }}
         ListHeaderComponent={() => <>
           <Text style={styles.label}>{t.swipeDownToLoad}</Text>
-          <Text style={styles.label2}>{t.acceptDeclineAtEnd}</Text>
+          <Text style={styles.label2}>{t.createMainAccountPrompt}</Text>
         </>}
       />
 

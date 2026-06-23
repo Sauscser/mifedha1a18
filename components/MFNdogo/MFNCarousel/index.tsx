@@ -23,11 +23,13 @@ interface Agent {
 interface Props {
   Agent: Agent;
   isSelected?: boolean;
+  onPress?: () => void;
+  onLongPress?: () => void;
 }
 
 const client = generateClient();
 
-const ViewSMDeposts = ({ Agent, isSelected = false }: Props) => {
+const ViewSMDeposts = ({ Agent, isSelected = false, onPress, onLongPress }: Props) => {
   const [MFKWithdrwlFee, setMFKWithdrwlFee] = useState("");
   const [CompWithdrwlFee, setCompWithdrwlFee] = useState("");
   const [MFKWDFeeFrmCmp, setMFKWDFeeFrmCmp] = useState("");
@@ -38,10 +40,26 @@ const ViewSMDeposts = ({ Agent, isSelected = false }: Props) => {
   const route = useRoute();
   const navigation = useNavigation<NavigationProp<any>>();
 
-  const handlePress = () => {
+  const navigateToWithdraw = () => {
     navigation.navigate('WithdrawFundsFromMap', {
       phonecontact: Agent.phonecontact,
     });
+  };
+
+  const handlePress = () => {
+    if (onPress) {
+      onPress();
+      return;
+    }
+    navigateToWithdraw();
+  };
+
+  const handleLongPress = () => {
+    if (onLongPress) {
+      onLongPress();
+      return;
+    }
+    navigateToWithdraw();
   };
 
   const fetchMFNDtls = async () => {
@@ -110,6 +128,7 @@ const ViewSMDeposts = ({ Agent, isSelected = false }: Props) => {
     <View style={[styles.pageContainer, isSelected && { zIndex: 5 }]}>
       <Pressable
         onPress={handlePress}
+        onLongPress={handleLongPress}
         style={[
           styles.card,
           isSelected && {

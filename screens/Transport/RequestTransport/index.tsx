@@ -22,6 +22,7 @@ import { getCurrentUser, fetchUserAttributes } from "aws-amplify/auth";
 import { useExchange } from '../../../src/contexts/ExchangeContext';
 import { formatAmountSync } from '../../../src/utils/exchange';
 import { nationalityToCode } from '../../../src/utils/nationalityToCode';
+import { buildOsrmRouteUrl } from '../../../src/config/osrm';
 import { generateClient } from "aws-amplify/api";
 import { formatAmountForUser, getUserNationalityByEmail, getExRatesForNationality, convertForeignToKsh } from '../../../src/utils/exchange';
 const client = generateClient();
@@ -68,6 +69,11 @@ export default function SalesItemMapScreen({
   const [quantities, setQuantities] = useState({});
   const [cart, setCart] = useState([]);
   const [cartExpanded, setCartExpanded] = useState(true);
+  const [cardsCollapsed, setCardsCollapsed] = useState(false);
+  const [mapLabelPoints, setMapLabelPoints] = useState<{
+    rider: { x: number; y: number } | null;
+    pickup: { x: number; y: number } | null;
+  }>({ rider: null, pickup: null });
   const [sellerlongitude2, setsellerlongitude] = useState('');
   const [sellerlatitude2, setsellerlatitude] = useState('');
   const [company, setCompany] = useState<Company | null>(null);
@@ -151,7 +157,11 @@ try {
         setRoadDistanceLoading(true);
         try {
           // OSRM expects lng,lat order
-          const url = `https://router.project-osrm.org/route/v1/driving/${userLocation.longitude},${userLocation.latitude};${Number(sellerlongitude2)},${Number(sellerlatitude2)}?overview=false`;
+          const url = buildOsrmRouteUrl(
+            userLocation,
+            { latitude: Number(sellerlatitude2), longitude: Number(sellerlongitude2) },
+            { overview: 'false' }
+          );
           const res = await axios.get(url);
           if (res.data.routes && res.data.routes.length > 0) {
             setRoadDistance(res.data.routes[0].distance);
@@ -353,6 +363,9 @@ try {
     });
     return filteredWithSignedUrl.sort((a, b) => a.transportRate - b.transportRate).slice(0, rank);
   }, [filters, allItems, userLocation]);
+  const activeItem = useMemo(() => {
+    return filteredItems.find((item: any) => item.id === selectedItemId) || null;
+  }, [filteredItems, selectedItemId]);
   useEffect(() => {
     if (filteredItems.length && userLocation) {
       const radius = Math.max(0.05, parseFloat(filters.radius) || 0.05);
@@ -385,6 +398,35 @@ try {
       animated: true
     });
   }, []);
+
+  const refreshMapLabelPoints = useCallback(async () => {
+    const map = mapRef.current as any;
+    if (!map) return;
+    try {
+      const riderCoord = activeItem && !isNaN(Number(activeItem.latitude)) && !isNaN(Number(activeItem.longitude))
+        ? { latitude: Number(activeItem.latitude), longitude: Number(activeItem.longitude) }
+        : null;
+      const pickupCoord = sellerlatitude2 && sellerlongitude2 && !isNaN(Number(sellerlatitude2)) && !isNaN(Number(sellerlongitude2))
+        ? { latitude: Number(sellerlatitude2), longitude: Number(sellerlongitude2) }
+        : null;
+
+      const [riderPt, pickupPt] = await Promise.all([
+        riderCoord ? map.pointForCoordinate(riderCoord) : Promise.resolve(null),
+        pickupCoord ? map.pointForCoordinate(pickupCoord) : Promise.resolve(null),
+      ]);
+
+      setMapLabelPoints({
+        rider: riderPt || null,
+        pickup: pickupPt || null,
+      });
+    } catch {
+      // Ignore projection errors; labels refresh on next map move.
+    }
+  }, [activeItem, sellerlatitude2, sellerlongitude2]);
+
+  useEffect(() => {
+    refreshMapLabelPoints();
+  }, [refreshMapLabelPoints, selectedItemId, sellerlatitude2, sellerlongitude2, cardsCollapsed]);
   useEffect(() => {
     const fetchCompany = async () => {
       try {
@@ -784,6 +826,8 @@ try {
           ref={mapRef}
           style={{ flex: 1 }}
           showsUserLocation
+          onMapReady={refreshMapLabelPoints}
+          onRegionChangeComplete={refreshMapLabelPoints}
           initialRegion={{
             ...userLocation,
             latitudeDelta: 0.05,
@@ -799,9 +843,12 @@ try {
               }}
               onPress={() => onSelectItem(item, index)}
             >
-              <View style={[styles.markerContainer, selectedItemId === item.id && styles.selectedMarker]}>
-                <Text style={styles.markerText}>{((roadDistance / 1000) * item.transportRate).toFixed(0)}</Text>
-              </View>
+              <View
+                style={[
+                  styles.mapMarkerDot,
+                  selectedItemId === item.id ? styles.selectedRiderMarkerDot : styles.riderMarkerDot
+                ]}
+              />
             </Marker>
           ))}
 
@@ -815,13 +862,75 @@ try {
               description="Seller Location"
               pinColor="orange"
             >
-              <View style={styles.sellerMarker}>
-                <FontAwesome name="user" size={24} color="#fff" />
-                <Text style={styles.sellerMarkerText}>{t.sellerLabel || 'Seller'}</Text>
-              </View>
+              <View
+                style={[
+                  styles.mapMarkerDot,
+                  selectedItemId ? styles.selectedPickupMarkerDot : styles.pickupMarkerDot
+                ]}
+              />
             </Marker>
           )}
         </MapView>
+        <View style={styles.mapTextOverlay} pointerEvents="none">
+          {mapLabelPoints.rider && activeItem && (
+            <>
+              <View
+                style={[
+                  styles.mapConnectorLine,
+                  styles.riderConnectorLine,
+                  {
+                    left: mapLabelPoints.rider.x - 1,
+                    top: mapLabelPoints.rider.y - 16,
+                  },
+                ]}
+              />
+              <Text
+                style={[
+                  styles.mapTextChip,
+                  styles.riderTextChip,
+                  {
+                    left: mapLabelPoints.rider.x,
+                    top: mapLabelPoints.rider.y - 34,
+                    transform: [{ translateX: -70 }],
+                  },
+                ]}
+                numberOfLines={1}
+                ellipsizeMode="tail"
+              >
+                {t.transport}: {activeItem.transportName || t.transport}
+              </Text>
+            </>
+          )}
+
+          {mapLabelPoints.pickup && (
+            <>
+              <View
+                style={[
+                  styles.mapConnectorLine,
+                  styles.pickupConnectorLine,
+                  {
+                    left: mapLabelPoints.pickup.x - 1,
+                    top: mapLabelPoints.pickup.y - 16,
+                  },
+                ]}
+              />
+              <Text
+                style={[
+                  styles.mapTextChip,
+                  styles.pickupTextChip,
+                  {
+                    left: mapLabelPoints.pickup.x,
+                    top: mapLabelPoints.pickup.y - 34,
+                    transform: [{ translateX: -42 }],
+                  },
+                ]}
+                numberOfLines={1}
+              >
+                {t.sellerLabel}
+              </Text>
+            </>
+          )}
+        </View>
         {/* Floating Refresh Spinner Button */}
         <TouchableOpacity
           onPress={isLoading2 ? undefined : async () => {
@@ -930,7 +1039,24 @@ try {
         </View>
       </Animated.View>
       {/* Responsive Carousel */}
+      {cardsCollapsed && (
+        <TouchableOpacity
+          style={styles.floatingShowCardsBtn}
+          onPress={() => setCardsCollapsed(false)}
+          activeOpacity={0.9}
+        >
+          <Text style={styles.floatingShowCardsText}>{t.showTransportDetails || 'Show Transport Details'}</Text>
+        </TouchableOpacity>
+      )}
+      {!cardsCollapsed && (
       <Animated.View style={[styles.carouselContainer, { top: carouselPosition }]}> 
+        <TouchableOpacity
+          style={styles.cardsHideFloatingBtn}
+          onPress={() => setCardsCollapsed(true)}
+          activeOpacity={0.9}
+        >
+          <Text style={styles.cardsHideBtnText}>{t.hideTransportDetails || 'Hide'}</Text>
+        </TouchableOpacity>
         <FlatList
           ref={listRef}
           data={filteredItems}
@@ -1007,6 +1133,7 @@ try {
           }}
         />
       </Animated.View>
+      )}
     </View>
   );
 }
@@ -1054,20 +1181,69 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignSelf: 'center'
   },
-  markerContainer: {
-    backgroundColor: '#fff',
-    padding: 4,
-    borderRadius: 6,
+  mapMarkerDot: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: '#fff',
+    elevation: 3,
+  },
+  riderMarkerDot: {
+    backgroundColor: '#1f8ef1',
+  },
+  pickupMarkerDot: {
+    backgroundColor: '#27ae60',
+  },
+  selectedRiderMarkerDot: {
+    backgroundColor: '#1f8ef1',
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+  },
+  selectedPickupMarkerDot: {
+    backgroundColor: '#27ae60',
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+  },
+  mapTextOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 30,
+  },
+  mapTextChip: {
+    position: 'absolute',
+    fontSize: 11,
+    fontWeight: '700',
+    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    color: '#fff',
+    maxWidth: SCREEN_WIDTH * 0.42,
     borderWidth: 1,
-    borderColor: 'gray'
+    borderColor: 'rgba(255,255,255,0.45)',
   },
-  selectedMarker: {
-    backgroundColor: '#e58d29',
-    borderColor: 'white'
+  riderTextChip: {
+    backgroundColor: '#1f8ef1',
   },
-  markerText: {
-    fontSize: 10,
-    fontWeight: 'bold'
+  pickupTextChip: {
+    backgroundColor: '#27ae60',
+  },
+  mapConnectorLine: {
+    position: 'absolute',
+    width: 2,
+    height: 12,
+    borderRadius: 1,
+  },
+  riderConnectorLine: {
+    backgroundColor: '#1f8ef1',
+  },
+  pickupConnectorLine: {
+    backgroundColor: '#27ae60',
   },
   carouselContainer: {
     position: 'absolute',
@@ -1076,6 +1252,49 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.95)',
     zIndex: 1,
     pointerEvents: 'box-none'
+  },
+  floatingShowCardsBtn: {
+    position: 'absolute',
+    right: 14,
+    bottom: 18,
+    backgroundColor: '#e58d29',
+    borderRadius: 20,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    zIndex: 20,
+    elevation: 6,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4
+  },
+  floatingShowCardsText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '700'
+  },
+  cardsHideFloatingBtn: {
+    position: 'absolute',
+    top: -14,
+    alignSelf: 'center',
+    backgroundColor: '#e58d29',
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    zIndex: 20,
+    elevation: 6,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4
+  },
+  cardsHideBtn: {
+    backgroundColor: '#e58d29'
+  },
+  cardsHideBtnText: {
+    color: '#fff',
+    fontSize: 11,
+    fontWeight: '700'
   },
   card: {
     backgroundColor: 'white',

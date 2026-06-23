@@ -3,6 +3,8 @@ import { SafeAreaView, ScrollView, View, Text, Pressable } from 'react-native';
 import styles from './styles';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
+import { useTranslation } from 'react-i18next';
+import translations from './translation';
 const Section = ({
   title,
   options
@@ -31,6 +33,9 @@ const Section = ({
   </View>;
 const MyLoanAccount = () => {
   const navigation = useNavigation();
+  const { i18n } = useTranslation();
+  const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+  const t = translations[lang] || translations.en;
   const VwAsBeneficiary = () => {
     navigation.navigate('VwAsBeneficiary');
   };

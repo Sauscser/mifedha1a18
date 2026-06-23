@@ -5,19 +5,23 @@ import MapView, { Marker, Polyline, UrlTile } from 'react-native-maps';
 import * as Location from 'expo-location';
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { listRideRequests, getSMAccount, getTransportRegister, getCompany, getRideRequest, getTransportBizna } from '../../../src/graphql/queries';
+import { getSMAccount, getTransportRegister, getCompany, getRideRequest, getTransportBizna } from '../../../src/graphql/queries';
 import { onUpdateRideRequest } from '../../../src/graphql/subscriptions';
 import { Observable } from 'zen-observable-ts';
-import { updateRideRequest, updateSMAccount, updateTransportRegister, updateCompany, updateTransportBizna } from '../../../src/graphql/mutations';
+import { updateSMAccount, updateTransportRegister, updateCompany, updateTransportBizna } from '../../../src/graphql/mutations';
 import { getCurrentUser, fetchUserAttributes } from "aws-amplify/auth";
 import { useExchange } from '../../../src/contexts/ExchangeContext';
 import { formatAmountSync, getUserNationalityByEmail, convertForeignToKsh } from '../../../src/utils/exchange';
 import { nationalityToCode } from '../../../src/utils/nationalityToCode';
+import { buildOsrmRouteUrl } from '../../../src/config/osrm';
 import { Hub } from '@aws-amplify/core';
 import { generateClient } from "aws-amplify/api";
+import { useTranslation } from 'react-i18next';
+import { translations } from './translation';
 const client = generateClient();
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const SCREEN_HEIGHT = Dimensions.get('window').height;
+const ENFORCE_PICKUP_PROXIMITY_CHECK = true; // temporary toggle for testing
 const MIN_PICKUP_DISTANCE = 0.1; // km (100 meters minimum)
 const MIN_REAL_MOVEMENT_KM = 0.01; // km (10 meters) - ignore tiny jitter
 const MIN_SAVE_DISTANCE_KM = 0.05; // km (50 meters) - save after every ~50m moved
@@ -30,6 +34,77 @@ const METRICS_STORAGE_KEY = 'rideMetricsBackup_v1';
 const SAVE_METRICS_INTERVAL_MS = 30_000; // persist metrics to AsyncStorage every 30s
 
 const COMPANY_ADMIN_ID = "BaruchHabaB'ShemAdonai2";
+
+const LIST_RIDE_REQUESTS_SAFE_QUERY = /* GraphQL */ `
+  query ListRideRequestsSafe($filter: ModelRideRequestFilterInput, $limit: Int, $nextToken: String) {
+    listRideRequests(filter: $filter, limit: $limit, nextToken: $nextToken) {
+      items {
+        id
+        passengerEmail
+        passengerName
+        passengerContact
+        pickupLatitude
+        pickupLongitude
+        destinationLatitude
+        destinationLongitude
+        distance
+        estimatedCost
+        selectedRiderID
+        riderName
+        riderContact
+        riderRate
+        paymentMethod
+        paymentStatus
+        rideStatus
+        startTime
+        endTime
+        riderLatitude
+        riderLongitude
+        createdAt
+        updatedAt
+        owner
+        __typename
+      }
+      nextToken
+      __typename
+    }
+  }
+`;
+
+const UPDATE_RIDE_REQUEST_SAFE_MUTATION = /* GraphQL */ `
+  mutation UpdateRideRequestSafe(
+    $input: UpdateRideRequestInput!
+    $condition: ModelRideRequestConditionInput
+  ) {
+    updateRideRequest(input: $input, condition: $condition) {
+      id
+      passengerEmail
+      passengerName
+      passengerContact
+      pickupLatitude
+      pickupLongitude
+      destinationLatitude
+      destinationLongitude
+      distance
+      estimatedCost
+      selectedRiderID
+      riderName
+      riderContact
+      riderRate
+      paymentMethod
+      paymentStatus
+      rideStatus
+      startTime
+      endTime
+      riderLatitude
+      riderLongitude
+      createdAt
+      updatedAt
+      owner
+      __typename
+    }
+  }
+`;
 // Location type with optional accuracy to align with Expo Location objects
 type LocationWithAccuracy = {
   latitude: number;
@@ -39,8 +114,17 @@ type LocationWithAccuracy = {
 };
 // Removed Google Maps API Key. Using OSRM and OSM.
 export default function RiderRideRequestScreen() {
+  const { i18n } = useTranslation();
+  const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+  const t = { ...translations.en, ...(translations[lang] || {}) };
   const [rides, setRides] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [cardsCollapsed, setCardsCollapsed] = useState(false);
+  const [mapLabelPoints, setMapLabelPoints] = useState<{
+    rider: { x: number; y: number } | null;
+    pickup: { x: number; y: number } | null;
+    destination: { x: number; y: number } | null;
+  }>({ rider: null, pickup: null, destination: null });
   const [userContact, setUserContact] = useState<string | null>(null);
   const [selectedRideId, setSelectedRideId] = useState<string | null>(null);
   const [riderLocation, setRiderLocation] = useState<LocationWithAccuracy | null>(null);
@@ -136,12 +220,15 @@ export default function RiderRideRequestScreen() {
     }
     cumulativeDistanceRef.current = {};
     cumulativeCostRef.current = {};
+    backendDistanceBaseRef.current = {};
     lastLocationRef.current = null;
     lastSaveDistanceRef.current = {};
     lastSaveTimeRef.current = {};
   };
 
   const transportMap = useRef<Record<string, any>>({});
+  const [transporterTick, setTransporterTick] = useState(0);
+  const backendDistanceBaseRef = useRef<Record<string, number>>({});
   const cumulativeDistanceRef = useRef<Record<string, number>>({});
   const cumulativeCostRef = useRef<Record<string, number>>({});
   // Save bookkeeping: last saved distance and time per ride, and a flag to avoid concurrent saves
@@ -271,7 +358,7 @@ export default function RiderRideRequestScreen() {
   // Fetch route and distance from OSRM
   const fetchRouteWithDistance = async (start: { latitude: number; longitude: number }, end: { latitude: number; longitude: number }) => {
     try {
-      const url = `https://router.project-osrm.org/route/v1/driving/${start.longitude},${start.latitude};${end.longitude},${end.latitude}?overview=full&geometries=geojson`;
+      const url = buildOsrmRouteUrl(start, end, { overview: 'full', geometries: 'geojson' });
       const res = await axios.get(url);
       if (res.data.routes && res.data.routes.length > 0) {
         return {
@@ -299,7 +386,7 @@ export default function RiderRideRequestScreen() {
     longitude: number;
   }) => {
     try {
-      const url = `https://router.project-osrm.org/route/v1/driving/${start.longitude},${start.latitude};${end.longitude},${end.latitude}?overview=full&geometries=geojson`;
+      const url = buildOsrmRouteUrl(start, end, { overview: 'full', geometries: 'geojson' });
       const res = await axios.get(url);
       if (res.data.routes?.length) {
         return decodeOSRMLine(res.data.routes[0].geometry.coordinates);
@@ -368,17 +455,17 @@ export default function RiderRideRequestScreen() {
       setPickupToDestRoadDistance(prev => ({ ...prev, [ride.id]: distanceKm }));
     }
     setPolylineTick(t => t + 1);
-    // Update backend with new distance/cost if changed (always use OSRM road distance)
+    // Keep backend distance updates to active-trip save cycle only.
     const rate = Number(ride.riderRate || 0);
-    if (distanceKm && (ride.distance !== distanceKm || ride.estimatedCost !== Math.round(rate * distanceKm))) {
+    const nextEstimatedCost = Math.round(rate * distanceKm);
+    if (routeType === 'drop' && distanceKm && ride.estimatedCost !== nextEstimatedCost) {
       try {
         await client.graphql({
-          query: updateRideRequest,
+          query: UPDATE_RIDE_REQUEST_SAFE_MUTATION,
           variables: {
             input: {
               id: ride.id,
-              distance: distanceKm,
-              estimatedCost: Math.round(rate * distanceKm)
+              estimatedCost: nextEstimatedCost
             }
           }
         });
@@ -429,11 +516,17 @@ export default function RiderRideRequestScreen() {
       const movedKm = prev ? getDistanceKm(prev.latitude, prev.longitude, smoothLoc.latitude, smoothLoc.longitude) : Infinity;
       if (movedKm < MIN_REAL_MOVEMENT_KM) return;
 
-      // Always track distance & cost for selected ride
-      const rate = Number(ride.riderRate || 0);
-      cumulativeDistanceRef.current[ride.id] = (cumulativeDistanceRef.current[ride.id] || 0) + movedKm;
-      cumulativeCostRef.current[ride.id] = (cumulativeCostRef.current[ride.id] || 0) + movedKm * rate;
-      setRideMetricsTick(t => t + 1); // trigger carousel re-render
+      // Track live trip distance only after pickup (Active)
+      const latestRide = rides.find(r => r.id === ride.id) || ride;
+      const isTripActive = latestRide?.rideStatus === 'Active';
+      const rate = Number(latestRide?.riderRate || ride.riderRate || 0);
+      const baseDistance = backendDistanceBaseRef.current[ride.id] ?? Number(latestRide?.distance || 0);
+      if (isTripActive) {
+        cumulativeDistanceRef.current[ride.id] = (cumulativeDistanceRef.current[ride.id] || 0) + movedKm;
+        const totalDistance = baseDistance + (cumulativeDistanceRef.current[ride.id] || 0);
+        cumulativeCostRef.current[ride.id] = Math.round(totalDistance * rate);
+        setRideMetricsTick(t => t + 1); // trigger carousel re-render
+      }
 
       // Persist metrics locally immediately to reduce data loss risk
       saveMetricsToStorage().catch(() => {});
@@ -447,19 +540,21 @@ export default function RiderRideRequestScreen() {
         const lastSaved = lastSaveDistanceRef.current[ride.id] || 0;
         const movedSinceSave = (cumulativeDistanceRef.current[ride.id] || 0) - lastSaved;
         const accM = smoothLoc.accuracy ?? smoothLoc.coords?.accuracy ?? 9999;
-        if (movedSinceSave >= MIN_SAVE_DISTANCE_KM && accM <= MAX_ACCEPTABLE_ACCURACY_M) {
+        if (isTripActive && movedSinceSave >= MIN_SAVE_DISTANCE_KM && accM <= MAX_ACCEPTABLE_ACCURACY_M) {
           if (!saveInProgressRef.current[ride.id]) {
             saveInProgressRef.current[ride.id] = true;
             try {
+              const totalDistance = baseDistance + (cumulativeDistanceRef.current[ride.id] || 0);
+              const totalEstimatedCost = Math.round(totalDistance * rate);
               await client.graphql({
-                query: updateRideRequest,
+                query: UPDATE_RIDE_REQUEST_SAFE_MUTATION,
                 variables: {
                   input: {
                     id: ride.id,
                     riderLatitude: smoothLoc.latitude,
                     riderLongitude: smoothLoc.longitude,
-                    estimatedCost: cumulativeCostRef.current[ride.id] || 0,
-                    distance: cumulativeDistanceRef.current[ride.id] || 0
+                    distance: totalDistance,
+                    estimatedCost: totalEstimatedCost
                   }
                 }
               });
@@ -495,19 +590,25 @@ export default function RiderRideRequestScreen() {
       const now = Date.now();
       const lastSavedTime = lastSaveTimeRef.current[ride.id] || 0;
       const timeSinceLastSave = now - lastSavedTime;
-      if (timeSinceLastSave >= SAVE_FALLBACK_INTERVAL_MS) {
+      const latestRide = rides.find(r => r.id === ride.id) || ride;
+      const isTripActive = latestRide?.rideStatus === 'Active';
+      const rate = Number(latestRide?.riderRate || ride.riderRate || 0);
+      const baseDistance = backendDistanceBaseRef.current[ride.id] ?? Number(latestRide?.distance || 0);
+      if (isTripActive && timeSinceLastSave >= SAVE_FALLBACK_INTERVAL_MS) {
         if (!saveInProgressRef.current[ride.id]) {
           saveInProgressRef.current[ride.id] = true;
           try {
+            const totalDistance = baseDistance + (cumulativeDistanceRef.current[ride.id] || 0);
+            const totalEstimatedCost = Math.round(totalDistance * rate);
             await client.graphql({
-              query: updateRideRequest,
+              query: UPDATE_RIDE_REQUEST_SAFE_MUTATION,
               variables: {
                 input: {
                   id: ride.id,
                   riderLatitude: lastLocationRef.current.latitude,
                   riderLongitude: lastLocationRef.current.longitude,
-                  estimatedCost: cumulativeCostRef.current[ride.id] || 0,
-                  distance: cumulativeDistanceRef.current[ride.id] || 0
+                  distance: totalDistance,
+                  estimatedCost: totalEstimatedCost
                 }
               }
             });
@@ -522,7 +623,7 @@ export default function RiderRideRequestScreen() {
         }
       }
     }, FALLBACK_CHECK_INTERVAL_MS) as unknown as number;
-  }, [tripStarted, fetchCachedRoute, maybeAnimateCamera]);
+  }, [tripStarted, rides, fetchCachedRoute, maybeAnimateCamera]);
   const stopTracking = useCallback(() => {
     if (locationSubscription.current) {
       try {
@@ -552,7 +653,7 @@ export default function RiderRideRequestScreen() {
     const user = await fetchUserAttributes();
     try {
       const res: any = await client.graphql({
-        query: listRideRequests,
+        query: LIST_RIDE_REQUESTS_SAFE_QUERY,
         variables: {
           filter: {
             or: [
@@ -593,7 +694,7 @@ export default function RiderRideRequestScreen() {
       const lastLoc = lastLocationRef.current;
       if (pickup && lastLoc && lastLoc.latitude && lastLoc.longitude) {
         try {
-          const url = `https://router.project-osrm.org/route/v1/driving/${pickup.longitude},${pickup.latitude};${lastLoc.longitude},${lastLoc.latitude}?overview=false`;
+          const url = buildOsrmRouteUrl(pickup, lastLoc, { overview: 'false' });
           const res = await axios.get(url);
           if (res.data.routes && res.data.routes.length > 0) {
             osrmDistance = res.data.routes[0].distance / 1000;
@@ -630,9 +731,10 @@ export default function RiderRideRequestScreen() {
       const transporterNatCode = nationalityToCode(transporterNationality) || transporterNationality || undefined;
       const totalFareKes = transporterNatCode ? await convertForeignToKsh(totalFare, transporterNatCode) : totalFare;
       if (passengerBalance < totalFareKes) {
+        const finalDistance = (backendDistanceBaseRef.current[ride.id] ?? Number(ride.distance || 0)) + (cumulativeDistanceRef.current[ride.id] || 0);
         // Payment pending → mark overdue
         await client.graphql({
-          query: updateRideRequest,
+          query: UPDATE_RIDE_REQUEST_SAFE_MUTATION,
           variables: {
             input: {
               id: ride.id,
@@ -640,7 +742,7 @@ export default function RiderRideRequestScreen() {
               paymentStatus: 'Pending',
               endTime: new Date().toISOString(),
               estimatedCost: totalFare,
-              distance: osrmDistance || cumulativeDistanceRef.current[ride.id] || ride.distance || 0
+              distance: finalDistance || osrmDistance || Number(ride.distance || 0)
             }
           }
         });
@@ -676,11 +778,13 @@ export default function RiderRideRequestScreen() {
       let transportRegisterShare = transporterShare;
       let transportBiznaShare = 0;
       let transportBizna: any = null;
-      if (ride.ownerShipType === 'Company' && ride.transportOwnerAc) {
+      const rideOwnershipType = transporter?.ownerShipType;
+      const rideTransportOwnerAc = transporter?.transportOwnerAc;
+      if (rideOwnershipType === 'Company' && rideTransportOwnerAc) {
         try {
           const biznaRes: any = await client.graphql({
             query: getTransportBizna,
-            variables: { BizAc: ride.transportOwnerAc }
+            variables: { BizAc: rideTransportOwnerAc }
           });
           transportBizna = biznaRes?.data?.getTransportBizna || null;
           if (transportBizna) {
@@ -751,8 +855,9 @@ export default function RiderRideRequestScreen() {
       }
 
       // Mark ride completed & paid
+      const finalDistance = (backendDistanceBaseRef.current[ride.id] ?? Number(ride.distance || 0)) + (cumulativeDistanceRef.current[ride.id] || 0);
       await client.graphql({
-        query: updateRideRequest,
+        query: UPDATE_RIDE_REQUEST_SAFE_MUTATION,
         variables: {
           input: {
             id: ride.id,
@@ -760,12 +865,13 @@ export default function RiderRideRequestScreen() {
             paymentStatus: 'Cleared',
             endTime: new Date().toISOString(),
             estimatedCost: totalFare,
-            distance: osrmDistance || cumulativeDistanceRef.current[ride.id] || ride.distance || 0
+            distance: finalDistance || osrmDistance || Number(ride.distance || 0)
           }
         }
       });
 
       // Reset local tracking
+      backendDistanceBaseRef.current[ride.id] = 0;
       cumulativeCostRef.current[ride.id] = 0;
       cumulativeDistanceRef.current[ride.id] = 0;
       lastLocationRef.current = null;
@@ -795,7 +901,7 @@ export default function RiderRideRequestScreen() {
       const lastLoc = lastLocationRef.current;
       if (pickup && lastLoc && lastLoc.latitude && lastLoc.longitude) {
         try {
-          const url = `https://router.project-osrm.org/route/v1/driving/${pickup.longitude},${pickup.latitude};${lastLoc.longitude},${lastLoc.latitude}?overview=false`;
+          const url = buildOsrmRouteUrl(pickup, lastLoc, { overview: 'false' });
           const res = await axios.get(url);
           if (res.data.routes && res.data.routes.length > 0) {
             osrmDistance = res.data.routes[0].distance / 1000;
@@ -832,11 +938,13 @@ export default function RiderRideRequestScreen() {
       let transportRegisterShare = transporterShare;
       let transportBiznaShare = 0;
       let transportBizna: any = null;
-      if (ride.ownerShipType === 'Company' && ride.transportOwnerAc) {
+      const rideOwnershipType = transporter?.ownerShipType;
+      const rideTransportOwnerAc = transporter?.transportOwnerAc;
+      if (rideOwnershipType === 'Company' && rideTransportOwnerAc) {
         try {
           const biznaRes: any = await client.graphql({
             query: getTransportBizna,
-            variables: { BizAc: ride.transportOwnerAc }
+            variables: { BizAc: rideTransportOwnerAc }
           });
           transportBizna = biznaRes?.data?.getTransportBizna || null;
           if (transportBizna) {
@@ -930,8 +1038,9 @@ export default function RiderRideRequestScreen() {
       }
 
       // Mark ride completed & paid
+      const finalDistance = (backendDistanceBaseRef.current[ride.id] ?? Number(ride.distance || 0)) + (cumulativeDistanceRef.current[ride.id] || 0);
       await client.graphql({
-        query: updateRideRequest,
+        query: UPDATE_RIDE_REQUEST_SAFE_MUTATION,
         variables: {
           input: {
             id: ride.id,
@@ -939,12 +1048,13 @@ export default function RiderRideRequestScreen() {
             paymentStatus: 'Cleared',
             endTime: new Date().toISOString(),
             estimatedCost: totalFare,
-            distance: osrmDistance || cumulativeDistanceRef.current[ride.id] || ride.distance || 0
+            distance: finalDistance || osrmDistance || Number(ride.distance || 0)
           }
         }
       });
 
       // Reset local tracking
+      backendDistanceBaseRef.current[ride.id] = 0;
       cumulativeCostRef.current[ride.id] = 0;
       cumulativeDistanceRef.current[ride.id] = 0;
       lastLocationRef.current = null;
@@ -966,12 +1076,19 @@ export default function RiderRideRequestScreen() {
 
     // 1️⃣ Select ride and initialize cumulative metrics
     setSelectedRideId(ride.id);
-    if (!cumulativeDistanceRef.current[ride.id]) cumulativeDistanceRef.current[ride.id] = 0;
-    if (!cumulativeCostRef.current[ride.id]) cumulativeCostRef.current[ride.id] = 0;
+    if (ride.rideStatus === 'Active') {
+      backendDistanceBaseRef.current[ride.id] = Number(ride.distance || 0);
+      if (!cumulativeDistanceRef.current[ride.id]) cumulativeDistanceRef.current[ride.id] = 0;
+      if (!cumulativeCostRef.current[ride.id]) cumulativeCostRef.current[ride.id] = Number(ride.estimatedCost || 0);
+    } else {
+      backendDistanceBaseRef.current[ride.id] = 0;
+      cumulativeDistanceRef.current[ride.id] = 0;
+      cumulativeCostRef.current[ride.id] = 0;
+    }
     setTripStarted(ride.rideStatus === 'Active');
 
     // Initialize last-save markers so distance-since-save is computed from a sensible baseline
-    lastSaveDistanceRef.current[ride.id] = cumulativeDistanceRef.current[ride.id] || ride.distance || 0;
+    lastSaveDistanceRef.current[ride.id] = cumulativeDistanceRef.current[ride.id] || 0;
     lastSaveTimeRef.current[ride.id] = Date.now();
     if (!lastLocationRef.current && ride.riderLatitude && ride.riderLongitude) {
       lastLocationRef.current = { latitude: ride.riderLatitude, longitude: ride.riderLongitude };
@@ -992,7 +1109,7 @@ export default function RiderRideRequestScreen() {
 
       // Push immediate location to backend
       await client.graphql({
-        query: updateRideRequest,
+        query: UPDATE_RIDE_REQUEST_SAFE_MUTATION,
         variables: {
           input: {
             id: ride.id,
@@ -1055,7 +1172,10 @@ export default function RiderRideRequestScreen() {
         try {
           const tRes: any = await client.graphql({ query: getTransportRegister, variables: { id: ride.selectedRiderID } });
           const transporter = tRes?.data?.getTransportRegister;
-          if (transporter) transportMap.current[ride.selectedRiderID] = transporter;
+          if (transporter) {
+            transportMap.current[ride.selectedRiderID] = transporter;
+            setTransporterTick(tick => tick + 1);
+          }
         } catch (err) {
           console.warn('Failed to fetch transporter info', err);
         }
@@ -1071,7 +1191,7 @@ export default function RiderRideRequestScreen() {
     if (!ride) return;
 
     // Check distance before starting trip
-    if (status === 'Active' && riderLocation) {
+    if (ENFORCE_PICKUP_PROXIMITY_CHECK && status === 'Active' && riderLocation) {
       const distanceToPickup = getDistanceKm(riderLocation.latitude, riderLocation.longitude, ride.pickupLatitude, ride.pickupLongitude);
       // If location accuracy is available, increase required distance to account for inaccuracy
       const accuracyM = (riderLocation.accuracy || (riderLocation as any).coords?.accuracy) ?? 0;
@@ -1097,7 +1217,7 @@ export default function RiderRideRequestScreen() {
 
         // Update ride status first
         await client.graphql({
-          query: updateRideRequest,
+          query: UPDATE_RIDE_REQUEST_SAFE_MUTATION,
           variables: {
             input: {
               id: selectedRideId,
@@ -1127,7 +1247,7 @@ export default function RiderRideRequestScreen() {
 
       // Other status updates (Active, Cancelled, etc.)
       await client.graphql({
-        query: updateRideRequest,
+        query: UPDATE_RIDE_REQUEST_SAFE_MUTATION,
         variables: {
           input: {
             id: selectedRideId,
@@ -1135,7 +1255,26 @@ export default function RiderRideRequestScreen() {
           }
         }
       });
-      if (status === 'Active') setTripStarted(true);
+      if (status === 'Active') {
+        await client.graphql({
+          query: UPDATE_RIDE_REQUEST_SAFE_MUTATION,
+          variables: {
+            input: {
+              id: selectedRideId,
+              distance: 0,
+              estimatedCost: 0
+            }
+          }
+        });
+        backendDistanceBaseRef.current[selectedRideId] = 0;
+        cumulativeDistanceRef.current[selectedRideId] = 0;
+        cumulativeCostRef.current[selectedRideId] = 0;
+        lastSaveDistanceRef.current[selectedRideId] = 0;
+        lastSaveTimeRef.current[selectedRideId] = Date.now();
+        setTripStarted(true);
+        setRideMetricsTick(t => t + 1);
+        saveMetricsToStorage().catch(() => {});
+      }
       if (status === 'Cancelled') {
         setTripStarted(false);
         routeToPickupRef.current = [];
@@ -1164,7 +1303,7 @@ export default function RiderRideRequestScreen() {
       }
       const newStatus = accept ? 'TransportApproved' : 'Cancelled';
       await client.graphql({
-        query: updateRideRequest,
+        query: UPDATE_RIDE_REQUEST_SAFE_MUTATION,
         variables: {
           input: {
             id: rideId,
@@ -1186,25 +1325,20 @@ export default function RiderRideRequestScreen() {
   const rideMarkers = useMemo(() => {
     return rides.map((ride, idx) => {
       const isSelected = selectedRideId === ride.id;
-      // Marker for pickup (always shown)
+      const pickupDotStyle = isSelected ? styles.selectedPickupMarkerDot : styles.pickupMarkerDot;
+      const dropDotStyle = isSelected ? styles.selectedDestinationMarkerDot : styles.destinationMarkerDot;
+      const riderDotStyle = isSelected ? styles.selectedRiderMarkerDot : styles.riderMarkerDot;
+
       const pickupMarker = <Marker key={ride.id + '-pickup'} coordinate={{ latitude: ride.pickupLatitude, longitude: ride.pickupLongitude }} onPress={() => focusOnRide(ride, idx)}>
-        <View style={{ backgroundColor: isSelected ? '#e58d29' : '#1f8ef1', padding: 6, borderRadius: 6 }}>
-          <Text style={{ color: '#fff', fontWeight: '700', fontSize: 12 }}>{isSelected ? '📍 Pickup' : '📍'}</Text>
-        </View>
+        <View style={[styles.mapMarkerDot, pickupDotStyle]} />
       </Marker>;
 
-      // Marker for drop (only if destination present)
       const dropMarker = (ride.destinationLatitude && ride.destinationLongitude) ? <Marker key={ride.id + '-drop'} coordinate={{ latitude: ride.destinationLatitude, longitude: ride.destinationLongitude }} onPress={() => focusOnRide(ride, idx)}>
-        <View style={{ backgroundColor: isSelected ? '#e58d29' : '#9b59b6', padding: 6, borderRadius: 6 }}>
-          <Text style={{ color: '#fff', fontWeight: '700' }}>{isSelected ? '🎯 Drop' : '🎯'}</Text>
-        </View>
+        <View style={[styles.mapMarkerDot, dropDotStyle]} />
       </Marker> : null;
 
-      // Marker for rider live location when available
       const riderMarker = (ride.riderLatitude && ride.riderLongitude) ? <Marker key={ride.id + '-rider'} coordinate={{ latitude: ride.riderLatitude, longitude: ride.riderLongitude }} onPress={() => focusOnRide(ride, idx)}>
-        <View style={{ backgroundColor: isSelected ? '#e58d29' : 'blue', padding: 6, borderRadius: 6 }}>
-          <Text style={{ color: '#fff', fontWeight: '700' }}>{` ${transportMap.current[ride.selectedRiderID]?.numberPlate || 'Rider'}`}</Text>
-        </View>
+        <View style={[styles.mapMarkerDot, riderDotStyle]} />
       </Marker> : null;
 
       return (
@@ -1217,6 +1351,34 @@ export default function RiderRideRequestScreen() {
     });
   }, [rides, selectedRideId, riderLocation, tripStarted]);
   const activeRide = useMemo(() => rides.find(r => r.id === selectedRideId), [rides, selectedRideId]);
+  const refreshMapLabelPoints = useCallback(async () => {
+    const map = mapRef.current as any;
+    if (!map || !activeRide) return;
+    try {
+      const [riderPt, pickupPt, destPt] = await Promise.all([
+        activeRide?.riderLatitude && activeRide?.riderLongitude
+          ? map.pointForCoordinate({ latitude: activeRide.riderLatitude, longitude: activeRide.riderLongitude })
+          : Promise.resolve(null),
+        activeRide?.pickupLatitude && activeRide?.pickupLongitude
+          ? map.pointForCoordinate({ latitude: activeRide.pickupLatitude, longitude: activeRide.pickupLongitude })
+          : Promise.resolve(null),
+        activeRide?.destinationLatitude && activeRide?.destinationLongitude
+          ? map.pointForCoordinate({ latitude: activeRide.destinationLatitude, longitude: activeRide.destinationLongitude })
+          : Promise.resolve(null),
+      ]);
+      setMapLabelPoints({
+        rider: riderPt || null,
+        pickup: pickupPt || null,
+        destination: destPt || null,
+      });
+    } catch {
+      // Ignore mapping failures and retry on the next region change.
+    }
+  }, [activeRide]);
+
+  useEffect(() => {
+    refreshMapLabelPoints();
+  }, [refreshMapLabelPoints, selectedRideId, rides, cardsCollapsed, transporterTick]);
   const pickupPolyline = useMemo(() => {
     if (!activeRide) return null;
     // Show rider -> pickup when ride has not started (any status except Active)
@@ -1258,7 +1420,7 @@ export default function RiderRideRequestScreen() {
       justifyContent: 'center',
       alignItems: 'center'
     }}>
-        <Text>No active or pending ride requests at the moment</Text>
+        <Text>{t.noRides}</Text>
       </View>;
   }
   return <View style={{
@@ -1266,11 +1428,13 @@ export default function RiderRideRequestScreen() {
   }}>
       <MapView ref={mapRef} style={{ flex: 1 }}
         showsUserLocation
+        onMapReady={refreshMapLabelPoints}
         onRegionChangeComplete={reg => {
           lastCameraCenter.current = {
             latitude: reg.latitude,
             longitude: reg.longitude
           };
+          refreshMapLabelPoints();
         }}
         initialRegion={{
           latitude: rides[0]?.pickupLatitude || 0,
@@ -1288,38 +1452,128 @@ export default function RiderRideRequestScreen() {
         {dropPolyline}
       </MapView>
 
+      <View style={styles.mapTextOverlay} pointerEvents="none">
+        {mapLabelPoints.rider && activeRide?.riderLatitude && activeRide?.riderLongitude && (
+          <>
+            <View
+              style={[
+                styles.mapConnectorLine,
+                styles.riderConnectorLine,
+                {
+                  left: mapLabelPoints.rider.x - 1,
+                  top: mapLabelPoints.rider.y - 16,
+                },
+              ]}
+            />
+            <Text
+              style={[
+                styles.mapTextChip,
+                styles.riderTextChip,
+                {
+                  left: mapLabelPoints.rider.x,
+                  top: mapLabelPoints.rider.y - 34,
+                  transform: [{ translateX: -70 }],
+                },
+              ]}
+              numberOfLines={1}
+              ellipsizeMode="tail"
+            >
+              {t.riderMarker}: {transportMap.current[activeRide.selectedRiderID]?.numberPlate || t.riderMarker}
+            </Text>
+          </>
+        )}
+
+        {mapLabelPoints.pickup && activeRide?.pickupLatitude && activeRide?.pickupLongitude && (
+          <>
+            <View
+              style={[
+                styles.mapConnectorLine,
+                styles.pickupConnectorLine,
+                {
+                  left: mapLabelPoints.pickup.x - 1,
+                  top: mapLabelPoints.pickup.y - 16,
+                },
+              ]}
+            />
+            <Text
+              style={[
+                styles.mapTextChip,
+                styles.pickupTextChip,
+                {
+                  left: mapLabelPoints.pickup.x,
+                  top: mapLabelPoints.pickup.y - 34,
+                  transform: [{ translateX: -45 }],
+                },
+              ]}
+              numberOfLines={1}
+            >
+              {t.pickupMarker}
+            </Text>
+          </>
+        )}
+
+        {mapLabelPoints.destination && activeRide?.destinationLatitude && activeRide?.destinationLongitude && (
+          <>
+            <View
+              style={[
+                styles.mapConnectorLine,
+                styles.destinationConnectorLine,
+                {
+                  left: mapLabelPoints.destination.x - 1,
+                  top: mapLabelPoints.destination.y - 16,
+                },
+              ]}
+            />
+            <Text
+              style={[
+                styles.mapTextChip,
+                styles.destinationTextChip,
+                {
+                  left: mapLabelPoints.destination.x,
+                  top: mapLabelPoints.destination.y - 34,
+                  transform: [{ translateX: -58 }],
+                },
+              ]}
+              numberOfLines={1}
+            >
+              {t.destinationMarker}
+            </Text>
+          </>
+        )}
+      </View>
+
       {/* Action toolbar for selected ride (placed above the carousel) */}
-      <View style={styles.actionBar} pointerEvents={loading ? 'none' : 'auto'}>
+      <View style={[styles.actionBar, { bottom: cardsCollapsed ? 72 : SCREEN_HEIGHT * 0.18 + 12 }]} pointerEvents={loading ? 'none' : 'auto'}>
         {activeRide ? (
           <>
             {activeRide.rideStatus === 'transportRequestYes' && (
               <>
                 <TouchableOpacity onPress={() => respondToRequest(activeRide.id, true)} style={styles.actionButton}>
-                  <Text style={styles.actionButtonText}>Accept</Text>
+                  <Text style={styles.actionButtonText}>{t.accept}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity onPress={() => respondToRequest(activeRide.id, false)} style={[styles.actionButton, { backgroundColor: '#bbb' }]}>
-                  <Text style={styles.actionButtonText}>Cancel</Text>
+                  <Text style={styles.actionButtonText}>{t.cancel}</Text>
                 </TouchableOpacity>
               </>
             )}
             {activeRide.rideStatus === 'TransportApproved' && (
               <TouchableOpacity onPress={() => updateStatus('Active')} style={[styles.actionButton, { backgroundColor: '#e74c3c' }]}>
-                <Text style={styles.actionButtonText}>Start Trip</Text>
+                <Text style={styles.actionButtonText}>{t.startTrip}</Text>
               </TouchableOpacity>
             )}
             {(activeRide.rideStatus === 'Active' || activeRide.rideStatus === 'TransportEngaged') && (
               <TouchableOpacity onPress={() => updateStatus('Completed')} style={[styles.actionButton, { backgroundColor: 'blue' }]}>
-                <Text style={styles.actionButtonText}>Complete Trip</Text>
+                <Text style={styles.actionButtonText}>{t.completeTrip}</Text>
               </TouchableOpacity>
             )}
             {activeRide.rideStatus === 'Completed' && activeRide.paymentStatus !== 'Paid' && (
               activeRide.paymentMethod === 'MiFedha' ? (
                 <TouchableOpacity onPress={() => processMiFedhaPayment(activeRide)} style={[styles.actionButton, { backgroundColor: '#2ecc71' }]}>
-                  <Text style={styles.actionButtonText}>Charge NiSenti</Text>
+                  <Text style={styles.actionButtonText}>{t.chargeNiSenti}</Text>
                 </TouchableOpacity>
               ) : (
                 <TouchableOpacity onPress={() => manualClearPayment(activeRide)} style={[styles.actionButton, { backgroundColor: '#f39c12' }]}>
-                  <Text style={styles.actionButtonText}>Forward</Text>
+                  <Text style={styles.actionButtonText}>{t.forward}</Text>
                 </TouchableOpacity>
               )
             )}
@@ -1327,9 +1581,17 @@ export default function RiderRideRequestScreen() {
         ) : null}
       </View>
 
-    
-    
-    
+      {cardsCollapsed && (
+        <TouchableOpacity
+          style={styles.floatingShowCardsBtn}
+          onPress={() => setCardsCollapsed(false)}
+          activeOpacity={0.9}
+        >
+          <Text style={styles.floatingShowCardsText}>{t.viewRideDetails}</Text>
+        </TouchableOpacity>
+      )}
+
+      {!cardsCollapsed && (
       <Animated.View style={{
       position: 'absolute',
       bottom: 0,
@@ -1341,10 +1603,19 @@ export default function RiderRideRequestScreen() {
       paddingTop: 6,
       paddingHorizontal: 6
     }}>
+
+      <TouchableOpacity
+        style={styles.cardsHideBtn}
+        onPress={() => setCardsCollapsed(true)}
+        activeOpacity={0.9}
+      >
+        <Text style={styles.cardsHideBtnText}>{t.hide}</Text>
+      </TouchableOpacity>
       
       <FlatList style={{
         flexGrow: 0
       }} contentContainerStyle={{
+        paddingTop: 26,
         paddingBottom: 12
       }} ref={carouselRef} data={rides.filter(r => r.rideStatus !== 'Cancelled' && r.paymentStatus !== 'Cleared')} extraData={rideMetricsTick} // ← important!
       horizontal keyExtractor={item => item.id} showsHorizontalScrollIndicator={false} onViewableItemsChanged={onViewableItemsChanged} viewabilityConfig={viewabilityConfigRef.current} renderItem={({
@@ -1355,38 +1626,37 @@ export default function RiderRideRequestScreen() {
         const {
           rideStatus
         } = item;
-        let distanceText = '';
         let costText = '';
-        // Always use OSRM road distance between pickup and destination for cost
-        const roadDist = pickupToDestRoadDistance[item.id];
-        const est = roadDist != null ? Math.round((item.riderRate || 0) * roadDist) : 0;
-        // Always show OSRM road distance for cost
-        costText = `${formatAmountSync(est, natCode, ratesMap || {})}`;
-        if (tripStarted && isSelected) {
-          const distance = cumulativeDistanceRef.current[item.id] ?? 0;
-          distanceText = `Distance: ${distance.toFixed(2)} km`;
-        } else if (isSelected && rideStatus !== 'Active') {
-          if (riderToPickupRoadDistance[item.id] != null) {
-            distanceText = `Distance to pickup: ${riderToPickupRoadDistance[item.id].toFixed(2)} km`;
-          }
-          costText = `Approx cost: ${formatAmountSync(est, natCode, ratesMap || {})}`;
+        const fallbackRouteDist = getDistanceKm(item.pickupLatitude, item.pickupLongitude, item.destinationLatitude, item.destinationLongitude);
+        const routeDistanceNum = pickupToDestRoadDistance[item.id] ?? fallbackRouteDist;
+        const riderRate = Number(item.riderRate || 0);
+        const routeFare = Math.round(riderRate * routeDistanceNum);
+        const baseDistance = backendDistanceBaseRef.current[item.id] ?? Number(item.distance || 0);
+        const liveDistanceNum = baseDistance + (cumulativeDistanceRef.current[item.id] ?? 0);
+        const liveFare = Math.round(riderRate * liveDistanceNum);
+        const hasTripStartedForCard = rideStatus === 'Active';
+        costText = `${formatAmountSync(routeFare, natCode, ratesMap || {})}`;
+        if (isSelected && rideStatus !== 'Active') {
+          costText = `${t.approxCost}: ${formatAmountSync(routeFare, natCode, ratesMap || {})}`;
         } else if (riderToPickupRoadDistance[item.id] != null && rideStatus === 'TransportApproved') {
-          distanceText = `Distance to pickup: ${riderToPickupRoadDistance[item.id].toFixed(2)} km`;
-          costText = `Estimated cost: ${formatAmountSync(est, natCode, ratesMap || {})}`;
+          costText = `${t.estimatedCost}: ${formatAmountSync(routeFare, natCode, ratesMap || {})}`;
         }
-        // Only show OSRM road distance for pickup->destination
-        let routeDistanceText = '';
-        if (pickupToDestRoadDistance[item.id] != null) {
-          routeDistanceText = `Route distance: ${pickupToDestRoadDistance[item.id].toFixed(2)} km`;
-        } else {
-          routeDistanceText = `Route distance: ${(item.distance ?? 0).toFixed(2)} km`;
-        }
+        // Show route distance always; show live trip distance only after trip starts
+        const routeDistanceValue = routeDistanceNum.toFixed(2);
+        const routeDistanceText = `${t.routeDistance}: ${routeDistanceValue} km`;
+        const compactProgressLiveText = `${liveDistanceNum.toFixed(2)} km`;
+        const compactProgressRouteText = `${routeDistanceValue} km`;
+        const compactRateText = `${formatAmountSync(riderRate, natCode, ratesMap || {})}/km`;
+        const compactFareLiveText = `${formatAmountSync(liveFare, natCode, ratesMap || {})}`;
+        const compactFareRouteText = `${formatAmountSync(routeFare, natCode, ratesMap || {})}`;
         return <View key={item.id} style={{
           backgroundColor: '#fff',
           marginHorizontal: 8,
-          padding: 10,
+          paddingHorizontal: 10,
+          paddingVertical: 7,
           borderRadius: 10,
           width: SCREEN_WIDTH * 0.88,
+          justifyContent: 'center',
           shadowColor: '#000',
           shadowOffset: {
             width: 0,
@@ -1398,23 +1668,43 @@ export default function RiderRideRequestScreen() {
           borderColor: isSelected ? '#1f8ef1' : 'transparent',
           borderWidth: isSelected ? 2 : 0
         }}>
-                <TouchableOpacity onPress={() => focusOnRide(item, index)} activeOpacity={0.9}>
+                <TouchableOpacity onPress={() => focusOnRide(item, index)} activeOpacity={0.9} style={{ alignItems: 'center' }}>
                   <Text style={{
               fontWeight: '700',
-              fontSize: 16
+              fontSize: 16,
+              textAlign: 'center'
             }}>{item.passengerContact}</Text>
-                  <Text>Status: {rideStatus} {item.paymentStatus ? `| ${item.paymentStatus}` : ''}</Text>
-                  {/* Route distance between pickup and destination: show both OSRM and radius */}
-                  <Text>{routeDistanceText}</Text>
-                  {distanceText ? <Text>{distanceText} || {costText}</Text> : <Text>{costText}</Text>}
+                  <Text style={{ textAlign: 'center' }}>{t.statusLabel}: {rideStatus} {item.paymentStatus ? `| ${item.paymentStatus}` : ''}</Text>
+                  {hasTripStartedForCard ? (
+                    <Text style={{ textAlign: 'center' }}>
+                      <Text style={{ color: '#17803d', fontWeight: '700' }}>{compactProgressLiveText}</Text>
+                      <Text style={{ color: '#e58d29', fontWeight: '900' }}> {t.of} </Text>
+                      <Text style={{ color: '#0b63c7', fontWeight: '700' }}>{compactProgressRouteText}</Text>
+                      <Text style={{ color: '#444', fontWeight: '700' }}> @ {compactRateText}</Text>
+                    </Text>
+                  ) : (
+                    <Text style={{ textAlign: 'center' }}>
+                      <Text style={{ color: '#0b63c7', fontWeight: '700' }}>{routeDistanceText}</Text>
+                    </Text>
+                  )}
+                  {hasTripStartedForCard ? (
+                    <Text style={{ textAlign: 'center' }}>
+                      <Text style={{ color: '#17803d', fontWeight: '700' }}>{compactFareLiveText}</Text>
+                      <Text style={{ color: '#e58d29', fontWeight: '900' }}> {t.of} </Text>
+                      <Text style={{ color: '#0b63c7', fontWeight: '700' }}>{compactFareRouteText}</Text>
+                    </Text>
+                  ) : (
+                    <Text style={{ textAlign: 'center' }}>{costText}</Text>
+                  )}
                 </TouchableOpacity>
 
-                <View style={{ marginTop: 10 }}>
-                  <Text style={{ color: '#666' }}>Select a ride to see actions above.</Text>
+                <View style={{ marginTop: 6, alignItems: 'center' }}>
+                  <Text style={{ color: '#666', textAlign: 'center' }}>{t.selectRideToSeeActions}</Text>
                 </View>
               </View>;
       }} />
       </Animated.View>
+      )}
     </View>;
 }
 
@@ -1440,5 +1730,115 @@ const styles = StyleSheet.create({
   actionButtonText: {
     color: '#fff',
     fontWeight: '700'
+  },
+  mapMarkerDot: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: '#fff',
+    elevation: 3,
+  },
+  riderMarkerDot: {
+    backgroundColor: '#1f8ef1',
+  },
+  pickupMarkerDot: {
+    backgroundColor: '#27ae60',
+  },
+  destinationMarkerDot: {
+    backgroundColor: '#9b59b6',
+  },
+  selectedRiderMarkerDot: {
+    backgroundColor: '#1f8ef1',
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+  },
+  selectedPickupMarkerDot: {
+    backgroundColor: '#27ae60',
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+  },
+  selectedDestinationMarkerDot: {
+    backgroundColor: '#9b59b6',
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+  },
+  mapTextOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 30,
+  },
+  mapTextChip: {
+    position: 'absolute',
+    fontSize: 11,
+    fontWeight: '700',
+    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    color: '#fff',
+    maxWidth: SCREEN_WIDTH * 0.42,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.45)',
+  },
+  riderTextChip: {
+    backgroundColor: '#1f8ef1',
+  },
+  pickupTextChip: {
+    backgroundColor: '#27ae60',
+  },
+  destinationTextChip: {
+    backgroundColor: '#9b59b6',
+  },
+  mapConnectorLine: {
+    position: 'absolute',
+    width: 2,
+    height: 12,
+    borderRadius: 1,
+  },
+  riderConnectorLine: {
+    backgroundColor: '#1f8ef1',
+  },
+  pickupConnectorLine: {
+    backgroundColor: '#27ae60',
+  },
+  destinationConnectorLine: {
+    backgroundColor: '#9b59b6',
+  },
+  cardsHideBtn: {
+    position: 'absolute',
+    top: 16,
+    right: 34,
+    zIndex: 20,
+    backgroundColor: '#eef5ff',
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
+  cardsHideBtnText: {
+    color: '#1f8ef1',
+    fontWeight: '700',
+    fontSize: 12,
+  },
+  floatingShowCardsBtn: {
+    position: 'absolute',
+    right: 14,
+    bottom: 18,
+    backgroundColor: '#1f8ef1',
+    borderRadius: 18,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    zIndex: 40,
+    elevation: 8,
+  },
+  floatingShowCardsText: {
+    color: '#fff',
+    fontWeight: '700',
+    fontSize: 12,
   }
 });

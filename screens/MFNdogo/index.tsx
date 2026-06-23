@@ -3,7 +3,7 @@ import { useNavigation } from '@react-navigation/native';
 import { View, Text, Pressable, SafeAreaView, StyleSheet, ScrollView } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 const KFNdogoScreen = () => {
-  const navigation = useNavigation();
+  const navigation = useNavigation<any>();
   const nav = (route: string) => () => navigation.navigate(route);
   const Section = ({
     title,
@@ -12,7 +12,7 @@ const KFNdogoScreen = () => {
   }: {
     title: string;
     children: React.ReactNode;
-    gradient: string[];
+    gradient: readonly [string, string, ...string[]];
   }) => <LinearGradient colors={gradient} style={styles.section}>
       <Text style={styles.sectionTitle}>{title}</Text>
       <View style={styles.buttonGroup}>{children}</View>

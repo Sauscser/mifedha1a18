@@ -15,6 +15,7 @@ import MFBankAdmin from "../../screens/MFBankAdmin";
 import { useTranslation } from 'react-i18next';
 
 import GlobalHeader from '../../src/componentx/GlobalHeader';
+import { useMainAccountGuard } from '../../src/contexts/MainAccountGuardContext';
 import { drawerTranslations } from '../../src/i18n/drawerTranslations';
 
 const Drawer = createDrawerNavigator();
@@ -37,6 +38,7 @@ const RedirectToHome = ({ navigation, route }: any) => {
 };
 
 const DrawerScreens = ({ user, signOut }: any) => {
+  const { restrictNavigation } = useMainAccountGuard();
   const { i18n } = useTranslation();
   const lang = i18n.language.split('-')[0];
   const drawer = drawerTranslations[lang] || drawerTranslations.en;
@@ -61,9 +63,11 @@ const DrawerScreens = ({ user, signOut }: any) => {
   return <Drawer.Navigator
     screenOptions={{
       headerShown: true,
-      header: () => <GlobalHeader user={user} signOut={signOut} />,
+      header: ({ navigation }) => <GlobalHeader navigation={navigation} user={user} signOut={signOut} />,
       drawerType: 'back',
-      edgeWidth: 40, // allow swipe to open
+      swipeEnabled: !restrictNavigation,
+      gestureEnabled: !restrictNavigation,
+      edgeWidth: restrictNavigation ? 0 : 40,
       drawerStyle: {
         width: 260, // restore normal drawer width
         shadowColor: 'transparent',

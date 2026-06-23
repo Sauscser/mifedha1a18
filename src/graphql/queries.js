@@ -4362,6 +4362,10 @@ export const getCombContractVoucher = /* GraphQL */ `
       sellerAccount
       consumerContact
       funderContact
+      sellerLatitude
+      sellerLongitude
+      buyerLatitude
+      buyerLongitude
       sellerName
       consumerName
       funderName
@@ -4427,6 +4431,10 @@ export const listCombContractVouchers = /* GraphQL */ `
         sellerAccount
         consumerContact
         funderContact
+        sellerLatitude
+        sellerLongitude
+        buyerLatitude
+        buyerLongitude
         sellerName
         consumerName
         funderName
@@ -7874,6 +7882,10 @@ export const byCOMBConsumer2 = /* GraphQL */ `
         sellerAccount
         consumerContact
         funderContact
+        sellerLatitude
+        sellerLongitude
+        buyerLatitude
+        buyerLongitude
         sellerName
         consumerName
         funderName
@@ -7948,6 +7960,10 @@ export const byCOMBFunder2 = /* GraphQL */ `
         sellerAccount
         consumerContact
         funderContact
+        sellerLatitude
+        sellerLongitude
+        buyerLatitude
+        buyerLongitude
         sellerName
         consumerName
         funderName
@@ -8022,6 +8038,10 @@ export const byCOMBSeller2 = /* GraphQL */ `
         sellerAccount
         consumerContact
         funderContact
+        sellerLatitude
+        sellerLongitude
+        buyerLatitude
+        buyerLongitude
         sellerName
         consumerName
         funderName

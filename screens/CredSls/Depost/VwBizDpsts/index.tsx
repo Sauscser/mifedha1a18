@@ -4,8 +4,13 @@ import NonLnRec from "../../../../components/MyAc/VwDeposits";
 import { getBizna, VwMyUsrDposits } from '../../../../src/graphql/queries';
 import { getCurrentUser, fetchUserAttributes } from 'aws-amplify/auth';
 import { generateClient } from 'aws-amplify/api';
+import { useTranslation } from 'react-i18next';
+import translations from './translation';
 const client = generateClient();
 const FetchSMNonLnsSnt = () => {
+  const { i18n } = useTranslation();
+  const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+  const t = translations[lang] || translations.en;
   const [loading, setLoading] = useState(false);
   const [allRecords, setAllRecords] = useState<any[]>([]);
   const [filteredRecords, setFilteredRecords] = useState<any[]>([]);
@@ -25,11 +30,11 @@ const FetchSMNonLnsSnt = () => {
       });
       const agentData = personnelCheck.data.getBizna;
       if (!agentData) {
-        Alert.alert("No such business exists");
+        Alert.alert(t.noSuchBusinessExists);
         return;
       }
       if (agentData.owner !== userInfo.userId) {
-        Alert.alert("Access Denied", "You dont own this business.");
+        Alert.alert(t.accessDeniedTitle, t.accessDeniedMessage);
         return;
       }
       const result: any = await client.graphql({
@@ -42,13 +47,13 @@ const FetchSMNonLnsSnt = () => {
       });
       const items = result.data.VwMyUsrDposits.items || [];
       if (items.length < 1) {
-        Alert.alert("No deposits made");
+        Alert.alert(t.noDepositsMade);
       }
       setAllRecords(items);
       setFilteredRecords(items);
     } catch (e) {
       console.log(e);
-      Alert.alert("Error fetching deposits. Please retry.");
+      Alert.alert(t.errorFetchingDeposits);
     } finally {
       setBizPhone('');
       setLoading(false);
@@ -64,16 +69,16 @@ const FetchSMNonLnsSnt = () => {
   }, [buyerFilter, allRecords]);
   return <View style={styles.container}>
       <View style={styles.inputBlock}>
-        <TextInput placeholder="My Full Business Number" value={bizPhone} onChangeText={setBizPhone} style={styles.input} />
+        <TextInput placeholder={t.myFullBusinessNumber} value={bizPhone} onChangeText={setBizPhone} style={styles.input} />
 
-        <TextInput placeholder="NSNdogo's Name. Even partially" value={buyerFilter} onChangeText={setBuyerFilter} style={styles.input} />
+        <TextInput placeholder={t.nsndogoNamePlaceholder} value={buyerFilter} onChangeText={setBuyerFilter} style={styles.input} />
       </View>
 
       <FlatList data={filteredRecords} renderItem={({
       item
     }) => <NonLnRec SMAc={item} />} keyExtractor={(item, index) => index.toString()} onRefresh={fetchLoanees} refreshing={loading} showsVerticalScrollIndicator={false} ListHeaderComponent={() => <>
-            <Text style={styles.label2}>(Please swipe down to reload)</Text>
-            <Text style={styles.label}>Business Deposits</Text>
+            <Text style={styles.label2}>{t.pleaseSwipeToReload}</Text>
+            <Text style={styles.label}>{t.businessDeposits}</Text>
           </>} />
     </View>;
 };

@@ -15,6 +15,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useSessionTimeout } from '../../src/contexts/SessionTimeoutProvider';
 import { useAuthenticator } from '../../src/contexts/AuthContext';
+import { useMainAccountGuard } from '../../src/contexts/MainAccountGuardContext';
 import { Animated as RNAnimated } from 'react-native';
 import messaging from '@react-native-firebase/messaging';
 import { View, Text, SafeAreaView, TouchableOpacity, StyleSheet, Pressable, Dimensions, Linking, Animated, Alert, Image, ActivityIndicator, ScrollView } from 'react-native';
@@ -39,6 +40,7 @@ const client = generateClient();
 const HomeScreen = () => {
     const { resetTimer } = useSessionTimeout();
     const { isSignedIn, user } = useAuthenticator();
+    const { setRestrictNavigation } = useMainAccountGuard();
     const { t } = useTranslation();
     const [, setRerender] = useState(0);
     const [i18nReady, setI18nReady] = useState(i18n.isInitialized && !!i18n.language);
@@ -87,9 +89,16 @@ const HomeScreen = () => {
     const [userPhotoUri, setUserPhotoUri] = useState<string | null>(null);
     const [userName, setUserName] = useState<string>("");
     const [photoLoading, setPhotoLoading] = useState(true);
+    const [photoRenderLoading, setPhotoRenderLoading] = useState(false);
     const [mainAccExists, setMainAccExists] = useState(false);
+    const [profileLoading, setProfileLoading] = useState(true);
+    const [overlayMessage, setOverlayMessage] = useState<string>("");
     const navigation = useNavigation();
     const hornAnim = useRef(new RNAnimated.Value(0)).current;
+
+    useEffect(() => {
+        setRestrictNavigation(profileLoading || photoRenderLoading);
+    }, [profileLoading, photoRenderLoading, setRestrictNavigation]);
 
     // Helper for company URLs (must be after setUrl/setUrl4 and before first use)
     const getCompUrls = async () => {
@@ -115,15 +124,18 @@ const HomeScreen = () => {
             setPhotoLoading(true);
             setUserName(name || "User");
             if (photoKey && photoKey !== 'None') {
+                setPhotoRenderLoading(true);
                 const signedUrl: any = await getUrl({ key: photoKey });
                 const photoUrl = signedUrl.url.toString();
                 setUserPhotoUri(photoUrl);
             } else {
                 setUserPhotoUri(null);
+                setPhotoRenderLoading(false);
             }
         } catch (photoErr) {
             console.log('Error fetching user photo URL:', photoErr);
             setUserPhotoUri(null);
+            setPhotoRenderLoading(false);
         } finally {
             setPhotoLoading(false);
         }
@@ -153,7 +165,9 @@ const HomeScreen = () => {
         }, [hornAnim]);
     useEffect(() => {
         const init = async () => {
+            setProfileLoading(true);
             try {
+                setOverlayMessage(screenT.checkingUserAccount);
                 const attributes = await fetchUserAttributes();
                 getCompUrls();
                 const email = attributes.email;
@@ -170,16 +184,16 @@ const HomeScreen = () => {
                 const mainAccExists = (userDtls as any).data.getSMAccount;
                 const noteDtls = (note as any).data.getNotification;
 
-                // ================= FETCH USER PHOTO =================
-                if (mainAccExists) {
-                    setMainAccExists(true);
-                    await loadUserPhoto(mainAccExists.photoPassport, mainAccExists.name);
-                } else {
+                if (!mainAccExists) {
                     setPhotoLoading(false);
-                    // Navigate to WelcomePgss (T&CAcceptanceForm) if no main account exists
+                    setOverlayMessage(screenT.proceedToCreateMainAccount);
                     navigation.navigate('WelcomePgss');
                     return;
                 }
+
+                setMainAccExists(true);
+                setOverlayMessage(screenT.loadingUserProfile);
+                await loadUserPhoto(mainAccExists.photoPassport, mainAccExists.name);
 
                 // Refresh FCM token every time HomeScreen renders
                 const permissionGranted = await requestUserPermission();
@@ -188,7 +202,7 @@ const HomeScreen = () => {
                     return;
                 }
                 const token = await getFcmToken();
-                if (mainAccExists && noteDtls) {
+                if (noteDtls) {
                     await client.graphql({
                         query: updateNotification,
                         variables: {
@@ -198,19 +212,7 @@ const HomeScreen = () => {
                             }
                         }
                     });
-                }
-                if (mainAccExists && !noteDtls) {
-                    await client.graphql({
-                        query: createNotification,
-                        variables: {
-                            input: {
-                                awsemail: email,
-                                firebaseKey: token
-                            }
-                        }
-                    });
-                }
-                if (!mainAccExists && !noteDtls) {
+                } else {
                     await client.graphql({
                         query: createNotification,
                         variables: {
@@ -223,6 +225,9 @@ const HomeScreen = () => {
                 }
             } catch (error) {
                 console.error("Error initializing HomeScreen:", error);
+                setOverlayMessage(screenT.accountLoadFailed);
+            } finally {
+                setProfileLoading(false);
             }
         };
         init();
@@ -297,9 +302,11 @@ const HomeScreen = () => {
                                 <Image
                                     source={{ uri: userPhotoUri }}
                                     style={styles.userPhoto}
+                                    onLoad={() => setPhotoRenderLoading(false)}
                                     onError={() => {
                                         console.log('Image failed to load');
                                         setUserPhotoUri(null);
+                                        setPhotoRenderLoading(false);
                                     }}
                                 />
                             ) : (
@@ -384,6 +391,14 @@ const HomeScreen = () => {
                     </View>
                 </LinearGradient>
             </ScrollView>
+            {(profileLoading || photoRenderLoading) && (
+                <View style={styles.loadingOverlay} pointerEvents="auto">
+                    <View style={styles.loadingOverlayContent}>
+                        <ActivityIndicator size="large" color="#ffffff" />
+                        <Text style={styles.loadingOverlayText}>{overlayMessage || 'Loading profile...'}</Text>
+                    </View>
+                </View>
+            )}
         </SafeAreaView>
     );
 };
@@ -462,6 +477,30 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         backgroundColor: 'rgba(0, 0, 0, 0.2)',
+    },
+    loadingOverlay: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: 'rgba(0,0,0,0.45)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        zIndex: 10,
+    },
+    loadingOverlayContent: {
+        padding: 20,
+        borderRadius: 14,
+        backgroundColor: 'rgba(0,0,0,0.7)',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    loadingOverlayText: {
+        marginTop: 12,
+        color: '#ffffff',
+        fontSize: 16,
+        fontWeight: '600',
     },
     quickRatesButtonContainer: {
         alignItems: 'center',

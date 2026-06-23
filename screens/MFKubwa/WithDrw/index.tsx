@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { createBankAdmWithdrawals, createFloatAdd, createFloatReduction, createSAgentWithdrawals, updateAgent, updateCompany, updateSAgent, updateSMAccount } from '../../../src/graphql/mutations';
+import {  createFloatAdd, createFloatReduction, createSAgentWithdrawals, updateAgent, updateCompany, updateSAgent, updateSMAccount } from '../../../src/graphql/mutations';
 import { getAgent, getBankAdmin, getCompany, getSAgent, getSMAccount } from '../../../src/graphql/queries';
 import { View, Text, TextInput, ScrollView, ActivityIndicator, TouchableOpacity, Alert } from 'react-native';
 import styles from './styles';

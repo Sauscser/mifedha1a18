@@ -6114,6 +6114,10 @@ export const createCombContractVoucher = /* GraphQL */ `
       sellerAccount
       consumerContact
       funderContact
+      sellerLatitude
+      sellerLongitude
+      buyerLatitude
+      buyerLongitude
       sellerName
       consumerName
       funderName
@@ -6173,6 +6177,10 @@ export const updateCombContractVoucher = /* GraphQL */ `
       sellerAccount
       consumerContact
       funderContact
+      sellerLatitude
+      sellerLongitude
+      buyerLatitude
+      buyerLongitude
       sellerName
       consumerName
       funderName
@@ -6232,6 +6240,10 @@ export const deleteCombContractVoucher = /* GraphQL */ `
       sellerAccount
       consumerContact
       funderContact
+      sellerLatitude
+      sellerLongitude
+      buyerLatitude
+      buyerLongitude
       sellerName
       consumerName
       funderName

@@ -28,9 +28,11 @@ type Props = {
   clearOnSelect?: boolean;
   value?: string;
   onValueChange?: (val: string) => void;
+  loadingText?: string;
 };
 export default function GooglePlacesAutocompleteNew({
   placeholder = 'Search location',
+  loadingText = 'Searching…',
   onPlaceSelected,
   minLength = 2,
   debounceMs = 300,
@@ -117,7 +119,7 @@ export default function GooglePlacesAutocompleteNew({
 
       {loading ? <View style={styles.loadingRow}>
           <ActivityIndicator size="small" />
-          <Text style={styles.loadingTxt}>Searching…</Text>
+          <Text style={styles.loadingTxt}>{loadingText}</Text>
         </View> : null}
 
       {predictions.length > 0 && <FlatList keyboardShouldPersistTaps="handled" data={predictions} keyExtractor={item => item.place_id} style={[styles.list, listStyle]} renderItem={({

@@ -10,6 +10,8 @@ import { nationalityToCode } from '../../../../src/utils/nationalityToCode';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { View, Text, TextInput, ScrollView, StyleSheet, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
+import { useTranslation } from 'react-i18next';
+import translations from './translation';
 export type UserReg = {
   usr: String;
 };
@@ -18,6 +20,9 @@ const CreateChama = (props: UserReg) => {
   const {
     usr
   } = props;
+  const { i18n } = useTranslation();
+  const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+  const t = translations[lang] || translations.en;
   const navigation = useNavigation();
   const [ChmPhn, setChmPhn] = useState('');
   const [nam, setName] = useState('');
@@ -70,7 +75,7 @@ const CreateChama = (props: UserReg) => {
 
             const prodCostInput = parseFloat(Sign2Phn);
             if (!prodCostInput || prodCostInput <= 0) {
-              Alert.alert('Enter a valid product cost');
+              Alert.alert(t.invalidProductCost);
               setIsLoading(false);
               return;
             }
@@ -80,7 +85,7 @@ const CreateChama = (props: UserReg) => {
 
             const prodCostKes = await convertForeignToKsh(prodCostInput, userCode);
             if (!prodCostKes || prodCostKes <= 0) {
-              Alert.alert('Unable to convert product cost. Please try again.');
+              Alert.alert(t.unableToConvertProductCost);
               setIsLoading(false);
               return;
             }
@@ -105,23 +110,23 @@ const CreateChama = (props: UserReg) => {
               });
 
               const formattedCost = formatAmountSync(prodCostKes, userCode, ratesMap);
-              Alert.alert('Success', `Product created successfully. Cost: ${formattedCost}`);
+              Alert.alert(t.success, `${t.productCreated} ${formattedCost}`);
             } catch (error) {
               console.log(error);
-              Alert.alert('Error! Access denied!');
+              Alert.alert(t.accessDenied);
               return;
             }
             setIsLoading(false);
           };
           if (pwsz !== pword) {
-            Alert.alert('Wrong Admin password');
+            Alert.alert(t.wrongAdminPassword);
           } else if (ownerz === userInfo.userId || admins.includes(attributes.email)) {
             await onCreateNewSMAc();
           } else {
-            Alert.alert('You are Neither the Creator/Admin of this business');
+            Alert.alert(t.neitherCreatorAdmin);
           }
         } catch (error) {
-          Alert.alert('Error! Create a business first!');
+          Alert.alert(t.createBusinessFirst);
           return;
         }
         setIsLoading(false);
@@ -129,7 +134,7 @@ const CreateChama = (props: UserReg) => {
       await PckBiznaDtls();
     } catch (e) {
       console.error(e);
-      Alert.alert('Error! Access denied!');
+      Alert.alert(t.accessDenied);
       return;
     }
     setIsLoading(false);
@@ -148,21 +153,21 @@ const CreateChama = (props: UserReg) => {
                             <ScrollView>
         
                   <View style={styles.formContainer}>
-                    <TextInput placeholder="Business Phone Number" value={ChmRegNo} onChangeText={setChmRegNo} style={styles.input} editable={true}></TextInput>
+                    <TextInput placeholder={t.businessPhoneNumber} value={ChmRegNo} onChangeText={setChmRegNo} style={styles.input} editable={true}></TextInput>
                     
-                    <TextInput placeholder="Product Name" value={ChmPhn} onChangeText={setChmPhn} style={styles.input} editable={true}></TextInput>
+                    <TextInput placeholder={t.productName} value={ChmPhn} onChangeText={setChmPhn} style={styles.input} editable={true}></TextInput>
                    
                  
-                    <TextInput placeholder="Product Description" value={ChmDesc} onChangeText={setChmDesc} style={styles.input} editable={true} multiline={true} // Enables multi-line input
+                    <TextInput placeholder={t.productDescription} value={ChmDesc} onChangeText={setChmDesc} style={styles.input} editable={true} multiline={true} // Enables multi-line input
           textAlignVertical="top">
                         
                       </TextInput>
                     
-                    <TextInput placeholder="Enter Product Cost" value={Sign2Phn} onChangeText={setSign2Phn} keyboardType={"decimal-pad"} style={styles.input} editable={true}></TextInput>
+                    <TextInput placeholder={t.productCost} value={Sign2Phn} onChangeText={setSign2Phn} keyboardType={"decimal-pad"} style={styles.input} editable={true}></TextInput>
                    
 
                    <View style={styles.passwordContainer}>
-                                                                 <TextInput placeholder="Admin Main Account Password" style={styles.passwordInput} value={pword} onChangeText={setPW} secureTextEntry={!isPasswordVisible} placeholderTextColor="#ccc" />
+                                                                 <TextInput placeholder={t.adminPassword} style={styles.passwordInput} value={pword} onChangeText={setPW} secureTextEntry={!isPasswordVisible} placeholderTextColor="#ccc" />
                                                                <TouchableOpacity onPress={() => setIsPasswordVisible(!isPasswordVisible)}>
                                                               <Ionicons name={isPasswordVisible ? 'eye' : 'eye-off'} size={24} color="gray" />
                                                                </TouchableOpacity>
@@ -170,7 +175,7 @@ const CreateChama = (props: UserReg) => {
                      
                                                               
                   <TouchableOpacity onPress={ChckUsrExistence} style={styles.button}>
-                    {isLoading ? <ActivityIndicator color="#fff" /> : <Text style={styles.locationText}>Submit</Text>}
+                    {isLoading ? <ActivityIndicator color="#fff" /> : <Text style={styles.locationText}>{t.submit}</Text>}
                                           </TouchableOpacity>
                                         </View>
                                       </ScrollView>

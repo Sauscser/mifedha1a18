@@ -1,8 +1,11 @@
 // @ts-nocheck
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useIsFocused } from '@react-navigation/native';
 import translations from './translation';
-import { View, Text, FlatList, ActivityIndicator, Alert, Pressable, StyleSheet } from 'react-native';
+import { View, Text, FlatList, ActivityIndicator, Alert, Modal, Pressable, StyleSheet, Dimensions } from 'react-native';
+import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
+import { buildOsrmRouteUrl } from '../../../src/config/osrm';
 import { generateClient } from 'aws-amplify/api';
 import { getCurrentUser, fetchUserAttributes } from 'aws-amplify/auth';
 import { listCombContractVouchers, getSMAccount, getBizna, getCompany, getCombContract } from '../../../src/graphql/queries';
@@ -17,12 +20,15 @@ const VoucherCard = ({
   voucher,
   onClear,
   onDecline,
+  onOpenMap,
   loadingMap
 }: any) => {
   const { nationality, ratesMap } = useExchange();
   const { i18n } = useTranslation();
   const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
   const t = translations[lang] || translations.en;
+  const buyerProximityLabel = t.buyerProximity || 'Buyer Proximity';
+  const viewOnMapLabel = t.viewOnMap || 'View on map';
   const isClearing = loadingMap[voucher.id]?.clearing;
   const isDeclining = loadingMap[voucher.id]?.declining;
   const sellerNat = voucher.sellerNationality || nationality;
@@ -31,6 +37,28 @@ const VoucherCard = ({
   const funderCode = nationalityToCode(funderNat);
   const unitPrice = Number(voucher.itemPrice);
   const totalAmount = unitPrice * Number(voucher.numberOfItems);
+  const buyerProximityMeters = (() => {
+    const coords = [voucher.sellerLatitude, voucher.sellerLongitude, voucher.buyerLatitude, voucher.buyerLongitude];
+    if (coords.some(coord => coord === null || coord === undefined || coord === '')) {
+      return null;
+    }
+    const sellerLat = Number(voucher.sellerLatitude);
+    const sellerLng = Number(voucher.sellerLongitude);
+    const buyerLat = Number(voucher.buyerLatitude);
+    const buyerLng = Number(voucher.buyerLongitude);
+    if ([sellerLat, sellerLng, buyerLat, buyerLng].some(coord => Number.isNaN(coord))) {
+      return null;
+    }
+    const toRad = (deg: number) => deg * Math.PI / 180;
+    const dLat = toRad(buyerLat - sellerLat);
+    const dLng = toRad(buyerLng - sellerLng);
+    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.cos(toRad(sellerLat)) * Math.cos(toRad(buyerLat)) * Math.sin(dLng / 2) * Math.sin(dLng / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    const earthRadius = 6371000;
+    return Math.round(earthRadius * c);
+  })();
+  const buyerProximityKm = buyerProximityMeters !== null ? buyerProximityMeters / 1000 : null;
+  const hasMapCoordinates = buyerProximityMeters !== null;
   
   return <View style={styles.voucherCard}>
       <Text style={styles.title}>
@@ -42,7 +70,7 @@ const VoucherCard = ({
         <Text style={{ fontWeight: 'bold', marginBottom: 6 }}>💰 {t.priceInDifferentCurrencies}</Text>
         <Text>🏪 {t.sellerCurrency} ({sellerNat}): {formatAmountSync(unitPrice, sellerCode, ratesMap)}</Text>
         <Text>💳 {t.funderCurrency} ({funderNat}): {formatAmountSync(unitPrice, funderCode, ratesMap)}</Text>
-        <Text style={{ marginTop: 6, fontWeight: 'bold' }}>{t.totalAmountLabel}</Text>
+        <Text style={{ marginTop: 6, fontWeight: 'bold' }}>{t.totalAmount}</Text>
         <Text>🏪 {t.seller}: {formatAmountSync(totalAmount, sellerCode, ratesMap)}</Text>
         <Text>💳 {t.funder}: {formatAmountSync(totalAmount, funderCode, ratesMap)}</Text>
       </View>
@@ -66,6 +94,10 @@ const VoucherCard = ({
       <Text>{t.name}: {voucher.sellerName}</Text>
       <Text>{t.account}: {voucher.sellerAccount}</Text>
       <Text>{t.email}: {voucher.sellerEmail || '-'}</Text>
+      <Text>{buyerProximityLabel}: {buyerProximityKm !== null ? `${buyerProximityKm.toFixed(3)} km` : t.distanceUnavailable || 'Unavailable'}</Text>
+      {hasMapCoordinates ? <Pressable style={[styles.button, { backgroundColor: '#2e86de', marginTop: 10 }]} onPress={() => onOpenMap(voucher)}>
+          <Text style={styles.btnText}>{viewOnMapLabel}</Text>
+        </Pressable> : null}
 
       <Text style={styles.section}>{t.marketDeviations}</Text>
       <Text>
@@ -104,6 +136,7 @@ const VoucherCard = ({
 
 /* -------------------- Main Screen -------------------- */
 const FunderClearApprovedVoucherScreen = () => {
+  const isFocused = useIsFocused();
   const [vouchers, setVouchers] = useState<any[]>([]);
   const [parentMap, setParentMap] = useState<Record<string, any>>({});
   const [selectedVoucherId, setSelectedVoucherId] = useState<string | null>(null);
@@ -114,6 +147,92 @@ const FunderClearApprovedVoucherScreen = () => {
     clearing: boolean;
     declining: boolean;
   }>>({});
+  const [mapModalVisible, setMapModalVisible] = useState(false);
+  const [mapVoucher, setMapVoucher] = useState<any | null>(null);
+  const [routeCoords, setRouteCoords] = useState<Array<{ latitude: number; longitude: number }>>([]);
+  const [routeDistanceKm, setRouteDistanceKm] = useState<number | null>(null);
+  const [routeLoading, setRouteLoading] = useState(false);
+  const [routeError, setRouteError] = useState<string | null>(null);
+  const mapRef = useRef<any>(null);
+  const mapWindowHeight = Math.min(Dimensions.get('window').height * 0.7, 420);
+  const hasMapCoordinates = Boolean(mapVoucher && mapVoucher.sellerLatitude && mapVoucher.sellerLongitude && mapVoucher.buyerLatitude && mapVoucher.buyerLongitude);
+  const modalSellerLatitude = hasMapCoordinates ? Number(mapVoucher.sellerLatitude) : 0;
+  const modalSellerLongitude = hasMapCoordinates ? Number(mapVoucher.sellerLongitude) : 0;
+  const modalBuyerLatitude = hasMapCoordinates ? Number(mapVoucher.buyerLatitude) : 0;
+  const modalBuyerLongitude = hasMapCoordinates ? Number(mapVoucher.buyerLongitude) : 0;
+  const modalRegion = hasMapCoordinates ? {
+    latitude: (modalSellerLatitude + modalBuyerLatitude) / 2,
+    longitude: (modalSellerLongitude + modalBuyerLongitude) / 2,
+    latitudeDelta: Math.max(0.03, Math.abs(modalSellerLatitude - modalBuyerLatitude) * 1.6),
+    longitudeDelta: Math.max(0.03, Math.abs(modalSellerLongitude - modalBuyerLongitude) * 1.6)
+  } : undefined;
+
+  const openMapModal = (voucher: any) => {
+    setMapVoucher(voucher);
+    setMapModalVisible(true);
+  };
+
+  const closeMapModal = () => {
+    setMapModalVisible(false);
+    setMapVoucher(null);
+    setRouteCoords([]);
+    setRouteDistanceKm(null);
+    setRouteError(null);
+  };
+
+  const fitMapToRoute = () => {
+    if (!mapRef.current || !hasMapCoordinates) return;
+    const sellerPoint = { latitude: modalSellerLatitude, longitude: modalSellerLongitude };
+    const buyerPoint = { latitude: modalBuyerLatitude, longitude: modalBuyerLongitude };
+    const coordsToFit = routeCoords.length > 1 ? routeCoords : [sellerPoint, buyerPoint];
+    if (coordsToFit.length) {
+      try {
+        mapRef.current.fitToCoordinates(coordsToFit, {
+          edgePadding: { top: 80, right: 80, bottom: 80, left: 80 },
+          animated: true
+        });
+      } catch (e) {
+        // ignore fit errors
+      }
+    }
+  };
+
+  useEffect(() => {
+    const loadRoadRoute = async () => {
+      if (!hasMapCoordinates || !mapModalVisible || !mapVoucher) return;
+      setRouteLoading(true);
+      setRouteError(null);
+      try {
+        const sellerPos = { latitude: Number(mapVoucher.sellerLatitude), longitude: Number(mapVoucher.sellerLongitude) };
+        const buyerPos = { latitude: Number(mapVoucher.buyerLatitude), longitude: Number(mapVoucher.buyerLongitude) };
+        const url = buildOsrmRouteUrl(sellerPos, buyerPos, { overview: 'full', geometries: 'geojson' });
+        const res = await fetch(url);
+        const data = await res.json();
+        if (!data?.routes?.length) {
+          throw new Error('No route returned');
+        }
+        const route = data.routes[0];
+        const coords = route.geometry.coordinates.map((pair: [number, number]) => ({ latitude: pair[1], longitude: pair[0] }));
+        setRouteCoords(coords);
+        setRouteDistanceKm(route.distance != null ? Number(route.distance) / 1000 : null);
+      } catch (err: any) {
+        console.warn('FunderClearBill road route error', err);
+        setRouteCoords([]);
+        setRouteDistanceKm(null);
+        setRouteError(err?.message || 'Unable to load route');
+      } finally {
+        setRouteLoading(false);
+      }
+    };
+
+    loadRoadRoute();
+  }, [hasMapCoordinates, mapModalVisible, mapVoucher]);
+
+  useEffect(() => {
+    if (mapModalVisible) {
+      fitMapToRoute();
+    }
+  }, [mapModalVisible, routeCoords, hasMapCoordinates]);
   const { nationality, ratesMap } = useExchange();
   const { i18n } = useTranslation();
   const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
@@ -257,6 +376,12 @@ const FunderClearApprovedVoucherScreen = () => {
   useEffect(() => {
     fetchVouchers();
   }, []);
+
+  useEffect(() => {
+    if (isFocused) {
+      fetchVouchers();
+    }
+  }, [isFocused]);
 
   /* ---------------- Confirm Dialog ---------------- */
   const confirmAction = (voucher: any, action: 'Settle Bill' | 'Decline') => {
@@ -581,9 +706,9 @@ const FunderClearApprovedVoucherScreen = () => {
   }}>
       {loading && vouchers.length === 0 ? <ActivityIndicator size="large" /> : vouchers.length === 0 ? <Text style={{
       textAlign: 'center'
-    }}>{t.noApprovedVouchersFound}</Text> : <FlatList data={vouchers} keyExtractor={item => item.id} renderItem={({
+    }}>{t.noApprovedVouchers || t.noApprovedVouchersFound || 'No approved vouchers found.'}</Text> : <FlatList data={vouchers} keyExtractor={item => item.id} renderItem={({
       item
-    }) => <Pressable onPress={() => setSelectedVoucherId(item.id)}><VoucherCard voucher={item} loadingMap={loadingMap} onClear={v => confirmAction(v, t.settleBill)} onDecline={v => confirmAction(v, t.decline)} /></Pressable>} onEndReached={() => {
+    }) => <Pressable onPress={() => setSelectedVoucherId(item.id)}><VoucherCard voucher={item} loadingMap={loadingMap} onClear={v => confirmAction(v, t.settleBill)} onDecline={v => confirmAction(v, t.decline)} onOpenMap={openMapModal} /></Pressable>} onEndReached={() => {
       if (nextToken && !loading) fetchVouchers(nextToken);
     }} onEndReachedThreshold={0.5} contentContainerStyle={{
       paddingBottom: 150
@@ -602,6 +727,44 @@ const FunderClearApprovedVoucherScreen = () => {
               <Text style={{ textAlign: 'center', fontSize: 12 }}>💳 {t.funder}: {formatAmountSync(Number(remaining || 0), nationalityToCode(funderNat), ratesMap || undefined)}</Text>
             </View> : null;
       })()}
+      <Modal visible={mapModalVisible} animationType="slide" transparent>
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { height: mapWindowHeight }]}> 
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>{t.buyerProximity}</Text>
+              <Pressable style={styles.modalCloseButton} onPress={closeMapModal}>
+                <Text style={styles.modalCloseText}>{t.close || 'Close'}</Text>
+              </Pressable>
+            </View>
+            {hasMapCoordinates && mapVoucher ? <>
+                <View style={styles.routeInfoBar}>
+                  <Text style={styles.routeInfoText}>{routeLoading ? t.loadingRoute || 'Loading route…' : routeDistanceKm !== null ? `${t.roadDistance || 'Road distance:'} ${routeDistanceKm.toFixed(3)} km` : routeError || t.distanceUnavailable || 'Location unavailable'}</Text>
+                </View>
+                <MapView ref={mapRef} provider={PROVIDER_GOOGLE} style={styles.modalMap} initialRegion={modalRegion}>
+                  {routeCoords.length > 1 && <Polyline coordinates={routeCoords} strokeColor="#4a90e2" strokeWidth={4} zIndex={1} />}
+                  <Marker coordinate={{ latitude: modalSellerLatitude, longitude: modalSellerLongitude }} title={t.sellerMarker} description={mapVoucher.sellerName} pinColor="skyblue">
+                    <View style={styles.customMarkerContainer}>
+                      <View style={[styles.markerDot, { backgroundColor: 'skyblue' }]} />
+                      <View style={styles.markerLabelContainer}>
+                        <Text style={styles.markerLabel}>{t.sellerMarker}</Text>
+                      </View>
+                    </View>
+                  </Marker>
+                  <Marker coordinate={{ latitude: modalBuyerLatitude, longitude: modalBuyerLongitude }} title={t.buyerMarker} description={mapVoucher.consumerName} pinColor="#e29d58">
+                    <View style={styles.customMarkerContainer}>
+                      <View style={[styles.markerDot, { backgroundColor: '#e29d58' }]} />
+                      <View style={styles.markerLabelContainer}>
+                        <Text style={styles.markerLabel}>{t.buyerMarker}</Text>
+                      </View>
+                    </View>
+                  </Marker>
+                </MapView>
+              </> : <View style={styles.noCoordsContainer}>
+                <Text style={styles.noCoordsText}>{t.distanceUnavailable || 'Location unavailable'}</Text>
+              </View>}
+          </View>
+        </View>
+      </Modal>
     </View>;
 };
 const styles = StyleSheet.create({
@@ -629,6 +792,92 @@ const styles = StyleSheet.create({
   btnText: {
     color: 'white',
     fontWeight: 'bold'
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    justifyContent: 'center',
+    alignItems: 'center'
+  },
+  modalContent: {
+    width: '92%',
+    backgroundColor: 'white',
+    borderRadius: 14,
+    overflow: 'hidden'
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 12,
+    backgroundColor: '#f8f8f8',
+    borderBottomWidth: 1,
+    borderColor: '#ddd'
+  },
+  modalTitle: {
+    fontSize: 16,
+    fontWeight: '700'
+  },
+  modalCloseButton: {
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 6,
+    backgroundColor: '#2e86de'
+  },
+  modalCloseText: {
+    color: 'white',
+    fontWeight: '700'
+  },
+  modalMap: {
+    flex: 1,
+    width: '100%'
+  },
+  customMarkerContainer: {
+    alignItems: 'center'
+  },
+  markerDot: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: 'white',
+    shadowColor: '#000',
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    elevation: 3
+  },
+  markerLabelContainer: {
+    marginTop: 4,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    backgroundColor: 'rgba(0,0,0,0.65)'
+  },
+  markerLabel: {
+    color: 'white',
+    fontSize: 11,
+    fontWeight: '700'
+  },
+  routeInfoBar: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    backgroundColor: 'rgba(255,255,255,0.92)',
+    borderBottomWidth: 1,
+    borderColor: '#ddd'
+  },
+  routeInfoText: {
+    color: '#333',
+    fontSize: 13,
+    fontWeight: '700'
+  },
+  noCoordsContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center'
+  },
+  noCoordsText: {
+    color: '#666',
+    fontSize: 15
   }
 });
 export default FunderClearApprovedVoucherScreen;

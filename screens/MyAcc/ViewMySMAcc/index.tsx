@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { View, Text, ImageBackground, Pressable, FlatList, Alert } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import LnerStts from "../../../components/MyAc/ViewAc";
 import styles from './styles';
 import { getSMAccount, listSMAccounts } from '../../../src/graphql/queries';
@@ -9,6 +10,7 @@ import { useTranslation } from 'react-i18next';
 import translations from './translation';
 const client = generateClient();
 const FetchSMNonCovLns = props => {
+    const navigation = useNavigation();
     const { i18n } = useTranslation();
     const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
     const t = translations[lang] || translations.en;
@@ -56,6 +58,7 @@ const FetchSMNonCovLns = props => {
       };
       if (userInfo.userId !== owner) {
         Alert.alert(t.createMainAccount);
+        navigation.navigate('WelcomePgss');
         return;
       } else {
         await fetchLoanees();
@@ -64,6 +67,7 @@ const FetchSMNonCovLns = props => {
       console.log(e);
       if (e) {
         Alert.alert(t.createMainAccountHome);
+        navigation.navigate('WelcomePgss');
       }
       return;
     } finally {

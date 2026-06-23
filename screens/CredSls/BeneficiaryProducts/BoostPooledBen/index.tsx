@@ -9,8 +9,13 @@ import { useExchange } from '../../../../src/contexts/ExchangeContext';
 import { nationalityToCode } from '../../../../src/utils/nationalityToCode';
 import { View, Text, ImageBackground, Pressable, TextInput, ScrollView, KeyboardAvoidingView, Platform, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
 import styles from './styles';
+import { useTranslation } from 'react-i18next';
+import translations from './translation';
 const client = generateClient();
 const SMASendNonLns = (props: any) => {
+  const { i18n } = useTranslation();
+  const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+  const t = translations[lang] || translations.en;
   const [SenderNatId, setSenderNatId] = useState('');
   const [RecNatId, setRecNatId] = useState('');
   const [SnderPW, setSnderPW] = useState('');
@@ -54,14 +59,14 @@ const SMASendNonLns = (props: any) => {
 
           const amountInput = parseFloat(amounts);
           if (!amountInput || amountInput <= 0) {
-            Alert.alert('Enter a valid amount');
+            Alert.alert(t.enterValidAmount);
             setIsLoading(false);
             return;
           }
 
           const amountKes = await convertForeignToKsh(amountInput, userCode);
           if (!amountKes || amountKes <= 0) {
-            Alert.alert('Unable to convert amount. Please try again.');
+            Alert.alert(t.unableToConvert);
             setIsLoading(false);
             return;
           }
@@ -91,7 +96,7 @@ const SMASendNonLns = (props: any) => {
                 }
               });
             } catch (error) {
-              Alert.alert('Boost unsuccessful; Retry');
+              Alert.alert(t.boostUnsuccessful);
               return;
             }
             setIsLoading(false);
@@ -112,7 +117,7 @@ const SMASendNonLns = (props: any) => {
                 }
               });
             } catch (error) {
-              Alert.alert('Error! Enter details correctly');
+              Alert.alert(t.errorEnterDetails);
               return;
             }
             setIsLoading(false);
@@ -135,23 +140,23 @@ const SMASendNonLns = (props: any) => {
                 }
               });
             } catch (error) {
-              Alert.alert('Check your internet connection');
+              Alert.alert(t.checkInternet);
               return;
             }
             const formattedAmount = formatAmountSync(amountKes, userCode, ratesMap);
             const formattedFee = formatAmountSync((UsrTransferFee * amountKes), userCode, ratesMap);
-            Alert.alert('Success', 'Boost of Amount: ' + formattedAmount + ' successful. Fees: ' + formattedFee);
+            Alert.alert(t.successBoost, t.boostOfAmount + ' ' + formattedAmount + ' ' + t.successBoost + '. ' + 'Fees: ' + formattedFee);
           };
           if (status !== 'AccountActive') {
-            Alert.alert('Your Account is not active');
+            Alert.alert(t.accountNotActive);
           } else if (parseFloat(netEarningss) < TotalTransacted) {
-            Alert.alert('Requested amount is more than you have in your account');
+            Alert.alert(t.requestedMoreThanBalance);
           } else if (noBL > 0) {
-            Alert.alert('Please first clear your lenders');
+            Alert.alert(t.clearLenders);
           } else if (usrPW !== SnderPW) {
-            Alert.alert('Wrong password');
+            Alert.alert(t.wrongPassword);
           } else if (userInfo.userId !== SenderSub) {
-            Alert.alert('You do not own this business');
+            Alert.alert(t.notOwner);
           } else {
             await sendSMNonLn();
           }
@@ -178,34 +183,34 @@ const SMASendNonLns = (props: any) => {
         <ScrollView>
          
           <View style={styles.amountTitleView}>
-            <Text style={styles.title}>Fill account Details Below</Text>
+            <Text style={styles.title}>{t.fillAccountDetails}</Text>
           </View>
           <View style={styles.sendAmtView}>
-            <TextInput placeholder="+2547xxxxxxxx" value={SenderNatId} onChangeText={setSenderNatId} style={styles.sendAmtInput} editable={true}></TextInput>
-            <Text style={styles.sendAmtText}>Business Phone</Text>
+            <TextInput placeholder={t.businessPhonePlaceholder} value={SenderNatId} onChangeText={setSenderNatId} style={styles.sendAmtInput} editable={true}></TextInput>
+            <Text style={styles.sendAmtText}>{t.businessPhone}</Text>
           </View>
           
           <View style={styles.sendAmtView}>
             <TextInput keyboardType={"decimal-pad"} value={amounts} onChangeText={setAmount} style={styles.sendAmtInput} editable={true}></TextInput>
-              
-            <Text style={styles.sendAmtText}>Amount Sent</Text>
+            
+            <Text style={styles.sendAmtText}>{t.amountSent}</Text>
           </View>
 
 
           <View style={styles.sendAmtView}>
             <TextInput value={SnderPW} onChangeText={setSnderPW} secureTextEntry={true} style={styles.sendAmtInput} editable={true}></TextInput>
-            <Text style={styles.sendAmtText}>Business PassWord</Text>
+            <Text style={styles.sendAmtText}>{t.businessPassword}</Text>
           </View>
 
           
 
           <View style={styles.sendAmtViewDesc}>
             <TextInput multiline={true} value={Desc} onChangeText={setDesc} style={styles.sendAmtInputDesc} editable={true}></TextInput>
-            <Text style={styles.sendAmtText}>Description</Text>
+            <Text style={styles.sendAmtText}>{t.description}</Text>
           </View>
 
           <TouchableOpacity onPress={fetchSenderUsrDtls} style={styles.sendAmtButton}>
-            <Text style={styles.sendAmtButtonText}>Send</Text>
+            <Text style={styles.sendAmtButtonText}>{t.send}</Text>
             {isLoading && <ActivityIndicator size="large" color="blue" />}
           </TouchableOpacity>
 

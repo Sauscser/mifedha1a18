@@ -1,0 +1,30 @@
+services:
+  osrm-prep:
+    image: osrm/osrm-backend:latest
+    container_name: osrm-prep
+    restart: "no"
+    volumes:
+      - ./data:/data
+    command: >
+      sh -c "
+        set -e;
+        if [ ! -f /data/region.osm.pbf ]; then
+          echo 'Missing /data/region.osm.pbf. Put your extract there first.';
+          exit 1;
+        fi;
+        osrm-extract -p /opt/car.lua /data/region.osm.pbf;
+        osrm-partition /data/region.osrm;
+        osrm-customize /data/region.osrm
+      "
+
+  osrm-routed:
+    image: osrm/osrm-backend:latest
+    container_name: osrm-routed
+    restart: unless-stopped
+    depends_on:
+      - osrm-prep
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./data:/data
+    command: osrm-routed --algorithm mld /data/region.osrm

@@ -1,16 +1,17 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { FontAwesome, Fontisto, MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
-import { Linking, TouchableOpacity } from 'react-native';
+import { Alert, Linking, TouchableOpacity } from 'react-native';
+import { useTranslation } from 'react-i18next';
+import { useMainAccountGuard } from '../../src/contexts/MainAccountGuardContext';
 
 import HomeTabNav from "../HomeTabNav";
-import FindKFNdogoLoc from '../../screens/MFNdogo/SignInMFN';
+import FindKFNdogoLoc from '../../screens/MFNdogo/SearchMFN';
 import MyAccount from '../../screens/MyAcc';
 import HowTo2 from "../../screens/HowTos";
 import SearchPal from '../../screens/MyAcc/LoanRequest/VwMakeLnReq';
-import Transport from '../../screens/Transport'
-import GoShopping from '../../screens/Ads/Search/SrchItemAd'
-import { useTranslation } from 'react-i18next';
+import Transport from '../../screens/Transport';
+import GoShopping from '../../screens/Ads/Search/SrchItemAd';
 
 
 const BottomTab = createBottomTabNavigator();
@@ -18,6 +19,17 @@ const BottomTab = createBottomTabNavigator();
 
 const HomeTabNavigator = () => {
   const { t, i18n } = useTranslation();
+  const { restrictNavigation } = useMainAccountGuard();
+
+  const handleBlockedNavigation = (e: any) => {
+    if (restrictNavigation) {
+      e.preventDefault();
+      Alert.alert(
+        t('appShell.guard.completeMainAccountTitle'),
+        t('appShell.guard.completeMainAccountSetup')
+      );
+    }
+  };
 
   // Helper for MiFedha brand translation (character-by-character)
   const mifedhaBrand = () => {
@@ -43,12 +55,15 @@ const HomeTabNavigator = () => {
         }}
         listeners={({ navigation }) => ({
           tabPress: e => {
-            try {
-              navigation.navigate('Home', { screen: 'Homeie' });
-            } catch (err) {
+            handleBlockedNavigation(e);
+            if (!restrictNavigation) {
               try {
-                navigation.jumpTo && navigation.jumpTo('Home');
-              } catch (e) {}
+                navigation.navigate('Home', { screen: 'Homeie' });
+              } catch (err) {
+                try {
+                  navigation.jumpTo && navigation.jumpTo('Home');
+                } catch (e) {}
+              }
             }
           },
         })}
@@ -63,6 +78,7 @@ const HomeTabNavigator = () => {
           tabBarLabel: t('labels.ndogo'),
           tabBarIcon: ({ color }) => <FontAwesome name="map-marker" size={25} color={color} />,
         }}
+        listeners={{ tabPress: handleBlockedNavigation }}
       />
 
       {/* My Account */}
@@ -74,6 +90,7 @@ const HomeTabNavigator = () => {
           tabBarLabel: t('appShell.tabs.howTo'),
           tabBarIcon: ({ color }) => <FontAwesome name="youtube-play" size={25} color={color} />,
         }}
+        listeners={{ tabPress: handleBlockedNavigation }}
       />
 
       {/* Transport */}
@@ -85,6 +102,7 @@ const HomeTabNavigator = () => {
           tabBarLabel: t('appShell.tabs.transport'),
           tabBarIcon: ({ color }) => <MaterialIcons name="emoji-transportation" size={25} color={color} />,
         }}
+        listeners={{ tabPress: handleBlockedNavigation }}
       />
 
       {/* How To (Opens YouTube Channel) */}
@@ -96,6 +114,7 @@ const HomeTabNavigator = () => {
           tabBarLabel: t('appShell.tabs.goShopping'),
           tabBarIcon: ({ color }) => <FontAwesome name="map-marker" size={25} color={color} />,
         }}
+        listeners={{ tabPress: handleBlockedNavigation }}
       />
 
       {/* Search Pal */}
@@ -107,6 +126,7 @@ const HomeTabNavigator = () => {
           tabBarLabel: t('labels.pal'),
           tabBarIcon: ({ color }) => <FontAwesome name="search" size={25} color={color} />,
         }}
+        listeners={{ tabPress: handleBlockedNavigation }}
       />
     </BottomTab.Navigator>
   );

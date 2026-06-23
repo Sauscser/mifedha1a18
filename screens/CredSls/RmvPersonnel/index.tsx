@@ -7,8 +7,13 @@ import styles from './styles';
 import { updateBankAdmin } from '../../../src/graphql/mutations';
 import { getCurrentUser, fetchUserAttributes } from "aws-amplify/auth";
 import { generateClient } from "aws-amplify/api";
+import { useTranslation } from 'react-i18next';
+import translations from './translation';
 const client = generateClient();
 const DeregChmMmbr = props => {
+  const { i18n } = useTranslation();
+  const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+  const t = translations[lang] || translations.en;
   const navigation = useNavigation();
   const [SigntryPW, setSigntryPW] = useState("");
   const [ChmMmbrId, setChmMmbrId] = useState("");
@@ -54,24 +59,24 @@ const DeregChmMmbr = props => {
           });
         } catch (error) {
           if (error) {
-            Alert.alert("Removal unsuccessful; Retry");
+            Alert.alert(t.removalUnsuccessfulRetry);
             return;
           }
         }
         setIsLoading(false);
-        Alert.alert("Worker Removed");
+        Alert.alert(t.workerRemoved);
       };
       if (signitoryPWs !== pword) {
-        Alert.alert("Wrong Administrator password");
+        Alert.alert(t.wrongAdminPassword);
       } else if (owners !== userInfo.userId) {
-        Alert.alert("Not authorised to deregister worker");
+        Alert.alert(t.notAuthorisedDeregisterWorker);
       } else {
         updateChmMmbrAc();
       }
     } catch (error) {
       if (error) {
         console.log(error);
-        Alert.alert("Unsuccessful, retry");
+        Alert.alert(t.unsuccessfulRetry);
         return;
       }
     }
@@ -145,27 +150,27 @@ const DeregChmMmbr = props => {
                         <ScrollView>
                    
                           <View style={styles.loanTitleView}>
-                            <Text style={styles.title}>Fill Details Below</Text>
+                            <Text style={styles.title}>{t.fillDetailsBelow}</Text>
                           </View>
                 
                           <View style={styles.sendLoanView}>
-                            <TextInput placeholder="+2547xxxxxxxx" value={grpContact} onChangeText={setChmPhn} style={styles.sendLoanInput} editable={true}></TextInput>
-                            <Text style={styles.sendLoanText}>Business Phone</Text>
+                            <TextInput placeholder={t.businessPhonePlaceholder} value={grpContact} onChangeText={setChmPhn} style={styles.sendLoanInput} editable={true}></TextInput>
+                            <Text style={styles.sendLoanText}>{t.businessPhone}</Text>
                           </View>
         
                           <View style={styles.sendLoanView}>
                             <TextInput value={MmberId} onChangeText={setMmberId} style={styles.sendLoanInput} editable={true}></TextInput>
-                            <Text style={styles.sendLoanText}>Personnel Work ID</Text>
+                            <Text style={styles.sendLoanText}>{t.personnelWorkId}</Text>
                           </View>
         
                           <View style={styles.sendLoanView}>
                             <TextInput value={pword} onChangeText={setPW} secureTextEntry={true} style={styles.sendLoanInput} editable={true}></TextInput>
-                            <Text style={styles.sendLoanText}>Business AC PW</Text>
+                            <Text style={styles.sendLoanText}>{t.businessACPW}</Text>
                           </View>
         
                           <TouchableOpacity onPress={ftchChmDtls} style={styles.sendLoanButton}>
                             <Text style={styles.sendLoanButtonText}>
-                              Click to DeRegister
+                              {t.clickToDeregister}
                             </Text>
                             {isLoading && <ActivityIndicator size="large" color="blue" />}
                           </TouchableOpacity>

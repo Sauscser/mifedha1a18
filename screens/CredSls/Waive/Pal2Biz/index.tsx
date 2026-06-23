@@ -8,8 +8,13 @@ import { getCurrentUser, fetchUserAttributes } from "aws-amplify/auth";
 import { generateClient } from "aws-amplify/api";
 import { convertForeignToKsh } from '../../../../src/utils/exchange';
 import { nationalityToCode } from '../../../../src/utils/nationalityToCode';
+import { useTranslation } from 'react-i18next';
+import translations from './translation';
 const client = generateClient();
 const RepayCovSellerLnsss = props => {
+  const { i18n } = useTranslation();
+  const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+  const t = translations[lang] || translations.en;
   const [SnderPW, setSnderPW] = useState("");
   const [amounts, setAmount] = useState("");
   const [Desc, setDesc] = useState("");
@@ -25,7 +30,7 @@ const RepayCovSellerLnsss = props => {
       const RecAccountDtl: any = await client.graphql({
         query: getCovCreditSeller,
         variables: {
-          loanID: route.params.loanID
+          loanID: (route.params as any).loanID
         }
       });
       const amountExpectedBackWthClrncs = RecAccountDtl.data.getCovCreditSeller.amountExpectedBackWthClrnc;
@@ -68,7 +73,7 @@ const RepayCovSellerLnsss = props => {
       const LonBal1 = (netLnBal2 + parseFloat(clearanceAmts) + parseFloat(DefaultPenaltyCredSl2s)).toFixed(0);
       const amountInput = parseFloat(amounts);
       if (!Number.isFinite(amountInput) || amountInput <= 0) {
-        Alert.alert('Enter a valid amount');
+        Alert.alert(t.enterValidAmount);
         setIsLoading(false);
         return;
       }
@@ -77,7 +82,7 @@ const RepayCovSellerLnsss = props => {
       const userCode = nationalityToCode(rawNationality) || rawNationality || 'KE';
       const amountKes = await convertForeignToKsh(amountInput, userCode);
       if (!Number.isFinite(amountKes) || amountKes <= 0) {
-        Alert.alert('Unable to convert amount. Please try again.');
+        Alert.alert(t.unableConvertAmount);
         setIsLoading(false);
         return;
       }
@@ -168,7 +173,7 @@ const RepayCovSellerLnsss = props => {
                     } catch (error) {
                       console.log(error);
                       if (error) {
-                        Alert.alert("Waived unsuccessful; Retry");
+                        Alert.alert(t.waivedUnsuccessfulRetry);
                         return;
                       }
                     }
@@ -192,7 +197,7 @@ const RepayCovSellerLnsss = props => {
                       });
                     } catch (error) {
                       if (error) {
-                        Alert.alert("Waived unsuccessful; Retry");
+                        Alert.alert(t.waivedUnsuccessfulRetry);
                         return;
                       }
                     }
@@ -209,7 +214,7 @@ const RepayCovSellerLnsss = props => {
                         query: updateCovCreditSeller,
                         variables: {
                           input: {
-                            loanID: route.params.loanID,
+                            loanID: (route.params as any).loanID,
                             amountRepaid: (amountKes + parseFloat(amountrepaids)).toFixed(0),
                             lonBala: LoanBalz.toFixed(0),
                             amountExpectedBackWthClrnc: LoanBalz.toFixed(0),
@@ -221,8 +226,8 @@ const RepayCovSellerLnsss = props => {
                       });
                     } catch (error) {
                       console.log(error);
-                      if (error) {
-                        Alert.alert("Retry or update app or call customer care");
+                        if (error) {
+                        Alert.alert(t.retryUpdateCallSupport);
                         return;
                       }
                     }
@@ -242,9 +247,9 @@ const RepayCovSellerLnsss = props => {
                             senderPhn: buyerContact,
                             recPhn: sellerContacts,
                             RecName: SellerNames,
-                            loanId2: route.params.loanID,
-                            loanId1: "route.params.id",
-                            loanId3: "route.params.id",
+                            loanId2: (route.params as any).loanID,
+                            loanId1: (route.params as any).id,
+                            loanId3: (route.params as any).id,
                             SenderName: buyerNames,
                             amount: amountKes.toFixed(0),
                             description: Desc,
@@ -255,7 +260,7 @@ const RepayCovSellerLnsss = props => {
                       });
                     } catch (error) {
                       if (error) {
-                        Alert.alert("Waiver unsuccessful; Retry");
+                        Alert.alert(t.waivedUnsuccessfulRetry);
                         return;
                       }
                     }
@@ -279,7 +284,7 @@ const RepayCovSellerLnsss = props => {
                     } catch (error) {
                       console.log(error);
                       if (error) {
-                        Alert.alert("Retry or update app or call customer care");
+                        Alert.alert(t.retryUpdateCallSupport);
                         return;
                       }
                     }
@@ -306,7 +311,7 @@ const RepayCovSellerLnsss = props => {
                         return;
                       }
                     }
-                    Alert.alert("Cleared. ");
+                    Alert.alert(t.cleared);
                     setIsLoading(false);
                   };
                   const repyCovLn = async () => {
@@ -319,7 +324,7 @@ const RepayCovSellerLnsss = props => {
                         query: updateCovCreditSeller,
                         variables: {
                           input: {
-                            loanID: route.params.loanID,
+                            loanID: (route.params as any).loanID,
                             amountRepaid: (amountKes + parseFloat(amountrepaids)).toFixed(0),
                             lonBala: LoanBalz.toFixed(0),
                             DefaultPenaltyCredSl2: 0,
@@ -330,8 +335,8 @@ const RepayCovSellerLnsss = props => {
                       });
                     } catch (error) {
                       console.log(error);
-                      if (error) {
-                        Alert.alert("Retry or update app or call customer care");
+                        if (error) {
+                          Alert.alert(t.retryUpdateCallSupport);
                         return;
                       }
                     }
@@ -351,9 +356,9 @@ const RepayCovSellerLnsss = props => {
                             recPhn: sellerContacts,
                             senderPhn: buyerContact,
                             RecName: SellerNames,
-                            loanId2: route.params.loanID,
-                            loanId1: "route.params.id",
-                            loanId3: "route.params.id",
+                            loanId2: (route.params as any).loanID,
+                            loanId1: (route.params as any).id,
+                            loanId3: (route.params as any).id,
                             SenderName: buyerNames,
                             amount: amountKes.toFixed(0),
                             description: Desc,
@@ -388,8 +393,8 @@ const RepayCovSellerLnsss = props => {
                       });
                     } catch (error) {
                       console.log(error);
-                      if (error) {
-                        Alert.alert("Retry or update app or call customer care");
+                        if (error) {
+                          Alert.alert(t.retryUpdateCallSupport);
                         return;
                       }
                     }
@@ -440,17 +445,17 @@ const RepayCovSellerLnsss = props => {
                         return;
                       }
                     }
-                    Alert.alert("Partially waived.");
+                    Alert.alert(t.partiallyWaived);
                     setIsLoading(false);
                   };
                   if (userInfo.userId !== owner) {
-                    Alert.alert("This is not your account");
+                    Alert.alert(t.thisIsNotYourAccount);
                     return;
                   } else if (ClranceAmt > amountKes) {
-                    Alert.alert("Too little amount waived: at least " + ClranceAmt.toFixed(2));
+                    Alert.alert(`${t.tooLittleWaivedPrefix} ${ClranceAmt.toFixed(2)}`);
                     return;
                   } else if (amountKes > parseFloat(LonBal1)) {
-                    Alert.alert("The Loan Balance is lesser: " + LonBal1);
+                    Alert.alert(`${t.loanBalanceIsLesserPrefix} ${LonBal1}`);
                   } else if (amountKes === parseFloat(LonBal1) && parseFloat(noBL) === parseFloat(maxBLss)) {
                     updtSendrAcLonOvr1();
                   } else if (amountKes === parseFloat(LonBal1) && parseFloat(noBL) > parseFloat(maxBLss)) {
@@ -528,27 +533,27 @@ const RepayCovSellerLnsss = props => {
         <ScrollView>
          
           <View style={styles.amountTitleView}>
-            <Text style={styles.title}>Fill account Details Below</Text>
+            <Text style={styles.title}>{t.fillAccountDetails}</Text>
           </View>
 
          
           <View style={styles.sendAmtView}>
             <TextInput keyboardType={"decimal-pad"} value={amounts} onChangeText={setAmount} style={styles.sendAmtInput} editable={true}></TextInput>
               
-            <Text style={styles.sendAmtText}>Amount Waived</Text>
+            <Text style={styles.sendAmtText}>{t.amountWaived}</Text>
           </View>
 
 
           
           <View style={styles.sendAmtViewDesc}>
             <TextInput multiline={true} value={Desc} onChangeText={setDesc} style={styles.sendAmtInputDesc} editable={true}></TextInput>
-            <Text style={styles.sendAmtText}>Description</Text>
+            <Text style={styles.sendAmtText}>{t.description}</Text>
           </View>
           
           
 
           <TouchableOpacity onPress={ftchCvdSMLn} style={styles.sendAmtButton}>
-            <Text style={styles.sendAmtButtonText}>Waive</Text>
+            <Text style={styles.sendAmtButtonText}>{t.waive}</Text>
             {isLoading && <ActivityIndicator size="large" color="blue" />}
           </TouchableOpacity>
 

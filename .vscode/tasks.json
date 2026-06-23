@@ -2,6 +2,79 @@
 	"version": "2.0.0",
 	"tasks": [
 		{
+			"label": "Amplify Status",
+			"type": "shell",
+			"command": "amplify",
+			"args": [
+				"status"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Amplify Push (Interactive)",
+			"type": "shell",
+			"command": "amplify",
+			"args": [
+				"push"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Amplify Push (--yes)",
+			"type": "shell",
+			"command": "amplify",
+			"args": [
+				"push",
+				"--yes"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Check OSRM Endpoint",
+			"type": "shell",
+			"command": "npm",
+			"args": [
+				"run",
+				"check:osrm"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "AWS OSRM Preflight",
+			"type": "shell",
+			"command": "npm",
+			"args": [
+				"run",
+				"aws:osrm:preflight"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "AWS OSRM Deploy Status",
+			"type": "shell",
+			"command": "npm",
+			"args": [
+				"run",
+				"aws:osrm:status"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Deploy Backend + Check OSRM",
+			"dependsOrder": "sequence",
+			"dependsOn": [
+				"Amplify Push (--yes)",
+				"Check OSRM Endpoint"
+			],
+			"problemMatcher": []
+		},
+		{
 			"label": "Build Android APK (release)",
 			"type": "shell",
 			"command": "gradlew",

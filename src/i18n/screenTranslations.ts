@@ -16,7 +16,11 @@ export const screenTranslations = {
     chamaProducts: 'Groups Products',
     businessProducts: 'Business Products',
     messages: 'Messages',
-    comb: 'Consume On My Bill'
+    comb: 'Consume On My Bill',
+    checkingUserAccount: 'Checking user account...',
+    proceedToCreateMainAccount: 'Proceeding to create Main Account...',
+    loadingUserProfile: 'Loading user profile...',
+    accountLoadFailed: 'Failed to load user account.'
     // Add more screens as needed
   },
   ar: {
@@ -35,7 +39,11 @@ export const screenTranslations = {
     chamaProducts: 'منتجات المجموعات',
     businessProducts: 'منتجات الأعمال',
     messages: 'الرسائل',
-    comb: 'استهلك على فاتورتي'
+    comb: 'استهلك على فاتورتي',
+    checkingUserAccount: 'جارٍ التحقق من حساب المستخدم...',
+    proceedToCreateMainAccount: 'المتابعة لإنشاء الحساب الرئيسي...',
+    loadingUserProfile: 'جارٍ تحميل ملف المستخدم...',
+    accountLoadFailed: 'فشل تحميل حساب المستخدم.'
   },
   zh: {
     home: '首页',
@@ -53,7 +61,11 @@ export const screenTranslations = {
     chamaProducts: '群组产品',
     businessProducts: '商业产品',
     messages: '消息',
-    comb: '在我的账单上消费'
+    comb: '在我的账单上消费',
+    checkingUserAccount: '正在检查用户帐户...',
+    proceedToCreateMainAccount: '正在继续创建主帐户...',
+    loadingUserProfile: '正在加载用户资料...',
+    accountLoadFailed: '无法加载用户帐户。'
   },
   ru: {
     home: 'Главная',
@@ -71,7 +83,11 @@ export const screenTranslations = {
     chamaProducts: 'Групповые продукты',
     businessProducts: 'Бизнес продукты',
     messages: 'Сообщения',
-    comb: 'Потратить по моему счету'
+    comb: 'Потратить по моему счету',
+    checkingUserAccount: 'Проверка учетной записи пользователя...',
+    proceedToCreateMainAccount: 'Переходим к созданию основной учетной записи...',
+    loadingUserProfile: 'Загрузка профиля пользователя...',
+    accountLoadFailed: 'Не удалось загрузить учетную запись пользователя.'
   },
   sw: {
     home: 'Nyumbani',
@@ -89,7 +105,11 @@ export const screenTranslations = {
     chamaProducts: 'Bidhaa za Vikundi',
     businessProducts: 'Bidhaa za Biashara',
     messages: 'Ujumbe',
-    comb: 'Tumia kwenye bili yangu'
+    comb: 'Tumia kwenye bili yangu',
+    checkingUserAccount: 'Kukagua akaunti ya mtumiaji...',
+    proceedToCreateMainAccount: 'Kuendelea kuunda Akaunti Kuu...',
+    loadingUserProfile: 'Inapakia wasifu wa mtumiaji...',
+    accountLoadFailed: 'Imeshindikana kupakia akaunti ya mtumiaji.'
   },
   fr: {
     home: 'Accueil',
@@ -107,7 +127,11 @@ export const screenTranslations = {
     chamaProducts: 'Produits de groupes',
     businessProducts: 'Produits d’entreprise',
     messages: 'Messages',
-    comb: 'Consommer sur ma facture'
+    comb: 'Consommer sur ma facture',
+    checkingUserAccount: 'Vérification du compte utilisateur...',
+    proceedToCreateMainAccount: 'Passage à la création du compte principal...',
+    loadingUserProfile: 'Chargement du profil utilisateur...',
+    accountLoadFailed: 'Échec du chargement du compte utilisateur.'
   },
   es: {
     home: 'Inicio',
@@ -125,7 +149,11 @@ export const screenTranslations = {
     chamaProducts: 'Productos de grupos',
     businessProducts: 'Productos de negocios',
     messages: 'Mensajes',
-    comb: 'Consumir en mi factura'
+    comb: 'Consumir en mi factura',
+    checkingUserAccount: 'Verificando la cuenta del usuario...',
+    proceedToCreateMainAccount: 'Procediendo a crear la cuenta principal...',
+    loadingUserProfile: 'Cargando el perfil del usuario...',
+    accountLoadFailed: 'Error al cargar la cuenta de usuario.'
   },
   de: {
     home: 'Startseite',
@@ -143,7 +171,11 @@ export const screenTranslations = {
     chamaProducts: 'Gruppenprodukte',
     businessProducts: 'Geschäftsprodukte',
     messages: 'Nachrichten',
-    comb: 'Auf meine Rechnung konsumieren'
+    comb: 'Auf meine Rechnung konsumieren',
+    checkingUserAccount: 'Überprüfung des Benutzerkontos...',
+    proceedToCreateMainAccount: 'Weiter zur Erstellung des Hauptkontos...',
+    loadingUserProfile: 'Benutzerprofil wird geladen...',
+    accountLoadFailed: 'Benutzerkonto konnte nicht geladen werden.'
   },
   pt: {
     home: 'Início',
@@ -161,7 +193,11 @@ export const screenTranslations = {
     chamaProducts: 'Produtos de grupos',
     businessProducts: 'Produtos de negócios',
     messages: 'Mensagens',
-    comb: 'Consumir na minha fatura'
+    comb: 'Consumir na minha fatura',
+    checkingUserAccount: 'Verificando a conta do usuário...',
+    proceedToCreateMainAccount: 'Avançando para criar a Conta Principal...',
+    loadingUserProfile: 'Carregando o perfil do usuário...',
+    accountLoadFailed: 'Falha ao carregar a conta do usuário.'
   },
   it: {
     home: 'Home',
@@ -179,7 +215,11 @@ export const screenTranslations = {
     chamaProducts: 'Prodotti di gruppi',
     businessProducts: 'Prodotti aziendali',
     messages: 'Messaggi',
-    comb: 'Consumare sulla mia bolletta'
+    comb: 'Consumare sulla mia bolletta',
+    checkingUserAccount: 'Verifica dell’account utente...',
+    proceedToCreateMainAccount: 'Procedo a creare l’account principale...',
+    loadingUserProfile: 'Caricamento del profilo utente...',
+    accountLoadFailed: 'Impossibile caricare l’account utente.'
   },
   he: {
     home: 'בית',
@@ -197,7 +237,11 @@ export const screenTranslations = {
     chamaProducts: 'מוצרי קבוצות',
     businessProducts: 'מוצרי עסקים',
     messages: 'הודעות',
-    comb: 'לצרוך בחשבונית שלי'
+    comb: 'לצרוך בחשבונית שלי',
+    checkingUserAccount: 'בודק חשבון משתמש...',
+    proceedToCreateMainAccount: 'להמשיך ביצירת חשבון ראשי...',
+    loadingUserProfile: 'טוען פרופיל משתמש...',
+    accountLoadFailed: 'הטעינת חשבון המשתמש נכשלה.'
   },
   hi: {
     home: 'होम',
@@ -215,7 +259,11 @@ export const screenTranslations = {
     chamaProducts: 'समूह उत्पाद',
     businessProducts: 'व्यावसायिक उत्पाद',
     messages: 'संदेश',
-    comb: 'मेरे बिल पर खर्च करें'
+    comb: 'मेरे बिल पर खर्च करें',
+    checkingUserAccount: 'उपयोगकर्ता खाता जांचा जा रहा है...',
+    proceedToCreateMainAccount: 'मुख्य खाता बनाने के लिए आगे बढ़ रहे हैं...',
+    loadingUserProfile: 'उपयोगकर्ता प्रोफ़ाइल लोड की जा रही है...',
+    accountLoadFailed: 'उपयोगकर्ता खाता लोड करने में विफल।'
   },
   am: {
     home: 'ቤት',
@@ -233,6 +281,10 @@ export const screenTranslations = {
     chamaProducts: 'የቡድን ምርቶች',
     businessProducts: 'የንግድ ምርቶች',
     messages: 'መልእክቶች',
-    comb: 'በታክሲዬ ላይ ይጠቀሙ'
+    comb: 'በታክሲዬ ላይ ይጠቀሙ',
+    checkingUserAccount: 'የተጠቃሚ ሂሳብ እየተፈተነ ነው...',
+    proceedToCreateMainAccount: 'ወደ ዋና ሂሳብ የሚፈጠር ጊዜ እየቀጠለ ነው...',
+    loadingUserProfile: 'የተጠቃሚውን መግለጫ እየተጫነ ነው...',
+    accountLoadFailed: 'የተጠቃሚ ሂሳብ ማስገባት አልተቻለም።'
   }
 };

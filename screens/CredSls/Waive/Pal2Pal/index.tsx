@@ -8,8 +8,13 @@ import { getCurrentUser, fetchUserAttributes } from "aws-amplify/auth";
 import { generateClient } from "aws-amplify/api";
 import { convertForeignToKsh } from '../../../../src/utils/exchange';
 import { nationalityToCode } from '../../../../src/utils/nationalityToCode';
+import { useTranslation } from 'react-i18next';
+import translations from './translation';
 const client = generateClient();
 const RepayCovSellerLnsss = props => {
+  const { i18n } = useTranslation();
+  const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+  const t = translations[lang] || translations.en;
   const [SnderPW, setSnderPW] = useState("");
   const [amounts, setAmount] = useState("");
   const [Desc, setDesc] = useState("");
@@ -51,7 +56,7 @@ const RepayCovSellerLnsss = props => {
           const RecAccountDtl: any = await client.graphql({
             query: getCovCreditSeller,
             variables: {
-              loanID: route.params.loanID
+              loanID: (route.params as any).loanID
             }
           });
           const amountExpectedBackWthClrncs = RecAccountDtl.data.getCovCreditSeller.amountExpectedBackWthClrnc;
@@ -92,7 +97,7 @@ const RepayCovSellerLnsss = props => {
           const LonBal1 = (netLnBal2 + parseFloat(clearanceAmts) + parseFloat(DefaultPenaltyCredSl2s)).toFixed(0);
           const amountInput = parseFloat(amounts);
           if (!Number.isFinite(amountInput) || amountInput <= 0) {
-            Alert.alert('Enter a valid amount');
+            Alert.alert(t.enterValidAmount);
             setIsLoading(false);
             return;
           }
@@ -101,7 +106,7 @@ const RepayCovSellerLnsss = props => {
           const userCode = nationalityToCode(rawNationality) || rawNationality || 'KE';
           const amountKes = await convertForeignToKsh(amountInput, userCode);
           if (!Number.isFinite(amountKes) || amountKes <= 0) {
-            Alert.alert('Unable to convert amount. Please try again.');
+            Alert.alert(t.unableConvertAmount);
             setIsLoading(false);
             return;
           }
@@ -174,9 +179,9 @@ const RepayCovSellerLnsss = props => {
                       });
                     } catch (error) {
                       console.log(error);
-                      if (error) {
+                        if (error) {
                         console.log(error);
-                        Alert.alert("Repayment unsuccessful; Retry");
+                        Alert.alert(t.repaymentUnsuccessfulRetry);
                         return;
                       }
                     }
@@ -200,7 +205,7 @@ const RepayCovSellerLnsss = props => {
                       });
                     } catch (error) {
                       if (error) {
-                        Alert.alert("Repayment unsuccessful; Retry");
+                        Alert.alert(t.repaymentUnsuccessfulRetry);
                         return;
                       }
                     }
@@ -217,7 +222,7 @@ const RepayCovSellerLnsss = props => {
                         query: updateCovCreditSeller,
                         variables: {
                           input: {
-                            loanID: route.params.loanID,
+                            loanID: (route.params as any).loanID,
                             amountRepaid: (amountKes + parseFloat(amountrepaids)).toFixed(0),
                             lonBala: LoanBalz.toFixed(0),
                             amountExpectedBackWthClrnc: LoanBalz.toFixed(0),
@@ -229,7 +234,7 @@ const RepayCovSellerLnsss = props => {
                       });
                     } catch (error) {
                       console.log(error);
-                      if (error) {
+                        if (error) {
                         console.log(error);
                         return;
                       }
@@ -250,9 +255,9 @@ const RepayCovSellerLnsss = props => {
                             senderPhn: buyerContacts,
                             recPhn: sellerContacts,
                             RecName: SellerNames,
-                            loanId2: route.params.loanID,
-                            loanId1: "route.params.id",
-                            loanId3: "route.params.id",
+                            loanId2: (route.params as any).loanID,
+                            loanId1: (route.params as any).id,
+                            loanId3: (route.params as any).id,
                             SenderName: buyerNames,
                             amount: amountKes.toFixed(0),
                             description: Desc,
@@ -263,7 +268,7 @@ const RepayCovSellerLnsss = props => {
                       });
                     } catch (error) {
                       if (error) {
-                        Alert.alert("Repayment unsuccessful; Retry");
+                        Alert.alert(t.repaymentUnsuccessfulRetry);
                         return;
                       }
                     }
@@ -310,11 +315,11 @@ const RepayCovSellerLnsss = props => {
                       });
                     } catch (error) {
                       if (error) {
-                        Alert.alert("Waiver unsuccessful; Retry");
+                        Alert.alert(t.waiverUnsuccessfulRetry);
                         return;
                       }
                     }
-                    Alert.alert("Waived. ");
+                    Alert.alert(t.waived);
                     setIsLoading(false);
                   };
                   const repyCovLn = async () => {
@@ -327,7 +332,7 @@ const RepayCovSellerLnsss = props => {
                         query: updateCovCreditSeller,
                         variables: {
                           input: {
-                            loanID: route.params.loanID,
+                            loanID: (route.params as any).loanID,
                             amountRepaid: (amountKes + parseFloat(amountrepaids)).toFixed(0),
                             lonBala: LoanBalz.toFixed(0),
                             DefaultPenaltyCredSl2: 0,
@@ -410,11 +415,11 @@ const RepayCovSellerLnsss = props => {
                       });
                     } catch (error) {
                       if (error) {
-                        Alert.alert("Waiver unsuccessful; Retry");
+                        Alert.alert(t.waiverUnsuccessfulRetry);
                         return;
                       }
                     }
-                    Alert.alert("Partially Waived. ");
+                    Alert.alert(t.partiallyWaived);
                     setIsLoading(false);
                     await sendNonLnLnOver2();
                   };
@@ -431,9 +436,9 @@ const RepayCovSellerLnsss = props => {
                             senderPhn: buyerContacts,
                             recPhn: sellerContacts,
                             RecName: SellerNames,
-                            loanId2: route.params.loanID,
-                            loanId1: "route.params.id",
-                            loanId3: "route.params.id",
+                            loanId2: (route.params as any).loanID,
+                            loanId1: (route.params as any).id,
+                            loanId3: (route.params as any).id,
                             SenderName: buyerNames,
                             amount: amountKes.toFixed(0),
                             description: Desc,
@@ -444,7 +449,7 @@ const RepayCovSellerLnsss = props => {
                       });
                     } catch (error) {
                       if (error) {
-                        Alert.alert("Waiver unsuccessful; Retry");
+                        Alert.alert(t.waiverUnsuccessfulRetry);
                         return;
                       }
                     }
@@ -452,16 +457,16 @@ const RepayCovSellerLnsss = props => {
                     await updtRecAcLonOver();
                   };
                   if (userInfo.userId !== owner) {
-                    Alert.alert("Please first create a main account");
+                    Alert.alert(t.pleaseCreateMainAccount);
                     return;
                   } else if (usrAcActvStts === "AccountInactive") {
-                    Alert.alert('Sender account is inactive');
+                    Alert.alert(t.senderAccountInactive);
                     return;
                   } else if (ClranceAmt > amountKes) {
-                    Alert.alert("Too little waived: at least " + ClranceAmt.toFixed(2));
+                    Alert.alert(`${t.tooLittleWaivedPrefix} ${ClranceAmt.toFixed(2)}`);
                     return;
                   } else if (amountKes > parseFloat(LonBal1)) {
-                    Alert.alert("The Loan Balance is lesser: " + LonBal1);
+                    Alert.alert(`${t.loanBalanceIsLesserPrefix} ${LonBal1}`);
                   } else if (amountKes === parseFloat(LonBal1) && parseFloat(MaxTymsBLss) === parseFloat(maxBLss)) {
                     updtSendrAcLonOvr1();
                   } else if (amountKes === parseFloat(LonBal1) && parseFloat(MaxTymsBLss) > parseFloat(maxBLss)) {

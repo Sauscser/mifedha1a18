@@ -10,6 +10,8 @@ import { generateClient } from 'aws-amplify/api';
 import { getSMAccount } from '../../../../src/graphql/queries';
 import {fetchUserAttributes} from 'aws-amplify/auth';
 import { formatAmountSync } from '../../../../src/utils/exchange';
+import { useTranslation } from 'react-i18next';
+import translations from './translation';
 
 export interface SMAccount {
     SMAc: {
@@ -84,10 +86,10 @@ const SMCvLnStts = (props:SMAccount) => {
       <Pressable style={styles.card} onPress={BenDtls}>
         <Text style={styles.prodName}>{prodName}</Text>
 
-        <Text style={styles.prodInfo}><Text style={styles.label}>Benefactor Business/Company:</Text> {creatorName}</Text>
-        <Text style={styles.prodInfo}><Text style={styles.label}>Beneficiary Name:</Text> {beneficiaryPhone}</Text>
-        <Text style={styles.prodInfo}><Text style={styles.label}>Cost:</Text> {formatAmountSync(Math.floor(prodCost), userCode, ratesMap)}</Text>
-        <Text style={styles.prodInfo}><Text style={styles.label}>Benefits Pooled:</Text> {formatAmountSync(Math.floor(benefitsAmount), userCode, ratesMap)}</Text>
+        <Text style={styles.prodInfo}><Text style={styles.label}>{t.benefactorBusiness}</Text> {creatorName}</Text>
+        <Text style={styles.prodInfo}><Text style={styles.label}>{t.beneficiaryName}</Text> {beneficiaryPhone}</Text>
+        <Text style={styles.prodInfo}><Text style={styles.label}>{t.cost}</Text> {formatAmountSync(Math.floor(prodCost), userCode, ratesMap)}</Text>
+        <Text style={styles.prodInfo}><Text style={styles.label}>{t.benefitsPooled}</Text> {formatAmountSync(Math.floor(benefitsAmount), userCode, ratesMap)}</Text>
        <Text style={styles.prodDesc}>{prodDesc}</Text>
       </Pressable>
 
@@ -96,17 +98,13 @@ const SMCvLnStts = (props:SMAccount) => {
 onPress={BenefitPal}
 style = {styles.loanFriendButton}
 >            
-  <Text>Share Benefits (Pal)</Text>            
-</Pressable>
+   <Text>{t.sharePal}</Text>            
+ </Pressable>
 
-<Pressable
-onPress={BenefitBiz}
-style = {styles.redeemButton}>            
-  <Text>Share Benefits (Bizna)</Text>            
-</Pressable>  
-</View>
-
-
+ <Pressable
+ onPress={BenefitBiz}
+ style = {styles.redeemButton}>            
+   <Text>{t.shareBiz}</Text>            
        </View> 
 
         

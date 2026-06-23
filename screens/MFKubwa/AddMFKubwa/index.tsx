@@ -46,7 +46,7 @@ const UpdtMFNPW = props => {
       const costInput = Number(NewAdmnPW);
       const paidInput = Number(SigntryPW);
       const mfnOfferedInput = Number(MFNS);
-      if (!Number.isFinite(costInput) || costInput <= 0) {
+      if (!Number.isFinite(costInput) || costInput < 0) {
         Alert.alert("Invalid cost", "Enter a valid account cost");
         setIsLoading(false);
         return;
@@ -113,7 +113,7 @@ const UpdtMFNPW = props => {
                 query: createMFKOfferz,
                 variables: {
                   input: {
-                    offerStatus: OfferStatus,
+                    offerStatus: "OnOffer",
                     acCost: costKsh,
                     amtPaid: paidKsh,
                     mfnOffered: mfnOfferedInput,
@@ -257,10 +257,7 @@ const UpdtMFNPW = props => {
                     <Text style={styles.sendLoanText}>Group Admin Email</Text>
                   </View> 
 
-                  <View style={styles.sendLoanView}>
-                    <TextInput placeholder="Offer Status" value={OfferStatus} onChangeText={setOfferStatus} style={styles.sendLoanInput} editable={true}></TextInput>
-                    <Text style={styles.sendLoanText}>Offer Status</Text>
-                  </View> 
+                
         
                   
                   <View style={styles.sendLoanView}>

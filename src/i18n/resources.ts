@@ -10,6 +10,10 @@ export const resources = {
           welcome: 'Welcome, {{username}}',
           signOut: 'Sign Out'
         },
+        guard: {
+          completeMainAccountTitle: 'Main account setup required',
+          completeMainAccountSetup: 'Please complete Main Account setup first before exploring other products.'
+        },
         tabs: {
           home: 'Home',
           nsNdogo: 'NSNdogo',
@@ -104,6 +108,10 @@ export const resources = {
           welcome: 'مرحبًا، {{username}}',
           signOut: 'تسجيل الخروج'
         },
+        guard: {
+          completeMainAccountTitle: 'يتطلب إعداد الحساب الرئيسي',
+          completeMainAccountSetup: 'يرجى إكمال إعداد الحساب الرئيسي أولاً قبل استكشاف المنتجات الأخرى.'
+        },
         tabs: {
           home: 'الرئيسية',
           mfnDogo: 'ندوقو',
@@ -140,6 +148,10 @@ export const resources = {
         globalHeader: {
           welcome: '欢迎，{{username}}',
           signOut: '退出登录'
+        },
+        guard: {
+          completeMainAccountTitle: '需要完成主账户设置',
+          completeMainAccountSetup: '请先完成主账户设置，然后再浏览其他产品。'
         },
         tabs: {
           home: '首页',
@@ -178,6 +190,10 @@ export const resources = {
           welcome: 'Добро пожаловать, {{username}}',
           signOut: 'Выйти'
         },
+        guard: {
+          completeMainAccountTitle: 'Требуется настройка основного аккаунта',
+          completeMainAccountSetup: 'Пожалуйста, сначала завершите настройку основного аккаунта, прежде чем переходить к другим продуктам.'
+        },
         tabs: {
           home: 'Главная',
           mfnDogo: 'Ндого',
@@ -214,6 +230,10 @@ export const resources = {
         globalHeader: {
           welcome: 'Karibu, {{username}}',
           signOut: 'Toka'
+        },
+        guard: {
+          completeMainAccountTitle: 'Inahitajika usanidi wa Akaunti Kuu',
+          completeMainAccountSetup: 'Tafadhali kamilisha usanidi wa Akaunti Kuu kwanza kabla ya kuchunguza bidhaa nyingine.'
         },
         tabs: {
           home: 'Nyumbani',
@@ -271,6 +291,10 @@ export const resources = {
           welcome: 'Bienvenue, {{username}}',
           signOut: 'Déconnexion'
         },
+        guard: {
+          completeMainAccountTitle: 'Configuration du compte principal requise',
+          completeMainAccountSetup: "Veuillez terminer d'abord la configuration du compte principal avant d'explorer les autres produits."
+        },
         tabs: {
           home: 'Accueil',
           mfnDogo: 'Ndogo',
@@ -303,6 +327,10 @@ export const resources = {
         globalHeader: {
           welcome: 'Bienvenido, {{username}}',
           signOut: 'Cerrar sesión'
+        },
+        guard: {
+          completeMainAccountTitle: 'Se requiere configuración de la Cuenta Principal',
+          completeMainAccountSetup: 'Por favor, complete primero la configuración de la Cuenta Principal antes de explorar otros productos.'
         },
         tabs: {
           home: 'Inicio',
@@ -337,6 +365,10 @@ export const resources = {
           welcome: 'Willkommen, {{username}}',
           signOut: 'Abmelden'
         },
+        guard: {
+          completeMainAccountTitle: 'Hauptkonto-Einrichtung erforderlich',
+          completeMainAccountSetup: 'Bitte schließen Sie zuerst die Einrichtung des Hauptkontos ab, bevor Sie andere Produkte erkunden.'
+        },
         tabs: {
           home: 'Startseite',
           mfnDogo: 'Ndogo',
@@ -369,6 +401,10 @@ export const resources = {
         globalHeader: {
           welcome: 'Bem-vindo, {{username}}',
           signOut: 'Sair'
+        },
+        guard: {
+          completeMainAccountTitle: 'Configuração da Conta Principal necessária',
+          completeMainAccountSetup: 'Por favor, conclua primeiro a configuração da Conta Principal antes de explorar outros produtos.'
         },
         tabs: {
           home: 'Início',
@@ -403,6 +439,10 @@ export const resources = {
           welcome: 'Benvenuto, {{username}}',
           signOut: 'Disconnettersi'
         },
+        guard: {
+          completeMainAccountTitle: 'Configurazione dell’account principale richiesta',
+          completeMainAccountSetup: 'Per favore completa prima la configurazione dell’account principale prima di esplorare gli altri prodotti.'
+        },
         tabs: {
           home: 'Home',
           mfnDogo: 'Ndogo',
@@ -435,6 +475,10 @@ export const resources = {
         globalHeader: {
           welcome: 'ברוך הבא, {{username}}',
           signOut: 'התנתק'
+        },
+        guard: {
+          completeMainAccountTitle: 'נדרשת הגדרת חשבון ראשי',
+          completeMainAccountSetup: 'אנא השלם תחילה את הגדרת החשבון הראשי לפני שתעבור למוצרים אחרים.'
         },
         tabs: {
           home: 'בית',
@@ -469,6 +513,10 @@ export const resources = {
           welcome: 'स्वागत है, {{username}}',
           signOut: 'साइन आउट'
         },
+        guard: {
+          completeMainAccountTitle: 'मुख्य खाता सेटअप आवश्यक है',
+          completeMainAccountSetup: 'कृपया अन्य उत्पाद एक्सप्लोर करने से पहले मुख्य खाता सेटअप पूरा करें।'
+        },
         tabs: {
           home: 'होम',
           mfnDogo: 'नडोगो',
@@ -501,6 +549,10 @@ export const resources = {
         globalHeader: {
           welcome: 'እንኳን ደህና መጡ, {{username}}',
           signOut: 'ውጣ'
+        },
+        guard: {
+          completeMainAccountTitle: 'ዋና አካውንት ማቀናበር ይወስዳል',
+          completeMainAccountSetup: 'እባክዎ ከሌሎች ምርቶች መመለስ በፊት ዋና አካውንት ማቀናበር ያጠናቀቁ።'
         },
         tabs: {
           home: 'ቤት',

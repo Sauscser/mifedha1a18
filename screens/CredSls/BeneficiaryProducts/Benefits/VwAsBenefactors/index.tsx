@@ -3,6 +3,8 @@ import { SafeAreaView, ScrollView, View, Text, Pressable } from 'react-native';
 import styles from './styles';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
+import { useTranslation } from 'react-i18next';
+import translations from './translation';
 const Section = ({
   title,
   options
@@ -31,6 +33,9 @@ const Section = ({
   </View>;
 const MyLoanAccount = () => {
   const navigation = useNavigation();
+  const { i18n } = useTranslation();
+  const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+  const t = translations[lang] || translations.en;
   const UpdateBizAc = () => {
     navigation.navigate('UpdateBizAc');
   };
@@ -52,12 +57,12 @@ const MyLoanAccount = () => {
         y: 1
       }} style={styles.clientsPressableGradient}>
             
-            <Section title="Benefactor View" options={[{
-          label: 'Biz',
+            <Section title={t.benefactorView} options={[{
+          label: t.biz,
           onPress: ViewBizBenefactorShares,
           style: styles.ClientsPressables
         }, {
-          label: 'Pal',
+          label: t.pal,
           onPress: ViewPalBenefactorShares,
           style: styles.ClientsPressables
         }]} />

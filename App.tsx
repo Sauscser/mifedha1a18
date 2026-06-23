@@ -15,6 +15,7 @@ import { I18nextProvider } from 'react-i18next';
 import i18n from './src/i18n';
 import { SessionTimeoutProvider } from './src/contexts/SessionTimeoutProvider';
 import { AuthProvider } from './src/contexts/AuthContext';
+import { MainAccountGuardProvider } from './src/contexts/MainAccountGuardContext';
 type SupportedLanguage = typeof SUPPORTED_LANGUAGES[number];
 
 const getDynamicBottomMargin = () => {
@@ -237,7 +238,9 @@ export default function App() {
       <SessionTimeoutProvider>
         <I18nextProvider i18n={i18n}>
           <Authenticator.Provider>
-            <AppLayout language={language} setLanguage={setLanguage} />
+            <MainAccountGuardProvider>
+              <AppLayout language={language} setLanguage={setLanguage} />
+            </MainAccountGuardProvider>
           </Authenticator.Provider>
         </I18nextProvider>
       </SessionTimeoutProvider>

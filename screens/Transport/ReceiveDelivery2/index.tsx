@@ -1,24 +1,4 @@
-// Place at the very end of the file, after export default
-const styles = StyleSheet.create({
-  refreshBtn: {
-    position: 'absolute',
-    top: 24,
-    right: 24,
-    zIndex: 1000,
-    backgroundColor: '#e58d29',
-    borderRadius: 25,
-    width: 48,
-    height: 48,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 5,
-  },
-});
-// ...existing code...
+  // ...existing code...
 
   // Filter orders for carousel and map
 
@@ -26,8 +6,6 @@ const styles = StyleSheet.create({
   // Filter orders for carousel and map
 
 import React, { useState, useEffect, useRef } from "react";
-import { TextInput } from "react-native";
-import * as Location from 'expo-location';
 import {
   View,
   Text,
@@ -38,23 +16,20 @@ import {
   Dimensions,
   Animated,
   Modal,
-  StyleSheet,
 } from "react-native";
-import { FontAwesome } from '@expo/vector-icons';
 import axios from "axios";
- 
+import { Ionicons } from '@expo/vector-icons';
 import MapView, { Marker, Polyline } from "react-native-maps";
 import { getDistance } from "geolib";
+import { buildOsrmRouteUrl } from "../../../src/config/osrm";
 // Removed PanResponder import
 import { useNavigation } from "@react-navigation/native";
-
-import GooglePlacesAutocompleteNew from '../PassengerRequestRide/GooglePlacesAutoCompleteNew';
 
 import { useExchange } from "../../../src/contexts/ExchangeContext";
 import { formatAmountSync } from "../../../src/utils/exchange";
 import { nationalityToCode } from "../../../src/utils/nationalityToCode";
-import { useTranslation } from 'react-i18next';
-import { translations } from './translation';
+import { useTranslation } from "react-i18next";
+import { translations } from "./translation";
 
 import { generateClient } from "aws-amplify/api";
 import { getCurrentUser, fetchUserAttributes } from "aws-amplify/auth";
@@ -66,7 +41,6 @@ import {
   getGroup,
   getCompany,
   getTransportRegister,
-  getTransportBizna,
 } from "../../../src/graphql/queries";
 import {
   updateTransportOrder,
@@ -75,11 +49,8 @@ import {
   updateCompany,
   createNonLoans,
   updateTransportRegister,
-  updateTransportBizna,
   updateBizna,
   createBenefitContributions2,
-  sendNotification,
-  createMessages,
 } from "../../../src/graphql/mutations";
 import { Linking } from "react-native";
 
@@ -94,369 +65,314 @@ const MAX_CAROUSEL_TOP = screenHeight - CAROUSEL_HEIGHT - 60;
 
 const client = generateClient();
 
+const decodeOSRMLine = (coordinates: number[][]) =>
+  coordinates.map(([longitude, latitude]) => ({ latitude, longitude }));
+
 const TransportOrdersScreen = () => {
-  // Place picker modal state (must be inside component)
-  const [placePickerVisible, setPlacePickerVisible] = useState(false);
-  const [placePickerLoading, setPlacePickerLoading] = useState(false);
-
-  // Handler for Photon place picker (must be inside component)
-  const handlePlaceSelected = async (place: any) => {
-    setPlacePickerVisible(false);
-    if (!changeLocOrder || !place?.location) return;
-    setChangeLocLoading(true);
-    setChangeLocError("");
-    try {
-      // Only allow if engaged and distance >= 200m
-      if (changeLocOrder.engagementStatus === "TransportEngaged") {
-        const buyerLat = Number(changeLocOrder.deliveryLatitude);
-        const buyerLng = Number(changeLocOrder.deliveryLongitude);
-        const transporterLat = place.location.latitude;
-        const transporterLng = place.location.longitude;
-        const dist = getRadialDistance(buyerLat, buyerLng, transporterLat, transporterLng);
-        if (dist < 200) {
-          setChangeLocError("Transporter must be at least 200 meters from buyer to change location.");
-          setChangeLocLoading(false);
-          return;
-        }
-      }
-      // Update delivery location
-      await client.graphql({
-        query: updateTransportOrder,
-        variables: {
-          input: {
-            id: changeLocOrder.id,
-            deliveryLatitude: place.location.latitude.toString(),
-            deliveryLongitude: place.location.longitude.toString(),
-          },
-        },
-      });
-      Alert.alert(t.success, "Delivery location updated successfully.");
-      setChangeLocModalVisible(false);
-      setChangeLocOrder(null);
-      handleRefresh();
-    } catch (err) {
-      setChangeLocError("Failed to update delivery location. Try again.");
-    } finally {
-      setChangeLocLoading(false);
-    }
-  };
-
-  // i18n translation setup
+  // Route state for selected order legs
+  const [routeSellerToBuyerCoords, setRouteSellerToBuyerCoords] = useState<Array<{ latitude: number; longitude: number }>>([]);
+  const [routeTransportToSellerCoords, setRouteTransportToSellerCoords] = useState<Array<{ latitude: number; longitude: number }>>([]);
+  const [routeTransportToBuyerCoords, setRouteTransportToBuyerCoords] = useState<Array<{ latitude: number; longitude: number }>>([]);
+  // Inline modal state for card details (must be inside component)
+  const [modalVisible, setModalVisible] = useState(false);
+  const [modalOrder, setModalOrder] = useState<any | null>(null);
+  // Road distance cache and loading state (must be inside component)
+  const [roadDistances, setRoadDistances] = useState<{ [orderId: string]: number }>({});
+  const [roadDistanceLoading, setRoadDistanceLoading] = useState<string | null>(null);
+  const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
+  const [orders, setOrders] = useState<any[]>([]);
+  const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [refreshingOrders, setRefreshingOrders] = useState(false);
   const { i18n } = useTranslation();
   const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
   const t = translations[lang] || translations.en;
 
-  // ...existing state declarations...
-  const [sellerToBuyerCoords, setSellerToBuyerCoords] = useState<Array<{ latitude: number; longitude: number }>>([]);
-  const [lastPolylineOrderId, setLastPolylineOrderId] = useState<string | null>(null);
-  const [modalVisible, setModalVisible] = useState(false);
-  const [modalOrder, setModalOrder] = useState<any | null>(null);
-  const [roadDistances, setRoadDistances] = useState<{ [orderId: string]: number }>({});
-  const [roadDistanceLoading, setRoadDistanceLoading] = useState<string | null>(null);
-  const navigation = useNavigation();
-  const mapRef = useRef(null);
-  const flatListRef = useRef(null);
-  const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
-  const [orders, setOrders] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [userEmail, setUserEmail] = useState<string | null>(null);
-
-  // Filter orders for carousel and map (must be after orders and userEmail are declared)
-  const filteredOrders = orders.filter(
-    (item) =>
-      item.buyerOfficerEmail === userEmail &&
-      item.transportRequest === "transportRequestYes"
-  );
-
-  // Polling: update transporter positions every minute from backend
-  useEffect(() => {
-    if (!filteredOrders.length) return;
-    const interval = setInterval(async () => {
-      try {
-        const updatedOrders = await Promise.all(filteredOrders.map(async (order) => {
-          const res = await client.graphql({ query: getTransportOrder, variables: { id: order.id } });
-          const latest = ('data' in res && res.data.getTransportOrder) ? res.data.getTransportOrder : order;
-          return {
-            ...order,
-            latitude: latest.latitude,
-            longitude: latest.longitude,
-          };
-        }));
-        setOrders((prevOrders) => prevOrders.map((o) => {
-          const updated = updatedOrders.find((u) => u.id === o.id);
-          return updated ? { ...o, latitude: updated.latitude, longitude: updated.longitude } : o;
-        }));
-      } catch (err) {
-        // Ignore polling errors
-      }
-    }, 60000);
-    return () => clearInterval(interval);
-  }, [filteredOrders.map(o => o.id).join(",")]);
-
-
-  // Fetch road-following polyline from buyer to seller when selectedIndex changes
-  useEffect(() => {
-    if (selectedIndex === null || !filteredOrders[selectedIndex]) {
-      setSellerToBuyerCoords([]);
-      setLastPolylineOrderId(null);
-      return;
-    }
-    const order = filteredOrders[selectedIndex];
-    // Use sellerLatitude/sellerLongitude (seller) and deliveryLatitude/deliveryLongitude (buyer)
-    if (
-      order.sellerLatitude && order.sellerLongitude &&
-      order.deliveryLatitude && order.deliveryLongitude
-    ) {
-      // Only fetch if not already fetched for this order
-      if (lastPolylineOrderId === order.id) return;
-      setLastPolylineOrderId(order.id);
-      const url = `https://router.project-osrm.org/route/v1/driving/${order.deliveryLongitude},${order.deliveryLatitude};${order.sellerLongitude},${order.sellerLatitude}?overview=full&geometries=geojson`;
-      axios.get(url)
-        .then(res => {
-          if (res.data.routes && res.data.routes.length > 0) {
-            const coords = res.data.routes[0].geometry.coordinates.map(([lng, lat]: [number, number]) => ({ latitude: lat, longitude: lng }));
-            setSellerToBuyerCoords(coords);
-          } else {
-            setSellerToBuyerCoords([]);
-          }
-        })
-        .catch(() => setSellerToBuyerCoords([]));
-    } else {
-      setSellerToBuyerCoords([]);
-      setLastPolylineOrderId(null);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedIndex, orders]);
-
-  const [isLoading, setIsLoading] = useState(false);
-  const [isLoading2, setIsLoading2] = useState(false);
-  const [isLoading3, setIsLoading3] = useState(false);
-  // Floating refresher spinner state
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const spinAnim = useRef(new Animated.Value(0)).current;
-
-  // Animate spinner when refreshing
-  useEffect(() => {
-    if (isRefreshing) {
-      Animated.loop(
-        Animated.timing(spinAnim, {
-          toValue: 1,
-          duration: 900,
-          useNativeDriver: true,
-        })
-      ).start();
-    } else {
-      spinAnim.stopAnimation();
-      spinAnim.setValue(0);
-    }
-  }, [isRefreshing]);
-
-  // Refresher handler
-  const handleRefresh = async () => {
-    setIsRefreshing(true);
+  const fetchOrdersAndUser = async () => {
     try {
-      // Reuse fetch logic
+      setRefreshingOrders(true);
       const attributes = await fetchUserAttributes();
       setUserEmail(attributes.email);
+
       let allOrders: any[] = [];
       let nextToken: string | null = null;
+
       do {
         const result: any = await client.graphql({
           query: listTransportOrders,
-          variables: {
-            nextToken,
-          },
+          variables: { nextToken },
         });
         const { items, nextToken: newToken } = result.data.listTransportOrders;
         allOrders = [...allOrders, ...items];
         nextToken = newToken;
       } while (nextToken);
+
       setOrders(allOrders);
-      // Force polyline redraw by resetting lastPolylineOrderId and sellerToBuyerCoords
-      setLastPolylineOrderId(null);
-      setSellerToBuyerCoords([]);
     } catch (err) {
-      Alert.alert(t.error, t.errorRefreshOrders);
+      console.error("Error fetching orders or user:", err);
+      Alert.alert(t.error, t.errorFetchOrders);
     } finally {
-      setIsRefreshing(false);
+      setRefreshingOrders(false);
     }
   };
 
-  // Fetch user email and all transport orders with pagination
+  const reloadOrderById = async (id: string) => {
+    try {
+      const result: any = await client.graphql({
+        query: getTransportOrder,
+        variables: { id },
+      });
+      const freshOrder = result.data.getTransportOrder;
+      if (freshOrder) {
+        setOrders((prev) => prev.map((order) => (order.id === id ? { ...order, ...freshOrder } : order)));
+      }
+      return freshOrder;
+    } catch (err) {
+      console.error('Reload order failed:', err);
+      return null;
+    }
+  };
+
+  const handleSelectOrder = async (index: number, item: any) => {
+    setSelectedIndex(index);
+    const freshOrder = await reloadOrderById(item.id);
+    const target = freshOrder || item;
+    mapRef.current?.animateToRegion(
+      {
+        latitude: Number(target.latitude),
+        longitude: Number(target.longitude),
+        latitudeDelta: 0.05,
+        longitudeDelta: 0.05,
+      },
+      350
+    );
+  };
+
+  // Fetch road distance when modalOrder changes and has valid coordinates
   useEffect(() => {
-    const fetchOrdersAndUser = async () => {
+    const fetchRoadDistance = async () => {
+      if (!modalOrder || !modalOrder.sellerLatitude || !modalOrder.sellerLongitude || !modalOrder.deliveryLatitude || !modalOrder.deliveryLongitude) return;
+      if (roadDistances[modalOrder.id]) return;
+      setRoadDistanceLoading(modalOrder.id);
       try {
-        // Fetch user email
-        const attributes = await fetchUserAttributes();
-        setUserEmail(attributes.email);
-
-        // Fetch orders
-        let allOrders: any[] = [];
-        let nextToken: string | null = null;
-
-        do {
-          const result: any = await client.graphql({
-            query: listTransportOrders,
-            variables: {
-              nextToken,
-              
-            },
-          });
-          const { items, nextToken: newToken } = result.data.listTransportOrders;
-          allOrders = [...allOrders, ...items];
-          nextToken = newToken;
-        } while (nextToken);
-
-        setOrders(allOrders);
-      } catch (err) {
-        console.error("Error fetching orders or user:", err);
-        Alert.alert(t.error, t.errorFetchOrders);
+        const url = buildOsrmRouteUrl(
+          {
+            latitude: Number(modalOrder.sellerLatitude),
+            longitude: Number(modalOrder.sellerLongitude),
+          },
+          {
+            latitude: Number(modalOrder.deliveryLatitude),
+            longitude: Number(modalOrder.deliveryLongitude),
+          },
+          { overview: 'false' }
+        );
+        const res = await axios.get(url);
+        if (res.data.routes && res.data.routes.length > 0) {
+          const meters = res.data.routes[0].distance;
+          setRoadDistances(prev => ({ ...prev, [modalOrder.id]: meters }));
+        }
+      } catch (e) {
+        // ignore
       } finally {
-        setLoading(false);
+        setRoadDistanceLoading(null);
       }
     };
-    fetchOrdersAndUser();
+    fetchRoadDistance();
+  }, [modalOrder]);
+
+  // Fetch the selected order's OSRM route geometry for the polyline legs
+  useEffect(() => {
+    const fetchRoute = async (
+      start: { latitude: number; longitude: number },
+      end: { latitude: number; longitude: number }
+    ) => {
+      try {
+        const url = buildOsrmRouteUrl(start, end, { overview: 'full', geometries: 'geojson' });
+        const res = await axios.get(url);
+        if (res.data.routes && res.data.routes.length > 0 && res.data.routes[0].geometry?.coordinates) {
+          return decodeOSRMLine(res.data.routes[0].geometry.coordinates);
+        }
+      } catch (e) {
+        console.warn('Failed to fetch OSRM route:', e);
+      }
+      return [];
+    };
+
+    const fetchSelectedRoute = async () => {
+      if (selectedIndex === null || !userEmail) {
+        setRouteSellerToBuyerCoords([]);
+        setRouteTransportToSellerCoords([]);
+        setRouteTransportToBuyerCoords([]);
+        return;
+      }
+
+      const filteredOrders = orders.filter((item) => item.buyerOfficerEmail === userEmail);
+      const selectedOrder = filteredOrders[selectedIndex];
+      if (!selectedOrder) {
+        setRouteSellerToBuyerCoords([]);
+        setRouteTransportToSellerCoords([]);
+        setRouteTransportToBuyerCoords([]);
+        return;
+      }
+
+      const sellerCoords =
+        selectedOrder.sellerLatitude && selectedOrder.sellerLongitude
+          ? {
+              latitude: Number(selectedOrder.sellerLatitude),
+              longitude: Number(selectedOrder.sellerLongitude),
+            }
+          : null;
+      const buyerCoords =
+        selectedOrder.deliveryLatitude && selectedOrder.deliveryLongitude
+          ? {
+              latitude: Number(selectedOrder.deliveryLatitude),
+              longitude: Number(selectedOrder.deliveryLongitude),
+            }
+          : null;
+      const transporterCoords =
+        selectedOrder.latitude && selectedOrder.longitude
+          ? {
+              latitude: Number(selectedOrder.latitude),
+              longitude: Number(selectedOrder.longitude),
+            }
+          : null;
+
+      if (!sellerCoords || !buyerCoords) {
+        setRouteSellerToBuyerCoords([]);
+        setRouteTransportToSellerCoords([]);
+        setRouteTransportToBuyerCoords([]);
+        return;
+      }
+
+      if (
+        selectedOrder.engagementStatus === 'TransportEngaged' &&
+        selectedOrder.dutyStatus === 'TransportNotOnduty' &&
+        transporterCoords &&
+        buyerCoords
+      ) {
+        const transportToBuyer = await fetchRoute(transporterCoords, buyerCoords);
+        setRouteTransportToBuyerCoords(transportToBuyer);
+        setRouteTransportToSellerCoords([]);
+        setRouteSellerToBuyerCoords([]);
+      } else {
+        const sellerToBuyer = await fetchRoute(sellerCoords, buyerCoords);
+        setRouteSellerToBuyerCoords(sellerToBuyer);
+        if (transporterCoords) {
+          const transportToSeller = await fetchRoute(transporterCoords, sellerCoords);
+          setRouteTransportToSellerCoords(transportToSeller);
+        } else {
+          setRouteTransportToSellerCoords([]);
+        }
+        setRouteTransportToBuyerCoords([]);
+      }
+    };
+
+    fetchSelectedRoute();
+  }, [selectedIndex, orders, userEmail]);
+
+  const navigation = useNavigation();
+  const mapRef = useRef(null);
+  const flatListRef = useRef(null);
+  const [loading, setLoading] = useState(true);
+
+  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading2, setIsLoading2] = useState(false);
+  const [isLoading3, setIsLoading3] = useState(false);
+
+  // Fetch user email and all transport orders with pagination
+  useEffect(() => {
+    (async () => {
+      await fetchOrdersAndUser();
+      setLoading(false);
+    })();
   }, []);
 
   const { nationality, ratesMap } = useExchange();
   const userCurrencyKey = nationalityToCode(nationality);
 
+  const [changeLocationModalVisible, setChangeLocationModalVisible] = useState(false);
+  const [changeLocationOrder, setChangeLocationOrder] = useState<any | null>(null);
+  const [selectedChangeLocation, setSelectedChangeLocation] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [isChangeLocationLoading, setIsChangeLocationLoading] = useState(false);
 
-  // Inline modal state for Change Delivery Location
-  const [changeLocModalVisible, setChangeLocModalVisible] = useState(false);
-  const [changeLocOrder, setChangeLocOrder] = useState<any | null>(null);
-  const [manualLocModalVisible, setManualLocModalVisible] = useState(false);
-  const [manualLat, setManualLat] = useState("");
-  const [manualLng, setManualLng] = useState("");
-  const [changeLocLoading, setChangeLocLoading] = useState(false);
-  const [changeLocError, setChangeLocError] = useState("");
-
-  // Helper: get radial distance in meters
-  const getRadialDistance = (lat1: number, lng1: number, lat2: number, lng2: number) => {
-    return getDistance(
-      { latitude: lat1, longitude: lng1 },
-      { latitude: lat2, longitude: lng2 }
+  const openChangeLocationModal = (order: any) => {
+    setChangeLocationOrder(order);
+    setSelectedChangeLocation(
+      order?.deliveryLatitude && order?.deliveryLongitude
+        ? {
+            latitude: Number(order.deliveryLatitude),
+            longitude: Number(order.deliveryLongitude),
+          }
+        : null
     );
+    setChangeLocationModalVisible(true);
   };
 
-  // Handler for "Change Location" button
-  const openChangeLocModal = (order: any) => {
-    setChangeLocOrder(order);
-    setChangeLocModalVisible(true);
-    setChangeLocError("");
+  const closeChangeLocationModal = () => {
+    setChangeLocationModalVisible(false);
+    setChangeLocationOrder(null);
+    setSelectedChangeLocation(null);
   };
 
-  // Handler for auto location
-  const handleAutoLocation = async () => {
-    if (!changeLocOrder) return;
-    setChangeLocLoading(true);
-    setChangeLocError("");
+  const handleChangeLocationMapLongPress = (event: any) => {
+    const { latitude, longitude } = event.nativeEvent.coordinate;
+    setSelectedChangeLocation({ latitude, longitude });
+  };
+
+  const confirmChangeDeliveryLocation = async () => {
+    if (!changeLocationOrder) return;
+    if (!selectedChangeLocation) {
+      Alert.alert(t.selectLocation, t.selectLocationInstruction);
+      return;
+    }
+
+    setIsChangeLocationLoading(true);
     try {
-      let { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== "granted") {
-        setChangeLocError("Permission to access location was denied.");
-        setChangeLocLoading(false);
+      const orderDtl: any = await client.graphql({
+        query: getTransportOrder,
+        variables: { id: changeLocationOrder.id },
+      });
+      const orderDtlz = orderDtl?.data?.getTransportOrder;
+      if (!orderDtlz) {
+        Alert.alert(t.error, t.couldNotFetchOrderDetails);
         return;
       }
-      const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.BestForNavigation });
-      const coords = { latitude: loc.coords.latitude, longitude: loc.coords.longitude };
-      // Only allow if engaged and distance >= 200m
-      if (changeLocOrder.engagementStatus === "TransportEngaged") {
-        const buyerLat = Number(changeLocOrder.deliveryLatitude);
-        const buyerLng = Number(changeLocOrder.deliveryLongitude);
-        const transporterLat = coords.latitude;
-        const transporterLng = coords.longitude;
-        const dist = getRadialDistance(buyerLat, buyerLng, transporterLat, transporterLng);
-        console.log('Radial distance between buyer and transporter:', dist, 'meters');
-        if (dist < 200) {
-          setChangeLocError("Transporter must be at least 200 meters from buyer to change location.");
-          setChangeLocLoading(false);
-          return;
-        }
+      if (orderDtlz.engagementStatus === "TransportEngaged") {
+        Alert.alert(t.error, t.cannotChangeLocationEngaged);
+        return;
       }
-      // Update delivery location
+
       await client.graphql({
         query: updateTransportOrder,
         variables: {
           input: {
-            id: changeLocOrder.id,
-            deliveryLatitude: coords.latitude.toString(),
-            deliveryLongitude: coords.longitude.toString(),
+            id: changeLocationOrder.id,
+            deliveryLatitude: String(selectedChangeLocation.latitude),
+            deliveryLongitude: String(selectedChangeLocation.longitude),
           },
         },
       });
-      Alert.alert(t.success, "Delivery location updated successfully.");
-      setChangeLocModalVisible(false);
-      setChangeLocOrder(null);
-      handleRefresh();
+
+      setOrders((prev) =>
+        prev.map((order) =>
+          order.id === changeLocationOrder.id
+            ? {
+                ...order,
+                deliveryLatitude: String(selectedChangeLocation.latitude),
+                deliveryLongitude: String(selectedChangeLocation.longitude),
+              }
+            : order
+        )
+      );
+
+      Alert.alert(t.success, t.deliveryLocationUpdated);
+      closeChangeLocationModal();
     } catch (err) {
-      setChangeLocError("Failed to update delivery location. Try again.");
+      console.error("Change location failed:", err);
+      Alert.alert(t.error, t.failedUpdateDeliveryLocation);
     } finally {
-      setChangeLocLoading(false);
+      setIsChangeLocationLoading(false);
     }
   };
-
-  // Handler for manual location
-  const handleManualLocation = async () => {
-    if (!changeLocOrder) return;
-    setChangeLocLoading(true);
-    setChangeLocError("");
-    try {
-      // Validation: must not be empty and must be valid numbers
-      if (!manualLat || !manualLng || isNaN(Number(manualLat)) || isNaN(Number(manualLng))) {
-        setChangeLocError("Please enter valid latitude and longitude.");
-        setChangeLocLoading(false);
-        return;
-      }
-      // Fetch user and order for password check (as in ChangeDeliveryLocation)
-      const attributes = await fetchUserAttributes();
-      const accRes: any = await client.graphql({
-        query: getSMAccount,
-        variables: { awsemail: attributes.email },
-      });
-      const account = accRes && 'data' in accRes ? accRes.data.getSMAccount : null;
-      // Optionally, prompt for password (not implemented here for brevity)
-      // Only allow if engaged and distance >= 200m
-      if (changeLocOrder.engagementStatus === "TransportEngaged") {
-        const buyerLat = Number(changeLocOrder.deliveryLatitude);
-        const buyerLng = Number(changeLocOrder.deliveryLongitude);
-        const transporterLat = Number(manualLat);
-        const transporterLng = Number(manualLng);
-        const dist = getRadialDistance(buyerLat, buyerLng, transporterLat, transporterLng);
-        console.log('Radial distance between buyer and transporter (manual):', dist, 'meters');
-        if (dist < 200) {
-          setChangeLocError("Transporter must be at least 200 meters from buyer to change location.");
-          setChangeLocLoading(false);
-          return;
-        }
-      }
-      // Update delivery location
-      await client.graphql({
-        query: updateTransportOrder,
-        variables: {
-          input: {
-            id: changeLocOrder.id,
-            deliveryLatitude: manualLat,
-            deliveryLongitude: manualLng,
-          },
-        },
-      });
-      Alert.alert(t.success, "Delivery location updated successfully.");
-      setManualLocModalVisible(false);
-      setChangeLocModalVisible(false);
-      setChangeLocOrder(null);
-      setManualLat("");
-      setManualLng("");
-      handleRefresh();
-    } catch (err) {
-      setChangeLocError("Failed to update delivery location. Try again.");
-    } finally {
-      setChangeLocLoading(false);
-    }
-  };
-
-
-  
 
   const handleAcceptDelivery = async (id: string) => {
     setIsLoading(true);
@@ -466,61 +382,24 @@ const TransportOrdersScreen = () => {
 
       const orderDtl: any = await client.graphql({ query: getTransportOrder, variables: { id } });
       const orderDtlz = orderDtl.data.getTransportOrder;
-      const orderCost = parseFloat(orderDtlz.orderCost || 0);
-      const isCompanyOwned = orderDtlz?.ownerShipType === "Company" && !!orderDtlz?.transportOwnerAc;
-      let companyTransportBizna: any = null;
-      let companyBizFundAfterRefund = 0;
 
-      let currentGrpBal = 0;
-      let transportShareRates = 0;
-
-      // --- REFUND LOGIC ---
-      if (isCompanyOwned) {
-        const companyBiznaRes: any = await client.graphql({
-          query: getTransportBizna,
-          variables: { BizAc: orderDtlz.transportOwnerAc },
-        });
-        companyTransportBizna = companyBiznaRes?.data?.getTransportBizna || null;
-        if (!companyTransportBizna) {
-          throw new Error("Company TransportBizna account not found for refund.");
-        }
-        companyBizFundAfterRefund = parseFloat(companyTransportBizna.bizFund || 0) + orderCost;
-      } else if (orderDtlz.chmAcCommitmentStatus === "TransportChmCommitmentYes") {
-        // Fetch group values now; final group update happens after earnings are computed.
-        const groupRes = await client.graphql({
-          query: getGroup,
-          variables: { grpContact: orderDtlz.chmAcNumber },
-        });
-        const group = 'data' in groupRes ? groupRes.data.getGroup : null;
-        currentGrpBal = group && group.grpBal ? parseFloat(group.grpBal) : 0;
-        transportShareRates = group && group.transportShareRates ? parseFloat(group.transportShareRates) : 0;
-      } else if (orderDtlz.chmAcCommitmentStatus === "TransportChmCommitmentNo") {
-        // Refund transporter SMAccount
-        const smAccountRes = await client.graphql({
-          query: getSMAccount,
-          variables: { awsemail: orderDtlz.transportOwnerEmail },
-        });
-        const smAccount = 'data' in smAccountRes ? smAccountRes.data.getSMAccount : null;
-        if (smAccount) {
-          await client.graphql({
-            query: updateSMAccount,
-            variables: {
-              input: {
-                awsemail: orderDtlz.transportOwnerEmail,
-                balance: parseFloat(smAccount.balance) + orderCost,
-              },
-            },
-          });
-        }
-      }
-
-
-      // ...existing code for all other mutations...
       const TransportDtls: any = await client.graphql({
         query: getTransportRegister,
         variables: { id: orderDtlz.bizAc },
       });
       const transportDtlz = TransportDtls.data.getTransportRegister;
+
+      const bizResult: any = await client.graphql({
+        query: getBizna,
+        variables: { BusKntct: orderDtlz.sellerContact },
+      });
+      const biz = bizResult.data.getBizna;
+
+      const buyerDtls: any = await client.graphql({
+        query: getSMAccount,
+        variables: { awsemail: orderDtlz.customerEmail },
+      });
+      const buyerDtlsz = buyerDtls.data.getSMAccount;
 
       const CompDtls: any = await client.graphql({
         query: getCompany,
@@ -531,53 +410,37 @@ const TransportOrdersScreen = () => {
       const compEarningShare = compDtls.transportCompanyShare;
       const CompEarning = compEarningShare * parseFloat(orderDtlz.deliveryCost);
       const TransporterEarning = parseFloat(orderDtlz.deliveryCost) - CompEarning;
-      let transporterNetEarning = TransporterEarning;
-      let transportRegisterEarning = TransporterEarning;
-
-      if (isCompanyOwned) {
-        const shareRate = Math.max(0, Math.min(100, parseFloat(companyTransportBizna?.shareRates || 0)));
-        const transportRegisterShare = (shareRate / 100) * TransporterEarning;
-        const transportBiznaShare = TransporterEarning - transportRegisterShare;
-
-        transportRegisterEarning = transportRegisterShare;
-        transporterNetEarning = transportRegisterShare;
-
-        await client.graphql({
-          query: updateTransportBizna,
-          variables: {
-            input: {
-              BizAc: companyTransportBizna.BizAc,
-              bizFund: companyBizFundAfterRefund,
-              Earnings: parseFloat(companyTransportBizna.Earnings ) + transportBiznaShare,
-            },
-          },
-        });
-      } else if (orderDtlz.chmAcCommitmentStatus === "TransportChmCommitmentYes") {
-        const clampedRate = Math.max(0, Math.min(100, transportShareRates));
-        const groupTransportShare = (clampedRate / 100) * TransporterEarning;
-        transporterNetEarning = TransporterEarning - groupTransportShare;
-        transportRegisterEarning = transporterNetEarning;
-
-        await client.graphql({
-          query: updateGroup,
-          variables: {
-            input: {
-              grpContact: orderDtlz.chmAcNumber,
-              // Keep existing refund (orderCost) and add group's share of TransporterEarning.
-              grpBal: currentGrpBal + orderCost + groupTransportShare,
-            },
-          },
-        });
-      } else {
-        transportRegisterEarning = TransporterEarning;
-      }
-      
 
       const fee = parseFloat(orderDtlz.orderCost) * parseFloat(compDtls.biznaCashSaleFee);
       const benefit = fee * parseFloat(compDtls.p2BBenCom) * 0.01;
       const compEarnings = fee - 2 * benefit;
 
-      // All other mutations (unchanged)
+      // Full mutation workflow
+      await client.graphql({
+        query: updateGroup,
+        variables: {
+          input: {
+            grpContact: orderDtlz.chmAcNumber,
+            grpBal: parseFloat(orderDtlz.orderCost),
+          },
+        },
+      });
+
+      await client.graphql({
+        query: createNonLoans,
+        variables: {
+          input: {
+            senderPhn: orderDtlz.customerEmail,
+            recPhn: orderDtlz.transportOwnerEmail,
+            RecName: orderDtlz.transportName,
+            description: `Payment for delivery of ${orderDtlz.deliveryDesc} to ${orderDtlz.buyerName}.`,
+            SenderName: orderDtlz.buyerName,
+            amount: parseFloat(orderDtlz.deliveryCost) - CompEarning,
+            status: "DeliveryPayment",
+            owner: user.userId,
+          },
+        },
+      });
 
       await client.graphql({
         query: updateCompany,
@@ -591,48 +454,27 @@ const TransportOrdersScreen = () => {
         },
       });
 
-      // Buyer refund/benefit logic based on purchaseType
-      if (orderDtlz.purchaseType === "B2B") {
-        // Buyer is a business (Bizna)
-        const buyerBiznaRes = await client.graphql({
-          query: getBizna,
-          variables: { BusKntct: orderDtlz.customerEmail },
-        });
-        const buyerBizna = 'data' in buyerBiznaRes ? buyerBiznaRes.data.getBizna : null;
-        var buyerDtlsz = buyerBizna;
-        if (buyerBizna) {
-          await client.graphql({
-            query: updateBizna,
-            variables: {
-              input: {
-                BusKntct: orderDtlz.customerEmail,
-                earningsBal: (parseFloat(buyerBizna.earningsBal) + parseFloat(orderDtlz.orderCost)).toFixed(0),
-                netEarnings: (parseFloat(buyerBizna.netEarnings) + parseFloat(orderDtlz.orderCost)).toFixed(0),
-                benefitsAmount: parseFloat(buyerBizna.benefitsAmount) + benefit,
-              },
-            },
-          });
-        }
-      } else if (orderDtlz.purchaseType === "B2C") {
-        // Buyer is an individual (SMAccount)
-        const buyerDtls: any = await client.graphql({
-          query: getSMAccount,
-          variables: { awsemail: orderDtlz.customerEmail },
-        });
-        var buyerDtlsz = 'data' in buyerDtls ? buyerDtls.data.getSMAccount : null;
-        if (buyerDtlsz) {
-          await client.graphql({
-            query: updateSMAccount,
-            variables: {
-              input: {
-                awsemail: orderDtlz.customerEmail,
-                benefitsAmount: parseFloat(buyerDtlsz.benefitsAmount) + benefit,
-                ttlNonLonsSentSM: parseFloat(buyerDtlsz.ttlNonLonsSentSM) + parseFloat(orderDtlz.orderCost),
-              },
-            },
-          });
-        }
-      }
+      await client.graphql({
+        query: updateBizna,
+        variables: {
+          input: {
+            BusKntct: orderDtlz.sellerContact,
+            netEarnings: (biz.netEarnings + orderDtlz.orderCost).toFixed(0),
+            earningsBal: (biz.earningsBal + orderDtlz.orderCost).toFixed(0),
+            benefitsAmount: parseFloat(biz.benefitsAmount) + benefit,
+          },
+        },
+      });
+
+      await client.graphql({
+        query: updateSMAccount,
+        variables: {
+          input: {
+            awsemail: orderDtlz.customerEmail,
+            benefitsAmount: parseFloat(buyerDtlsz.benefitsAmount) + benefit,
+          },
+        },
+      });
 
       await client.graphql({
         query: createBenefitContributions2,
@@ -668,58 +510,26 @@ const TransportOrdersScreen = () => {
         },
       });
 
-          await client.graphql({
-                                 query: createNonLoans,
-                                 variables: {
-                                   input: {
-                                     senderPhn: orderDtlz.customerEmail,
-                                     recPhn: orderDtlz.transportOwnerEmail,
-                                     RecName: orderDtlz.transportName,
-                                     description: `Payment for delivery of ${orderDtlz.deliveryDesc} to ${orderDtlz.buyerName}.`,
-                                     SenderName: orderDtlz.buyerName,
-                                     amount: transporterNetEarning,
-                                     status: "DeliveryPayment",
-                                     owner: user.userId,
-                                 }}})
-
       await client.graphql({
         query: updateTransportRegister,
         variables: {
           input: {
             id: orderDtlz.bizAc,
-            Earnings: transportRegisterEarning + parseFloat(transportDtlz.Earnings),
+            Earnings: TransporterEarning + parseFloat(transportDtlz.Earnings),
           },
         },
       });
+
       Alert.alert(t.success, t.deliveryReceived);
 
-      // Notify transporter
-      await client.graphql({
-        query: sendNotification,
-        variables: {
-          riderEmail: orderDtlz.transportOwnerEmail,
-          title: t.deliveryReceivedTitle,
-          body: t.deliveryReceivedBody
-            .replace('{buyerName}', orderDtlz.buyerName)
-            .replace('{deliveryDesc}', orderDtlz.deliveryDesc)
-            .replace('{buyerContact}', orderDtlz.buyerContact),
-        },
-      });
-      // Create message for transporter
-      await client.graphql({
-        query: createMessages,
-        variables: {
-          input: {
-            sender: attributes.email,
-            recipient: orderDtlz.transportOwnerEmail,
-            content: t.deliveryReceivedBody
-              .replace('{buyerName}', orderDtlz.buyerName)
-              .replace('{deliveryDesc}', orderDtlz.deliveryDesc)
-              .replace('{buyerContact}', orderDtlz.buyerContact),
-            type: 'delivery',
-          },
-        },
-      });
+      const sendSMS = (phoneNumber: string, message: string) => {
+        const url = `sms:${phoneNumber}?body=${encodeURIComponent(message)}`;
+        Linking.openURL(url);
+      };
+      sendSMS(
+        orderDtlz.transportkntct,
+        `${orderDtlz.buyerName} has received your delivery of ${orderDtlz.deliveryDesc}. Contact them via ${orderDtlz.buyerContact}`
+      );
     } catch (err) {
       console.error("Accept error:", err);
       Alert.alert(t.error, t.deliveryAcceptError);
@@ -735,11 +545,9 @@ const TransportOrdersScreen = () => {
         query: updateTransportOrder,
         variables: { input: { id, transportRequest: "transportRequestNo" } },
       });
-      Alert.alert("Success", "Delivery request cancelled!");
-        Alert.alert(t.success, t.deliveryCancelSuccess);
+      Alert.alert(t.success, t.deliveryCancelSuccess);
       } catch (err) {
       console.error("Cancel error:", err);
-      Alert.alert("Error", "Could not handle delivery.");
       Alert.alert(t.error, t.deliveryCancelError);
     } finally {
       setIsLoading2(false);
@@ -748,33 +556,42 @@ const TransportOrdersScreen = () => {
 
   // Carousel is now fixed, not draggable
 
-  if (loading) return <Text>Loading...</Text>;
   if (loading) return <Text>{t.loading}</Text>;
   if (!orders.length || !userEmail) return <Text>{t.noOrders}</Text>;
 
+  // Filter orders for carousel and map
+  const filteredOrders = orders.filter(
+    (item) => item.buyerOfficerEmail === userEmail
+  );
+
   return (
     <View style={{ flex: 1 }}>
-      {/* Floating refresher spinner */}
-      {/* Floating Refresh Spinner Button (matches AcceptTransportRequest) */}
       <TouchableOpacity
-        onPress={isRefreshing ? undefined : handleRefresh}
-        style={styles.refreshBtn}
-        activeOpacity={0.7}
-        disabled={isRefreshing}
+        onPress={fetchOrdersAndUser}
+        style={{
+          position: 'absolute',
+          left: 16,
+          top: 16,
+          zIndex: 200,
+          width: 40,
+          height: 40,
+          borderRadius: 20,
+          backgroundColor: '#fff',
+          justifyContent: 'center',
+          alignItems: 'center',
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: 0.15,
+          shadowRadius: 6,
+          elevation: 7,
+        }}
+        disabled={refreshingOrders}
       >
-        <Animated.View
-          style={{
-            transform: [{
-              rotate: spinAnim.interpolate({
-                inputRange: [0, 1],
-                outputRange: ['0deg', '360deg']
-              })
-            }],
-            opacity: isRefreshing ? 0.7 : 1,
-          }}
-        >
-          <FontAwesome name="refresh" size={28} color="#fff" />
-        </Animated.View>
+        {refreshingOrders ? (
+          <ActivityIndicator size="small" color="#1f8ef1" />
+        ) : (
+          <Ionicons name="refresh" size={22} color="#1f8ef1" />
+        )}
       </TouchableOpacity>
       <MapView
         ref={mapRef}
@@ -787,34 +604,50 @@ const TransportOrdersScreen = () => {
         }}
       >
         {filteredOrders.map((item, idx) => (
-          <React.Fragment key={item.id + '_' + idx}>
-            {/* Polyline from buyer to seller (road-following, orange) for selected card/marker only */}
-            {selectedIndex === idx && item.sellerLatitude && item.sellerLongitude && item.deliveryLatitude && item.deliveryLongitude && sellerToBuyerCoords.length >= 2 && (
+          <React.Fragment key={item.id}>
+            {/* Conditional polylines for the selected order */}
+            {selectedIndex === idx && item.engagementStatus === 'TransportEngaged' && item.dutyStatus === 'TransportNotOnduty' && routeTransportToBuyerCoords.length >= 2 && (
               <Polyline
-                coordinates={sellerToBuyerCoords}
-                strokeColor="#e29d58"
+                coordinates={routeTransportToBuyerCoords}
+                strokeColor="#38b6ff"
                 strokeWidth={5}
                 zIndex={10}
               />
             )}
-            {/* Transporter Marker (Blue #0077cc) */}
+            {selectedIndex === idx && item.engagementStatus !== 'TransportEngaged' && item.sellerLatitude && item.sellerLongitude && item.deliveryLatitude && item.deliveryLongitude && routeTransportToSellerCoords.length >= 2 && (
+              <Polyline
+                coordinates={routeTransportToSellerCoords}
+                strokeColor="#2ca02c"
+                strokeWidth={5}
+                zIndex={10}
+              />
+            )}
+            {selectedIndex === idx && item.engagementStatus !== 'TransportEngaged' && item.sellerLatitude && item.sellerLongitude && item.deliveryLatitude && item.deliveryLongitude && routeSellerToBuyerCoords.length >= 2 && (
+              <Polyline
+                coordinates={routeSellerToBuyerCoords}
+                strokeColor="#8b4513"
+                strokeWidth={5}
+                zIndex={10}
+              />
+            )}
+            {/* Transporter Marker (Black) */}
             <Marker
               key={item.id + "_transporter"}
-              coordinate={{ latitude: item.latitude, longitude: item.longitude }}
+              coordinate={{ latitude: Number(item.latitude), longitude: Number(item.longitude) }}
               title={item.transportName}
-              pinColor="#0077cc"
+              pinColor={selectedIndex === idx ? '#222' : '#222'}
               onPress={() => {
                 setSelectedIndex(idx);
                 flatListRef.current?.scrollToIndex({ index: idx, animated: true, viewPosition: 0.5 });
                 mapRef.current?.animateToRegion({
-                  latitude: item.latitude,
-                  longitude: item.longitude,
+                  latitude: Number(item.latitude),
+                  longitude: Number(item.longitude),
                   latitudeDelta: 0.05,
                   longitudeDelta: 0.05,
                 }, 350);
               }}
             >
-              <View style={{ backgroundColor: '#0077cc', padding: 6, borderRadius: 16, borderWidth: 2, borderColor: selectedIndex === idx ? '#e58d29' : '#fff' }}>
+              <View style={{ backgroundColor: '#222', padding: 6, borderRadius: 16, borderWidth: 2, borderColor: selectedIndex === idx ? '#e58d29' : '#fff' }}>
                 <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 12 }}>T</Text>
               </View>
             </Marker>
@@ -822,15 +655,15 @@ const TransportOrdersScreen = () => {
             {item.sellerLatitude && item.sellerLongitude && (
               <Marker
                 key={item.id + "_seller"}
-                coordinate={{ latitude: item.sellerLatitude, longitude: item.sellerLongitude }}
+                coordinate={{ latitude: Number(item.sellerLatitude), longitude: Number(item.sellerLongitude) }}
                 title={item.sellerName}
                 pinColor="#e29d58"
                 onPress={() => {
                   setSelectedIndex(idx);
                   flatListRef.current?.scrollToIndex({ index: idx, animated: true, viewPosition: 0.5 });
                   mapRef.current?.animateToRegion({
-                    latitude: item.sellerLatitude,
-                    longitude: item.sellerLongitude,
+                    latitude: Number(item.sellerLatitude),
+                    longitude: Number(item.sellerLongitude),
                     latitudeDelta: 0.05,
                     longitudeDelta: 0.05,
                   }, 350);
@@ -841,25 +674,26 @@ const TransportOrdersScreen = () => {
                 </View>
               </Marker>
             )}
-            {/* Buyer Marker (Green #2ca02c, uses deliveryLatitude/deliveryLongitude) */}
+            {/* Buyer Marker (Sky Blue #38b6ff) */}
             {item.deliveryLatitude && item.deliveryLongitude && (
               <Marker
                 key={item.id + "_buyer"}
-                coordinate={{ latitude: item.deliveryLatitude, longitude: item.deliveryLongitude }}
+                coordinate={{ latitude: Number(item.deliveryLatitude), longitude: Number(item.deliveryLongitude) }}
                 title={item.buyerName}
-                pinColor="#2ca02c"
+                pinColor="#38b6ff"
                 onPress={() => {
+                  console.log('Buyer coords for order', item.id, ':', item.deliveryLatitude, item.deliveryLongitude);
                   setSelectedIndex(idx);
                   flatListRef.current?.scrollToIndex({ index: idx, animated: true, viewPosition: 0.5 });
                   mapRef.current?.animateToRegion({
-                    latitude: item.deliveryLatitude,
-                    longitude: item.deliveryLongitude,
+                    latitude: Number(item.deliveryLatitude),
+                    longitude: Number(item.deliveryLongitude),
                     latitudeDelta: 0.05,
                     longitudeDelta: 0.05,
                   }, 350);
                 }}
               >
-                <View style={{ backgroundColor: '#2ca02c', padding: 6, borderRadius: 16, borderWidth: 2, borderColor: selectedIndex === idx ? '#e29d58' : '#fff' }}>
+                <View style={{ backgroundColor: '#38b6ff', padding: 6, borderRadius: 16, borderWidth: 2, borderColor: selectedIndex === idx ? '#e29d58' : '#fff' }}>
                   <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 12 }}>B</Text>
                 </View>
               </Marker>
@@ -908,17 +742,17 @@ const TransportOrdersScreen = () => {
           let aerialDistance = null;
           if (
             item.sellerLatitude && item.sellerLongitude &&
-            item.buyerLatitude && item.buyerLongitude
+            item.deliveryLatitude && item.deliveryLongitude
           ) {
             aerialDistance = getDistance(
               { latitude: Number(item.sellerLatitude), longitude: Number(item.sellerLongitude) },
-              { latitude: Number(item.buyerLatitude), longitude: Number(item.buyerLongitude) }
+              { latitude: Number(item.deliveryLatitude), longitude: Number(item.deliveryLongitude) }
             ) / 1000;
           }
           return (
             <View
               style={{
-                width: screenWidth * 0.95,
+                width: screenWidth * 0.85,
                 marginRight: 16,
                 paddingVertical: 8,
                 paddingHorizontal: 12,
@@ -938,16 +772,7 @@ const TransportOrdersScreen = () => {
             >
               <TouchableOpacity
                 activeOpacity={0.85}
-                onPress={() => {
-                  setSelectedIndex(index);
-                  // Center transporter marker
-                  mapRef.current?.animateToRegion({
-                    latitude: item.latitude,
-                    longitude: item.longitude,
-                    latitudeDelta: 0.05,
-                    longitudeDelta: 0.05,
-                  }, 350);
-                }}
+                onPress={() => handleSelectOrder(index, item)}
                 onLongPress={() => {
                   setModalOrder(item);
                   setModalVisible(true);
@@ -968,24 +793,14 @@ const TransportOrdersScreen = () => {
               {/* Button logic below */}
               <View style={{ flexDirection: 'row', marginTop: 14, gap: 12 }}>
                 {/* Receive Delivery button */}
-
                 {item.engagementStatus === "TransportEngaged" && item.dutyStatus === "TransportNotOnduty" && (
-                  <>
-                    <TouchableOpacity
-                      style={{ backgroundColor: '#38b6ff', paddingVertical: 6, paddingHorizontal: 18, borderRadius: 8 }}
-                      onPress={() => handleAcceptDelivery(item.id)}
-                      disabled={isLoading}
-                    >
-                      <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 15 }}>{t.receiveDelivery}</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={{ backgroundColor: '#0077cc', paddingVertical: 6, paddingHorizontal: 18, borderRadius: 8 }}
-                      onPress={() => openChangeLocModal(item)}
-                      disabled={isLoading2}
-                    >
-                      <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 15 }}>{t.changeLocation}</Text>
-                    </TouchableOpacity>
-                  </>
+                  <TouchableOpacity
+                    style={{ backgroundColor: '#38b6ff', paddingVertical: 6, paddingHorizontal: 18, borderRadius: 8 }}
+                    onPress={() => handleAcceptDelivery(item.id)}
+                    disabled={isLoading}
+                  >
+                    <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 15 }}>{t.receiveDelivery}</Text>
+                  </TouchableOpacity>
                 )}
 
                 {/* Change Location and Cancel buttons */}
@@ -993,7 +808,7 @@ const TransportOrdersScreen = () => {
                   <>
                     <TouchableOpacity
                       style={{ backgroundColor: '#0077cc', paddingVertical: 6, paddingHorizontal: 18, borderRadius: 8 }}
-                      onPress={() => openChangeLocModal(item)}
+                      onPress={() => openChangeLocationModal(item)}
                       disabled={isLoading2}
                     >
                       <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 15 }}>{t.changeLocation}</Text>
@@ -1052,7 +867,7 @@ const TransportOrdersScreen = () => {
                       <Text style={{ marginBottom: 4, color: '#0077cc', fontWeight: 'bold' }}>{t.loadingRoadDistance}</Text>
                     ) : roadDistances[modalOrder.id] ? (
                       <Text style={{ marginBottom: 4, color: '#0077cc', fontWeight: 'bold' }}>
-                        {t.roadDistance} {(roadDistances[modalOrder.id] / 1000).toFixed(2)} km
+                        {t.roadDistance}: {(roadDistances[modalOrder.id] / 1000).toFixed(2)} km
                       </Text>
                     ) : null
                   )}
@@ -1075,123 +890,55 @@ const TransportOrdersScreen = () => {
           </View>
         </View>
       </Modal>
-    {/* Inline Modal for Change Delivery Location */}
-    <Modal
-      visible={changeLocModalVisible}
-      animationType="slide"
-      transparent
-      onRequestClose={() => {
-        setChangeLocModalVisible(false);
-        setChangeLocOrder(null);
-        setChangeLocError("");
-      }}
-    >
-      <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.3)', justifyContent: 'center', alignItems: 'center' }}>
-        <View style={{ width: '85%', backgroundColor: '#fff', borderRadius: 16, padding: 24, elevation: 8 }}>
-          <Text style={{ fontWeight: 'bold', fontSize: 18, marginBottom: 8 }}>{t.changeLocation}</Text>
-          <Text style={{ marginBottom: 12 }}>How do you want to set the new delivery location?</Text>
-          {changeLocError ? <Text style={{ color: 'red', marginBottom: 8 }}>{changeLocError}</Text> : null}
-          <TouchableOpacity
-            style={{ backgroundColor: '#38b6ff', paddingVertical: 10, borderRadius: 8, marginBottom: 10, alignItems: 'center' }}
-            onPress={handleAutoLocation}
-            disabled={changeLocLoading}
-          >
-            <Text style={{ color: 'white', fontWeight: 'bold' }}>Automatically pick current location</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={{ backgroundColor: '#e58d29', paddingVertical: 10, borderRadius: 8, alignItems: 'center', marginBottom: 10 }}
-            onPress={() => setPlacePickerVisible(true)}
-            disabled={changeLocLoading}
-          >
-            <Text style={{ color: 'white', fontWeight: 'bold' }}>Choose delivery location</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={{ backgroundColor: '#888', paddingVertical: 10, borderRadius: 8, alignItems: 'center' }}
-            onPress={() => { setManualLocModalVisible(true); setChangeLocError(""); }}
-            disabled={changeLocLoading}
-          >
-            <Text style={{ color: 'white', fontWeight: 'bold' }}>Enter location manually</Text>
-          </TouchableOpacity>
-              {/* Modal for Photon place picker */}
-              <Modal
-                visible={placePickerVisible}
-                animationType="slide"
-                transparent
-                onRequestClose={() => setPlacePickerVisible(false)}
-              >
-                <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.3)', justifyContent: 'center', alignItems: 'center' }}>
-                  <View style={{ width: '90%', backgroundColor: '#fff', borderRadius: 16, padding: 18, elevation: 8 }}>
-                    <Text style={{ fontWeight: 'bold', fontSize: 18, marginBottom: 8 }}>Search Delivery Location</Text>
-                    <GooglePlacesAutocompleteNew
-                      placeholder="Search location"
-                      onPlaceSelected={handlePlaceSelected}
-                      debounceMs={300}
-                    />
-                    {placePickerLoading && <ActivityIndicator style={{ marginTop: 12 }} />}
-                    <TouchableOpacity
-                      style={{ marginTop: 18, alignSelf: 'center', backgroundColor: '#ccc', borderRadius: 8, paddingVertical: 10, paddingHorizontal: 32 }}
-                      onPress={() => setPlacePickerVisible(false)}
-                    >
-                      <Text style={{ color: '#333', fontWeight: 'bold' }}>{t.close}</Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              </Modal>
-          <TouchableOpacity
-            onPress={() => { setChangeLocModalVisible(false); setChangeLocOrder(null); setChangeLocError(""); }}
-            style={{ marginTop: 18, alignSelf: 'center', backgroundColor: '#ccc', borderRadius: 8, paddingVertical: 10, paddingHorizontal: 32 }}
-          >
-            <Text style={{ color: '#333', fontWeight: 'bold' }}>{t.close}</Text>
-          </TouchableOpacity>
-          {changeLocLoading && <ActivityIndicator color="#0077cc" style={{ marginTop: 10 }} />}
-        </View>
-      </View>
-    </Modal>
 
-    {/* Modal for manual lat/lng entry */}
-    <Modal
-      visible={manualLocModalVisible}
-      animationType="slide"
-      transparent
-      onRequestClose={() => setManualLocModalVisible(false)}
-    >
-      <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.3)', justifyContent: 'center', alignItems: 'center' }}>
-        <View style={{ width: '85%', backgroundColor: '#fff', borderRadius: 16, padding: 24, elevation: 8 }}>
-          <Text style={{ fontWeight: 'bold', fontSize: 18, marginBottom: 8 }}>Enter Latitude and Longitude</Text>
-          {changeLocError ? <Text style={{ color: 'red', marginBottom: 8 }}>{changeLocError}</Text> : null}
-          <TextInput
-            placeholder="Latitude"
-            value={manualLat}
-            onChangeText={setManualLat}
-            keyboardType="numeric"
-            style={{ backgroundColor: '#f2f2f2', borderRadius: 8, padding: 10, marginBottom: 10 }}
-            placeholderTextColor="#888"
-          />
-          <TextInput
-            placeholder="Longitude"
-            value={manualLng}
-            onChangeText={setManualLng}
-            keyboardType="numeric"
-            style={{ backgroundColor: '#f2f2f2', borderRadius: 8, padding: 10, marginBottom: 10 }}
-            placeholderTextColor="#888"
-          />
-          <TouchableOpacity
-            style={{ backgroundColor: '#38b6ff', paddingVertical: 10, borderRadius: 8, alignItems: 'center', marginBottom: 10 }}
-            onPress={handleManualLocation}
-            disabled={changeLocLoading}
-          >
-            <Text style={{ color: 'white', fontWeight: 'bold' }}>Submit</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => setManualLocModalVisible(false)}
-            style={{ alignSelf: 'center', backgroundColor: '#ccc', borderRadius: 8, paddingVertical: 10, paddingHorizontal: 32 }}
-          >
-            <Text style={{ color: '#333', fontWeight: 'bold' }}>{t.close}</Text>
-          </TouchableOpacity>
-          {changeLocLoading && <ActivityIndicator color="#0077cc" style={{ marginTop: 10 }} />}
+      <Modal
+        visible={changeLocationModalVisible}
+        animationType="slide"
+        transparent
+        onRequestClose={closeChangeLocationModal}
+      >
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.35)', justifyContent: 'center', alignItems: 'center' }}>
+          <View style={{ width: '92%', maxHeight: '90%', backgroundColor: '#fff', borderRadius: 16, padding: 16, elevation: 10 }}>
+            <Text style={{ fontWeight: 'bold', fontSize: 18, marginBottom: 8 }}>{t.selectNewDeliveryLocation}</Text>
+            <Text style={{ color: '#333', marginBottom: 12 }}>{t.selectLocationInstruction}</Text>
+            <MapView
+              style={{ width: '100%', height: 280, borderRadius: 14, overflow: 'hidden' }}
+              initialRegion={{
+                latitude: (selectedChangeLocation?.latitude ?? Number(changeLocationOrder?.deliveryLatitude ?? '')) || -1.2921,
+                longitude: (selectedChangeLocation?.longitude ?? Number(changeLocationOrder?.deliveryLongitude ?? '')) || 36.8219,
+                latitudeDelta: 0.08,
+                longitudeDelta: 0.08,
+              }}
+              onLongPress={handleChangeLocationMapLongPress}
+              showsUserLocation
+            >
+              {selectedChangeLocation && (
+                <Marker coordinate={selectedChangeLocation} />
+              )}
+            </MapView>
+            <View style={{ marginTop: 12, padding: 12, borderRadius: 12, backgroundColor: '#f3f3f3' }}>
+              <Text style={{ fontWeight: 'bold', marginBottom: 4 }}>{t.selectedCoordinates}</Text>
+              <Text>{selectedChangeLocation ? `${selectedChangeLocation.latitude.toFixed(6)}, ${selectedChangeLocation.longitude.toFixed(6)}` : t.noLocationSelectedYet}</Text>
+            </View>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 16, gap: 12 }}>
+              <TouchableOpacity
+                style={{ flex: 1, backgroundColor: '#999', paddingVertical: 12, borderRadius: 10, alignItems: 'center' }}
+                onPress={closeChangeLocationModal}
+                disabled={isChangeLocationLoading}
+              >
+                <Text style={{ color: '#fff', fontWeight: 'bold' }}>{t.cancel}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={{ flex: 1, backgroundColor: '#0077cc', paddingVertical: 12, borderRadius: 10, alignItems: 'center' }}
+                onPress={confirmChangeDeliveryLocation}
+                disabled={isChangeLocationLoading}
+              >
+                <Text style={{ color: '#fff', fontWeight: 'bold' }}>{isChangeLocationLoading ? t.saving : t.confirm}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
         </View>
-      </View>
-    </Modal>
+      </Modal>
     </View>
   </View>
 );

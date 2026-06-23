@@ -23,6 +23,7 @@ import { getUrl } from 'aws-amplify/storage';
 import { formatAmountSync, convertForeignToKsh, getUserNationalityByEmail } from '../../../../src/utils/exchange';
 import { useExchange } from '../../../../src/contexts/ExchangeContext';
 import { nationalityToCode } from '../../../../src/utils/nationalityToCode';
+import { buildOsrmRouteUrl } from '../../../../src/config/osrm';
 import { FontAwesome } from '@expo/vector-icons';
 import { Image } from 'react-native';
 const client = generateClient();
@@ -155,7 +156,7 @@ function SalesItemMapScreenInner({ navigation }: { navigation: any }) {
         return;
       }
       try {
-        const url = `https://router.project-osrm.org/route/v1/driving/${userLocation.longitude},${userLocation.latitude};${item.longitude},${item.latitude}?overview=full&geometries=geojson`;
+        const url = buildOsrmRouteUrl(userLocation, { latitude: Number(item.latitude), longitude: Number(item.longitude) }, { overview: 'full', geometries: 'geojson' });
         const res = await axios.get(url);
         if (res.data.routes && res.data.routes.length > 0) {
           const coords = res.data.routes[0].geometry.coordinates.map(([lng, lat]) => ({ latitude: lat, longitude: lng }));

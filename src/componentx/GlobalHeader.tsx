@@ -6,17 +6,48 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTranslation } from 'react-i18next';
+import { DrawerActions } from '@react-navigation/native';
 import { useSessionTimeout } from '../contexts/SessionTimeoutProvider';
+import { useMainAccountGuard } from '../contexts/MainAccountGuardContext';
+import { Ionicons } from '@expo/vector-icons';
 
-export default function GlobalHeader({ user, signOut }) {
+type GlobalHeaderProps = {
+  user: { username?: string } | null;
+  signOut: () => void;
+  navigation?: any;
+};
+
+export default function GlobalHeader({ user, signOut, navigation }: GlobalHeaderProps) {
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
+  const { restrictNavigation } = useMainAccountGuard();
   const { countdown, showCountdown, remainingTime, resetTimer } = useSessionTimeout();
 
-  // Helper to render greeting with countdown
   const greetingText = showCountdown
     ? `${t('appShell.globalHeader.welcome', { username: user?.username || '' })} (${Math.ceil(remainingTime / 1000)})`
     : t('appShell.globalHeader.welcome', { username: user?.username || '' });
+
+  const openDrawer = () => {
+    if (restrictNavigation) {
+      return;
+    }
+    if (navigation?.dispatch) {
+      navigation.dispatch(DrawerActions.openDrawer());
+      return;
+    }
+    if (navigation?.openDrawer) {
+      navigation.openDrawer();
+      return;
+    }
+    if (navigation?.toggleDrawer) {
+      navigation.toggleDrawer();
+      return;
+    }
+    const parentNav = navigation?.getParent?.();
+    if (parentNav?.dispatch) {
+      parentNav.dispatch(DrawerActions.openDrawer());
+    }
+  };
 
   return (
     <LinearGradient
@@ -25,28 +56,32 @@ export default function GlobalHeader({ user, signOut }) {
       end={{ x: 1, y: 0 }}
       style={[styles.container, { paddingTop: insets.top + 24 }]}
     >
-      <TouchableOpacity onPress={resetTimer} activeOpacity={0.7}>
+      <View style={styles.menuRow}>
+        <TouchableOpacity
+          onPress={openDrawer}
+          activeOpacity={0.7}
+          disabled={restrictNavigation}
+          style={[styles.menuButton, restrictNavigation && styles.disabledButton]}
+          hitSlop={{ top: 14, bottom: 14, left: 14, right: 14 }}
+        >
+          <Ionicons name="menu" size={28} color="#fff" />
+        </TouchableOpacity>
+      </View>
+      <View style={styles.actionRow}>
         <Text style={styles.greeting}>{greetingText}</Text>
-      </TouchableOpacity>
-      <TouchableOpacity onPress={signOut}>
-        <Text style={styles.signOut}>{t('appShell.globalHeader.signOut')}</Text>
-      </TouchableOpacity>
-      {/* {showCountdown && (
-        <View style={styles.countdownBox}>
-          <Text style={styles.countdownText}>
-            {Math.ceil(remainingTime / 1000)}
-          </Text>
-        </View>
-      )} */}
+        <TouchableOpacity onPress={signOut} style={styles.signOutButton}>
+          <Text style={styles.signOut}>{t('appShell.globalHeader.signOut')}</Text>
+        </TouchableOpacity>
+      </View>
     </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: 'column',
+    justifyContent: 'flex-start',
+    alignItems: 'stretch',
     paddingHorizontal: 16,
     paddingBottom: 24,
     borderBottomWidth: 1,
@@ -61,6 +96,45 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#fff',
     textDecorationLine: 'underline',
+  },
+  signOutButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  menuButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  disabledButton: {
+    opacity: 0.45,
+  },
+  topRow: {
+    width: '100%',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  menuRow: {
+    width: '100%',
+    flexDirection: 'row',
+    justifyContent: 'flex-start',
+    alignItems: 'center',
+  },
+  actionRow: {
+    width: '100%',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 12,
+  },
+  greeting: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#fff',
+  },
+  titleContainer: {
+    flex: 1,
+    alignItems: 'center',
   },
   countdown: {
     fontSize: 16,

@@ -12,8 +12,8 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { fetchUserAttributes } from 'aws-amplify/auth';
 import { generateClient } from 'aws-amplify/api';
-import { listTransportBiznas } from '../../../src/graphql/queries';
-import { updateTransportBizna } from '../../../src/graphql/mutations';
+import { listTransportBiznas, listTransportRegisters } from '../../../src/graphql/queries';
+import { updateTransportBizna, updateTransportRegister } from '../../../src/graphql/mutations';
 import { useExchange } from '../../../src/contexts/ExchangeContext';
 import { convertForeignToKsh, formatAmountSync } from '../../../src/utils/exchange';
 import { nationalityToCode } from '../../../src/utils/nationalityToCode';
@@ -28,11 +28,12 @@ const ViewTransportBiznaAccount = () => {
   const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
 
-  const [bizAc, setBizAc] = useState('');
-  const [transportName, setTransportName] = useState('');
   const [ownerEmail, setOwnerEmail] = useState('');
-  const [currentRate, setCurrentRate] = useState<number | null>(null);
-  const [currentShareRate, setCurrentShareRate] = useState<string>('');
+
+  // multiple biz accounts
+  const [bizList, setBizList] = useState<any[]>([]);
+  const [selectedBiz, setSelectedBiz] = useState<any | null>(null);
+  const [modalVisible, setModalVisible] = useState(false);
 
   const [transportRateInput, setTransportRateInput] = useState('');
   const [shareRatesInput, setShareRatesInput] = useState('');
@@ -50,32 +51,16 @@ const ViewTransportBiznaAccount = () => {
           filter: {
             biznaOwnerEmail: { eq: email },
           },
-          limit: 1,
+          limit: 200,
         },
       });
 
-      const items = response?.data?.listTransportBiznas?.items || [];
-      const account = items[0];
-
-      if (!account) {
-        setBizAc('');
-        setTransportName('');
-        setCurrentRate(null);
-        setCurrentShareRate('');
-        setTransportRateInput('');
-        setShareRatesInput('');
-        return;
-      }
-
-      const rate = Number(account.transportRate || 0);
-      const share = String(account.shareRates || '');
-
-      setBizAc(account.BizAc || '');
-      setTransportName(account.transportName || '');
-      setCurrentRate(rate);
-      setCurrentShareRate(share);
-      setTransportRateInput(String(rate));
-      setShareRatesInput(share);
+      const items = (response?.data?.listTransportBiznas?.items || []).filter(Boolean);
+      setBizList(items);
+      // clear selection inputs
+      setSelectedBiz(null);
+      setTransportRateInput('');
+      setShareRatesInput('');
     } catch (error) {
       console.error('Failed to load TransportBizna account:', error);
       Alert.alert('Error', 'Could not load transport company account.');
@@ -104,9 +89,9 @@ const ViewTransportBiznaAccount = () => {
     return { parsedRate, parsedShareRate };
   };
 
-  const handleUpdate = async () => {
+  const handleUpdate = async (biz: any) => {
     if (isSaving) return;
-    if (!bizAc) {
+    if (!biz || !biz.BizAc) {
       Alert.alert('No Account', 'No transport company account found to update.');
       return;
     }
@@ -124,15 +109,50 @@ const ViewTransportBiznaAccount = () => {
         query: updateTransportBizna,
         variables: {
           input: {
-            BizAc: bizAc,
+            BizAc: biz.BizAc,
             transportRate: transportRateKES,
             shareRates: String(validated.parsedShareRate),
           },
         },
       });
 
-      setCurrentRate(transportRateKES);
-      setCurrentShareRate(String(validated.parsedShareRate));
+      // Also update all TransportRegister records that belong to this TransportBizna
+      try {
+        let nextToken = undefined;
+        do {
+          // eslint-disable-next-line no-await-in-loop
+          const listResp: any = await client.graphql({
+            query: listTransportRegisters,
+            variables: {
+              filter: { transportOwnerAc: { eq: biz.BizAc } },
+              limit: 100,
+              nextToken,
+            },
+          });
+
+          const items = listResp?.data?.listTransportRegisters?.items || [];
+          nextToken = listResp?.data?.listTransportRegisters?.nextToken;
+
+          for (const reg of items) {
+            if (!reg?.id) continue;
+            try {
+              // eslint-disable-next-line no-await-in-loop
+              await client.graphql({
+                query: updateTransportRegister,
+                variables: { input: { id: reg.id, transportRate: transportRateKES } },
+              });
+            } catch (err) {
+              console.error('Failed to update TransportRegister', reg.id, err);
+            }
+          }
+        } while (nextToken);
+      } catch (err) {
+        console.error('Failed to list/update TransportRegister records for BizAc', biz.BizAc, err);
+      }
+
+      // refresh list and close modal
+      await loadAccount();
+      setModalVisible(false);
       Alert.alert('Success', 'Transport rate and share rates updated successfully.');
     } catch (error) {
       console.error('Failed to update TransportBizna account:', error);
@@ -151,12 +171,12 @@ const ViewTransportBiznaAccount = () => {
     );
   }
 
-  if (!bizAc) {
+  if (!bizList || bizList.length === 0) {
     return (
       <LinearGradient colors={['#e58d29', '#2c5364']} style={styles.centeredRoot}>
         <Text style={styles.noAccountTitle}>No Transport Company Account</Text>
         <Text style={styles.noAccountText}>
-          We could not find a TransportBizna profile under {ownerEmail || 'your account'}.
+          We could not find any TransportBizna profiles under {ownerEmail || 'your account'}.
         </Text>
         <TouchableOpacity onPress={loadAccount} style={styles.retryButton}>
           <Text style={styles.retryButtonText}>Refresh</Text>
@@ -170,59 +190,89 @@ const ViewTransportBiznaAccount = () => {
       <ScrollView contentContainerStyle={styles.container}>
         <Text style={styles.title}>View Transport Company Account</Text>
 
-        <View style={styles.readOnlyCard}>
-          <Text style={styles.readOnlyLabel}>BizAc</Text>
-          <Text style={styles.readOnlyValue}>{bizAc}</Text>
+        {bizList.map((biz) => {
+          const rate = Number(biz.transportRate || 0);
+          const share = String(biz.shareRates || '');
+          return (
+            <View key={biz.BizAc} style={[styles.readOnlyCard, { marginBottom: 12 }]}>
+              <Text style={styles.readOnlyLabel}>BizAc</Text>
+              <Text style={styles.readOnlyValue}>{biz.BizAc}</Text>
 
-          <Text style={styles.readOnlyLabel}>Transport Name</Text>
-          <Text style={styles.readOnlyValue}>{transportName || 'N/A'}</Text>
+              <Text style={styles.readOnlyLabel}>Transport Name</Text>
+              <Text style={styles.readOnlyValue}>{biz.transportName || 'N/A'}</Text>
 
-          <Text style={styles.readOnlyLabel}>Owner Email</Text>
-          <Text style={styles.readOnlyValue}>{ownerEmail || 'N/A'}</Text>
+              <Text style={styles.readOnlyLabel}>Owner Email</Text>
+              <Text style={styles.readOnlyValue}>{biz.biznaOwnerEmail || ownerEmail || 'N/A'}</Text>
 
-          <Text style={styles.readOnlyLabel}>Current Transport Rate</Text>
-          <Text style={styles.readOnlyValue}>
-            {currentRate !== null
-              ? formatAmountSync(currentRate, userCurrencyKey, ratesMap)
-              : 'N/A'}
-          </Text>
+              <Text style={styles.readOnlyLabel}>Current Transport Rate</Text>
+              <Text style={styles.readOnlyValue}>{formatAmountSync(rate, userCurrencyKey, ratesMap)}</Text>
 
-          <Text style={styles.readOnlyLabel}>Current Share Rates</Text>
-          <Text style={styles.readOnlyValue}>{currentShareRate || 'N/A'}</Text>
-        </View>
+              <Text style={styles.readOnlyLabel}>Current Share Rates</Text>
+              <Text style={styles.readOnlyValue}>{share || 'N/A'}</Text>
 
-        <View style={styles.fieldBlock}>
-          <Text style={styles.label}>New Transport Rate per km ({currencySymbol})</Text>
-          <TextInput
-            value={transportRateInput}
-            onChangeText={setTransportRateInput}
-            keyboardType="numeric"
-            style={styles.input}
-            placeholder={`Enter rate in ${currencySymbol}`}
-            placeholderTextColor="#444"
-          />
-        </View>
+              <TouchableOpacity
+                onPress={() => {
+                  setSelectedBiz(biz);
+                  setTransportRateInput(String(biz.transportRate || 0));
+                  setShareRatesInput(String(biz.shareRates || ''));
+                  setModalVisible(true);
+                }}
+                style={[styles.updateButton, { marginTop: 10 }]}
+                disabled={isSaving}
+              >
+                <Text style={styles.updateButtonText}>Edit</Text>
+              </TouchableOpacity>
+            </View>
+          );
+        })}
 
-        <View style={styles.fieldBlock}>
-          <Text style={styles.label}>New Share Rates (1 - 100)</Text>
-          <TextInput
-            value={shareRatesInput}
-            onChangeText={setShareRatesInput}
-            keyboardType="numeric"
-            style={styles.input}
-            placeholder="Enter share rates"
-            placeholderTextColor="#444"
-            maxLength={3}
-          />
-        </View>
+        {/* Inline modal for editing selected biz */}
+        {modalVisible && selectedBiz ? (
+          <View style={{ marginTop: 12 }}>
+            <View style={styles.fieldBlock}>
+              <Text style={styles.label}>New Transport Rate per km ({currencySymbol})</Text>
+              <TextInput
+                value={transportRateInput}
+                onChangeText={setTransportRateInput}
+                keyboardType="numeric"
+                style={styles.input}
+                placeholder={`Enter rate in ${currencySymbol}`}
+                placeholderTextColor="#444"
+              />
+            </View>
 
-        <TouchableOpacity
-          onPress={handleUpdate}
-          style={[styles.updateButton, isSaving ? { opacity: 0.7 } : null]}
-          disabled={isSaving}
-        >
-          <Text style={styles.updateButtonText}>{isSaving ? 'Updating...' : 'Update Rate + Share Rates'}</Text>
-        </TouchableOpacity>
+            <View style={styles.fieldBlock}>
+              <Text style={styles.label}>New Share Rates (1 - 100)</Text>
+              <TextInput
+                value={shareRatesInput}
+                onChangeText={setShareRatesInput}
+                keyboardType="numeric"
+                style={styles.input}
+                placeholder="Enter share rates"
+                placeholderTextColor="#444"
+                maxLength={3}
+              />
+            </View>
+
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+              <TouchableOpacity
+                onPress={() => setModalVisible(false)}
+                style={[styles.retryButton, { flex: 0.45 }]}
+                disabled={isSaving}
+              >
+                <Text style={styles.retryButtonText}>Cancel</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={() => handleUpdate(selectedBiz)}
+                style={[styles.updateButton, { flex: 0.52, alignItems: 'center' }]}
+                disabled={isSaving}
+              >
+                <Text style={styles.updateButtonText}>{isSaving ? 'Updating...' : 'Save'}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        ) : null}
       </ScrollView>
     </LinearGradient>
   );

@@ -6,12 +6,17 @@ import * as Clipboard from 'expo-clipboard';
 import { ScrollView } from 'react-native-gesture-handler';
 import { getCurrentUser, fetchUserAttributes } from 'aws-amplify/auth';
 import { generateClient } from 'aws-amplify/api';
+import { useTranslation } from 'react-i18next';
+import translations from './translation';
 const client = generateClient();
 const FetchSMNonCovLns = props => {
   const [Loanees, setLoanees] = useState([]); // Stores fetched accounts
   const [filteredLoanees, setFilteredLoanees] = useState([]); // Stores filtered results
   const [loading, setLoading] = useState(false);
   const [awsEmail, setAWSEmail] = useState("");
+  const { i18n } = useTranslation();
+  const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+  const t = translations[lang] || translations.en;
   useEffect(() => {
     fetchLoanees();
   }, []);
@@ -34,7 +39,7 @@ const FetchSMNonCovLns = props => {
       setLoanees(Lonees.data.listBenProd2s.items);
     } catch (e) {
       console.error("Error fetching accounts:", e);
-      Alert.alert("Error! Access denied");
+      Alert.alert(t.accessDenied);
     } finally {
       setLoading(false);
     }
@@ -52,7 +57,7 @@ const FetchSMNonCovLns = props => {
       <View style={styles.container}>
         {/* Search Bar */}
         <View style={styles.searchBar}>
-          <TextInput placeholder="Search by creator name..." value={awsEmail} onChangeText={handleSearch} style={styles.searchInput} />
+          <TextInput placeholder={t.searchByCreator} value={awsEmail} onChangeText={handleSearch} style={styles.searchInput} />
         </View>
 
         {/* Results */}
@@ -63,7 +68,7 @@ const FetchSMNonCovLns = props => {
       }) => <View>
                 <LnerStts SMAc={item} />
               </View>} keyExtractor={(item, index) => index.toString()} refreshing={loading} keyboardShouldPersistTaps="handled" /> : <Text style={styles.placeholderText}>
-            Start typing product creator name.
+            {t.startTyping}
           </Text>}
       </View>
     </KeyboardAvoidingView>;

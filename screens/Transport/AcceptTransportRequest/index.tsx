@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useMemo, useCallback } from "react";
 import { View, Text, FlatList, TouchableOpacity, ActivityIndicator, Alert, Dimensions, Linking, Animated, StyleSheet } from "react-native";
 // import { PanResponder } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
@@ -13,6 +13,7 @@ import { getCurrentUser, fetchUserAttributes } from "aws-amplify/auth";
 import { useExchange } from '../../../src/contexts/ExchangeContext';
 import { formatAmountSync, getUserNationalityByEmail, getExRatesForNationality, convertForeignToKsh } from '../../../src/utils/exchange';
 import { nationalityToCode } from '../../../src/utils/nationalityToCode';
+import { buildOsrmRouteUrl } from '../../../src/config/osrm';
 import { useTranslation } from 'react-i18next';
 import { translations } from './translation';
 import { generateClient } from "aws-amplify/api";
@@ -34,6 +35,12 @@ const TransportMapScreen = () => {
   // Floating refresh spinner state
   const [isRefreshing, setIsRefreshing] = useState(false);
   const spinAnim = useRef(new Animated.Value(0)).current;
+  const [cardsCollapsed, setCardsCollapsed] = useState(false);
+  const [mapLabelPoints, setMapLabelPoints] = useState<{
+    transporter: { x: number; y: number } | null;
+    seller: { x: number; y: number } | null;
+    buyer: { x: number; y: number } | null;
+  }>({ transporter: null, seller: null, buyer: null });
 
 
   // Polyline state (must be declared before any usage)
@@ -56,7 +63,11 @@ const TransportMapScreen = () => {
     // Always show brown polyline from seller to buyer if transportRequest is 'transportRequestYes'
     if (item.transportRequest === "transportRequestYes" && item.sellerLatitude && item.sellerLongitude && item.deliveryLatitude && item.deliveryLongitude) {
       try {
-        const url = `https://router.project-osrm.org/route/v1/driving/${item.sellerLongitude},${item.sellerLatitude};${item.deliveryLongitude},${item.deliveryLatitude}?overview=full&geometries=geojson`;
+        const url = buildOsrmRouteUrl(
+          { latitude: Number(item.sellerLatitude), longitude: Number(item.sellerLongitude) },
+          { latitude: Number(item.deliveryLatitude), longitude: Number(item.deliveryLongitude) },
+          { overview: 'full', geometries: 'geojson' }
+        );
         const res = await axios.get(url);
         if (res.data.routes && res.data.routes.length > 0) {
           const coords = res.data.routes[0].geometry.coordinates.map(([lng, lat]) => ({ latitude: lat, longitude: lng }));
@@ -78,7 +89,11 @@ const TransportMapScreen = () => {
     // Blue polyline: before engagement, from transporter to seller
     if (transporterCoords && item.sellerLatitude && item.sellerLongitude && item.engagementStatus !== "TransportEngaged") {
       try {
-        const url = `https://router.project-osrm.org/route/v1/driving/${transporterCoords.longitude},${transporterCoords.latitude};${item.sellerLongitude},${item.sellerLatitude}?overview=full&geometries=geojson`;
+        const url = buildOsrmRouteUrl(
+          transporterCoords,
+          { latitude: Number(item.sellerLatitude), longitude: Number(item.sellerLongitude) },
+          { overview: 'full', geometries: 'geojson' }
+        );
         const res = await axios.get(url);
         if (res.data.routes && res.data.routes.length > 0) {
           const coords = res.data.routes[0].geometry.coordinates.map(([lng, lat]) => ({ latitude: lat, longitude: lng }));
@@ -99,7 +114,11 @@ const TransportMapScreen = () => {
     // After engagement, show brown line from LIVE transporterCoords to buyer
     if (item.engagementStatus === "TransportEngaged" && transporterCoords && item.deliveryLatitude && item.deliveryLongitude) {
       try {
-        const url = `https://router.project-osrm.org/route/v1/driving/${transporterCoords.longitude},${transporterCoords.latitude};${item.deliveryLongitude},${item.deliveryLatitude}?overview=full&geometries=geojson`;
+        const url = buildOsrmRouteUrl(
+          transporterCoords,
+          { latitude: Number(item.deliveryLatitude), longitude: Number(item.deliveryLongitude) },
+          { overview: 'full', geometries: 'geojson' }
+        );
         const res = await axios.get(url);
         if (res.data.routes && res.data.routes.length > 0) {
           const coords = res.data.routes[0].geometry.coordinates.map(([lng, lat]) => ({ latitude: lat, longitude: lng }));
@@ -144,7 +163,11 @@ const TransportMapScreen = () => {
     ) {
       setRoadDistanceLoading(true);
       try {
-        const url = `https://router.project-osrm.org/route/v1/driving/${item.sellerLongitude},${item.sellerLatitude};${item.deliveryLongitude},${item.deliveryLatitude}?overview=false`;
+        const url = buildOsrmRouteUrl(
+          { latitude: Number(item.sellerLatitude), longitude: Number(item.sellerLongitude) },
+          { latitude: Number(item.deliveryLatitude), longitude: Number(item.deliveryLongitude) },
+          { overview: 'false' }
+        );
         const res = await axios.get(url);
         if (res.data.routes && res.data.routes.length > 0) {
           setRoadDistance(res.data.routes[0].distance);
@@ -164,6 +187,39 @@ const TransportMapScreen = () => {
   // No need for userRateData, use ratesMap from useExchange
   const navigation = useNavigation();
   const mapRef = useRef(null);
+  const activeOrder = useMemo(() => registerData[activeIndex] || null, [registerData, activeIndex]);
+
+  const refreshMapLabelPoints = useCallback(async () => {
+    const map = mapRef.current as any;
+    if (!map) return;
+    try {
+      const transporterCoord = transporterCoords ? { latitude: transporterCoords.latitude, longitude: transporterCoords.longitude } : null;
+      const sellerCoord = activeOrder && activeOrder.sellerLatitude && activeOrder.sellerLongitude
+        ? { latitude: Number(activeOrder.sellerLatitude), longitude: Number(activeOrder.sellerLongitude) }
+        : null;
+      const buyerCoord = activeOrder && activeOrder.deliveryLatitude && activeOrder.deliveryLongitude
+        ? { latitude: Number(activeOrder.deliveryLatitude), longitude: Number(activeOrder.deliveryLongitude) }
+        : null;
+
+      const [transporterPt, sellerPt, buyerPt] = await Promise.all([
+        transporterCoord ? map.pointForCoordinate(transporterCoord) : Promise.resolve(null),
+        sellerCoord ? map.pointForCoordinate(sellerCoord) : Promise.resolve(null),
+        buyerCoord ? map.pointForCoordinate(buyerCoord) : Promise.resolve(null),
+      ]);
+
+      setMapLabelPoints({
+        transporter: transporterPt || null,
+        seller: sellerPt || null,
+        buyer: buyerPt || null,
+      });
+    } catch {
+      // ignore map projection errors
+    }
+  }, [activeOrder, transporterCoords]);
+
+  useEffect(() => {
+    refreshMapLabelPoints();
+  }, [refreshMapLabelPoints, activeIndex, transporterCoords, cardsCollapsed, registerData]);
 
   // Floating spinner animation
   useEffect(() => {
@@ -350,7 +406,11 @@ const TransportMapScreen = () => {
       if (!isNaN(sellerLat) && !isNaN(sellerLng)) {
         // Use OSRM for transporter-to-seller road distance
         try {
-          const url = `https://router.project-osrm.org/route/v1/driving/${transporterLng},${transporterLat};${sellerLng},${sellerLat}?overview=false`;
+          const url = buildOsrmRouteUrl(
+            { latitude: transporterLat, longitude: transporterLng },
+            { latitude: sellerLat, longitude: sellerLng },
+            { overview: 'false' }
+          );
           const res = await axios.get(url);
           let distToSeller = 0;
           if (res.data.routes && res.data.routes.length > 0) {
@@ -412,7 +472,11 @@ const TransportMapScreen = () => {
       if (orderDtlz.sellerLatitude && orderDtlz.sellerLongitude && orderDtlz.deliveryLatitude && orderDtlz.deliveryLongitude && !isNaN(Number(orderDtlz.sellerLatitude)) && !isNaN(Number(orderDtlz.sellerLongitude)) && !isNaN(Number(orderDtlz.deliveryLatitude)) && !isNaN(Number(orderDtlz.deliveryLongitude))) {
         // Use OSRM for seller-to-buyer road distance
         try {
-          const url = `https://router.project-osrm.org/route/v1/driving/${orderDtlz.sellerLongitude},${orderDtlz.sellerLatitude};${orderDtlz.deliveryLongitude},${orderDtlz.deliveryLatitude}?overview=false`;
+          const url = buildOsrmRouteUrl(
+            { latitude: Number(orderDtlz.sellerLatitude), longitude: Number(orderDtlz.sellerLongitude) },
+            { latitude: Number(orderDtlz.deliveryLatitude), longitude: Number(orderDtlz.deliveryLongitude) },
+            { overview: 'false' }
+          );
           const res = await axios.get(url);
           let rawDistance = 0;
           if (res.data.routes && res.data.routes.length > 0) {
@@ -667,12 +731,22 @@ return <View style={{
         <FontAwesome name="refresh" size={28} color="#fff" />
       </Animated.View>
     </TouchableOpacity>
+    {cardsCollapsed && (
+      <TouchableOpacity
+        onPress={() => setCardsCollapsed(false)}
+        style={styles.floatingShowCardsBtn}
+        activeOpacity={0.85}
+      >
+        <Text style={styles.floatingShowCardsText}>{t.viewDetails || 'View Details'}</Text>
+      </TouchableOpacity>
+    )}
       {!transporterCoords ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#e58d29" />
           <Text style={{ marginTop: 10 }}>{t.gettingLocation}</Text>
         </View>
       ) : (
+        <>
         <MapView
           ref={mapRef}
           style={styles.map}
@@ -683,11 +757,17 @@ return <View style={{
             longitudeDelta: 0.1
           }}
         >
-          <Marker coordinate={transporterCoords} title={t.youTransporter} pinColor="green" />
+          <Marker coordinate={transporterCoords} title={t.youTransporter}>
+            <View style={[styles.mapMarkerDot, styles.transporterMarkerDot]} />
+          </Marker>
           {registerData.map(item => (
             <React.Fragment key={item.id}>
-              <Marker coordinate={{ latitude: Number(item.sellerLatitude), longitude: Number(item.sellerLongitude) }} title={`${t.seller}: ${item.sellerName}`} pinColor="blue" />
-              <Marker coordinate={{ latitude: Number(item.deliveryLatitude), longitude: Number(item.deliveryLongitude) }} title={`${t.buyer}: ${item.buyerName}`} pinColor="orange" />
+              <Marker coordinate={{ latitude: Number(item.sellerLatitude), longitude: Number(item.sellerLongitude) }} title={`${t.seller}: ${item.sellerName}`}>
+                <View style={[styles.mapMarkerDot, activeIndex === registerData.findIndex(r => r.id === item.id) ? styles.selectedSellerMarkerDot : styles.sellerMarkerDot]} />
+              </Marker>
+              <Marker coordinate={{ latitude: Number(item.deliveryLatitude), longitude: Number(item.deliveryLongitude) }} title={`${t.buyer}: ${item.buyerName}`}>
+                <View style={[styles.mapMarkerDot, activeIndex === registerData.findIndex(r => r.id === item.id) ? styles.selectedBuyerMarkerDot : styles.buyerMarkerDot]} />
+              </Marker>
             </React.Fragment>
           ))}
           {/* Polyline: before engagement, blue from transporter to seller; always show brown from seller to buyer if transportRequestYes */}
@@ -699,47 +779,83 @@ return <View style={{
             <Polyline coordinates={userToSellerCoords} strokeColor="blue" strokeWidth={8} zIndex={2} />
           )}
         </MapView>
+        <View style={styles.mapTextOverlay} pointerEvents="none">
+          {mapLabelPoints.transporter && (
+            <>
+              <View style={[styles.mapConnectorLine, styles.transporterConnectorLine, { left: mapLabelPoints.transporter.x - 1, top: mapLabelPoints.transporter.y - 16 }]} />
+              <Text style={[styles.mapTextChip, styles.transporterTextChip, { left: mapLabelPoints.transporter.x, top: mapLabelPoints.transporter.y - 34, transform: [{ translateX: -70 }] }]} numberOfLines={1} ellipsizeMode="tail">
+                {t.youTransporter}
+              </Text>
+            </>
+          )}
+
+          {mapLabelPoints.seller && activeOrder && (
+            <>
+              <View style={[styles.mapConnectorLine, styles.sellerConnectorLine, { left: mapLabelPoints.seller.x - 1, top: mapLabelPoints.seller.y - 16 }]} />
+              <Text style={[styles.mapTextChip, styles.sellerTextChip, { left: mapLabelPoints.seller.x, top: mapLabelPoints.seller.y - 34, transform: [{ translateX: -60 }] }]} numberOfLines={1} ellipsizeMode="tail">
+                {t.seller}: {activeOrder.sellerName}
+              </Text>
+            </>
+          )}
+
+          {mapLabelPoints.buyer && activeOrder && (
+            <>
+              <View style={[styles.mapConnectorLine, styles.buyerConnectorLine, { left: mapLabelPoints.buyer.x - 1, top: mapLabelPoints.buyer.y - 16 }]} />
+              <Text style={[styles.mapTextChip, styles.buyerTextChip, { left: mapLabelPoints.buyer.x, top: mapLabelPoints.buyer.y - 34, transform: [{ translateX: -60 }] }]} numberOfLines={1} ellipsizeMode="tail">
+                {t.buyer}: {activeOrder.buyerName}
+              </Text>
+            </>
+          )}
+        </View>
+        </>
       )}
 
-      {/* Carousel (PassengerRequestRide pattern) */}
-      <Animated.View
-        style={[
-          styles.carouselContainer,
-          {
-            position: 'absolute',
-            left: 0,
-            right: 0,
-            bottom: 0,
-            minHeight: CAROUSEL_HEIGHT + 20, // add space for handle and buttons
-            maxHeight: screenHeight * 0.45, // allow more room for content
-            zIndex: 100,
-            borderWidth: 2,
-            borderColor: '#e58d29',
-            pointerEvents: 'box-none',
-            overflow: 'visible',
-          },
-        ]}
-      >
-        {/* Removed handle since dragging is disabled */}
-        <FlatList
-          horizontal
-          pagingEnabled
-          data={registerData}
-          keyExtractor={item => item.id}
-          onMomentumScrollEnd={handleScroll}
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ paddingBottom: 16 }}
-          renderItem={({ item, index }) => {
-            console.log('[FlatList renderItem] item:', item);
-            return (
-              <View style={[styles.card, index === activeIndex && styles.activeCard, { flex: 1, height: '100%', width: screenWidth, justifyContent: 'center', alignItems: 'center', marginVertical: 0, marginHorizontal: 0, borderRadius: 0, paddingBottom: 0 }]}> 
-                <Text style={styles.cardTitle}>
-                  {t.fromTo ? t.fromTo(item.sellerName, item.buyerName) : `${item.sellerName} (${t.seller || 'Seller'}) → ${item.buyerName} (${t.buyer || 'Buyer'})`}
-                </Text>
-                <Text style={{ color: '#e58d29', fontWeight: 'bold', marginBottom: 0 }}>
-                  {(t.transportCost || t.rates || 'Transport Cost') + ': '} {formatAmountSync(Number(item.transportRate ?? 0), nationalityToCode(nationality), ratesMap)}
-                </Text>
-                <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 0, flexWrap: 'wrap' }}>
+      {!cardsCollapsed && (
+        <>
+          <TouchableOpacity
+            onPress={() => setCardsCollapsed(true)}
+            style={styles.cardsHideFloatingBtn}
+            activeOpacity={0.85}
+          >
+            <Text style={styles.cardsHideFloatingBtnText}>{t.hide || 'Hide'}</Text>
+          </TouchableOpacity>
+          {/* Carousel (PassengerRequestRide pattern) */}
+          <Animated.View
+            style={[
+              styles.carouselContainer,
+              {
+                position: 'absolute',
+                left: 0,
+                right: 0,
+                bottom: 0,
+                minHeight: CAROUSEL_HEIGHT + 20, // add space for handle and buttons
+                maxHeight: screenHeight * 0.45, // allow more room for content
+                zIndex: 100,
+                pointerEvents: 'box-none',
+                overflow: 'visible',
+              },
+            ]}
+          >
+            {/* Removed handle since dragging is disabled */}
+            <FlatList
+              horizontal
+              pagingEnabled
+              data={registerData}
+              keyExtractor={item => item.id}
+              onMomentumScrollEnd={handleScroll}
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ paddingBottom: 0 }}
+              renderItem={({ item, index }) => {
+                console.log('[FlatList renderItem] item:', item);
+                return (
+                  <View style={[styles.card, index === activeIndex && styles.activeCard, { flex: 1, height: '100%', width: screenWidth, justifyContent: 'center', alignItems: 'center', marginVertical: 0, marginHorizontal: 0, borderRadius: 0, paddingBottom: 0 }]}> 
+                    <Text style={styles.cardTitle}>
+                      {t.fromTo ? t.fromTo(item.sellerName, item.buyerName) : `${item.sellerName} (${t.seller || 'Seller'}) → ${item.buyerName} (${t.buyer || 'Buyer'})`}
+                    </Text>
+                    <Text style={{ color: '#e58d29', fontWeight: 'bold', marginBottom: 0 }}>
+                      {(t.transportCost || t.rates || 'Transport Cost') + ': '} {formatAmountSync(Number(item.transportRate ?? 0), nationalityToCode(nationality), ratesMap)}
+                    </Text>
+                    <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 0, flexWrap: 'wrap' }}>
                   {/* Accept Request button */}
                   {item.transportRequest === "transportRequestYes" && item.bizType === "TransportDispatched" && item.engagementStatus !== "TransportEngaged" && (
                     <TouchableOpacity
@@ -962,9 +1078,6 @@ return <View style={{
                       </Text>
                     </TouchableOpacity>
                   )}
-                </View>
-                {/* View Details button below the row */}
-                <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 4 }}>
                   <TouchableOpacity
                     onPress={() => {
                       setLoadingItemId(item.id);
@@ -980,15 +1093,17 @@ return <View style={{
                       <ActivityIndicator size="small" color="#fff" style={{ marginRight: 6 }} />
                     )}
                     <Text style={{ color: 'white', fontSize: 12, fontWeight: 'bold' }}>
-                        {loadingItemId === item.id && loadingType === "view" ? t.processing : t.view || "View"}
+                      {loadingItemId === item.id && loadingType === "view" ? t.processing : t.view || "View"}
                     </Text>
                   </TouchableOpacity>
-                </View>
-              </View>
-            );
-          }}
-        />
-      </Animated.View>
+                    </View>
+                  </View>
+                );
+              }}
+            />
+          </Animated.View>
+        </>
+      )}
     </View>;
 };
 const styles = StyleSheet.create({
@@ -1007,13 +1122,134 @@ const styles = StyleSheet.create({
     width: '100%',
     backgroundColor: 'rgba(255,255,255,0.97)',
     zIndex: 100,
-    paddingTop: 6,
+    paddingTop: 0,
     borderRadius: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.15,
     shadowRadius: 6,
     paddingHorizontal: 0,
+  },
+  mapTextOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 30,
+  },
+  mapTextChip: {
+    position: 'absolute',
+    fontSize: 11,
+    fontWeight: '700',
+    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    color: '#fff',
+    maxWidth: screenWidth * 0.42,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.45)',
+  },
+  transporterTextChip: {
+    backgroundColor: '#1f8ef1',
+  },
+  sellerTextChip: {
+    backgroundColor: '#27ae60',
+  },
+  buyerTextChip: {
+    backgroundColor: '#9b59b6',
+  },
+  mapConnectorLine: {
+    position: 'absolute',
+    width: 2,
+    height: 12,
+    borderRadius: 1,
+  },
+  transporterConnectorLine: {
+    backgroundColor: '#1f8ef1',
+  },
+  sellerConnectorLine: {
+    backgroundColor: '#27ae60',
+  },
+  buyerConnectorLine: {
+    backgroundColor: '#9b59b6',
+  },
+  mapMarkerDot: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: '#fff',
+    elevation: 3,
+  },
+  transporterMarkerDot: {
+    backgroundColor: '#1f8ef1',
+  },
+  sellerMarkerDot: {
+    backgroundColor: '#27ae60',
+  },
+  buyerMarkerDot: {
+    backgroundColor: '#9b59b6',
+  },
+  selectedSellerMarkerDot: {
+    backgroundColor: '#27ae60',
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+  },
+  selectedBuyerMarkerDot: {
+    backgroundColor: '#9b59b6',
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+  },
+  floatingShowCardsBtn: {
+    position: 'absolute',
+    left: '50%',
+    bottom: 18,
+    transform: [{ translateX: -80 }],
+    width: 160,
+    backgroundColor: '#e58d29',
+    borderRadius: 999,
+    paddingVertical: 11,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 120,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.18,
+    shadowRadius: 6,
+    elevation: 6,
+  },
+  floatingShowCardsText: {
+    color: '#fff',
+    fontWeight: '700',
+    fontSize: 14,
+  },
+  cardsHideFloatingBtn: {
+    position: 'absolute',
+    left: '50%',
+    bottom: 126,
+    transform: [{ translateX: -52 }],
+    width: 104,
+    backgroundColor: '#e58d29',
+    borderRadius: 999,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 120,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.18,
+    shadowRadius: 6,
+    elevation: 6,
+  },
+  cardsHideFloatingBtnText: {
+    color: '#fff',
+    fontWeight: '700',
+    fontSize: 13,
   },
   card: {
     backgroundColor: "white",

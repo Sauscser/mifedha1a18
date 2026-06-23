@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, StyleSheet, FlatList, Dimensions, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, FlatList, Dimensions, ActivityIndicator, TouchableOpacity } from 'react-native';
 import MapView, { Marker, Polyline, UrlTile } from 'react-native-maps';
-import { listRideRequests, getTransportRegister } from '../../../src/graphql/queries';
+import { getTransportRegister } from '../../../src/graphql/queries';
 import { onUpdateRideRequest } from '../../../src/graphql/subscriptions';
 import { Observable } from 'zen-observable-ts';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -10,10 +10,47 @@ import { generateClient } from "aws-amplify/api";
 import { useExchange } from '../../../src/contexts/ExchangeContext';
 import { formatAmountSync } from '../../../src/utils/exchange';
 import { nationalityToCode } from '../../../src/utils/nationalityToCode';
+import { buildOsrmRouteUrl } from '../../../src/config/osrm';
 
 const client = generateClient();
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const SCREEN_HEIGHT = Dimensions.get('window').height;
+
+const LIST_RIDE_REQUESTS_SAFE_QUERY = /* GraphQL */ `
+  query ListRideRequestsSafe($filter: ModelRideRequestFilterInput, $limit: Int, $nextToken: String) {
+    listRideRequests(filter: $filter, limit: $limit, nextToken: $nextToken) {
+      items {
+        id
+        passengerEmail
+        passengerName
+        passengerContact
+        pickupLatitude
+        pickupLongitude
+        destinationLatitude
+        destinationLongitude
+        distance
+        estimatedCost
+        selectedRiderID
+        riderName
+        riderContact
+        riderRate
+        paymentMethod
+        paymentStatus
+        rideStatus
+        startTime
+        endTime
+        riderLatitude
+        riderLongitude
+        createdAt
+        updatedAt
+        owner
+        __typename
+      }
+      nextToken
+      __typename
+    }
+  }
+`;
 
 
 
@@ -22,7 +59,7 @@ import { updateRideRequest } from '../../../src/graphql/mutations';
 import { useTranslation } from 'react-i18next';
 import { translations } from './translation';
 
-export default function RideTrackingScreen({ navigation }: any) {
+export default function RideTrackingScreen({ navigation, route }: any) {
     // 1-minute polling fallback for live ride updates
     useEffect(() => {
       let interval: any = null;
@@ -35,7 +72,7 @@ export default function RideTrackingScreen({ navigation }: any) {
           interval = setInterval(async () => {
             try {
               const res: any = await client.graphql({
-                query: listRideRequests,
+                query: LIST_RIDE_REQUESTS_SAFE_QUERY,
                 variables: {
                   filter: { passengerEmail: { eq: attributes.email } },
                   limit: 20,
@@ -54,9 +91,15 @@ export default function RideTrackingScreen({ navigation }: any) {
   const { i18n } = useTranslation();
   const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
   const t = translations[lang] || translations.en;
-  const [rides, setRides] = useState<any[]>([]);
+  const [rides, setRides] = useState<any[]>(() => route?.params?.pendingRides || []);
   const [loading, setLoading] = useState(true);
   const [selectedIdx, setSelectedIdx] = useState(0);
+  const [cardsCollapsed, setCardsCollapsed] = useState(false);
+  const [mapLabelPoints, setMapLabelPoints] = useState<{
+    rider: { x: number; y: number } | null;
+    pickup: { x: number; y: number } | null;
+    destination: { x: number; y: number } | null;
+  }>({ rider: null, pickup: null, destination: null });
   const mapRef = useRef<MapView | null>(null);
 
   const [userEmail, setUserEmail] = useState<string | null>(null);
@@ -72,7 +115,7 @@ export default function RideTrackingScreen({ navigation }: any) {
         const attributes = await fetchUserAttributes();
         if (attributes.email) setUserEmail(attributes.email);
         const res: any = await client.graphql({
-          query: listRideRequests,
+          query: LIST_RIDE_REQUESTS_SAFE_QUERY,
           variables: {
             filter: {
               passengerEmail: { eq: attributes.email }
@@ -147,7 +190,7 @@ export default function RideTrackingScreen({ navigation }: any) {
   // Fetch route and distance using OSRM
   const fetchRouteWithDistance = async (start: { latitude:number, longitude:number }, end: { latitude:number, longitude:number }) => {
     try {
-      const url = `https://router.project-osrm.org/route/v1/driving/${start.longitude},${start.latitude};${end.longitude},${end.latitude}?overview=full&geometries=geojson`;
+      const url = buildOsrmRouteUrl(start, end, { overview: 'full', geometries: 'geojson' });
       const res = await fetch(url);
       const data = await res.json();
       if (data && data.routes && data.routes.length) {
@@ -241,7 +284,7 @@ export default function RideTrackingScreen({ navigation }: any) {
       });
       // Refresh rides after update
       const res: any = await client.graphql({
-        query: listRideRequests,
+        query: LIST_RIDE_REQUESTS_SAFE_QUERY,
         variables: {
           filter: {
             passengerEmail: { eq: ride.passengerEmail }
@@ -258,6 +301,37 @@ export default function RideTrackingScreen({ navigation }: any) {
     }
   };
 
+  const selectedRide = rides[selectedIdx];
+
+  const refreshMapLabelPoints = async () => {
+    const map = mapRef.current as any;
+    if (!map || !selectedRide) return;
+    try {
+      const [riderPt, pickupPt, destPt] = await Promise.all([
+        selectedRide?.riderLatitude && selectedRide?.riderLongitude
+          ? map.pointForCoordinate({ latitude: selectedRide.riderLatitude, longitude: selectedRide.riderLongitude })
+          : Promise.resolve(null),
+        selectedRide?.pickupLatitude && selectedRide?.pickupLongitude
+          ? map.pointForCoordinate({ latitude: selectedRide.pickupLatitude, longitude: selectedRide.pickupLongitude })
+          : Promise.resolve(null),
+        selectedRide?.destinationLatitude && selectedRide?.destinationLongitude
+          ? map.pointForCoordinate({ latitude: selectedRide.destinationLatitude, longitude: selectedRide.destinationLongitude })
+          : Promise.resolve(null),
+      ]);
+      setMapLabelPoints({
+        rider: riderPt || null,
+        pickup: pickupPt || null,
+        destination: destPt || null,
+      });
+    } catch {
+      // Ignore mapping failures; labels will refresh on next region callback.
+    }
+  };
+
+  useEffect(() => {
+    refreshMapLabelPoints();
+  }, [selectedIdx, rides, cardsCollapsed]);
+
   if (loading) {
     return <View style={styles.loadingContainer}>
       <ActivityIndicator size="large" />
@@ -271,8 +345,6 @@ export default function RideTrackingScreen({ navigation }: any) {
     </View>;
   }
 
-  const selectedRide = rides[selectedIdx];
-
   let initialRegion = {
     latitude: selectedRide?.pickupLatitude || 0.0236,
     longitude: selectedRide?.pickupLongitude || 37.9062,
@@ -282,89 +354,221 @@ export default function RideTrackingScreen({ navigation }: any) {
 
   return (
     <View style={{ flex: 1, backgroundColor: '#fff' }}>
-      <MapView
-        ref={mapRef}
-        style={{ width: SCREEN_WIDTH, height: SCREEN_HEIGHT * 0.45 }}
-        initialRegion={initialRegion}
-      >
-        <UrlTile
-          urlTemplate="https://api.maptiler.com/maps/streets/{z}/{x}/{y}.png?key=IXsiA7phXPF3BeMY5KKp"
-          maximumZ={19}
-          flipY={false}
-        />
-        {selectedRide?.riderLatitude && selectedRide?.riderLongitude && (
-          <Marker coordinate={{ latitude: selectedRide.riderLatitude, longitude: selectedRide.riderLongitude }}>
-            <View style={{ backgroundColor: '#1f8ef1', padding: 6, borderRadius: 6 }}>
-              <Text style={{ color: '#fff', fontWeight: '700' }}>{` ${transportMap.current[selectedRide.selectedRiderID]?.numberPlate || selectedRide.riderName || 'Rider'}`}</Text>
-            </View>
-          </Marker>
-        )}
-        {selectedRide?.pickupLatitude && selectedRide?.pickupLongitude && (
-          <Marker coordinate={{ latitude: selectedRide.pickupLatitude, longitude: selectedRide.pickupLongitude }}>
-            <View style={{ backgroundColor: '#27ae60', padding: 6, borderRadius: 6 }}>
-              <Text style={{ color: '#fff', fontWeight: '700' }}>📍 Pick up</Text>
-            </View>
-          </Marker>
-        )}
-        {selectedRide?.destinationLatitude && selectedRide?.destinationLongitude && (
-          <Marker coordinate={{ latitude: selectedRide.destinationLatitude, longitude: selectedRide.destinationLongitude }}>
-            <View style={{ backgroundColor: '#9b59b6', padding: 6, borderRadius: 6 }}>
-              <Text style={{ color: '#fff', fontWeight: '700' }}>🎯 Destination</Text>
-            </View>
-          </Marker>
-        )}
-        {/* Polylines */}
-        {routeToPickup.length > 0 && selectedRide?.rideStatus !== 'Active' && <Polyline coordinates={routeToPickup} strokeColor="blue" strokeWidth={4} />}
-        {routeToDrop.length > 0 && <Polyline coordinates={routeToDrop} strokeColor="#e58d29" strokeWidth={4} /> }
-      </MapView>
-      <Text style={styles.header}>Your Ride Requests</Text>
-      <FlatList
-        data={rides}
-        horizontal
-        keyExtractor={item => item.id}
-        contentContainerStyle={{ padding: 16 }}
-        extraData={selectedIdx}
-        renderItem={({ item, index }) => {
-          const estCostNum = (selectedIdx === index && routeDistanceKm != null) ? ((item.riderRate || 0) * routeDistanceKm) : (item.estimatedCost || 0);
-          return (
-            <View style={[styles.card, selectedIdx === index && { borderColor: '#1f8ef1', borderWidth: 2 }]} 
-              onTouchStart={() => setSelectedIdx(index)}>
-              <Text style={styles.cardTitle}>{item.riderName || t.transporter}</Text>
-              <Text>{t.status}: {item.rideStatus}</Text>
-              {/* Route distance (pickup -> destination) */}
-              <Text>{t.tripDistance}: {(selectedIdx === index && routeDistanceKm != null) ? routeDistanceKm.toFixed(2) : (item.distance ? item.distance.toFixed(2) : '...')} km</Text>
-              <Text>{t.tripCost}: {(selectedIdx === index && routeDistanceKm != null)
-                ? formatAmountSync((item.riderRate || 0) * routeDistanceKm, natCode, ratesMap)
-                : (item.estimatedCost ? formatAmountSync(item.estimatedCost, natCode, ratesMap) : '...')}</Text>
-              {/* Estimated / live cost */}
-              <Text>{t.cost}: {formatAmountSync(estCostNum, natCode, ratesMap)}</Text>
-              {/* Live backend-saved distance and cost */}
-              <Text style={{ color: '#1f8ef1', fontWeight: 'bold' }}>{t.liveDistance}: {item.distance ? item.distance.toFixed(2) : '...'} km</Text>
-              <Text style={{ color: '#1f8ef1', fontWeight: 'bold' }}>{t.liveCost}: {item.estimatedCost ? formatAmountSync(item.estimatedCost, natCode, ratesMap) : '...'}</Text>
-              {/* Distance to pickup or live trip metrics for selected ride */}
-              {/* Distance to pickup (OSRM road distance) */}
-              {selectedIdx === index && item.riderLatitude && item.riderLongitude && item.rideStatus !== 'Active' && routeToPickup.length > 1 && (
-                <Text>{t.distanceToPickup}: {(() => {
-                  if (routeToPickup.length > 1) {
-                    return (routeCache.current[item.id]?.pickupDistanceKm ?? '...');
-                  }
-                  return '...';
-                })()} km</Text>
-              )}
-              {selectedIdx === index && item.rideStatus === 'Active' && routeDistanceKm != null ? <Text>{t.liveDistance}: {routeDistanceKm.toFixed(2)} km • {t.cost}: {formatAmountSync(item.estimatedCost || 0, natCode, ratesMap)}</Text> : null}
-              <Text>{t.requested}: {item.createdAt ? new Date(item.createdAt).toLocaleString() : ''}</Text>
-              {/* Action buttons depending on status */}
-              <View style={{ flexDirection: 'row', marginTop: 8 }}>
-                  {item.rideStatus === 'transportRequestYes' && (
-                  <Text style={styles.actionBtn} onPress={() => updateRideStatus(item, 'Cancelled')}>{t.cancelRide}</Text>
-                )}
-                {/* Passenger cannot start/complete trips; those actions are performed by the transporter */}
-              </View>
-            </View>
-          );
-        }}
-        showsHorizontalScrollIndicator={false}
-      />
+      <View style={[styles.mapContainer, { height: cardsCollapsed ? SCREEN_HEIGHT * 0.78 : SCREEN_HEIGHT * 0.40 }]}> 
+        <MapView
+          ref={mapRef}
+          style={{ width: SCREEN_WIDTH, height: '100%' }}
+          initialRegion={initialRegion}
+          onMapReady={refreshMapLabelPoints}
+          onRegionChangeComplete={refreshMapLabelPoints}
+        >
+          <UrlTile
+            urlTemplate="https://api.maptiler.com/maps/streets/{z}/{x}/{y}.png?key=IXsiA7phXPF3BeMY5KKp"
+            maximumZ={19}
+            flipY={false}
+          />
+          {selectedRide?.riderLatitude && selectedRide?.riderLongitude && (
+            <Marker
+              coordinate={{ latitude: selectedRide.riderLatitude, longitude: selectedRide.riderLongitude }}
+              anchor={{ x: 0.5, y: 1 }}
+              tracksViewChanges
+            >
+              <View style={[styles.mapMarkerDot, styles.riderMarkerDot]} />
+            </Marker>
+          )}
+          {selectedRide?.pickupLatitude && selectedRide?.pickupLongitude && (
+            <Marker
+              coordinate={{ latitude: selectedRide.pickupLatitude, longitude: selectedRide.pickupLongitude }}
+              anchor={{ x: 0.5, y: 1 }}
+              tracksViewChanges
+            >
+              <View style={[styles.mapMarkerDot, styles.pickupMarkerDot]} />
+            </Marker>
+          )}
+          {selectedRide?.destinationLatitude && selectedRide?.destinationLongitude && (
+            <Marker
+              coordinate={{ latitude: selectedRide.destinationLatitude, longitude: selectedRide.destinationLongitude }}
+              anchor={{ x: 0.5, y: 1 }}
+              tracksViewChanges
+            >
+              <View style={[styles.mapMarkerDot, styles.destinationMarkerDot]} />
+            </Marker>
+          )}
+          {/* Polylines */}
+          {routeToPickup.length > 0 && selectedRide?.rideStatus !== 'Active' && <Polyline coordinates={routeToPickup} strokeColor="blue" strokeWidth={4} />}
+          {routeToDrop.length > 0 && <Polyline coordinates={routeToDrop} strokeColor="#e58d29" strokeWidth={4} /> }
+        </MapView>
+
+        <View style={styles.mapTextOverlay} pointerEvents="none">
+          {mapLabelPoints.rider && (
+            <>
+              <View
+                style={[
+                  styles.mapConnectorLine,
+                  styles.riderConnectorLine,
+                  {
+                    left: mapLabelPoints.rider.x - 1,
+                    top: mapLabelPoints.rider.y - 16,
+                  },
+                ]}
+              />
+              <Text
+                style={[
+                  styles.mapTextChip,
+                  styles.riderTextChip,
+                  {
+                    left: mapLabelPoints.rider.x,
+                    top: mapLabelPoints.rider.y - 34,
+                    transform: [{ translateX: -70 }],
+                  },
+                ]}
+                numberOfLines={1}
+                ellipsizeMode="tail"
+              >
+                Rider: {transportMap.current[selectedRide.selectedRiderID]?.numberPlate || selectedRide.riderName || 'Rider'}
+              </Text>
+            </>
+          )}
+
+          {mapLabelPoints.pickup && (
+            <>
+              <View
+                style={[
+                  styles.mapConnectorLine,
+                  styles.pickupConnectorLine,
+                  {
+                    left: mapLabelPoints.pickup.x - 1,
+                    top: mapLabelPoints.pickup.y - 16,
+                  },
+                ]}
+              />
+              <Text
+                style={[
+                  styles.mapTextChip,
+                  styles.pickupTextChip,
+                  {
+                    left: mapLabelPoints.pickup.x,
+                    top: mapLabelPoints.pickup.y - 34,
+                    transform: [{ translateX: -45 }],
+                  },
+                ]}
+                numberOfLines={1}
+              >
+                Pick up
+              </Text>
+            </>
+          )}
+
+          {mapLabelPoints.destination && (
+            <>
+              <View
+                style={[
+                  styles.mapConnectorLine,
+                  styles.destinationConnectorLine,
+                  {
+                    left: mapLabelPoints.destination.x - 1,
+                    top: mapLabelPoints.destination.y - 16,
+                  },
+                ]}
+              />
+              <Text
+                style={[
+                  styles.mapTextChip,
+                  styles.destinationTextChip,
+                  {
+                    left: mapLabelPoints.destination.x,
+                    top: mapLabelPoints.destination.y - 34,
+                    transform: [{ translateX: -58 }],
+                  },
+                ]}
+                numberOfLines={1}
+              >
+                Destination
+              </Text>
+            </>
+          )}
+        </View>
+      </View>
+      {cardsCollapsed && (
+        <TouchableOpacity
+          style={styles.floatingShowCardsBtn}
+          onPress={() => setCardsCollapsed(false)}
+          activeOpacity={0.9}
+        >
+          <Text style={styles.floatingShowCardsText}>{t.viewRideDetails}</Text>
+        </TouchableOpacity>
+      )}
+      {!cardsCollapsed && (
+        <View style={styles.cardsPanel}>
+          <View style={styles.cardsHeaderRow}>
+            <Text style={styles.header}>Your Ride Requests</Text>
+            <TouchableOpacity style={styles.panelToggleBtn} onPress={() => setCardsCollapsed(true)}>
+              <Text style={styles.panelToggleText}>{t.hide}</Text>
+            </TouchableOpacity>
+          </View>
+
+          <FlatList
+            data={rides}
+            horizontal
+            keyExtractor={item => item.id}
+            contentContainerStyle={{ padding: 16, paddingTop: 8, paddingBottom: 18 }}
+            extraData={selectedIdx}
+            renderItem={({ item, index }) => {
+              const isSelected = selectedIdx === index;
+              const liveDistanceNum = typeof item.distance === 'number' ? item.distance : null;
+              const routeDistanceNum = (isSelected && routeDistanceKm != null) ? routeDistanceKm : null;
+              const riderRateNum = Number(item.riderRate || 0);
+              const liveCostNum = typeof item.estimatedCost === 'number' ? item.estimatedCost : null;
+              const routeCostNum = routeDistanceNum != null ? (routeDistanceNum * riderRateNum) : null;
+              const liveRateText = `${formatAmountSync(riderRateNum, natCode, ratesMap)}/km`;
+              return (
+                <TouchableOpacity
+                  activeOpacity={0.88}
+                  style={[styles.card, isSelected && styles.cardSelected, isSelected && styles.cardExpanded]}
+                  onPress={() => setSelectedIdx(index)}
+                >
+                  <View style={styles.cardHeaderRow}>
+                    <Text style={styles.cardTitle} numberOfLines={1}>{item.riderName || t.transporter}</Text>
+                    <View style={styles.statusChip}>
+                      <Text style={styles.statusChipText}>{item.rideStatus}</Text>
+                    </View>
+                  </View>
+
+                  <View style={styles.metricStack}>
+                    <Text style={styles.compactMetricLine}>
+                      <Text style={styles.compactMetricLive}>{liveDistanceNum != null ? `${liveDistanceNum.toFixed(2)} km` : '...'}</Text>
+                      <Text style={styles.compactMetricConnector}> {t.of} </Text>
+                      <Text style={styles.compactMetricRoute}>{routeDistanceNum != null ? `${routeDistanceNum.toFixed(2)} km` : '...'}</Text>
+                      <Text style={styles.compactMetricRate}> @ {liveRateText}</Text>
+                    </Text>
+                    <Text style={styles.compactMetricLine}>
+                      <Text style={styles.compactMetricLive}>{liveCostNum != null ? formatAmountSync(liveCostNum, natCode, ratesMap) : '...'}</Text>
+                      <Text style={styles.compactMetricConnector}> {t.of} </Text>
+                      <Text style={styles.compactMetricRoute}>{routeCostNum != null ? formatAmountSync(routeCostNum, natCode, ratesMap) : '...'}</Text>
+                    </Text>
+                  </View>
+
+                  <Text style={styles.metaText}>{t.requested}: {item.createdAt ? new Date(item.createdAt).toLocaleString() : ''}</Text>
+
+                  {isSelected && (
+                    <>
+                      {item.riderLatitude && item.riderLongitude && item.rideStatus !== 'Active' && routeToPickup.length > 1 && (
+                        <Text style={styles.metaText}>{t.distanceToPickup}: {(routeCache.current[item.id]?.pickupDistanceKm ?? '...')} km</Text>
+                      )}
+                      <View style={{ flexDirection: 'row', marginTop: 8 }}>
+                        {item.rideStatus === 'transportRequestYes' && (
+                          <Text style={styles.actionBtn} onPress={() => updateRideStatus(item, 'Cancelled')}>{t.cancelRide}</Text>
+                        )}
+                      </View>
+                    </>
+                  )}
+                </TouchableOpacity>
+              );
+            }}
+            showsHorizontalScrollIndicator={false}
+          />
+        </View>
+      )}
     </View>
   );
 }
@@ -379,23 +583,149 @@ const styles = StyleSheet.create({
   header: {
     fontSize: 20,
     fontWeight: 'bold',
-    marginTop: 12,
-    marginLeft: 16
+    marginTop: 0,
+    marginLeft: 0
+  },
+  mapContainer: {
+    width: SCREEN_WIDTH,
+  },
+  cardsPanel: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 12,
+    borderTopRightRadius: 12,
+    paddingBottom: 10,
+    shadowColor: '#000',
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: -2 },
+    elevation: 8,
+  },
+  cardsHeaderRow: {
+    paddingHorizontal: 16,
+    paddingTop: 10,
+    paddingBottom: 6,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  panelToggleBtn: {
+    backgroundColor: '#eef5ff',
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
+  panelToggleText: {
+    color: '#1f8ef1',
+    fontWeight: '700',
+    fontSize: 12,
+  },
+  floatingShowCardsBtn: {
+    position: 'absolute',
+    right: 14,
+    bottom: 18,
+    backgroundColor: '#1f8ef1',
+    borderRadius: 18,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    zIndex: 40,
+    elevation: 8,
+  },
+  floatingShowCardsText: {
+    color: '#fff',
+    fontWeight: '700',
+    fontSize: 12,
   },
   card: {
     backgroundColor: '#f5f5f5',
     borderRadius: 10,
-    padding: 16,
+    padding: 12,
     marginRight: 16,
-    width: SCREEN_WIDTH * 0.8,
+    width: SCREEN_WIDTH * 0.68,
     elevation: 2,
-    minHeight: 180,
-    justifyContent: 'center',
+    minHeight: 122,
+    justifyContent: 'flex-start',
+  },
+  cardSelected: {
+    borderColor: '#1f8ef1',
+    borderWidth: 2,
+  },
+  cardExpanded: {
+    minHeight: 220,
+  },
+  cardHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
   },
   cardTitle: {
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: 'bold',
-    marginBottom: 8
+    flex: 1,
+    marginRight: 8,
+  },
+  statusChip: {
+    backgroundColor: '#e8f3ff',
+    borderRadius: 10,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  statusChipText: {
+    color: '#1f8ef1',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  metricGrid: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 6,
+  },
+  metricItem: {
+    width: '48%',
+  },
+  metricLabel: {
+    fontSize: 12,
+    color: '#666',
+    marginBottom: 2,
+  },
+  metricValue: {
+    fontSize: 15,
+    color: '#1b1b1b',
+    fontWeight: '700',
+  },
+  metaText: {
+    fontSize: 12,
+    color: '#555',
+  },
+  liveMetaText: {
+    fontSize: 12,
+    color: '#1f8ef1',
+    fontWeight: '700',
+  },
+  metricStack: {
+    marginTop: 8,
+    gap: 6,
+  },
+  compactMetricLine: {
+    textAlign: 'center',
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  compactMetricLive: {
+    color: '#17803d',
+    fontWeight: '700',
+  },
+  compactMetricConnector: {
+    color: '#e58d29',
+    fontWeight: '900',
+  },
+  compactMetricRoute: {
+    color: '#0b63c7',
+    fontWeight: '700',
+  },
+  compactMetricRate: {
+    color: '#444',
+    fontWeight: '700',
   },
   actionBtn: {
     color: '#fff',
@@ -406,5 +736,66 @@ const styles = StyleSheet.create({
     marginRight: 8,
     overflow: 'hidden',
     fontWeight: 'bold',
-  }
+  },
+  mapMarkerDot: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: '#fff',
+    elevation: 3,
+  },
+  riderMarkerDot: {
+    backgroundColor: '#1f8ef1',
+  },
+  pickupMarkerDot: {
+    backgroundColor: '#27ae60',
+  },
+  destinationMarkerDot: {
+    backgroundColor: '#9b59b6',
+  },
+  mapTextOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 30,
+  },
+  mapTextChip: {
+    position: 'absolute',
+    fontSize: 11,
+    fontWeight: '700',
+    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    color: '#fff',
+    maxWidth: SCREEN_WIDTH * 0.42,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.45)',
+  },
+  riderTextChip: {
+    backgroundColor: '#1f8ef1',
+  },
+  pickupTextChip: {
+    backgroundColor: '#27ae60',
+  },
+  destinationTextChip: {
+    backgroundColor: '#9b59b6',
+  },
+  mapConnectorLine: {
+    position: 'absolute',
+    width: 2,
+    height: 12,
+    borderRadius: 1,
+  },
+  riderConnectorLine: {
+    backgroundColor: '#1f8ef1',
+  },
+  pickupConnectorLine: {
+    backgroundColor: '#27ae60',
+  },
+  destinationConnectorLine: {
+    backgroundColor: '#9b59b6',
+  },
 });

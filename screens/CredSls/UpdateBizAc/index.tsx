@@ -2,7 +2,12 @@ import React, { useState } from 'react';
 import { useNavigation } from '@react-navigation/native';
 import { View, Text, Pressable, SafeAreaView, ScrollView } from 'react-native';
 import styles from './styles';
+import { useTranslation } from 'react-i18next';
+import translations from './translation';
 const MyLoanAccount = props => {
+  const { i18n } = useTranslation();
+  const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+  const t = translations[lang] || translations.en;
   const navigation = useNavigation();
   const [id, setID] = useState("");
   const [ChamaNMember, setChamaNMember] = useState("");
@@ -97,13 +102,13 @@ const MyLoanAccount = props => {
 
 
             <View style={styles.clientsView}>
-              <Text style={styles.salesText}>Update Biz Account</Text>
+              <Text style={styles.salesText}>{t.updateBizAccount}</Text>
 
               <View style={styles.viewForClientsAndTitle}>
               <View style={styles.viewForClientsCategories7}>
                   
                   <Pressable onPress={BizAddAdmin} style={styles.viewForClientsPressables}>
-                  <Text style={styles.salesPressableText}>Add Admin</Text>
+                  <Text style={styles.salesPressableText}>{t.addAdmin}</Text>
                   </Pressable>
                 </View>
 
@@ -113,7 +118,7 @@ const MyLoanAccount = props => {
               
                 <View style={styles.viewForClientsCategories7}>
                 <Pressable onPress={BizUpdatePW} style={styles.viewForClientsPressables}>
-                  <Text style={styles.salesPressableText}>Change PassWord</Text>
+                  <Text style={styles.salesPressableText}>{t.changePassword}</Text>
 
                   </Pressable>
                 </View>
@@ -125,21 +130,21 @@ const MyLoanAccount = props => {
 
        
             <View style={styles.clientsView}>
-              <Text style={styles.salesText}>Update Biz Account</Text>
+              <Text style={styles.salesText}>{t.updateBizAccount}</Text>
 
               <View style={styles.viewForClientsAndTitle}>
              
 
                 <View style={styles.viewForClientsCategories7}>
                 <Pressable onPress={BizObject} style={styles.viewForClientsPressables}>
-                  <Text style={styles.salesPressableText}>Stop Operations</Text>
+                  <Text style={styles.salesPressableText}>{t.stopOperations}</Text>
 
                   </Pressable>
                 </View>
 
                 <View style={styles.viewForClientsCategories7}>
                 <Pressable onPress={BizCancelObjection} style={styles.viewForClientsPressables}>
-                  <Text style={styles.salesPressableText}>Allow Operations</Text>
+                  <Text style={styles.salesPressableText}>{t.allowOperations}</Text>
 
                   </Pressable>
                 </View>
@@ -148,7 +153,7 @@ const MyLoanAccount = props => {
 
                 <View style={styles.viewForClientsCategories7}>
                 <Pressable onPress={DissolveBizsss} style={styles.viewForClientsPressables}>
-                  <Text style={styles.salesPressableText}>Dissolve Business</Text>
+                  <Text style={styles.salesPressableText}>{t.dissolveBusiness}</Text>
 
                   </Pressable>
                 </View>

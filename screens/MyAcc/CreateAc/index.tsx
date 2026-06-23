@@ -4,6 +4,7 @@ import { getCompany, listSMAccounts } from '../../../src/graphql/queries';
 import { getCurrentUser, fetchUserAttributes, updateUserAttribute, updateUserAttributes } from 'aws-amplify/auth';
 import { generateClient } from 'aws-amplify/api';
 import { useNavigation } from '@react-navigation/native';
+import { useMainAccountGuard } from '../../../src/contexts/MainAccountGuardContext';
 import { Ionicons } from '@expo/vector-icons';
 import {
   View,
@@ -61,10 +62,18 @@ export const formatE164 = (dial: string, local: string, phoneUtilParam?: any) =>
 
 const CreateAcForm = () => {
   const navigation = useNavigation();
+  const { setRestrictNavigation } = useMainAccountGuard();
 
-    const { i18n } = useTranslation();
-    const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
-    const t = translations[lang] || translations.en;
+  useEffect(() => {
+    setRestrictNavigation(true);
+    return () => {
+      setRestrictNavigation(false);
+    };
+  }, []);
+
+  const { i18n } = useTranslation();
+  const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+  const t = translations[lang] || translations.en;
 
   const countryNamesByCode: Record<string, string> = {
   AF: "Afghanistan", AL: "Albania", DZ: "Algeria", AS: "American Samoa", AD: "Andorra", AO: "Angola", AI: "Anguilla", 

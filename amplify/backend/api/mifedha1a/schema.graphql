@@ -3585,6 +3585,10 @@ type combContractVoucher
   sellerAccount: String!
   consumerContact: String! 
   funderContact: String!
+  sellerLatitude: Float!
+  sellerLongitude: Float!
+  buyerLatitude: Float!
+  buyerLongitude: Float!
 
   sellerName: String
   consumerName: String

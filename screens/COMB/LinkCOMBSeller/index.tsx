@@ -31,7 +31,7 @@ const UpdateCombSellerScreen: React.FC = () => {
     sellerEmail: "",
     sellerAccount: "",
     sellerContact: "",
-    sellerType: "",
+    sellerType: "sellerTypeBiz",
     sellerName: "",
     sellerOfficerName: ""
   });
@@ -219,11 +219,13 @@ const UpdateCombSellerScreen: React.FC = () => {
         <View style={{ marginBottom: 12 }}>
           <Text style={styles.label}>{t.sellerTypeLabel}</Text>
           <View style={styles.row}>
+            {/*
             <TouchableOpacity style={[styles.chip, form.sellerType === "sellerTypePal" && styles.chipActive]} onPress={() => update("sellerType", "sellerTypePal")}> 
               <Text style={form.sellerType === "sellerTypePal" ? styles.chipTextActive : styles.chipText}>
                 {t.sellerTypePal}
               </Text>
-            </TouchableOpacity>
+            </TouchableOpacity> 
+            */}
             <TouchableOpacity style={[styles.chip, form.sellerType === "sellerTypeBiz" && styles.chipActive]} onPress={() => update("sellerType", "sellerTypeBiz")}> 
               <Text style={form.sellerType === "sellerTypeBiz" ? styles.chipTextActive : styles.chipText}>
                 {t.sellerTypeBiz}
