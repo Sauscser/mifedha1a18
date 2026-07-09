@@ -8,6 +8,8 @@ import {useExchange} from '../../../../src/contexts/ExchangeContext';
 import { getSMAccount } from '../../../../src/graphql/queries';
 import {fetchUserAttributes} from 'aws-amplify/auth';
 import { generateClient } from 'aws-amplify/api';
+import { useTranslation } from 'react-i18next';
+import translations from './translation';
 
 
 export interface ChmCvLnSttusRec {
@@ -33,6 +35,9 @@ export interface ChmCvLnSttusRec {
     }}
 
 const CredSlrCvLnStts = (props:ChmCvLnSttusRec) => {
+    const { i18n } = useTranslation();
+    const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+    const t = translations[lang] || translations.en;
    const {
     Loanee: {
       id,
@@ -91,17 +96,17 @@ const CredSlrCvLnStts = (props:ChmCvLnSttusRec) => {
                        {buyerName}               
                     </Text>
 
-            <Text style={styles.prodInfo}><Text style={styles.label}>Transaction ID:</Text> {id}</Text>
-            <Text style={styles.prodInfo}><Text style={styles.label}>Cash Price:</Text> {formatAmountSync(amountSold, userCode, ratesMap)}</Text>
-            <Text style={styles.prodInfo}><Text style={styles.label}>Credit Sale Price:</Text> {formatAmountSync(amountexpectedBack, userCode, ratesMap)}</Text>
-            <Text style={styles.prodInfo}><Text style={styles.label}>Amount Repaid:</Text> {formatAmountSync(amountRepaid, userCode, ratesMap)}</Text>
-            <Text style={styles.prodInfo}><Text style={styles.label}>Loan Balance:</Text> {formatAmountSync(lonBala, userCode, ratesMap)}</Text>
-            <Text style={styles.prodInfo}><Text style={styles.label}>Repayment Period in days:</Text> {repaymentPeriod}</Text>
-            <Text style={styles.prodInfo}><Text style={styles.label}>Buyer Contact:</Text> {buyerContact}</Text>
-             <Text style={styles.prodInfo}><Text style={styles.label}>Advocate Registration Number:</Text> {advregnu}</Text>
-            <Text style={styles.prodInfo}><Text style={styles.label}>Item Name(s):</Text> {itemName}</Text>
-             <Text style={styles.prodInfo}><Text style={styles.label}>Loan Status:</Text> {status}</Text>
-            <Text style={styles.prodInfo}><Text style={styles.label}>Created At:</Text> {createdAt}</Text>
+            <Text style={styles.prodInfo}><Text style={styles.label}>{t.transactionIdLabel}:</Text> {id}</Text>
+            <Text style={styles.prodInfo}><Text style={styles.label}>{t.cashPriceLabel}:</Text> {formatAmountSync(amountSold, userCode, ratesMap)}</Text>
+            <Text style={styles.prodInfo}><Text style={styles.label}>{t.creditSalePriceLabel}:</Text> {formatAmountSync(amountexpectedBack, userCode, ratesMap)}</Text>
+            <Text style={styles.prodInfo}><Text style={styles.label}>{t.amountRepaidLabel}:</Text> {formatAmountSync(amountRepaid, userCode, ratesMap)}</Text>
+            <Text style={styles.prodInfo}><Text style={styles.label}>{t.loanBalanceLabel}:</Text> {formatAmountSync(lonBala, userCode, ratesMap)}</Text>
+            <Text style={styles.prodInfo}><Text style={styles.label}>{t.repaymentPeriodLabel}:</Text> {repaymentPeriod}</Text>
+            <Text style={styles.prodInfo}><Text style={styles.label}>{t.buyerContactLabel}:</Text> {buyerContact}</Text>
+             <Text style={styles.prodInfo}><Text style={styles.label}>{t.advocateRegistrationLabel}:</Text> {advregnu}</Text>
+            <Text style={styles.prodInfo}><Text style={styles.label}>{t.itemNamesLabel}:</Text> {itemName}</Text>
+             <Text style={styles.prodInfo}><Text style={styles.label}>{t.loanStatusLabel}:</Text> {status}</Text>
+            <Text style={styles.prodInfo}><Text style={styles.label}>{t.createdAtLabel}:</Text> {createdAt}</Text>
             <Text style={styles.prodDesc} > {description} </Text> 
             
         </View>

@@ -5,9 +5,14 @@ import { View, Text, TextInput, ScrollView, TouchableOpacity, Alert } from 'reac
 import styles from './styles';
 import { getCurrentUser, fetchUserAttributes } from "aws-amplify/auth";
 import { generateClient } from "aws-amplify/api";
+import { useTranslation } from 'react-i18next';
+import translations from './translation';
 const client = generateClient();
 const MFNSignIn = props => {
   const navigation = useNavigation();
+  const { i18n } = useTranslation();
+  const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+  const t = translations[lang] || translations.en;
   const [MFNId, setMFNId] = useState("");
   const [MFNPW, setMFNPW] = useState("");
   const [grpContact, setChmPhn] = useState('');
@@ -63,33 +68,33 @@ const MFNSignIn = props => {
             }
           });
           if (signitoryPWs !== pword) {
-            Alert.alert("Wrong User credentials");
+            Alert.alert(t.wrongCredentials);
           } else if (UsrDtls.data.listPersonels.items.length < 1) {
-            Alert.alert("You do not work here");
+            Alert.alert(t.doNotWorkHere);
             return;
           } else if (userInfo.userId !== owners) {
-            Alert.alert("This is not your Account");
+            Alert.alert(t.notYourAccount);
           } else {
             VwMFNAc();
           }
         } catch (e) {
           console.log(e);
           if (e) {
-            Alert.alert("Retry or update app or call customer care");
+            Alert.alert(t.retryOrUpdate);
             return;
           }
         }
         setIsLoading(false);
       };
       if (userInfo.userId !== owners) {
-        Alert.alert("Please first create main account");
+        Alert.alert(t.createMainAccount);
       } else {
         await ChckPersonelExistence();
       }
     } catch (e) {
       console.log(e);
       if (e) {
-        Alert.alert("Retry or update app or call customer care");
+        Alert.alert(t.retryOrUpdate);
         return;
       }
     }
@@ -131,22 +136,22 @@ const MFNSignIn = props => {
               <View style={styles.image}>
                 <ScrollView>
                   <View style={styles.loanTitleView}>
-                    <Text style={styles.title}>Fill Details Below</Text>
+                    <Text style={styles.title}>{t.fillDetailsBelow}</Text>
                   </View>
         
                   <View style={styles.sendLoanView}>
-                    <TextInput placeholder="+2547xxxxxxxx" value={MFNId} onChangeText={setMFNId} style={styles.sendLoanInput} editable={true}></TextInput>
-                    <Text style={styles.sendLoanText}>Business Phone</Text>
+                    <TextInput placeholder={t.businessPhonePlaceholder} value={MFNId} onChangeText={setMFNId} style={styles.sendLoanInput} editable={true}></TextInput>
+                    <Text style={styles.sendLoanText}>{t.businessPhoneLabel}</Text>
                   </View>
         
                   <View style={styles.sendLoanView}>
                     <TextInput value={pword} onChangeText={setPW} secureTextEntry={true} style={styles.sendLoanInput} editable={true}></TextInput>
-                    <Text style={styles.sendLoanText}>Sales Officer User PW</Text>
+                    <Text style={styles.sendLoanText}>{t.salesOfficerUserPwLabel}</Text>
                   </View>
         
                   <TouchableOpacity onPress={gtChmDtls} style={styles.sendLoanButton}>
                     <Text style={styles.sendLoanButtonText}>
-                      Click to View
+                      {t.clickToView}
                     </Text>
                   </TouchableOpacity>
                 </ScrollView>

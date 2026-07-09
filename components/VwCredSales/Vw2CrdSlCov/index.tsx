@@ -1,6 +1,8 @@
 import { useNavigation } from '@react-navigation/core';
 import React from 'react';
 import {View, Text,  Pressable,  } from 'react-native';
+import { useTranslation } from 'react-i18next';
+import translations from './translation';
 import styles from './styles';
 
 
@@ -24,6 +26,9 @@ const CredSlrCvLnStts = (props:ChmCvLnSttusRec) => {
       
    }} = props ;
    const navigation = useNavigation();
+   const { i18n } = useTranslation();
+   const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+   const t = translations[lang] || translations.en;
 
    const SndChmMmbrMny = () => {
       navigation.navigate("CrdSlVw2GrantLnReqCov", {BusinessRegNo})
@@ -41,13 +46,13 @@ const CredSlrCvLnStts = (props:ChmCvLnSttusRec) => {
             
                      <Text style = {styles.ownerName}>                       
                        {/*loaner details */}   
-                    Business Phone: {BusinessRegNo}                 
+                    {t.businessPhone}: {BusinessRegNo}                 
                     </Text>
                     
 
                     <Text style = {styles.interest}>                       
                        {/* interest*/}
-                       Work ID: {workId}                    
+                       {t.workId}: {workId}                    
                     </Text> 
                     
         

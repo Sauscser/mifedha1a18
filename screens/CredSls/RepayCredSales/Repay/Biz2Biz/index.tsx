@@ -28,10 +28,15 @@ import { getCurrentUser, fetchUserAttributes } from 'aws-amplify/auth';
 import { generateClient } from 'aws-amplify/api';
 import { convertForeignToKsh } from '../../../../../src/utils/exchange';
 import { nationalityToCode } from '../../../../../src/utils/nationalityToCode';
+import { useTranslation } from 'react-i18next';
+import translations from './translation';
 
 const client = generateClient();
 
 const RepayCovSellerLnsss = () => {
+  const { i18n } = useTranslation();
+  const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+  const t = translations[lang] || translations.en;
   const [SnderPW, setSnderPW] = useState('');
   const [amounts, setAmount] = useState('');
   const [Desc, setDesc] = useState('');
@@ -102,7 +107,7 @@ const RepayCovSellerLnsss = () => {
 
       const amountInput = parseFloat(amounts);
       if (!Number.isFinite(amountInput) || amountInput <= 0) {
-        Alert.alert('Enter a valid amount');
+        Alert.alert(t.enterValidAmount);
         setIsLoading(false);
         return;
       }
@@ -141,7 +146,7 @@ const RepayCovSellerLnsss = () => {
       const payerCode = nationalityToCode(rawNationality) || rawNationality || 'KE';
       const amountKes = await convertForeignToKsh(amountInput, payerCode);
       if (!Number.isFinite(amountKes) || amountKes <= 0) {
-        Alert.alert('Unable to convert amount. Please try again.');
+        Alert.alert(t.unableConvertAmount);
         setIsLoading(false);
         return;
       }
@@ -149,29 +154,25 @@ const RepayCovSellerLnsss = () => {
       LoanBalz = parseFloat(LonBal1) - amountKes;
 
       if (userInfo.userId !== owner) {
-        Alert.alert('You are not the owner of the business');
+        Alert.alert(t.notOwnerOfBusiness);
         setIsLoading(false);
         return;
       }
 
       if (parseFloat(netEarnings2) < amountKes) {
-        Alert.alert('Requested amount is more than you have in your account');
+        Alert.alert(t.requestedAmountMoreThanBalance);
         setIsLoading(false);
         return;
       }
 
       if (ClranceAmt > amountKes) {
-        Alert.alert(
-          'Too little repayment: at least ' + ClranceAmt.toFixed(2),
-        );
+        Alert.alert(`${t.tooLittleRepaymentPrefix} ${ClranceAmt.toFixed(2)}`);
         setIsLoading(false);
         return;
       }
 
       if (amountKes === parseFloat(LonBal1)) {
-        Alert.alert(
-          'Your Loan Balance is lesser: ' + parseFloat(LonBal1).toFixed(0),
-        );
+        Alert.alert(`${t.loanBalanceLesserPrefix} ${parseFloat(LonBal1).toFixed(0)}`);
         setIsLoading(false);
         return;
       }
@@ -250,15 +251,15 @@ const RepayCovSellerLnsss = () => {
       });
 
       Alert.alert(
-        'Cleared. ClearanceFee: ' +
+        `${t.clearedPrefix} ` +
           ClranceAmt.toFixed(2) +
-          ' TransactionFee: ' +
+          ` ${t.transactionFeePrefix} ` +
           (parseFloat(UsrTransferFee) * amountKes).toFixed(2)
       );
       setIsLoading(false);
     } catch (error) {
       console.error(error);
-      Alert.alert('Error! Update your app or call customer care');
+      Alert.alert(t.errorUpdateAppCallCare);
       setIsLoading(false);
     }
   };
@@ -295,39 +296,42 @@ const RepayCovSellerLnsss = () => {
       <View style={styles.image}>
         <ScrollView>
           <View style={styles.amountTitleView}>
-            <Text style={styles.title}>Fill account Details Below</Text>
+            <Text style={styles.title}>{t.fillAccountDetails}</Text>
           </View>
 
           <View style={styles.sendAmtView}>
             <TextInput
               keyboardType="numeric"
-              placeholder="Amount"
+              placeholder={t.amountPlaceholder}
+              placeholderTextColor="#444"
               value={amounts}
               onChangeText={setAmount}
               style={styles.sendAmtInput}
             />
-            <Text style={styles.sendAmtText}>Amount</Text>
+            <Text style={styles.sendAmtText}>{t.amount}</Text>
           </View>
 
           <View style={styles.sendAmtView}>
             <TextInput
-              placeholder="Description"
+              placeholder={t.descriptionPlaceholder}
+              placeholderTextColor="#444"
               value={Desc}
               onChangeText={setDesc}
               style={styles.sendAmtInput}
             />
-            <Text style={styles.sendAmtText}>Description</Text>
+            <Text style={styles.sendAmtText}>{t.description}</Text>
           </View>
 
           <View style={styles.sendAmtView}>
             <TextInput
-              placeholder="Password"
+              placeholder={t.passwordPlaceholder}
+              placeholderTextColor="#444"
               secureTextEntry
               value={SnderPW}
               onChangeText={setSnderPW}
               style={styles.sendAmtInput}
             />
-            <Text style={styles.sendAmtText}>Password</Text>
+            <Text style={styles.sendAmtText}>{t.password}</Text>
           </View>
 
           <TouchableOpacity
@@ -338,7 +342,7 @@ const RepayCovSellerLnsss = () => {
             {isLoading ? (
               <ActivityIndicator color="#fff" />
             ) : (
-              <Text style={styles.sendAmtButtonText}>Repay Loan</Text>
+              <Text style={styles.sendAmtButtonText}>{t.repayLoan}</Text>
             )}
           </TouchableOpacity>
         </ScrollView>

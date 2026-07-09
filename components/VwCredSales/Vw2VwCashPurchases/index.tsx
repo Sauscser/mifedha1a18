@@ -8,6 +8,8 @@ import {useExchange} from '../../../src/contexts/ExchangeContext';
 import { getSMAccount } from '../../../src/graphql/queries';
 import {fetchUserAttributes} from 'aws-amplify/auth';
 import { generateClient } from 'aws-amplify/api';
+import { useTranslation } from 'react-i18next';
+import translations from './translation';
 
 
 export interface SMAccount {
@@ -25,6 +27,9 @@ export interface SMAccount {
     }}
 
 const SMNonLnSnt = (props:SMAccount) => {
+    const { i18n } = useTranslation();
+    const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+    const t = translations[lang] || translations.en;
    const {
       SMAc: {
          id,
@@ -75,10 +80,10 @@ const SMNonLnSnt = (props:SMAccount) => {
                        {RecName}             
                     </Text>
           
-            <Text style={styles.prodInfo}><Text style={styles.label}>Transaction ID:</Text> {id}</Text>
-            <Text style={styles.prodInfo}><Text style={styles.label}>Amount:</Text> {formatAmountSync(Math.floor(amount), userCode, ratesMap)}</Text>
-             <Text style={styles.prodInfo}><Text style={styles.label}>Receiver Contact:</Text> {recPhn}</Text>
-            <Text style={styles.prodInfo}><Text style={styles.label}>Created At:</Text> {createdAt}</Text>
+            <Text style={styles.prodInfo}><Text style={styles.label}>{t.transactionIdLabel}:</Text> {id}</Text>
+            <Text style={styles.prodInfo}><Text style={styles.label}>{t.amountLabel}:</Text> {formatAmountSync(Math.floor(amount), userCode, ratesMap)}</Text>
+             <Text style={styles.prodInfo}><Text style={styles.label}>{t.receiverContactLabel}:</Text> {recPhn}</Text>
+            <Text style={styles.prodInfo}><Text style={styles.label}>{t.createdAtLabel}:</Text> {createdAt}</Text>
             <Text style={styles.prodDesc} > {description} </Text>     
                   
 </View>

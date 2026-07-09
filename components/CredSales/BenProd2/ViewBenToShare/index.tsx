@@ -61,17 +61,23 @@ const SMCvLnStts = (props:SMAccount) => {
   const [userNationality, setUserNationality] = useState<string>(null);
   const userCode = nationalityToCode(userNationality);
   const {ratesMap} = useExchange();
+  const { i18n } = useTranslation();
+  const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+  const t = translations[lang] || translations.en;
 
   useEffect(() => {
     const fetchUserData = async () => {
       const user = await fetchUserAttributes();
       setUzer(user.email);
       try {
-        const userData = await client.graphql({
+        const userData: any = await client.graphql({
           query: getSMAccount,
           variables: { awsemail: user.email },
         });
-        setUserNationality(userData.data.getSMAccount.nationality);
+        const nationality = userData?.data?.getSMAccount?.nationality;
+        if (nationality) {
+          setUserNationality(nationality);
+        }
         console.log('User Data:', userData);
       } catch (error) {
         console.error('Error fetching user data:', error);
@@ -81,35 +87,27 @@ const SMCvLnStts = (props:SMAccount) => {
   }, [Uzer]);   
 
     return (
-        
-             <View style={styles.pageContainer}>
-      <Pressable style={styles.card} onPress={BenDtls}>
-        <Text style={styles.prodName}>{prodName}</Text>
+      <View style={styles.pageContainer}>
+        <Pressable style={styles.card} onPress={BenDtls}>
+          <Text style={styles.prodName}>{prodName}</Text>
 
-        <Text style={styles.prodInfo}><Text style={styles.label}>{t.benefactorBusiness}</Text> {creatorName}</Text>
-        <Text style={styles.prodInfo}><Text style={styles.label}>{t.beneficiaryName}</Text> {beneficiaryPhone}</Text>
-        <Text style={styles.prodInfo}><Text style={styles.label}>{t.cost}</Text> {formatAmountSync(Math.floor(prodCost), userCode, ratesMap)}</Text>
-        <Text style={styles.prodInfo}><Text style={styles.label}>{t.benefitsPooled}</Text> {formatAmountSync(Math.floor(benefitsAmount), userCode, ratesMap)}</Text>
-       <Text style={styles.prodDesc}>{prodDesc}</Text>
-      </Pressable>
+          <Text style={styles.prodInfo}><Text style={styles.label}>{t.benefactorBusiness}</Text> {creatorName}</Text>
+          <Text style={styles.prodInfo}><Text style={styles.label}>{t.beneficiaryName}</Text> {beneficiaryPhone}</Text>
+          <Text style={styles.prodInfo}><Text style={styles.label}>{t.cost}</Text> {formatAmountSync(Math.floor(prodCost), userCode, ratesMap)}</Text>
+          <Text style={styles.prodInfo}><Text style={styles.label}>{t.benefitsPooled}</Text> {formatAmountSync(Math.floor(benefitsAmount), userCode, ratesMap)}</Text>
+          <Text style={styles.prodDesc}>{prodDesc}</Text>
+        </Pressable>
 
-<View style ={styles.buttonRow}>
-<Pressable
-onPress={BenefitPal}
-style = {styles.loanFriendButton}
->            
-   <Text>{t.sharePal}</Text>            
- </Pressable>
+        <View style={styles.buttonRow}>
+          <Pressable onPress={BenefitPal} style={styles.loanFriendButton}>
+            <Text>{t.sharePal}</Text>
+          </Pressable>
 
- <Pressable
- onPress={BenefitBiz}
- style = {styles.redeemButton}>            
-   <Text>{t.shareBiz}</Text>            
-       </View> 
-
-        
-                
-       
+          <Pressable onPress={BenefitBiz} style={styles.redeemButton}>
+            <Text>{t.shareBiz}</Text>
+          </Pressable>
+        </View>
+      </View>
     );
 }; 
 

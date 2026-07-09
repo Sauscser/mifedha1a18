@@ -60,11 +60,11 @@ const MyLoanAccount = () => {
             <Section title="Benefit Shares" options={[{
           label: 'Benefactor',
           onPress: VwAsBenefactors,
-          style: styles.ClientsPressables
+              style: styles.viewForClientsPressables
         }, {
           label: 'Beneficiary',
           onPress: VwAsBeneficiary,
-          style: styles.ClientsPressables
+              style: styles.viewForClientsPressables
         }]} />
         
         

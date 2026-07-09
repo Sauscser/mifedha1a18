@@ -6,8 +6,13 @@ import { listAgents, listBiznas } from '../../../src/graphql/queries';
 import { useRoute } from '@react-navigation/core';
 import { getCurrentUser, fetchUserAttributes } from "aws-amplify/auth";
 import { generateClient } from "aws-amplify/api";
+import { useTranslation } from 'react-i18next';
+import translations from './translation';
 const client = generateClient();
 const FetchSMNonLnsSnt = props => {
+  const { i18n } = useTranslation();
+  const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+  const t = translations[lang] || translations.en;
   const [SenderPhn, setSenderPhn] = useState(null);
   const [loading, setLoading] = useState(false);
   const [Recvrs, setRecvrs] = useState([]);
@@ -53,8 +58,8 @@ const FetchSMNonLnsSnt = props => {
       alignItems: 'center'
     }} ListHeaderComponent={() => <>
             
-            <Text style={styles.label}> Businesses to Take Over</Text>
-            <Text style={styles.label2}> (Select if okay with blacklisting Status)</Text>
+          <Text style={styles.label}> {t.title}</Text>
+          <Text style={styles.label2}> {t.subtitle}</Text>
           </>} />
     </View>;
 };

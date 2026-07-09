@@ -11,6 +11,8 @@ import {useExchange} from '../../../../src/contexts/ExchangeContext';
 import { generateClient } from 'aws-amplify/api';  
 import { getSMAccount } from '../../../../src/graphql/queries';
 import {fetchUserAttributes} from 'aws-amplify/auth';
+import { useTranslation } from 'react-i18next';
+import translations from './translation';
 
 
 export interface SMAccount {
@@ -47,6 +49,9 @@ const SMCvLnStts = (props:SMAccount) => {
    }} = props ;
 
    const navigation = useNavigation();
+  const { i18n } = useTranslation();
+  const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+  const t = translations[lang] || translations.en;
    
    const client = generateClient();
    const [Uzer, setUzer] = useState<string>(null);
@@ -76,16 +81,16 @@ const SMCvLnStts = (props:SMAccount) => {
          <View style={styles.pageContainer}>
             <View style={styles.card}>
               
-              <Text style={styles.prodInfo}><Text style={styles.label}>Contribution ID:</Text> {id}</Text>
-              <Text style={styles.prodInfo}><Text style={styles.label}>Benefactor Name:</Text> {benefitsID}</Text>
-              <Text style={styles.prodInfo}><Text style={styles.label}>Benefactor Account:</Text> {benefactorAc}</Text>
-              <Text style={styles.prodInfo}><Text style={styles.label}>Product Creator Account:</Text> {benefactorPhone}</Text>
-              <Text style={styles.prodInfo}><Text style={styles.label}>Product Creator Name:</Text> {prodDesc}</Text>
-              <Text style={styles.prodInfo}><Text style={styles.label}>Beneficiary Account:</Text> {beneficiaryAc}</Text>
+              <Text style={styles.prodInfo}><Text style={styles.label}>{t.contributionId}</Text> {id}</Text>
+              <Text style={styles.prodInfo}><Text style={styles.label}>{t.benefactorName}</Text> {benefitsID}</Text>
+              <Text style={styles.prodInfo}><Text style={styles.label}>{t.benefactorAccount}</Text> {benefactorAc}</Text>
+              <Text style={styles.prodInfo}><Text style={styles.label}>{t.productCreatorAccount}</Text> {benefactorPhone}</Text>
+              <Text style={styles.prodInfo}><Text style={styles.label}>{t.productCreatorName}</Text> {prodDesc}</Text>
+              <Text style={styles.prodInfo}><Text style={styles.label}>{t.beneficiaryAccount}</Text> {beneficiaryAc}</Text>
               
-              <Text style={styles.prodInfo}><Text style={styles.label}>Beneficiary Name:</Text> {beneficiaryPhone}</Text>
-              <Text style={styles.prodInfo}><Text style={styles.label}>Contribution Amount:</Text> {formatAmountSync(Math.floor(amount), userCode, ratesMap)}</Text>
-              <Text style={styles.prodInfo}><Text style={styles.label}>Contribution Time:</Text> {createdAt}</Text>
+              <Text style={styles.prodInfo}><Text style={styles.label}>{t.beneficiaryName}</Text> {beneficiaryPhone}</Text>
+              <Text style={styles.prodInfo}><Text style={styles.label}>{t.contributionAmount}</Text> {formatAmountSync(Math.floor(amount), userCode, ratesMap)}</Text>
+              <Text style={styles.prodInfo}><Text style={styles.label}>{t.contributionTime}</Text> {createdAt}</Text>
              <Text style={styles.prodDesc}>{prodDesc}</Text>
              
           </View>

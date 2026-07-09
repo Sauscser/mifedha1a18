@@ -9,12 +9,19 @@ import { generateClient } from 'aws-amplify/api';
 import { useExchange } from '../../../../../src/contexts/ExchangeContext';
 import { formatAmountSync } from '../../../../../src/utils/exchange';
 import { nationalityToCode } from '../../../../../src/utils/nationalityToCode';
+import { useTranslation } from 'react-i18next';
+import translations from './translation';
 const client = generateClient();
 const SMASendNonLns = props => {
   const [isLoading, setIsLoading] = useState(false);
   const route = useRoute();
   const navigation = useNavigation();
   const { ratesMap } = useExchange();
+  const { i18n } = useTranslation();
+  const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+  const t = translations[lang] || translations.en;
+  const fmt = (template: string, vars: Record<string, string | number>) =>
+    template.replace(/\{(\w+)\}/g, (_, k) => String(vars[k] ?? ''));
   const SndChmMmbrMny = () => {
     navigation.navigate("AutomaticRepayAllTyps");
   };
@@ -234,7 +241,10 @@ const SMASendNonLns = props => {
         });
         const rawNationality = (attributes as any).nationality;
         const userCode = nationalityToCode(rawNationality) || rawNationality || 'KE';
-        Alert.alert("Amount: " + formatAmountSync(parseFloat(amount), userCode, ratesMap) + ". Transaction fee: " + formatAmountSync(parseFloat(UsrTransferFeeAmt), userCode, ratesMap));
+        Alert.alert(fmt(t.amountFee, {
+          amount: formatAmountSync(parseFloat(amount), userCode, ratesMap),
+          fee: formatAmountSync(parseFloat(UsrTransferFeeAmt), userCode, ratesMap)
+        }));
       }
       async function sendSMNonLn11() {
         await client.graphql({
@@ -294,7 +304,9 @@ const SMASendNonLns = props => {
             }
           }
         });
-        Alert.alert("Insufficient transaction fees? No worries! " + parseFloat(amount).toFixed(0) + " sent!");
+        Alert.alert(fmt(t.lowFeeSent, {
+          amount: parseFloat(amount).toFixed(0)
+        }));
       }
       async function sendSMNonLn9() {
         // Same cascade style preserved for Public receiver
@@ -355,7 +367,7 @@ const SMASendNonLns = props => {
             }
           }
         });
-        Alert.alert("Public receiver cascade executed successfully.");
+        Alert.alert(t.publicReceiverSuccess);
       }
       async function sendSMNonLn7() {
         // Cascade for Public sender and Public receiver
@@ -416,11 +428,11 @@ const SMASendNonLns = props => {
             }
           }
         });
-        Alert.alert("Public sender & receiver cascade executed successfully.");
+        Alert.alert(t.publicSenderReceiverSuccess);
       }
     } catch (error) {
       console.error(error);
-      Alert.alert("Transaction failed. Please retry or update your app.");
+      Alert.alert(t.transactionFailedRetry);
     } finally {
       setIsLoading(false);
     }
@@ -429,7 +441,7 @@ const SMASendNonLns = props => {
     fetchSaleReqDtls();
   }, []);
   return <View style={styles.image}>
-    <Text style={styles.sendAmtButtonText}>Please wait for feedback</Text>
+    <Text style={styles.sendAmtButtonText}>{t.pleaseWaitFeedback}</Text>
             {isLoading && <ActivityIndicator size="large" color="blue" />}
     </View>;
 };

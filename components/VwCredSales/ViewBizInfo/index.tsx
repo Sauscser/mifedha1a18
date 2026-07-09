@@ -9,6 +9,8 @@ import {useExchange} from '../../../src/contexts/ExchangeContext';
 import { getSMAccount } from '../../../src/graphql/queries';
 import {fetchUserAttributes} from 'aws-amplify/auth';
 import { generateClient } from 'aws-amplify/api';
+import { useTranslation } from 'react-i18next';
+import translations from './translation';
 
 
 export interface ChmaInfo {
@@ -25,6 +27,9 @@ export interface ChmaInfo {
     }}
 
 const ChmInfo = (props:ChmaInfo) => {
+   const { i18n } = useTranslation();
+   const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+   const t = translations[lang] || translations.en;
    const {
       ChmDtls: {
         
@@ -67,13 +72,13 @@ const ChmInfo = (props:ChmaInfo) => {
             <View style = {styles.card}>
             <Text style = {styles.prodName}>                       
                        {/*loaner details */}   
-                       Business Info          
+                       {t.businessInfoTitle}          
                     </Text>
                 
 
-                   <Text style={styles.prodInfo}><Text style={styles.label}>Business Name:</Text> {busName}</Text>
-                   <Text style={styles.prodInfo}><Text style={styles.label}>Business Balance:</Text> {formatAmountSync(Math.floor(netEarnings), userCode, ratesMap)}</Text>
-                   <Text style={styles.prodInfo}><Text style={styles.label}>Pooled Benefits:</Text> {formatAmountSync(Math.floor(benefitsAmount), userCode, ratesMap)}</Text>
+                   <Text style={styles.prodInfo}><Text style={styles.label}>{t.businessNameLabel}:</Text> {busName}</Text>
+                   <Text style={styles.prodInfo}><Text style={styles.label}>{t.businessBalanceLabel}:</Text> {formatAmountSync(Math.floor(netEarnings), userCode, ratesMap)}</Text>
+                   <Text style={styles.prodInfo}><Text style={styles.label}>{t.pooledBenefitsLabel}:</Text> {formatAmountSync(Math.floor(benefitsAmount), userCode, ratesMap)}</Text>
                    <Text style={styles.prodDesc} > {description} </Text>     
                      </View>
                 

@@ -5,10 +5,15 @@ import styles from './styles';
 import { getSMAccount, listReqLoanChamas, listReqLoanCredSls, listReqLoans } from '../../../../src/graphql/queries';
 import { getCurrentUser, fetchUserAttributes } from "aws-amplify/auth";
 import { generateClient } from "aws-amplify/api";
+import { useTranslation } from 'react-i18next';
+import translations from './translation';
 const client = generateClient();
 const FetchSMNonCovLns = props => {
   const [loading, setLoading] = useState(false);
   const [Loanees, setLoanees] = useState([]);
+  const { i18n } = useTranslation();
+  const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+  const t = translations[lang] || translations.en;
   const fetchUsrDtls = async () => {
     const userInfo = await getCurrentUser();
     const attributes = await fetchUserAttributes();
@@ -42,13 +47,13 @@ const FetchSMNonCovLns = props => {
         }
       };
       if (userInfo.userId !== owner) {
-        Alert.alert("Please first create main account");
+        Alert.alert(t.createMainAccount);
       } else {
         await fetchLoanees();
       }
     } catch (e) {
       if (e) {
-        Alert.alert("Retry or update app or call customer care");
+        Alert.alert(t.retryOrUpdate);
         return;
       }
       console.log(e);
@@ -66,8 +71,8 @@ const FetchSMNonCovLns = props => {
       alignItems: 'center'
     }} ListHeaderComponent={() => <>
             
-            <Text style={styles.label}> Swipe to View My Loan Requests</Text>
-            <Text style={styles.label2}> (Select to Delete)</Text>
+          <Text style={styles.label}> {t.swipeToViewMyLoanRequests}</Text>
+          <Text style={styles.label2}> {t.selectToDelete}</Text>
           </>} />
 
   </View>;

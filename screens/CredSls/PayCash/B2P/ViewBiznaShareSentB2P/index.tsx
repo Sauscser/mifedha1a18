@@ -5,6 +5,8 @@ import { listPersonels, VwMySntMny } from '../../../../../src/graphql/queries';
 
 import { getCurrentUser, fetchUserAttributes } from 'aws-amplify/auth';
 import { generateClient } from 'aws-amplify/api';
+import { useTranslation } from 'react-i18next';
+import translations from './translation';
 
 const client = generateClient();
 
@@ -13,6 +15,9 @@ const FetchSMNonLnsSnt = () => {
   const [records, setRecords] = useState<any[]>([]);
   const [bizPhone, setBizPhone] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  const { i18n } = useTranslation();
+  const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+  const t = translations[lang] || translations.en;
 
   const fetchRecords = async () => {
     if (loading || !bizPhone) return;
@@ -33,7 +38,7 @@ const FetchSMNonLnsSnt = () => {
       });
 
       if (!personnelRes?.data?.listPersonels?.items?.length) {
-        Alert.alert('Access Denied', "Retry if you're sure you work here.");
+        Alert.alert(t.accessDenied, t.retryIfWorkHere);
         return;
       }
 
@@ -50,13 +55,13 @@ const FetchSMNonLnsSnt = () => {
       const items = recordsRes?.data?.VwMySntMny?.items || [];
 
       if (!items.length) {
-        Alert.alert('No Records', 'Sorry, no money sent from business yet.');
+        Alert.alert(t.noRecords, t.noMoneySent);
       }
 
       setRecords(items);
     } catch (e) {
       console.error('Error fetching records:', e);
-      Alert.alert("Error", "Could not fetch records. Please retry or check your connection.");
+      Alert.alert(t.errorTitle, t.fetchError);
     } finally {
       setLoading(false);
     }
@@ -71,13 +76,13 @@ const FetchSMNonLnsSnt = () => {
     <View style={styles.container}>
       <View style={styles.inputBlock}>
         <TextInput
-          placeholder="Enter Business Phone"
+          placeholder={t.enterBusinessPhone}
           value={bizPhone}
           onChangeText={setBizPhone}
           style={styles.input}
         />
         <TextInput
-          placeholder="Search Seller by Name"
+          placeholder={t.searchSellerByName}
           value={searchQuery}
           onChangeText={setSearchQuery}
           style={styles.input}
@@ -93,8 +98,8 @@ const FetchSMNonLnsSnt = () => {
         showsVerticalScrollIndicator={false}
         ListHeaderComponent={() => (
           <>
-            <Text style={styles.label2}>(Please swipe down to load)</Text>
-            <Text style={styles.label}>Business Purchases</Text>
+            <Text style={styles.label2}>{t.swipeToLoad}</Text>
+            <Text style={styles.label}>{t.businessPurchases}</Text>
           </>
         )}
       />

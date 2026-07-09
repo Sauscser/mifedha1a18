@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, FlatList, Alert, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, FlatList, Alert, TextInput, StyleSheet } from 'react-native';
 import NonLnRec from "../../../../../components/VwCredSales/CrdStatus/Biz/Biz2BizLoanees";
 import { listPersonels, VwMySales7 } from '../../../../../src/graphql/queries';
-import { getCurrentUser, fetchUserAttributes } from "aws-amplify/auth";
+import { fetchUserAttributes } from "aws-amplify/auth";
 import { generateClient } from "aws-amplify/api";
+import { useTranslation } from 'react-i18next';
+import translations from './translation';
 const client = generateClient();
 const FetchSMNonLnsSnt = () => {
   const [loading, setLoading] = useState(false);
@@ -11,11 +13,13 @@ const FetchSMNonLnsSnt = () => {
   const [filteredRecords, setFilteredRecords] = useState<any[]>([]);
   const [bizPhone, setBizPhone] = useState('');
   const [buyerFilter, setBuyerFilter] = useState('');
+  const { i18n } = useTranslation();
+  const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+  const t = translations[lang] || translations.en;
   const fetchLoanees = async () => {
     if (loading) return;
     setLoading(true);
     try {
-      const userInfo = await getCurrentUser();
     const attributes = await fetchUserAttributes();
       const personnelCheck: any = await client.graphql({
         query: listPersonels,
@@ -31,7 +35,7 @@ const FetchSMNonLnsSnt = () => {
         }
       });
       if (personnelCheck.data.listPersonels.items.length < 1) {
-        Alert.alert("Access Denied", "Retry if you're sure you work here.");
+        Alert.alert(t.accessDeniedTitle, t.accessDeniedMessage);
         return;
       }
       const result: any = await client.graphql({
@@ -69,18 +73,18 @@ const FetchSMNonLnsSnt = () => {
   }, [buyerFilter, allRecords]);
   return <View style={styles.container}>
       <View style={styles.inputBlock}>
-        <TextInput placeholder="My Full Business Number" value={bizPhone} onChangeText={setBizPhone} style={styles.input} />
+        <TextInput placeholder={t.myFullBusinessNumberPlaceholder} value={bizPhone} onChangeText={setBizPhone} style={styles.input} />
       
 
-      <TextInput placeholder="Buyer's Name. Even partially" value={buyerFilter} onChangeText={setBuyerFilter} style={styles.input} />
+      <TextInput placeholder={t.buyersNamePlaceholder} value={buyerFilter} onChangeText={setBuyerFilter} style={styles.input} />
 
     </View>
       
         <FlatList data={filteredRecords} renderItem={({
       item
     }) => <NonLnRec Loanee={item} />} keyExtractor={(item, index) => index.toString()} onRefresh={fetchLoanees} refreshing={loading} showsVerticalScrollIndicator={false} ListHeaderComponent={() => <>
-              <Text style={styles.label2}>(Please swipe down to reload)</Text>
-              <Text style={styles.label}>Business Credit Sales</Text>
+              <Text style={styles.label2}>{t.pleaseSwipeDownToReload}</Text>
+              <Text style={styles.label}>{t.businessCreditSalesTitle}</Text>
             </>} />
       
     </View>;

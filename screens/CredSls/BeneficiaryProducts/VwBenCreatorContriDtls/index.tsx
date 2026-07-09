@@ -6,6 +6,8 @@ import { useRoute } from '@react-navigation/native';
 import styles from './styles';
 import { getCurrentUser, fetchUserAttributes } from 'aws-amplify/auth';
 import { generateClient } from 'aws-amplify/api';
+import { useTranslation } from 'react-i18next';
+import translations from './translation';
 const client = generateClient();
 const FetchSMNonCovLns = props => {
   const [Loanees, setLoanees] = useState([]); // Stores fetched accounts
@@ -15,6 +17,9 @@ const FetchSMNonCovLns = props => {
     beneficiaryAc,
     benefactorPhone
   } = route.params;
+  const { i18n } = useTranslation();
+  const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+  const t = translations[lang] || translations.en;
   useEffect(() => {
     fetchLoanees();
   }, []);
@@ -53,8 +58,8 @@ const FetchSMNonCovLns = props => {
     }) => <LnerStts SMAc={item} />} keyExtractor={(item, index) => index.toString()} onRefresh={fetchLoanees} refreshing={loading} showsVerticalScrollIndicator={false} ListHeaderComponentStyle={{
       alignItems: 'center'
     }} ListHeaderComponent={() => <>
-            <Text style={styles.label}> Client's Contributions</Text>
-            <Text style={styles.label2}> (Please swipe down to load)</Text>
+            <Text style={styles.label}> {t.clientsContributions}</Text>
+            <Text style={styles.label2}> {t.swipeToLoad}</Text>
           </>} />
     </View>;
 };

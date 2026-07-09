@@ -9,6 +9,8 @@ import { getCurrentUser, fetchUserAttributes } from 'aws-amplify/auth';
 import { generateClient } from 'aws-amplify/api';
 import { convertForeignToKsh } from '../../../../../src/utils/exchange';
 import { nationalityToCode } from '../../../../../src/utils/nationalityToCode';
+import { useTranslation } from 'react-i18next';
+import translations from './translation';
 const client = generateClient();
 const SMASendNonLns = props => {
   const [SenderNatId, setSenderNatId] = useState('');
@@ -20,6 +22,9 @@ const SMASendNonLns = props => {
   const [isLoading, setIsLoading] = useState(false);
   const navigation = useNavigation();
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
+  const { i18n } = useTranslation();
+  const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+  const t = translations[lang] || translations.en;
   const SndChmMmbrMny = () => {
     navigation.navigate("AutomaticRepayAllTyps");
   };
@@ -43,7 +48,7 @@ const SMASendNonLns = props => {
       const noBL = accountDtl.data.getBizna.noBL;
       const amountInput = parseFloat(amounts);
       if (!Number.isFinite(amountInput) || amountInput <= 0) {
-        Alert.alert("Enter a valid amount");
+        Alert.alert(t.enterValidAmount);
         setIsLoading(false);
         return;
       }
@@ -51,7 +56,7 @@ const SMASendNonLns = props => {
       const senderCode = nationalityToCode(rawNationality) || rawNationality || 'KE';
       const amountKes = await convertForeignToKsh(amountInput, senderCode);
       if (!Number.isFinite(amountKes) || amountKes <= 0) {
-        Alert.alert("Unable to convert amount. Please try again.");
+        Alert.alert(t.unableConvertAmount);
         setIsLoading(false);
         return;
       }
@@ -116,7 +121,7 @@ const SMASendNonLns = props => {
             }
           }
         });
-        Alert.alert("Request Successful");
+        Alert.alert(t.requestSuccessful);
         const cashReqMsg2 = 'NiSenti. Greetings ' + name + ", " + namexs + ' working at your business has requested to pay ' + amounts + ' to ' + namess + ' business. ' + '. Please call customer care if it is not a valid transaction ' + ' as per your business policies. For clarification reach the personnel through ' + phonecontactzx + '. Thank you.';
         try {
           const msgRes = await client.graphql({
@@ -136,23 +141,23 @@ const SMASendNonLns = props => {
 
       // Conditional checks preserved
       if (RecAcstatus === "AccountInactive") {
-        Alert.alert('Receiver account is inactive');
+        Alert.alert(t.receiverInactive);
       } else if (SnderPW !== pwszsx) {
-        Alert.alert('Wrong Main Account Password');
+        Alert.alert(t.wrongMainPassword);
       } else if (SenderNatId === RecNatId) {
-        Alert.alert('This business cannot buy from itself');
+        Alert.alert(t.cannotBuyFromSelf);
       } else if (SenderAcstatus === "AccountInactive") {
-        Alert.alert('Sender account is inactive');
+        Alert.alert(t.senderInactive);
       } else if (UsrDtls.data.listPersonels.items.length < 1) {
-        Alert.alert("You dont work here");
+        Alert.alert(t.youDoNotWorkHere);
       } else if (!Admins.includes(AttendAdmin)) {
-        Alert.alert("This Admin does not belong to this Business");
+        Alert.alert(t.adminNotBelong);
       } else {
         await sendSMNonLn();
       }
     } catch (error) {
       console.error(error);
-      Alert.alert("Retry, update app or call customer care");
+      Alert.alert(t.retryUpdateOrCall);
     } finally {
       setIsLoading(false);
       setSenderNatId('');
@@ -170,25 +175,25 @@ const SMASendNonLns = props => {
                             <ScrollView>
         
                   <View style={styles.formContainer}>
-                    <TextInput placeholder="Purchasing Business Phone Number" value={SenderNatId} onChangeText={setSenderNatId} style={styles.input} editable={true}></TextInput>
+                    <TextInput placeholder={t.purchasingBusinessPhone} value={SenderNatId} onChangeText={setSenderNatId} style={styles.input} editable={true}></TextInput>
                     
-                    <TextInput placeholder="Selling Business Phone Number" value={RecNatId} onChangeText={setRecNatId} style={styles.input} editable={true}></TextInput>
+                    <TextInput placeholder={t.sellingBusinessPhone} value={RecNatId} onChangeText={setRecNatId} style={styles.input} editable={true}></TextInput>
 
-          <TextInput placeholder="Attending Admin Email" value={AttendAdmin} onChangeText={setAttendAdmin} style={styles.input} editable={true}></TextInput>
+          <TextInput placeholder={t.attendingAdminEmail} value={AttendAdmin} onChangeText={setAttendAdmin} style={styles.input} editable={true}></TextInput>
                     
                     
                    
                  
-                    <TextInput placeholder="Item/Sale Request Description" value={Desc} onChangeText={setDesc} style={styles.input} editable={true} multiline={true} // Enables multi-line input
+                    <TextInput placeholder={t.itemRequestDescription} value={Desc} onChangeText={setDesc} style={styles.input} editable={true} multiline={true} // Enables multi-line input
           textAlignVertical="top">
                         
                       </TextInput>
                     
-                    <TextInput placeholder="Enter Item Cost" value={amounts} onChangeText={setAmount} keyboardType={"decimal-pad"} style={styles.input} editable={true}></TextInput>
+                    <TextInput placeholder={t.enterItemCost} value={amounts} onChangeText={setAmount} keyboardType={"decimal-pad"} style={styles.input} editable={true}></TextInput>
                    
 
                    <View style={styles.passwordContainer}>
-                                                                 <TextInput placeholder="Personnel Main Account Password" style={styles.passwordInput} value={SnderPW} onChangeText={setSnderPW} secureTextEntry={!isPasswordVisible} placeholderTextColor="#ccc" />
+                                                                 <TextInput placeholder={t.personnelMainPassword} style={styles.passwordInput} value={SnderPW} onChangeText={setSnderPW} secureTextEntry={!isPasswordVisible} placeholderTextColor="#ccc" />
                                                                <TouchableOpacity onPress={() => setIsPasswordVisible(!isPasswordVisible)}>
                                                               <Ionicons name={isPasswordVisible ? 'eye' : 'eye-off'} size={24} color="gray" />
                                                                </TouchableOpacity>
@@ -196,7 +201,7 @@ const SMASendNonLns = props => {
                      
                                                               
                   <TouchableOpacity onPress={fetchSenderUsrDtls} style={styles.button}>
-                    {isLoading ? <ActivityIndicator color="#fff" /> : <Text style={styles.locationText}>Submit</Text>}
+                    {isLoading ? <ActivityIndicator color="#fff" /> : <Text style={styles.locationText}>{t.submit}</Text>}
                                           </TouchableOpacity>
                                         </View>
                                       </ScrollView>

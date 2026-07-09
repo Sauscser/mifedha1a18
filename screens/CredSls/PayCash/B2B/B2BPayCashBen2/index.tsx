@@ -6,11 +6,18 @@ import { View, Text, Alert, ActivityIndicator } from 'react-native';
 import styles from './styles';
 import { getCurrentUser, fetchUserAttributes } from 'aws-amplify/auth';
 import { generateClient } from 'aws-amplify/api';
+import { useTranslation } from 'react-i18next';
+import translations from './translation';
 const client = generateClient();
 const SMASendNonLns = props => {
   const [isLoading, setIsLoading] = useState(false);
   const route = useRoute();
   const navigation = useNavigation();
+  const { i18n } = useTranslation();
+  const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+  const t = translations[lang] || translations.en;
+  const fmt = (template: string, vars: Record<string, string | number>) =>
+    template.replace(/\{(\w+)\}/g, (_, k) => String(vars[k] ?? ''));
   const SndChmMmbrMny = () => {
     navigation.navigate("AutomaticRepayAllTyps");
   };
@@ -183,36 +190,39 @@ const SMASendNonLns = props => {
             }
           }
         });
-        Alert.alert("Amount: " + parseFloat(amount).toFixed(0) + ". Transaction fee: " + UsrTransferFeeAmt.toFixed(0));
+        Alert.alert(fmt(t.amountFee, {
+          amount: parseFloat(amount).toFixed(0),
+          fee: UsrTransferFeeAmt.toFixed(0)
+        }));
       }
 
       // Conditional checks preserved
       if (userInfo.userId !== ownerz && ![senderBiz.data.getBizna.Admin1, senderBiz.data.getBizna.Admin2, senderBiz.data.getBizna.Admin3
       // … all Admin fields up to Admin50
       ].includes(attributes.email)) {
-        Alert.alert("Unauthorised to pay on behalf of the business!");
+        Alert.alert(t.unauthorizedPay);
         return;
       }
       if (Lonees3.data.listCovCreditSellers.items.length > 0 || Lonees1.data.listSMLoansCovereds.items.length > 0 || Lonees5.data.listCvrdGroupLoans.items.length > 0) {
         SndChmMmbrMny();
-        Alert.alert("You have an outstanding loan. Please settle it first.");
+        Alert.alert(t.outstandingLoan);
         return;
       } else if (RecAcstatus === "AccountInactive") {
-        Alert.alert("Receiver account is inactive");
+        Alert.alert(t.receiverInactive);
       } else if (SenderAcstatus === "AccountInactive") {
-        Alert.alert("Sender account is inactive");
+        Alert.alert(t.senderInactive);
       } else if (objectionStatus === "Objected") {
-        Alert.alert("Business account locked by the creator or admin");
+        Alert.alert(t.businessLocked);
       } else if (UsrTransferFee2 < 0) {
-        Alert.alert("Requested amount is more than you have in your account");
+        Alert.alert(t.requestedMoreThanBalance);
       } else if (TotalTransacted > SenderUsrBal) {
-        Alert.alert("Your account balance is insufficient");
+        Alert.alert(t.insufficientBalance);
       } else {
         await sendSMNonLn13();
       }
     } catch (error) {
       console.error(error);
-      Alert.alert("Transaction failed. Please retry or update your app.");
+      Alert.alert(t.transactionFailedRetry);
     } finally {
       setIsLoading(false);
     }
@@ -221,7 +231,7 @@ const SMASendNonLns = props => {
     fetchSaleReqDtls();
   }, []);
   return <View style={styles.image}>
-      <Text style={styles.sendAmtButtonText}>Please wait for feedback</Text>
+      <Text style={styles.sendAmtButtonText}>{t.pleaseWaitFeedback}</Text>
       {isLoading && <ActivityIndicator size="large" color="blue" />}
     </View>;
 };

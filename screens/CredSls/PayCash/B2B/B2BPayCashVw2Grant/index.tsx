@@ -5,10 +5,15 @@ import styles from './styles';
 import { getSMAccount, listBizSlsReqs } from '../../../../../src/graphql/queries';
 import { getCurrentUser, fetchUserAttributes } from 'aws-amplify/auth';
 import { generateClient } from 'aws-amplify/api';
+import { useTranslation } from 'react-i18next';
+import translations from './translation';
 const client = generateClient();
 const FetchSMNonCovLns = props => {
   const [loading, setLoading] = useState(false);
   const [Loanees, setLoanees] = useState([]);
+  const { i18n } = useTranslation();
+  const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+  const t = translations[lang] || translations.en;
   const fetchUsrDtls = async () => {
     try {
       const userInfo = await getCurrentUser();
@@ -45,13 +50,13 @@ const FetchSMNonCovLns = props => {
         }
       };
       if (userInfo.userId !== owner) {
-        Alert.alert("Please first create main account");
+        Alert.alert(t.createMainAccount);
       } else {
         await fetchLoanees();
       }
     } catch (e) {
       console.error(e);
-      Alert.alert("Advocate does not exist; otherwise check internet connection");
+      Alert.alert(t.advocateNotExistOrInternet);
     }
   };
   useEffect(() => {
@@ -65,8 +70,8 @@ const FetchSMNonCovLns = props => {
     }) => <LnerStts SMAc={item} />} keyExtractor={(item, index) => index.toString()} onRefresh={fetchUsrDtls} refreshing={loading} showsVerticalScrollIndicator={false} ListHeaderComponentStyle={{
       alignItems: 'center'
     }} ListHeaderComponent={() => <>
-            <Text style={styles.label}> Swipe to View Sale Requests</Text>
-            <Text style={styles.label2}> (Select to Delete)</Text>
+          <Text style={styles.label}> {t.swipeToViewSaleRequests}</Text>
+          <Text style={styles.label2}> {t.selectToDelete}</Text>
           </>} />
     </View>;
 };

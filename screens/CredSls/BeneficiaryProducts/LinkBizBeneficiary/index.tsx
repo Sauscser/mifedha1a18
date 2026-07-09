@@ -7,6 +7,8 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { View, Text, TextInput, ScrollView, StyleSheet, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
+import translations from './translation';
 export type UserReg = {
   usr: String;
 };
@@ -25,6 +27,9 @@ const CreateChama = (props: UserReg) => {
   const [Sign2Phn, setSign2Phn] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isPasswordVisible, setIsPasswordVisible] = useState(false); // restored toggle
+  const { i18n } = useTranslation();
+  const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+  const t = translations[lang] || translations.en;
 
   const ProdId = route.params.id;
   const ProdIDX = ChmRegNo + ProdId + ChmNm;
@@ -113,23 +118,23 @@ const CreateChama = (props: UserReg) => {
             }
           });
           if (resp?.data?.createLinkBeneficiary2) {
-            Alert.alert('Beneficiary linked successfully');
+            Alert.alert(t.beneficiaryLinked);
           }
         } catch (error) {
           console.log(error);
-          Alert.alert('Error! retry or update App!');
+          Alert.alert(t.retryOrUpdateApp);
         }
       };
       if (pwsz !== pword) {
-        Alert.alert('Wrong password');
+        Alert.alert(t.wrongPassword);
       } else if (ownerz === userInfo.userId || admins.includes(attributes.email)) {
         await onCreateNewSMAc();
       } else {
-        Alert.alert('You are Neither the Creator/Admin of this business');
+        Alert.alert(t.neitherCreatorAdmin);
       }
     } catch (e) {
       console.error(e);
-      Alert.alert('Error! Access denied!');
+      Alert.alert(t.accessDenied);
     }
     setIsLoading(false);
     setChmPhn('');
@@ -146,14 +151,14 @@ const CreateChama = (props: UserReg) => {
                             <ScrollView>
         
                   <View style={styles.formContainer}>
-                  <TextInput placeholder="Benefactor Business Number" value={ChmRegNo} onChangeText={setChmRegNo} style={styles.input} editable={true}></TextInput>
+                    <TextInput placeholder={t.benefactorBusinessNumber} value={ChmRegNo} onChangeText={setChmRegNo} style={styles.input} editable={true}></TextInput>
                       
-                      <TextInput placeholder="Beneficiary Business Number" value={ChmNm} onChangeText={setChmNm} style={styles.input} editable={true}></TextInput>
+                      <TextInput placeholder={t.beneficiaryBusinessNumber} value={ChmNm} onChangeText={setChmNm} style={styles.input} editable={true}></TextInput>
                     
                   
 
                    <View style={styles.passwordContainer}>
-                                                                 <TextInput placeholder="Admin Main Account Password" style={styles.passwordInput} value={pword} onChangeText={setPW} secureTextEntry={!isPasswordVisible} placeholderTextColor="#ccc" />
+                                                                 <TextInput placeholder={t.adminMainPassword} style={styles.passwordInput} value={pword} onChangeText={setPW} secureTextEntry={!isPasswordVisible} placeholderTextColor="#ccc" />
                                                                <TouchableOpacity onPress={() => setIsPasswordVisible(!isPasswordVisible)}>
                                                               <Ionicons name={isPasswordVisible ? 'eye' : 'eye-off'} size={24} color="gray" />
                                                                </TouchableOpacity>
@@ -161,7 +166,7 @@ const CreateChama = (props: UserReg) => {
                      
                                                               
                   <TouchableOpacity onPress={ChckUsrExistence} style={styles.button}>
-                    {isLoading ? <ActivityIndicator color="#fff" /> : <Text style={styles.locationText}>Submit</Text>}
+                    {isLoading ? <ActivityIndicator color="#fff" /> : <Text style={styles.locationText}>{t.submit}</Text>}
                                           </TouchableOpacity>
                                         </View>
                                       </ScrollView>

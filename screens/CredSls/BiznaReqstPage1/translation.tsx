@@ -1,32 +1,95 @@
 const translations = {
   en: {
     requestLoans: 'Request Loans',
-    biz2Pal: 'Biz2Pal',
-    biz2Biz: 'Biz2Biz',
-    pal2Biz: 'Pal2Biz',
-    pal2Pal: 'Pal2Pal'
+    biz2Pal: 'Business to Individual',
+    biz2Biz: 'Business to Business',
+    pal2Biz: 'Individual to Business',
+    pal2Pal: 'Individual to Individual',
   },
   sw: {
     requestLoans: 'Omba Mikopo',
-    biz2Pal: 'Biz2Pal',
-    biz2Biz: 'Biz2Biz',
-    pal2Biz: 'Pal2Biz',
-    pal2Pal: 'Pal2Pal'
+    biz2Pal: 'Biashara kwenda kwa Mtu',
+    biz2Biz: 'Biashara kwenda Biashara',
+    pal2Biz: 'Mtu kwenda Biashara',
+    pal2Pal: 'Mtu kwenda Mtu',
+  },
+  he: {
+    requestLoans: 'בקש הלוואות',
+    biz2Pal: 'עסק לאדם',
+    biz2Biz: 'עסק לעסק',
+    pal2Biz: 'אדם לעסק',
+    pal2Pal: 'אדם לאדם',
+  },
+  hi: {
+    requestLoans: 'ऋण मांगें',
+    biz2Pal: 'व्यापार से व्यक्ति',
+    biz2Biz: 'व्यापार से व्यापार',
+    pal2Biz: 'व्यक्ति से व्यापार',
+    pal2Pal: 'व्यक्ति से व्यक्ति',
+  },
+  zh: {
+    requestLoans: '申请贷款',
+    biz2Pal: '企业到个人',
+    biz2Biz: '企业到企业',
+    pal2Biz: '个人到企业',
+    pal2Pal: '个人到个人',
   },
   fr: {
     requestLoans: 'Demander des prêts',
-    biz2Pal: 'Biz2Pal',
-    biz2Biz: 'Biz2Biz',
-    pal2Biz: 'Pal2Biz',
-    pal2Pal: 'Pal2Pal'
+    biz2Pal: 'Entreprise vers particulier',
+    biz2Biz: 'Entreprise vers entreprise',
+    pal2Biz: 'Particulier vers entreprise',
+    pal2Pal: 'Particulier vers particulier',
+  },
+  pt: {
+    requestLoans: 'Solicitar empréstimos',
+    biz2Pal: 'Negócio para pessoa',
+    biz2Biz: 'Negócio para negócio',
+    pal2Biz: 'Pessoa para negócio',
+    pal2Pal: 'Pessoa para pessoa',
+  },
+  it: {
+    requestLoans: 'Richiedi prestiti',
+    biz2Pal: 'Impresa a persona',
+    biz2Biz: 'Impresa a impresa',
+    pal2Biz: 'Persona a impresa',
+    pal2Pal: 'Persona a persona',
+  },
+  am: {
+    requestLoans: 'ብድር ይጠይቁ',
+    biz2Pal: 'ንግድ እስከ ግለሰብ',
+    biz2Biz: 'ንግድ እስከ ንግድ',
+    pal2Biz: 'ግለሰብ እስከ ንግድ',
+    pal2Pal: 'ግለሰብ እስከ ግለሰብ',
   },
   ar: {
     requestLoans: 'طلب القروض',
-    biz2Pal: 'Biz2Pal',
-    biz2Biz: 'Biz2Biz',
-    pal2Biz: 'Pal2Biz',
-    pal2Pal: 'Pal2Pal'
-  }
+    biz2Pal: 'عمل إلى فرد',
+    biz2Biz: 'عمل إلى عمل',
+    pal2Biz: 'فرد إلى عمل',
+    pal2Pal: 'فرد إلى فرد',
+  },
+  de: {
+    requestLoans: 'Kredite anfordern',
+    biz2Pal: 'Unternehmen an Privatperson',
+    biz2Biz: 'Unternehmen an Unternehmen',
+    pal2Biz: 'Privatperson an Unternehmen',
+    pal2Pal: 'Privatperson an Privatperson',
+  },
+  es: {
+    requestLoans: 'Solicitar préstamos',
+    biz2Pal: 'Negocio a persona',
+    biz2Biz: 'Negocio a negocio',
+    pal2Biz: 'Persona a negocio',
+    pal2Pal: 'Persona a persona',
+  },
+  ru: {
+    requestLoans: 'Запросить кредиты',
+    biz2Pal: 'Бизнес физическому лицу',
+    biz2Biz: 'Бизнес бизнесу',
+    pal2Biz: 'Физическое лицо бизнесу',
+    pal2Pal: 'Физическое лицо физическому лицу',
+  },
 };
 
 export default translations;

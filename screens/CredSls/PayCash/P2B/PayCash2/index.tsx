@@ -9,12 +9,19 @@ import { createBenefitContributions2, createNonLoans, updateCompany, updateSMAcc
 import { getBizna, getCompany, getSMAccount, listCovCreditSellers, listCvrdGroupLoans, listSMLoansCovereds } from '../../../../../src/graphql/queries';
 import { getCurrentUser, fetchUserAttributes } from "aws-amplify/auth";
 import { generateClient } from "aws-amplify/api";
+import { useTranslation } from 'react-i18next';
+import translations from './translation';
 const client = generateClient();
 const SMASendNonLns = () => {
   const [SnderPW, setSnderPW] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const navigation = useNavigation();
+  const { i18n } = useTranslation();
+  const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+  const t = translations[lang] || translations.en;
+  const fmt = (template: string, vars: Record<string, string | number>) =>
+    template.replace(/\{(\w+)\}/g, (_, k) => String(vars[k] ?? ''));
   const route = useRoute();
   const {
     sokoname,
@@ -35,7 +42,7 @@ const SMASendNonLns = () => {
     try {
       userInfo = await getCurrentUser();
     } catch {
-      return showError("User authentication failed");
+      return showError(t.userAuthFailed);
     }
     const checkLoans = async () => {
       try {
@@ -104,7 +111,7 @@ const SMASendNonLns = () => {
         await validateAndTransact(userInfo);
       } catch (e) {
         console.log(e);
-        return showError("Loan check failed");
+        return showError(t.loanCheckFailed);
       }
     };
     await checkLoans();
@@ -130,14 +137,14 @@ const SMASendNonLns = () => {
         beneficiary,
         benefitsAmount
       } = sender;
-      if (userInfo.userId !== senderOwner) return showError("Invalid account owner");
-      if (acStatus !== "AccountActive") return showError("Account inactive");
+      if (userInfo.userId !== senderOwner) return showError(t.invalidAccountOwner);
+      if (acStatus !== "AccountActive") return showError(t.accountInactive);
       setIsLoading(true);
       if (storedPW !== SnderPW) {
         setIsLoading(false); // reset loading so UI returns to normal
-        return showError("Wrong password");
+        return showError(t.wrongPassword);
       }
-      if (parseFloat(loanLimit) < parseFloat(totalCost)) return showError("Send limit exceeded");
+      if (parseFloat(loanLimit) < parseFloat(totalCost)) return showError(t.sendLimitExceeded);
       const companyData = await client.graphql({
         query: getCompany,
         variables: {
@@ -156,7 +163,7 @@ const SMASendNonLns = () => {
       console.log(p2bBenCom);
       const fee = parseFloat(userTransferFee || 0) * parseFloat(totalCost);
       const totalDebit = parseFloat(totalCost) + fee;
-      if (parseFloat(balance) < totalDebit) return showError("Insufficient balance");
+      if (parseFloat(balance) < totalDebit) return showError(t.insufficientBalance);
       const benefit = parseFloat(p2bBenCom || 0) * fee;
       const compEarnings = fee - 2 * benefit;
       const bizData = await client.graphql({
@@ -240,7 +247,9 @@ const SMASendNonLns = () => {
             }
           }
         })]);
-        Alert.alert(`Successful! Transaction fee: ${fee.toFixed(0)}`);
+        Alert.alert(fmt(t.successTransactionFee, {
+          fee: fee.toFixed(0)
+        }));
         setIsLoading(false);
         setSnderPW("");
       }
@@ -291,13 +300,15 @@ const SMASendNonLns = () => {
             }
           }
         })]);
-        Alert.alert(`Successful! Transaction fee: ${fee.toFixed(0)}`);
+        Alert.alert(fmt(t.successTransactionFee, {
+          fee: fee.toFixed(0)
+        }));
         setIsLoading(false);
         setSnderPW("");
       }
     } catch (e) {
       console.log(e);
-      return showError("Transaction failed");
+      return showError(t.transactionFailed);
     }
   };
   return <LinearGradient colors={['#e58d29', '#2c5364']} style={{
@@ -305,7 +316,7 @@ const SMASendNonLns = () => {
   }}>
       <ScrollView contentContainerStyle={styles.container}>
         <View style={styles.passwordContainer}>
-          <TextInput placeholder="Main Account Password" style={styles.passwordInput} value={SnderPW} onChangeText={setSnderPW} secureTextEntry={!isPasswordVisible} placeholderTextColor="#ccc" />
+          <TextInput placeholder={t.mainAccountPassword} style={styles.passwordInput} value={SnderPW} onChangeText={setSnderPW} secureTextEntry={!isPasswordVisible} placeholderTextColor="#ccc" />
           <TouchableOpacity onPress={() => setIsPasswordVisible(!isPasswordVisible)}>
             <Ionicons name={isPasswordVisible ? 'eye' : 'eye-off'} size={24} color="gray" />
           </TouchableOpacity>
@@ -314,7 +325,7 @@ const SMASendNonLns = () => {
         <TouchableOpacity style={styles.button} disabled={isLoading} onPress={fetchCvLnSM}>
   {isLoading ? <ActivityIndicator color="#fff" style={{
           marginVertical: 10
-        }} /> : <Text style={styles.buttonText}>Authenticate Owner</Text>}
+        }} /> : <Text style={styles.buttonText}>{t.authenticateOwner}</Text>}
       </TouchableOpacity>
 
       </ScrollView>

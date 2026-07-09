@@ -4,6 +4,8 @@ import NonLnRec from "../../../../../../components/MyAc/ViewRecNonLns";
 import { listPersonels, VwMyRecMny } from '../../../../../../src/graphql/queries';
 import { getCurrentUser, fetchUserAttributes } from 'aws-amplify/auth';
 import { generateClient } from 'aws-amplify/api';
+import { useTranslation } from 'react-i18next';
+import translations from './translation';
 const client = generateClient();
 const FetchSMNonLnsSnt = () => {
   const [loading, setLoading] = useState(false);
@@ -11,6 +13,9 @@ const FetchSMNonLnsSnt = () => {
   const [filteredRecords, setFilteredRecords] = useState<any[]>([]);
   const [bizPhone, setBizPhone] = useState('');
   const [buyerFilter, setBuyerFilter] = useState('');
+  const { i18n } = useTranslation();
+  const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+  const t = translations[lang] || translations.en;
   const fetchLoanees = async () => {
     if (loading || !bizPhone) return;
     setLoading(true);
@@ -31,7 +36,7 @@ const FetchSMNonLnsSnt = () => {
         }
       });
       if (!personnelCheck?.data?.listPersonels?.items?.length) {
-        Alert.alert("Access Denied", "Retry if you're sure you work here.");
+        Alert.alert(t.accessDenied, t.retryIfWorkHere);
         return;
       }
       const result: any = await client.graphql({
@@ -51,11 +56,11 @@ const FetchSMNonLnsSnt = () => {
       setAllRecords(items);
       setFilteredRecords(items);
       if (!items.length) {
-        Alert.alert("No Records", "Sorry, no money received yet from businesses.");
+        Alert.alert(t.noRecords, t.noMoneyReceived);
       }
     } catch (e) {
       console.error("Error fetching records:", e);
-      Alert.alert("Error", "Could not fetch records. Please retry or check your connection.");
+      Alert.alert(t.errorTitle, t.fetchError);
     } finally {
       setLoading(false);
     }
@@ -70,15 +75,15 @@ const FetchSMNonLnsSnt = () => {
   }, [buyerFilter, allRecords]);
   return <View style={styles.container}>
       <View style={styles.inputBlock}>
-        <TextInput placeholder="Full Business Number" value={bizPhone} onChangeText={setBizPhone} style={styles.input} />
-        <TextInput placeholder="Buyer's Name. Even partially" value={buyerFilter} onChangeText={setBuyerFilter} style={styles.input} />
+        <TextInput placeholder={t.fullBusinessNumber} value={bizPhone} onChangeText={setBizPhone} style={styles.input} />
+        <TextInput placeholder={t.buyerNamePartial} value={buyerFilter} onChangeText={setBuyerFilter} style={styles.input} />
       </View>
 
       <FlatList data={filteredRecords} renderItem={({
       item
     }) => <NonLnRec SMAc={item} />} keyExtractor={(item, index) => index.toString()} onRefresh={fetchLoanees} refreshing={loading} showsVerticalScrollIndicator={false} ListHeaderComponent={() => <>
-            <Text style={styles.label2}>(Please swipe down to reload)</Text>
-            <Text style={styles.label}>Business Sales</Text>
+            <Text style={styles.label2}>{t.swipeToReload}</Text>
+            <Text style={styles.label}>{t.businessSales}</Text>
           </>} />
       {loading && <ActivityIndicator size="large" color="blue" />}
     </View>;

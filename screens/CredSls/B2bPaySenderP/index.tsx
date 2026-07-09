@@ -9,17 +9,19 @@ import styles from './styles';
 import { convertForeignToKsh, formatAmountSync } from '../../../src/utils/exchange';
 import { useExchange } from '../../../src/contexts/ExchangeContext';
 import { nationalityToCode } from '../../../src/utils/nationalityToCode';
+import { useTranslation } from 'react-i18next';
+import translations from './translation';
 
 const client = generateClient();
 
-const confirmSendTransfer = (amount: string, receiver: string, description: string): Promise<boolean> => {
+const confirmSendTransfer = (amount: string, receiver: string, description: string, t: any, fmt: (template: string, vars: Record<string, string | number>) => string): Promise<boolean> => {
   return new Promise(resolve => {
     Alert.alert(
-      'Confirm Transfer',
-      `Send ${amount} to ${receiver}?\n\nDescription: ${description}`,
+      t.confirmTransferTitle,
+      fmt(t.confirmTransferMessage, { amount, receiver, description }),
       [
-        { text: 'Cancel', onPress: () => resolve(false), style: 'cancel' },
-        { text: 'Send', onPress: () => resolve(true) }
+        { text: t.cancel, onPress: () => resolve(false), style: 'cancel' },
+        { text: t.send, onPress: () => resolve(true) }
       ]
     );
   });
@@ -34,6 +36,11 @@ const SMASendNonLns = (props: any) => {
   const [isLoading, setIsLoading] = useState(false);
   const navigation = useNavigation();
   const { ratesMap } = useExchange();
+  const { i18n } = useTranslation();
+  const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+  const t = translations[lang] || translations.en;
+  const fmt = (template: string, vars: Record<string, string | number>) =>
+    template.replace(/\{(\w+)\}/g, (_, k) => String(vars[k] ?? ''));
 
   const SndChmMmbrMny = () => {
     navigation.navigate('AutomaticRepayAllTyps');
@@ -128,7 +135,7 @@ const SMASendNonLns = (props: any) => {
 
                       const amountInput = parseFloat(amounts);
                       if (!amountInput || amountInput <= 0) {
-                        Alert.alert('Enter a valid amount');
+                        Alert.alert(t.enterValidAmount);
                         setIsLoading(false);
                         return;
                       }
@@ -138,7 +145,7 @@ const SMASendNonLns = (props: any) => {
 
                       const amountKes = await convertForeignToKsh(amountInput, userCode);
                       if (!amountKes || amountKes <= 0) {
-                        Alert.alert('Unable to convert amount. Please try again.');
+                        Alert.alert(t.unableConvertAmount);
                         setIsLoading(false);
                         return;
                       }
@@ -204,7 +211,7 @@ const SMASendNonLns = (props: any) => {
                                       });
                                     } catch (error) {
                                       if (error) {
-                                        Alert.alert('Sending unsuccessful; Retry');
+                                        Alert.alert(t.sendingUnsuccessful);
                                         return;
                                       }
                                     }
@@ -233,7 +240,7 @@ const SMASendNonLns = (props: any) => {
                                       });
                                     } catch (error) {
                                       if (error) {
-                                        Alert.alert('Sending unsuccessful; Retry');
+                                        Alert.alert(t.sendingUnsuccessful);
                                         return;
                                       }
                                     }
@@ -257,7 +264,7 @@ const SMASendNonLns = (props: any) => {
                                     } catch (error) {
                                       console.log(error);
                                       if (error) {
-                                        Alert.alert('Check your internet connection');
+                                        Alert.alert(t.checkInternet);
                                         return;
                                       }
                                     }
@@ -281,7 +288,7 @@ const SMASendNonLns = (props: any) => {
                                     } catch (error) {
                                       console.log(error);
                                       if (error) {
-                                        Alert.alert('Check your internet connection');
+                                        Alert.alert(t.checkInternet);
                                         return;
                                       }
                                     }
@@ -306,7 +313,7 @@ const SMASendNonLns = (props: any) => {
                                     } catch (error) {
                                       console.log(error);
                                       if (error) {
-                                        Alert.alert('Check your internet connection');
+                                        Alert.alert(t.checkInternet);
                                         return;
                                       }
                                     }
@@ -330,7 +337,7 @@ const SMASendNonLns = (props: any) => {
                                     } catch (error) {
                                       console.log(error);
                                       if (error) {
-                                        Alert.alert('Check your internet connection');
+                                        Alert.alert(t.checkInternet);
                                         return;
                                       }
                                     }
@@ -354,7 +361,7 @@ const SMASendNonLns = (props: any) => {
                                     } catch (error) {
                                       console.log(error);
                                       if (error) {
-                                        Alert.alert('Check your internet connection');
+                                        Alert.alert(t.checkInternet);
                                         return;
                                       }
                                     }
@@ -379,7 +386,7 @@ const SMASendNonLns = (props: any) => {
                                     } catch (error) {
                                       console.log(error);
                                       if (error) {
-                                        Alert.alert('Check your internet connection');
+                                        Alert.alert(t.checkInternet);
                                         return;
                                       }
                                     }
@@ -406,13 +413,13 @@ const SMASendNonLns = (props: any) => {
                                     } catch (error) {
                                       console.log(error);
                                       if (error) {
-                                        Alert.alert('Check your internet connection');
+                                        Alert.alert(t.checkInternet);
                                         return;
                                       }
                                     }
                                     const formattedAmount = formatAmountSync(amountKes, userCode, ratesMap);
                                     const formattedFee = formatAmountSync(UsrTransferFeeAmt, userCode, ratesMap);
-                                    Alert.alert('Success', `Amount: ${formattedAmount}. Transaction fee: ${formattedFee}`);
+                                    Alert.alert(t.successTitle, fmt(t.amountFee, { amount: formattedAmount, fee: formattedFee }));
 
                                     // Send notification to receiver
                                     if (receiverEmail) {
@@ -461,12 +468,12 @@ const SMASendNonLns = (props: any) => {
                                     } catch (error) {
                                       console.log(error);
                                       if (error) {
-                                        Alert.alert('Check your internet connection');
+                                        Alert.alert(t.checkInternet);
                                         return;
                                       }
                                     }
                                     const formattedAmount = formatAmountSync(amountKes, userCode, ratesMap);
-                                    Alert.alert('Insufficient transaction fees? No worries! ' + formattedAmount + ' sent!');
+                                    Alert.alert(fmt(t.insufficientFeesSent, { amount: formattedAmount }));
 
                                     // Send notification to receiver
                                     if (receiverEmail) {
@@ -497,18 +504,18 @@ const SMASendNonLns = (props: any) => {
                                   };
 
                                   if (userInfo.userId !== ownerz) {
-                                    Alert.alert('Unauthorised to pay on behalf of the business!');
+                                    Alert.alert(t.unauthorizedPay);
                                     return;
                                   } else if (bizTypez === 'Public') {
                                     NoBizBen();
                                   } else if (RecAcstatus === 'AccountInactive') {
-                                    Alert.alert('Receiver account is inactive');
+                                    Alert.alert(t.receiverInactive);
                                   } else if (SenderAcstatus === 'AccountInactive') {
-                                    Alert.alert('Sender account is inactive');
+                                    Alert.alert(t.senderInactive);
                                   } else if (UsrTransferFee2 < 0) {
-                                    Alert.alert('Requested amount is more than you have in your account');
+                                    Alert.alert(t.requestedMoreThanBalance);
                                   } else if (pw !== SnderPW) {
-                                    Alert.alert('Wrong password');
+                                    Alert.alert(t.wrongPassword);
                                   } else if (Lonees3.data.listCovCreditSellers.items.length > 0) {
                                     SndChmMmbrMny();
                                   } else {
@@ -528,7 +535,7 @@ const SMASendNonLns = (props: any) => {
                                 } catch (e) {
                                   console.log(e);
                                   if (e) {
-                                    Alert.alert('Reciever does not exist');
+                                    Alert.alert(t.receiverDoesNotExist);
                                     return;
                                   }
                                 }
@@ -538,7 +545,7 @@ const SMASendNonLns = (props: any) => {
                             } catch (e) {
                               console.log(e);
                               if (e) {
-                                Alert.alert('Reciever does not exist');
+                                Alert.alert(t.receiverDoesNotExist);
                                 return;
                               }
                             }
@@ -548,7 +555,7 @@ const SMASendNonLns = (props: any) => {
                         } catch (e) {
                           console.log(e);
                           if (e) {
-                            Alert.alert('Reciever does not exist');
+                            Alert.alert(t.receiverDoesNotExist);
                             return;
                           }
                         }
@@ -558,7 +565,7 @@ const SMASendNonLns = (props: any) => {
                     } catch (e) {
                       console.log(e);
                       if (e) {
-                        Alert.alert('Check your internet connection');
+                        Alert.alert(t.checkInternet);
                         return;
                       }
                     }
@@ -568,7 +575,7 @@ const SMASendNonLns = (props: any) => {
                 } catch (e) {
                   console.log(e);
                   if (e) {
-                    Alert.alert('Check your internet connection');
+                    Alert.alert(t.checkInternet);
                     return;
                   }
                 }
@@ -578,7 +585,7 @@ const SMASendNonLns = (props: any) => {
             } catch (e) {
               console.log(e);
               if (e) {
-                Alert.alert('Check your internet connection');
+                Alert.alert(t.checkInternet);
                 return;
               }
             }
@@ -588,7 +595,7 @@ const SMASendNonLns = (props: any) => {
         } catch (e) {
           console.log(e);
           if (e) {
-            Alert.alert('Check your internet connection');
+            Alert.alert(t.checkInternet);
             return;
           }
         }
@@ -598,7 +605,7 @@ const SMASendNonLns = (props: any) => {
     } catch (e) {
       console.log(e);
       if (e) {
-        Alert.alert('Please fill details correctly or check your internet connection');
+        Alert.alert(t.fillDetailsOrCheckInternet);
         return;
       }
     }
@@ -615,29 +622,29 @@ const SMASendNonLns = (props: any) => {
       <View style={styles.image}>
         <ScrollView>
           <View style={styles.amountTitleView}>
-            <Text style={styles.title}>Fill account Details Below</Text>
+            <Text style={styles.title}>{t.fillAccountDetails}</Text>
           </View>
 
           <View style={styles.sendAmtView}>
             <TextInput
-              placeholder="Sending Business Phone"
+              placeholder={t.sendingBusinessPhone}
               value={SenderNatId}
               onChangeText={setSenderNatId}
               style={styles.sendAmtInput}
               editable={true}
             />
-            <Text style={styles.sendAmtText}>Sending Business Phone</Text>
+            <Text style={styles.sendAmtText}>{t.sendingBusinessPhone}</Text>
           </View>
 
           <View style={styles.sendAmtView}>
             <TextInput
-              placeholder="Receiving Business Phone"
+              placeholder={t.receivingBusinessPhone}
               value={RecNatId}
               onChangeText={setRecNatId}
               style={styles.sendAmtInput}
               editable={true}
             />
-            <Text style={styles.sendAmtText}>Receiving Business Phone</Text>
+            <Text style={styles.sendAmtText}>{t.receivingBusinessPhone}</Text>
           </View>
 
           <View style={styles.sendAmtView}>
@@ -648,7 +655,7 @@ const SMASendNonLns = (props: any) => {
               style={styles.sendAmtInput}
               editable={true}
             />
-            <Text style={styles.sendAmtText}>Amount Sent</Text>
+            <Text style={styles.sendAmtText}>{t.amountSent}</Text>
           </View>
 
           <View style={styles.sendAmtView}>
@@ -659,7 +666,7 @@ const SMASendNonLns = (props: any) => {
               style={styles.sendAmtInput}
               editable={true}
             />
-            <Text style={styles.sendAmtText}>Buyer PassWord</Text>
+            <Text style={styles.sendAmtText}>{t.buyerPassword}</Text>
           </View>
 
           <View style={styles.sendAmtViewDesc}>
@@ -670,11 +677,11 @@ const SMASendNonLns = (props: any) => {
               style={styles.sendAmtInputDesc}
               editable={true}
             />
-            <Text style={styles.sendAmtText}>Description</Text>
+            <Text style={styles.sendAmtText}>{t.description}</Text>
           </View>
 
           <TouchableOpacity onPress={fetchCvLnSM} style={styles.sendAmtButton}>
-            <Text style={styles.sendAmtButtonText}>Send</Text>
+            <Text style={styles.sendAmtButtonText}>{t.send}</Text>
             {isLoading && <ActivityIndicator size="large" color="blue" />}
           </TouchableOpacity>
         </ScrollView>

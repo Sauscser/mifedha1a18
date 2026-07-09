@@ -8,8 +8,13 @@ import { getCurrentUser, fetchUserAttributes } from "aws-amplify/auth";
 import { generateClient } from "aws-amplify/api";
 import { convertForeignToKsh } from '../../../../../src/utils/exchange';
 import { nationalityToCode } from '../../../../../src/utils/nationalityToCode';
+import { useTranslation } from 'react-i18next';
+import translations from './translation';
 const client = generateClient();
 const RepayCovSellerLnsss = props => {
+  const { i18n } = useTranslation();
+  const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+  const t = translations[lang] || translations.en;
   const [SnderPW, setSnderPW] = useState("");
   const [amounts, setAmount] = useState("");
   const [Desc, setDesc] = useState("");
@@ -24,7 +29,7 @@ const RepayCovSellerLnsss = props => {
     const attributes = await fetchUserAttributes();
     const amountInput = parseFloat(amounts);
     if (!Number.isFinite(amountInput) || amountInput <= 0) {
-      Alert.alert("Enter a valid amount");
+      Alert.alert(t.enterValidAmount);
       setIsLoading(false);
       return;
     }
@@ -32,7 +37,7 @@ const RepayCovSellerLnsss = props => {
     const payerCode = nationalityToCode(rawNationality) || rawNationality || 'KE';
     const amountKes = await convertForeignToKsh(amountInput, payerCode);
     if (!Number.isFinite(amountKes) || amountKes <= 0) {
-      Alert.alert("Unable to convert amount. Please try again.");
+      Alert.alert(t.unableConvertAmount);
       setIsLoading(false);
       return;
     }
@@ -172,7 +177,7 @@ const RepayCovSellerLnsss = props => {
                     } catch (error) {
                       console.log(error);
                       if (error) {
-                        Alert.alert("Repayment unsuccessful; Retry");
+                        Alert.alert(t.repaymentUnsuccessfulRetry);
                         return;
                       }
                     }
@@ -197,7 +202,7 @@ const RepayCovSellerLnsss = props => {
                       });
                     } catch (error) {
                       if (error) {
-                        Alert.alert("Repayment unsuccessful; Retry");
+                        Alert.alert(t.repaymentUnsuccessfulRetry);
                         return;
                       }
                     }
@@ -227,7 +232,7 @@ const RepayCovSellerLnsss = props => {
                     } catch (error) {
                       console.log(error);
                       if (error) {
-                        Alert.alert("Retry or update app or call customer care");
+                        Alert.alert(t.retryUpdateCallSupport);
                         return;
                       }
                     }
@@ -260,7 +265,7 @@ const RepayCovSellerLnsss = props => {
                       });
                     } catch (error) {
                       if (error) {
-                        Alert.alert("Repayment unsuccessful; Retry");
+                        Alert.alert(t.repaymentUnsuccessfulRetry);
                         return;
                       }
                     }
@@ -285,7 +290,7 @@ const RepayCovSellerLnsss = props => {
                     } catch (error) {
                       console.log(error);
                       if (error) {
-                        Alert.alert("Retry or update app or call customer care");
+                        Alert.alert(t.retryUpdateCallSupport);
                         return;
                       }
                     }
@@ -311,11 +316,11 @@ const RepayCovSellerLnsss = props => {
                       });
                     } catch (error) {
                       if (error) {
-                        Alert.alert("Repayment unsuccessful; Retry");
+                        Alert.alert(t.repaymentUnsuccessfulRetry);
                         return;
                       }
                     }
-                    Alert.alert("Cleared. ClearanceFee: " + ClranceAmt.toFixed(2) + " TransactionFee: " + (parseFloat(UsrTransferFee) * amountKes).toFixed(2));
+                    Alert.alert(t.clearedPrefix + " " + ClranceAmt.toFixed(2) + " " + t.transactionFeePrefix + " " + (parseFloat(UsrTransferFee) * amountKes).toFixed(2));
                     setIsLoading(false);
                   };
                   const repyCovLn = async () => {
@@ -340,7 +345,7 @@ const RepayCovSellerLnsss = props => {
                     } catch (error) {
                       console.log(error);
                       if (error) {
-                        Alert.alert("Retry or update app or call customer care");
+                        Alert.alert(t.retryUpdateCallSupport);
                         return;
                       }
                     }
@@ -374,7 +379,7 @@ const RepayCovSellerLnsss = props => {
                     } catch (error) {
                       console.log(error);
                       if (error) {
-                        Alert.alert("Repayment unsuccessful; Retry");
+                        Alert.alert(t.repaymentUnsuccessfulRetry);
                         return;
                       }
                     }
@@ -399,7 +404,7 @@ const RepayCovSellerLnsss = props => {
                     } catch (error) {
                       console.log(error);
                       if (error) {
-                        Alert.alert("Retry or update app or call customer care");
+                        Alert.alert(t.retryUpdateCallSupport);
                         return;
                       }
                     }
@@ -424,7 +429,7 @@ const RepayCovSellerLnsss = props => {
                     } catch (error) {
                       console.log(error);
                       if (error) {
-                        Alert.alert("Retry or update app or call customer care");
+                        Alert.alert(t.retryUpdateCallSupport);
                         return;
                       }
                     }
@@ -451,27 +456,27 @@ const RepayCovSellerLnsss = props => {
                       });
                     } catch (error) {
                       if (error) {
-                        Alert.alert("Repayment unsuccessful; Retry");
+                        Alert.alert(t.repaymentUnsuccessfulRetry);
                         return;
                       }
                     }
-                    Alert.alert("Partially paid. Clearance: " + ClranceAmt.toFixed(2) + " TransactionFee: " + (parseFloat(UsrTransferFee) * amountKes).toFixed(2));
+                    Alert.alert(t.partiallyPaidPrefix + " " + ClranceAmt.toFixed(2) + " " + t.transactionFeePrefix + " " + (parseFloat(UsrTransferFee) * amountKes).toFixed(2));
                     setIsLoading(false);
                   };
                   if (userInfo.userId !== owner) {
-                    Alert.alert("Please first create a main account");
+                    Alert.alert(t.pleaseCreateMainAccount);
                     return;
                   } else if (usrAcActvStts === "AccountInactive") {
-                    Alert.alert('Sender account is inactive');
+                    Alert.alert(t.senderAccountInactive);
                     return;
                   } else if (parseFloat(SenderUsrBal) < TotalTransacted) {
-                    Alert.alert('Requested amount is more than you have in your account');
+                    Alert.alert(t.requestedAmountMoreThanBalance);
                     return;
                   } else if (ClranceAmt > amountKes) {
-                    Alert.alert("Too little repayment: at least " + ClranceAmt.toFixed(2));
+                    Alert.alert(t.tooLittleRepaymentPrefix + " " + ClranceAmt.toFixed(2));
                     return;
                   } else if (amountKes > parseFloat(LonBal1)) {
-                    Alert.alert("Your Loan Balance is lesser: " + LonBal1);
+                    Alert.alert(t.loanBalanceLesserPrefix + " " + LonBal1);
                   } else if (amountKes === parseFloat(LonBal1) && parseFloat(MaxTymsBLss) === parseFloat(maxBLss)) {
                     updtSendrAcLonOvr1();
                   } else if (amountKes === parseFloat(LonBal1) && parseFloat(MaxTymsBLss) > parseFloat(maxBLss)) {
@@ -481,7 +486,7 @@ const RepayCovSellerLnsss = props => {
                   }
                 } catch (e) {
                   if (e) {
-                    Alert.alert("Retry or update app or call customer care");
+                    Alert.alert(t.retryUpdateCallSupport);
                     return;
                   }
                 }
@@ -490,7 +495,7 @@ const RepayCovSellerLnsss = props => {
               await fetchRecUsrDtls();
             } catch (e) {
               if (e) {
-                Alert.alert("Retry or update app or call customer care");
+                Alert.alert(t.retryUpdateCallSupport);
                 return;
               }
             }
@@ -500,7 +505,7 @@ const RepayCovSellerLnsss = props => {
         } catch (e) {
           console.log(e);
           if (e) {
-            Alert.alert("Retry or update app or call customer care");
+            Alert.alert(t.retryUpdateCallSupport);
             return;
           }
         }
@@ -509,7 +514,7 @@ const RepayCovSellerLnsss = props => {
       await ftchCvdSMLn();
     } catch (e) {
       if (e) {
-        Alert.alert("Retry or update app or call customer care");
+        Alert.alert(t.retryUpdateCallSupport);
         return;
       }
     }
@@ -548,27 +553,27 @@ const RepayCovSellerLnsss = props => {
         <ScrollView>
          
           <View style={styles.amountTitleView}>
-            <Text style={styles.title}>Fill account Details Below</Text>
+            <Text style={styles.title}>{t.fillAccountDetails}</Text>
           </View>
 
          
           <View style={styles.sendAmtView}>
             <TextInput keyboardType={"decimal-pad"} value={amounts} onChangeText={setAmount} style={styles.sendAmtInput} editable={true}></TextInput>
               
-            <Text style={styles.sendAmtText}>Amount Sent</Text>
+            <Text style={styles.sendAmtText}>{t.amountSent}</Text>
           </View>
 
 
           
           <View style={styles.sendAmtViewDesc}>
             <TextInput multiline={true} value={Desc} onChangeText={setDesc} style={styles.sendAmtInputDesc} editable={true}></TextInput>
-            <Text style={styles.sendAmtText}>Description</Text>
+            <Text style={styles.sendAmtText}>{t.description}</Text>
           </View>
           
           
 
           <TouchableOpacity onPress={fetchSenderUsrDtls} style={styles.sendAmtButton}>
-            <Text style={styles.sendAmtButtonText}>Send</Text>
+            <Text style={styles.sendAmtButtonText}>{t.send}</Text>
             {isLoading && <ActivityIndicator size="large" color="blue" />}
           </TouchableOpacity>
 

@@ -8,6 +8,8 @@ import {useExchange} from '../../../../../src/contexts/ExchangeContext';
 import { getSMAccount } from '../../../../../src/graphql/queries';
 import {fetchUserAttributes} from 'aws-amplify/auth';
 import { generateClient } from 'aws-amplify/api';
+import { useTranslation } from 'react-i18next';
+import translations from './translation';
 
 
 export interface ChmCvLnSttusRec {
@@ -38,6 +40,9 @@ export interface ChmCvLnSttusRec {
     }}
 
 const CredSlrCvLnStts = (props:ChmCvLnSttusRec) => {
+  const { i18n } = useTranslation();
+  const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+  const t = translations[lang] || translations.en;
    const {
     Loanee: {
       loanID,
@@ -141,12 +146,12 @@ const CredSlrCvLnStts = (props:ChmCvLnSttusRec) => {
             <Pressable onPress={SndChmMmbrMny} style = {styles.card}>
             <Text style = {styles.prodName}>                       
                        {/*loaner details */}   
-                       Buyer Name: {buyerName}               
+                    {t.buyerNameLabel}: {buyerName}               
                     </Text>
 
-               <Text style={styles.prodInfo}><Text style={styles.label}>Loan ID:</Text> {loanID}</Text>
-               <Text style={styles.prodInfo}><Text style={styles.label}>Loan Balance with Penalties:</Text> {formatAmountSync(Math.floor(LonBal1), userCode, ratesMap)}</Text>
-               <Text style={styles.prodInfo}><Text style={styles.label}>Buyer Contact:</Text> {buyerContact}</Text>
+              <Text style={styles.prodInfo}><Text style={styles.label}>{t.loanIdLabel}:</Text> {loanID}</Text>
+              <Text style={styles.prodInfo}><Text style={styles.label}>{t.loanBalanceLabel}:</Text> {formatAmountSync(Math.floor(LonBal1), userCode, ratesMap)}</Text>
+              <Text style={styles.prodInfo}><Text style={styles.label}>{t.buyerContactLabel}:</Text> {buyerContact}</Text>
              
                     </Pressable>
 
@@ -155,21 +160,21 @@ const CredSlrCvLnStts = (props:ChmCvLnSttusRec) => {
                       onPress={VwRpayments}
                       style = {styles.loanFriendButton}
                       >            
-                        <Text style = {styles.buttonText}>ViewRpymnts</Text>            
+                        <Text style = {styles.buttonText}>{t.viewRepayments}</Text>            
                     </Pressable>
                     
                     
                     <Pressable
                       onPress={WaivePal2Biz}
                       style = {styles.redeemButton}>            
-                        <Text style = {styles.buttonText}>Waive</Text>            
+                        <Text style = {styles.buttonText}>{t.waive}</Text>            
                     </Pressable>  
                    
                   
                     <Pressable
                       onPress={Blacklist}
                       style = {styles.loanFriendButton}>            
-                        <Text style = {styles.buttonText}>BL/Penalise</Text>            
+                        <Text style = {styles.buttonText}>{t.blacklistPenalty}</Text>            
                     </Pressable> 
                      
                     </View>

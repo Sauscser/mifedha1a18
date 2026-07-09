@@ -1169,6 +1169,186 @@ export const deleteLoanRepayments = /* GraphQL */ `
     }
   }
 `;
+export const createPartialPay = /* GraphQL */ `
+  mutation CreatePartialPay(
+    $input: CreatePartialPayInput!
+    $condition: ModelPartialPayConditionInput
+  ) {
+    createPartialPay(input: $input, condition: $condition) {
+      id
+      sellerEmail
+      sellerAccount
+      buyerEmail
+      buyerAccount
+      sellerName
+      buyerName
+      buyerType
+      sellerType
+      itemCost
+      amountPaid
+      validityPeriod
+      itemDesc
+      itemName
+      itemPhoto
+      itemUrl
+      owner
+      createdAt
+      saleStatus
+      updatedAt
+      __typename
+    }
+  }
+`;
+export const updatePartialPay = /* GraphQL */ `
+  mutation UpdatePartialPay(
+    $input: UpdatePartialPayInput!
+    $condition: ModelPartialPayConditionInput
+  ) {
+    updatePartialPay(input: $input, condition: $condition) {
+      id
+      sellerEmail
+      sellerAccount
+      buyerEmail
+      buyerAccount
+      sellerName
+      buyerName
+      buyerType
+      sellerType
+      itemCost
+      amountPaid
+      validityPeriod
+      itemDesc
+      itemName
+      itemPhoto
+      itemUrl
+      owner
+      createdAt
+      saleStatus
+      updatedAt
+      __typename
+    }
+  }
+`;
+export const deletePartialPay = /* GraphQL */ `
+  mutation DeletePartialPay(
+    $input: DeletePartialPayInput!
+    $condition: ModelPartialPayConditionInput
+  ) {
+    deletePartialPay(input: $input, condition: $condition) {
+      id
+      sellerEmail
+      sellerAccount
+      buyerEmail
+      buyerAccount
+      sellerName
+      buyerName
+      buyerType
+      sellerType
+      itemCost
+      amountPaid
+      validityPeriod
+      itemDesc
+      itemName
+      itemPhoto
+      itemUrl
+      owner
+      createdAt
+      saleStatus
+      updatedAt
+      __typename
+    }
+  }
+`;
+export const createPartialPayContributions = /* GraphQL */ `
+  mutation CreatePartialPayContributions(
+    $input: CreatePartialPayContributionsInput!
+    $condition: ModelPartialPayContributionsConditionInput
+  ) {
+    createPartialPayContributions(input: $input, condition: $condition) {
+      id
+      sellerEmail
+      sellerAccount
+      buyerEmail
+      buyerAccount
+      sellerName
+      buyerName
+      buyerType
+      sellerType
+      itemCost
+      amountPaid
+      validityPeriod
+      itemDesc
+      itemName
+      itemPhoto
+      itemUrl
+      owner
+      createdAt
+      saleStatus
+      updatedAt
+      __typename
+    }
+  }
+`;
+export const updatePartialPayContributions = /* GraphQL */ `
+  mutation UpdatePartialPayContributions(
+    $input: UpdatePartialPayContributionsInput!
+    $condition: ModelPartialPayContributionsConditionInput
+  ) {
+    updatePartialPayContributions(input: $input, condition: $condition) {
+      id
+      sellerEmail
+      sellerAccount
+      buyerEmail
+      buyerAccount
+      sellerName
+      buyerName
+      buyerType
+      sellerType
+      itemCost
+      amountPaid
+      validityPeriod
+      itemDesc
+      itemName
+      itemPhoto
+      itemUrl
+      owner
+      createdAt
+      saleStatus
+      updatedAt
+      __typename
+    }
+  }
+`;
+export const deletePartialPayContributions = /* GraphQL */ `
+  mutation DeletePartialPayContributions(
+    $input: DeletePartialPayContributionsInput!
+    $condition: ModelPartialPayContributionsConditionInput
+  ) {
+    deletePartialPayContributions(input: $input, condition: $condition) {
+      id
+      sellerEmail
+      sellerAccount
+      buyerEmail
+      buyerAccount
+      sellerName
+      buyerName
+      buyerType
+      sellerType
+      itemCost
+      amountPaid
+      validityPeriod
+      itemDesc
+      itemName
+      itemPhoto
+      itemUrl
+      owner
+      createdAt
+      saleStatus
+      updatedAt
+      __typename
+    }
+  }
+`;
 export const createSokoAd = /* GraphQL */ `
   mutation CreateSokoAd(
     $input: CreateSokoAdInput!
@@ -1197,6 +1377,7 @@ export const createSokoAd = /* GraphQL */ `
       bizName
       bizContact
       Nationality
+      purchaseType
       updatedAt
       __typename
     }
@@ -1230,6 +1411,7 @@ export const updateSokoAd = /* GraphQL */ `
       bizName
       bizContact
       Nationality
+      purchaseType
       updatedAt
       __typename
     }
@@ -1263,6 +1445,7 @@ export const deleteSokoAd = /* GraphQL */ `
       bizName
       bizContact
       Nationality
+      purchaseType
       updatedAt
       __typename
     }

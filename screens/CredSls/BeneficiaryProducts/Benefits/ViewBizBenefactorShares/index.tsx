@@ -7,6 +7,8 @@ import { listBenefitContributions2s, listBenefitShare2s, listLinkBeneficiary2s, 
 import * as Clipboard from 'expo-clipboard';
 import { getCurrentUser, fetchUserAttributes } from 'aws-amplify/auth';
 import { generateClient } from 'aws-amplify/api';
+import { useTranslation } from 'react-i18next';
+import translations from './translation';
 const client = generateClient();
 const FetchSMNonCovLns = (props: any) => {
   const [Loanees, setLoanees] = useState([]);
@@ -19,6 +21,11 @@ const FetchSMNonCovLns = (props: any) => {
   const [isLoading, setIsLoading] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [modalMessage, setModalMessage] = useState('');
+  const { i18n } = useTranslation();
+  const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+  const t = translations[lang] || translations.en;
+  const fmt = (template: string, vars: Record<string, string | number>) =>
+    template.replace(/\{(\w+)\}/g, (_, k) => String(vars[k] ?? ''));
   const ChckPersonnelDtls = async () => {
     setIsLoading(true);
     const userInfo = await getCurrentUser();
@@ -56,7 +63,7 @@ const FetchSMNonCovLns = (props: any) => {
           const contribution = Lonees.data.listLinkBeneficiary2s.items;
           setLoanees(contribution);
           if (contribution.length < 1) {
-            setModalMessage('You have not linked this beneficiary. Otherwise ensure you have entered details correctly even paying attention to caps.');
+            setModalMessage(t.noLinkedBeneficiary);
             setModalVisible(true);
           }
         } catch (e) {
@@ -64,7 +71,9 @@ const FetchSMNonCovLns = (props: any) => {
         }
       };
       if (personelDtls.length < 1) {
-        setModalMessage('Either you do not own this business/company or you do not work here or you have incorrectly entered the business number. You have entered this number: ' + awsEmail + '. If you are sure it is the one please call customer care');
+        setModalMessage(fmt(t.noBusinessAccess, {
+          number: awsEmail
+        }));
         setModalVisible(true);
         return;
       } else {
@@ -72,7 +81,7 @@ const FetchSMNonCovLns = (props: any) => {
       }
     } catch (e) {
       console.log(e);
-      Alert.alert('Error! Access denied');
+      Alert.alert(t.errorAccessDenied);
       return;
     }
     setIsLoading(false);
@@ -86,9 +95,9 @@ const FetchSMNonCovLns = (props: any) => {
       <View style={styles.container}>
         {/* Search Bar */}
         <View style={styles.searchBar}>
-          <TextInput placeholder="My Business full number..." value={awsEmail} onChangeText={setAWSEmail} style={styles.searchInput} />
+          <TextInput placeholder={t.myBusinessFullNumber} value={awsEmail} onChangeText={setAWSEmail} style={styles.searchInput} />
 
-          <TextInput placeholder="Beneficiary Name...even partial" value={awsEmail3} onChangeText={setAWSEmail3} style={styles.searchInput} />
+          <TextInput placeholder={t.beneficiaryNamePartial} value={awsEmail3} onChangeText={setAWSEmail3} style={styles.searchInput} />
         </View>
 
         {/* Results */}
@@ -100,7 +109,7 @@ const FetchSMNonCovLns = (props: any) => {
         alignItems: 'center'
       }} ListHeaderComponent={() => <>
               <Text style={styles.placeholderText}>
-                Swipe down to load or refresh.
+                {t.swipeToLoadRefresh}
               </Text>
             </>} />
       </View>

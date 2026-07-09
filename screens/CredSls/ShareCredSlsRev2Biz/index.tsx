@@ -8,6 +8,8 @@ import { getCurrentUser, fetchUserAttributes } from "aws-amplify/auth";
 import { generateClient } from "aws-amplify/api";
 import { useExchange } from '../../../src/contexts/ExchangeContext';
 import { formatAmountSync, convertForeignToKsh, getUserNationalityByEmail } from '../../../src/utils/exchange';
+import { useTranslation } from 'react-i18next';
+import translations from './translation';
 const client = generateClient();
 const SMASendNonLns = props => {
   const [SenderNatId, setSenderNatId] = useState("");
@@ -18,6 +20,11 @@ const SMASendNonLns = props => {
   const [Desc, setDesc] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const { ratesMap } = useExchange();
+  const { i18n } = useTranslation();
+  const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+  const t = translations[lang] || translations.en;
+  const fmt = (template: string, vars: Record<string, string | number>) =>
+    template.replace(/\{(\w+)\}/g, (_, k) => String(vars[k] ?? ''));
   const fetchSenderUsrDtls = async () => {
     if (isLoading) {
       return;
@@ -95,7 +102,7 @@ const SMASendNonLns = props => {
                   });
                 } catch (error) {
                   if (error) {
-                    Alert.alert("Revenue sharing unsuccessful; Retry");
+                    Alert.alert(t.revenueShareUnsuccessful);
                     return;
                   }
                 }
@@ -115,7 +122,7 @@ const SMASendNonLns = props => {
                 } catch (error) {
                   console.log(error);
                   if (error) {
-                    Alert.alert("Error1! Error! Enter details correctly");
+                    Alert.alert(t.errorEnterDetails);
                     return;
                   }
                 }
@@ -135,7 +142,7 @@ const SMASendNonLns = props => {
                 } catch (error) {
                   console.log(error);
                   if (error) {
-                    Alert.alert("Error2! Retry or update app or call customer care");
+                    Alert.alert(t.retryOrUpdate);
                     return;
                   }
                 }
@@ -158,14 +165,17 @@ const SMASendNonLns = props => {
                 } catch (error) {
                   console.log(error);
                   if (error) {
-                    Alert.alert("Error3! retry or update app");
+                    Alert.alert(t.retryOrUpdateShort);
                     return;
                   }
                 }
                 const formattedAmount = formatAmountSync(Number(amountKes), recNationality, ratesMap);
                 const bizNat = accountDtl.data.getBizna?.nationality || null;
                 const formattedTxFee = formatAmountSync(Number(feeKes), bizNat, ratesMap);
-                Alert.alert(`Amount: ${formattedAmount} Transaction: ${formattedTxFee}`);
+                Alert.alert(fmt(t.amountTransaction, {
+                  amount: formattedAmount,
+                  fee: formattedTxFee
+                }));
                 const revShareMessage2 = `Confirmed. ${busNames} Business entity has sent you ${formattedAmount} to your NiSenti Business account. Please confirm this transaction record is on your NiSenti app. Thank you. NiSenti`;
                 try {
                   const msgRes = await client.graphql({
@@ -175,7 +185,7 @@ const SMASendNonLns = props => {
                   if (msgRes?.data?.createMessages) {
                     await client.graphql({
                       query: sendNotification,
-                      variables: { riderEmail: RecNatId, title: 'NiSenti: Revenue Shared', body: revShareMessage2 }
+                      variables: { riderEmail: RecNatId, title: t.revenueSharedTitle, body: revShareMessage2 }
                     });
                   }
                 } catch (notifErr) {
@@ -184,24 +194,24 @@ const SMASendNonLns = props => {
                 setIsLoading(false);
               };
               if (usrAcActvSttss !== "AccountActive") {
-                Alert.alert('Receiver account is inactive');
+                Alert.alert(t.receiverInactive);
               } else if (SenderNatId === RecNatId) {
-                Alert.alert('You cannot Send money to yourself Yourself');
+                Alert.alert(t.cannotSendToSelf);
               } else if (parseFloat(netEarningss) < totalKes) {
-                Alert.alert('Requested amount is more than you have in your account');
+                Alert.alert(t.requestedMoreThanBalance);
               } else if (noBL > 0) {
-                Alert.alert('Please first clear your lenders');
+                Alert.alert(t.clearLenders);
               } else if (usrPW !== SnderPW) {
-                Alert.alert('Wrong password');
+                Alert.alert(t.wrongPassword);
               } else if (userInfo.userId !== SenderSub) {
-                Alert.alert('You do not own this business');
+                Alert.alert(t.notOwner);
               } else {
                 sendSMNonLn();
               }
             } catch (e) {
               console.log(e);
               if (e) {
-                Alert.alert("Error4! Retry or update app or call customer care");
+                Alert.alert(t.retryOrUpdate);
                 return;
               }
             }
@@ -210,7 +220,7 @@ const SMASendNonLns = props => {
         } catch (e) {
           console.log(e);
           if (e) {
-            Alert.alert("Error5! Retry or update app or call customer care");
+            Alert.alert(t.retryOrUpdate);
             return;
           }
         }
@@ -219,7 +229,7 @@ const SMASendNonLns = props => {
     } catch (e) {
       console.log(e);
       if (e) {
-        Alert.alert("Error6! Retry or update app or call customer care");
+        Alert.alert(t.retryOrUpdate);
         return;
       }
     }
@@ -276,23 +286,23 @@ const SMASendNonLns = props => {
         <ScrollView>
          
           <View style={styles.amountTitleView}>
-            <Text style={styles.title}>Fill account Details Below</Text>
+            <Text style={styles.title}>{t.fillAccountDetails}</Text>
           </View>
           <View style={styles.sendAmtView}>
-            <TextInput placeholder="+2547xxxxxxxx" value={SenderNatId} onChangeText={setSenderNatId} style={styles.sendAmtInput} editable={true}></TextInput>
-            <Text style={styles.sendAmtText}>Sender Business Phone</Text>
+            <TextInput placeholder={t.businessPhonePlaceholder} value={SenderNatId} onChangeText={setSenderNatId} style={styles.sendAmtInput} editable={true}></TextInput>
+            <Text style={styles.sendAmtText}>{t.senderBusinessPhone}</Text>
           </View>
           
 
           <View style={styles.sendAmtView}>
-            <TextInput placeholder="+2547xxxxxxxx" value={RecNatId} onChangeText={setRecNatId} style={styles.sendAmtInput} editable={true}></TextInput>
-            <Text style={styles.sendAmtText}>Receiver Business Number</Text>
+            <TextInput placeholder={t.businessPhonePlaceholder} value={RecNatId} onChangeText={setRecNatId} style={styles.sendAmtInput} editable={true}></TextInput>
+            <Text style={styles.sendAmtText}>{t.receiverBusinessNumber}</Text>
           </View>
 
           <View style={styles.sendAmtView}>
             <TextInput keyboardType={"decimal-pad"} value={amounts} onChangeText={setAmount} style={styles.sendAmtInput} editable={true}></TextInput>
               
-            <Text style={styles.sendAmtText}>Amount Sent</Text>
+            <Text style={styles.sendAmtText}>{t.amountSent}</Text>
           </View>
 
 
@@ -302,16 +312,16 @@ const SMASendNonLns = props => {
 
           <View style={styles.sendAmtViewDesc}>
             <TextInput multiline={true} value={Desc} onChangeText={setDesc} style={styles.sendAmtInputDesc} editable={true}></TextInput>
-            <Text style={styles.sendAmtText}>Description</Text>
+            <Text style={styles.sendAmtText}>{t.description}</Text>
           </View>
 
           <View style={styles.sendAmtView}>
             <TextInput value={SnderPW} onChangeText={setSnderPW} secureTextEntry={true} style={styles.sendAmtInput} editable={true}></TextInput>
-            <Text style={styles.sendAmtText}>Business PassWord</Text>
+            <Text style={styles.sendAmtText}>{t.businessPassword}</Text>
           </View>
           
           <TouchableOpacity onPress={fetchSenderUsrDtls} style={styles.sendAmtButton}>
-            <Text style={styles.sendAmtButtonText}>Send</Text>
+            <Text style={styles.sendAmtButtonText}>{t.send}</Text>
             {isLoading && <ActivityIndicator size="large" color="blue" />}
           </TouchableOpacity>
 

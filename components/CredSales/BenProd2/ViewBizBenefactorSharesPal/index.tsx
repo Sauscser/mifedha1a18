@@ -11,6 +11,8 @@ import { getCurrentUser, fetchUserAttributes } from 'aws-amplify/auth';
 import React, {useState, useEffect} from 'react';
 import {useExchange} from '../../../../src/contexts/ExchangeContext';
 import { formatAmountSync } from '../../../../src/utils/exchange';
+import { useTranslation } from 'react-i18next';
+import translations from './translation';
 
 export interface SMAccount {
   SMAc: {
@@ -51,6 +53,9 @@ const SMCvLnStts = (props: SMAccount) => {
   const navigation = useNavigation();
   const [isLoading, setIsLoading] = useState(false);
   const { nationality, ratesMap } = useExchange();
+  const { i18n } = useTranslation();
+  const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+  const t = translations[lang] || translations.en;
 
    
 
@@ -96,9 +101,9 @@ const SMCvLnStts = (props: SMAccount) => {
       const formattedBenefits = formatAmountSync(benefitsAmount, nationality, ratesMap);
 
       if (owners !== userDtl.name) {
-        Alert.alert("You are not the owner of this Business");
+        Alert.alert(t.notOwner);
       } else if (benefitsAmountz === 0) {
-        Alert.alert("Benefits at 0");
+        Alert.alert(t.benefitsAtZero);
       } else {
         const result: any = await client.graphql({
           query: updateLinkBeneficiary2,
@@ -114,14 +119,14 @@ const SMCvLnStts = (props: SMAccount) => {
         const updateResult = result?.data?.updateLinkBeneficiary2;
 
         if (updateResult) {
-          Alert.alert("Benefits successfully redeemed");
+          Alert.alert(t.redeemSuccess);
         } else {
-          Alert.alert("Redemption was unsuccessful");
+          Alert.alert(t.redeemFailed);
         }
       }
     } catch (error: any) {
       console.log(error);
-      Alert.alert("Update app or call customer care");
+      Alert.alert(t.updateOrCall);
     }
     setIsLoading(false);
   };
@@ -131,27 +136,27 @@ const SMCvLnStts = (props: SMAccount) => {
       <View style={styles.card}>
         <Text style={styles.prodName}>{prodName}</Text>
 
-        <Text style={styles.prodInfo}><Text style={styles.label}>Benefactor Name:</Text> {creatorName}</Text>
-        <Text style={styles.prodInfo}><Text style={styles.label}>Product Creator Account:</Text> {benefactorPhone}</Text>
-        <Text style={styles.prodInfo}><Text style={styles.label}>Beneficiary Name:</Text> {beneficiaryPhone}</Text>
+        <Text style={styles.prodInfo}><Text style={styles.label}>{t.benefactorName}</Text> {creatorName}</Text>
+        <Text style={styles.prodInfo}><Text style={styles.label}>{t.productCreatorAccount}</Text> {benefactorPhone}</Text>
+        <Text style={styles.prodInfo}><Text style={styles.label}>{t.beneficiaryName}</Text> {beneficiaryPhone}</Text>
 
-        <Text style={styles.prodInfo}><Text style={styles.label}>Status:</Text> {benefitStatus}</Text>
+        <Text style={styles.prodInfo}><Text style={styles.label}>{t.status}</Text> {benefitStatus}</Text>
 
-        <Text style={styles.prodInfo}><Text style={styles.label}>Cost:</Text> {formatAmountSync(Math.floor(prodCost), nationality, ratesMap)}</Text>
-        <Text style={styles.prodInfo}><Text style={styles.label}>Benefits Pooled:</Text> {formatAmountSync(Math.floor(benefitsAmount), nationality, ratesMap)}</Text>
+        <Text style={styles.prodInfo}><Text style={styles.label}>{t.cost}</Text> {formatAmountSync(Math.floor(prodCost), nationality, ratesMap)}</Text>
+        <Text style={styles.prodInfo}><Text style={styles.label}>{t.benefitsPooled}</Text> {formatAmountSync(Math.floor(benefitsAmount), nationality, ratesMap)}</Text>
         <Text style={styles.prodDesc}>{prodDesc}</Text>
       </View>
 
       <View style={styles.buttonRow}>
         <Pressable onPress={VwBenefactorContriDtls} style={styles.loanFriendButton}>
-          <Text>View My Contributions</Text>
+          <Text>{t.viewMyContributions}</Text>
         </Pressable>
 
         <Pressable onPress={updtSendrAc} style={styles.loanFriendButton}>
           {isLoading ? (
             <ActivityIndicator color="#fff" />
           ) : (
-            <Text style={styles.buttonText}>Redeem Benefits</Text>
+            <Text style={styles.buttonText}>{t.redeemBenefits}</Text>
           )}
         </Pressable>
       </View>

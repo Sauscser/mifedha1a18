@@ -8,6 +8,8 @@ import { getCurrentUser, fetchUserAttributes } from 'aws-amplify/auth';
 import { generateClient } from 'aws-amplify/api';
 import { convertForeignToKsh } from '../../../../../src/utils/exchange';
 import { nationalityToCode } from '../../../../../src/utils/nationalityToCode';
+import { useTranslation } from 'react-i18next';
+import translations from './translation';
 const client = generateClient();
 const SMASendNonLns = () => {
   const [SenderNatId, setSenderNatId] = useState('');
@@ -16,6 +18,11 @@ const SMASendNonLns = () => {
   const [amounts, setAmount] = useState('');
   const [Desc, setDesc] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const { i18n } = useTranslation();
+  const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+  const t = translations[lang] || translations.en;
+  const fmt = (template: string, vars: Record<string, string | number>) =>
+    template.replace(/\{(\w+)\}/g, (_, k) => String(vars[k] ?? ''));
   const navigation = useNavigation();
   const SndChmMmbrMny = () => navigation.navigate('AutomaticRepayAllTyps');
   const fetchCvLnSM = async () => {
@@ -26,14 +33,14 @@ const SMASendNonLns = () => {
       const attributes = await fetchUserAttributes();
       const amountInput = parseFloat(amounts);
       if (!Number.isFinite(amountInput) || amountInput <= 0) {
-        Alert.alert('Enter a valid amount');
+        Alert.alert(t.enterValidAmount);
         return;
       }
       const rawNationality = (attributes as any).nationality;
       const senderCode = nationalityToCode(rawNationality) || rawNationality || 'KE';
       const amountKes = await convertForeignToKsh(amountInput, senderCode);
       if (!Number.isFinite(amountKes) || amountKes <= 0) {
-        Alert.alert('Unable to convert amount. Please try again.');
+        Alert.alert(t.unableConvertAmount);
         return;
       }
 
@@ -101,10 +108,10 @@ const SMASendNonLns = () => {
         loanLimit,
         name
       } = sender;
-      if (pw !== SnderPW) return Alert.alert('Wrong password');
-      if (acStatus !== 'AccountActive') return Alert.alert('Sender account is inactive');
-      if (userInfo.userId !== owner) return Alert.alert('Please send from your own account');
-      if (parseFloat(loanLimit) < amountKes) return Alert.alert('Send limit exceeded');
+      if (pw !== SnderPW) return Alert.alert(t.wrongPassword);
+      if (acStatus !== 'AccountActive') return Alert.alert(t.senderInactive);
+      if (userInfo.userId !== owner) return Alert.alert(t.sendFromOwnAccount);
+      if (parseFloat(loanLimit) < amountKes) return Alert.alert(t.sendLimitExceeded);
 
       // Company
       const compRes = await client.graphql({
@@ -124,7 +131,7 @@ const SMASendNonLns = () => {
       } = company;
       const fee = parseFloat(userTransferFee || 0) * amountKes;
       const totalDebit = amountKes + fee;
-      if (parseFloat(balance) < totalDebit) return Alert.alert('Insufficient balance');
+      if (parseFloat(balance) < totalDebit) return Alert.alert(t.insufficientBalance);
 
       // Recipient
       const recRes = await client.graphql({
@@ -183,10 +190,12 @@ const SMASendNonLns = () => {
           }
         }
       })]);
-      Alert.alert(`Successful! Transaction fee: ${fee.toFixed(0)}`);
+      Alert.alert(fmt(t.successTransactionFee, {
+        fee: fee.toFixed(0)
+      }));
     } catch (e) {
       console.error(e);
-      Alert.alert('Transaction failed, please retry or update your app');
+      Alert.alert(t.transactionFailedRetry);
     } finally {
       setIsLoading(false);
       setSenderNatId('');
@@ -199,31 +208,31 @@ const SMASendNonLns = () => {
   return <View style={styles.root}>
       <ScrollView>
         <View style={styles.amountTitleView}>
-          <Text style={styles.title}>Fill account Details Below</Text>
+          <Text style={styles.title}>{t.fillAccountDetails}</Text>
         </View>
 
         <View style={styles.sendAmtView}>
-          <TextInput placeholder="Business Phone" value={RecNatId} onChangeText={setRecNatId} style={styles.sendAmtInput} />
-          <Text style={styles.sendAmtText}>Business Phone</Text>
+          <TextInput placeholder={t.businessPhone} value={RecNatId} onChangeText={setRecNatId} style={styles.sendAmtInput} />
+          <Text style={styles.sendAmtText}>{t.businessPhone}</Text>
         </View>
 
         <View style={styles.sendAmtView}>
-          <TextInput keyboardType="numeric" placeholder="Amount" value={amounts} onChangeText={setAmount} style={styles.sendAmtInput} />
-          <Text style={styles.sendAmtText}>Amount</Text>
+          <TextInput keyboardType="numeric" placeholder={t.amount} value={amounts} onChangeText={setAmount} style={styles.sendAmtInput} />
+          <Text style={styles.sendAmtText}>{t.amount}</Text>
         </View>
 
         <View style={styles.sendAmtView}>
-          <TextInput placeholder="Description" value={Desc} onChangeText={setDesc} style={styles.sendAmtInput} />
-          <Text style={styles.sendAmtText}>Description</Text>
+          <TextInput placeholder={t.description} value={Desc} onChangeText={setDesc} style={styles.sendAmtInput} />
+          <Text style={styles.sendAmtText}>{t.description}</Text>
         </View>
 
         <View style={styles.sendAmtView}>
-          <TextInput placeholder="Password" secureTextEntry value={SnderPW} onChangeText={setSnderPW} style={styles.sendAmtInput} />
-          <Text style={styles.sendAmtText}>Password</Text>
+          <TextInput placeholder={t.password} secureTextEntry value={SnderPW} onChangeText={setSnderPW} style={styles.sendAmtInput} />
+          <Text style={styles.sendAmtText}>{t.password}</Text>
         </View>
 
         <TouchableOpacity style={styles.sendAmtButton} disabled={isLoading} onPress={fetchCvLnSM}>
-          {isLoading ? <ActivityIndicator color="#fff" /> : <Text style={styles.sendAmtButtonText}>Send</Text>}
+          {isLoading ? <ActivityIndicator color="#fff" /> : <Text style={styles.sendAmtButtonText}>{t.send}</Text>}
         </TouchableOpacity>
       </ScrollView>
     </View>;

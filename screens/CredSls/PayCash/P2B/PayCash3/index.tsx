@@ -6,6 +6,8 @@ import { View, Text, TextInput, ScrollView, TouchableOpacity, Alert, ActivityInd
 import styles from './styles';
 import { getCurrentUser, fetchUserAttributes } from 'aws-amplify/auth';
 import { generateClient } from 'aws-amplify/api';
+import { useTranslation } from 'react-i18next';
+import translations from './translation';
 const client = generateClient();
 const SMASendNonLns = props => {
   const [SenderNatId, setSenderNatId] = useState('');
@@ -15,6 +17,9 @@ const SMASendNonLns = props => {
   const [Desc, setDesc] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const navigation = useNavigation();
+  const { i18n } = useTranslation();
+  const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+  const t = translations[lang] || translations.en;
   const SndChmMmbrMny = () => {
     navigation.navigate("AutomaticRepayAllTyps");
   };
@@ -26,7 +31,7 @@ const SMASendNonLns = props => {
       userInfo = await getCurrentUser();
       attributes = await fetchUserAttributes();
     } catch {
-      Alert.alert("User authentication failed");
+      Alert.alert(t.authFailed);
       return;
     }
     try {
@@ -112,19 +117,19 @@ const SMASendNonLns = props => {
                   // Just replace API.graphql(graphqlOperation(...)) with client.graphql({ query, variables })
                 } catch (e) {
                   console.log(e);
-                  Alert.alert("Please retry or update your app");
+                  Alert.alert(t.retryOrUpdate);
                 }
               };
               await fetchSenderUsrDtls();
             } catch (e) {
               console.log(e);
-              Alert.alert("Please retry or update your app");
+              Alert.alert(t.retryOrUpdate);
             }
           };
           await fetchCLChm();
         } catch (e) {
           console.log(e);
-          Alert.alert("Fill details correctly or update your app");
+          Alert.alert(t.fillDetailsOrUpdate);
         } finally {
           setIsLoading(false);
         }
@@ -137,7 +142,7 @@ const SMASendNonLns = props => {
       await fetchCLCrdSl();
     } catch (e) {
       console.log(e);
-      Alert.alert("Please retry or update your app");
+      Alert.alert(t.retryOrUpdate);
     }
   };
   return <View>
@@ -145,36 +150,36 @@ const SMASendNonLns = props => {
         <ScrollView>
          
           <View style={styles.amountTitleView}>
-            <Text style={styles.title}>Fill account Details Below</Text>
+            <Text style={styles.title}>{t.fillAccountDetails}</Text>
           </View>
 
           
 
           <View style={styles.sendAmtView}>
-            <TextInput placeholder="Business Phone" value={RecNatId} onChangeText={setRecNatId} style={styles.sendAmtInput} editable={true}></TextInput>
-            <Text style={styles.sendAmtText}>Business Phone</Text>
+            <TextInput placeholder={t.businessPhone} value={RecNatId} onChangeText={setRecNatId} style={styles.sendAmtInput} editable={true}></TextInput>
+            <Text style={styles.sendAmtText}>{t.businessPhone}</Text>
           </View>
 
           <View style={styles.sendAmtView}>
             <TextInput keyboardType={"decimal-pad"} value={amounts} onChangeText={setAmount} style={styles.sendAmtInput} editable={true}></TextInput>
               
-            <Text style={styles.sendAmtText}>Amount Sent</Text>
+            <Text style={styles.sendAmtText}>{t.amountSent}</Text>
           </View>
 
 
           <View style={styles.sendAmtView}>
             <TextInput value={SnderPW} onChangeText={setSnderPW} secureTextEntry={true} style={styles.sendAmtInput} editable={true}></TextInput>
-            <Text style={styles.sendAmtText}>Buyer PassWord</Text>
+            <Text style={styles.sendAmtText}>{t.buyerPassword}</Text>
           </View>
 
 
           <View style={styles.sendAmtViewDesc}>
             <TextInput multiline={true} value={Desc} onChangeText={setDesc} style={styles.sendAmtInputDesc} editable={true}></TextInput>
-            <Text style={styles.sendAmtText}>Description</Text>
+            <Text style={styles.sendAmtText}>{t.description}</Text>
           </View>
 
           <TouchableOpacity onPress={fetchCvLnSM} style={styles.sendAmtButton}>
-            <Text style={styles.sendAmtButtonText}>Send</Text>
+            <Text style={styles.sendAmtButtonText}>{t.send}</Text>
             {isLoading && <ActivityIndicator size="large" color="blue" />}
           </TouchableOpacity>
 

@@ -4,12 +4,17 @@ import NonLnRec from '../../../../../components/MyAc/ViewRecNonLns';
 import { listPersonels, VwMyRecMny } from '../../../../../src/graphql/queries';
 import { getCurrentUser, fetchUserAttributes } from 'aws-amplify/auth';
 import { generateClient } from 'aws-amplify/api';
+import { useTranslation } from 'react-i18next';
+import translations from './translation';
 const client = generateClient();
 const FetchSMNonLnsSnt = () => {
   const [loading, setLoading] = useState(false);
   const [recvrs, setRecvrs] = useState<any[]>([]);
   const [bizPhone, setBizPhone] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  const { i18n } = useTranslation();
+  const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+  const t = translations[lang] || translations.en;
   const fetchLoanees = async () => {
     if (loading || !bizPhone) return;
     setLoading(true);
@@ -33,7 +38,7 @@ const FetchSMNonLnsSnt = () => {
       });
       const personnels = personnelRes?.data?.listPersonels?.items || [];
       if (personnels.length < 1) {
-        Alert.alert('Access Denied', "Sorry, you do not work here.");
+        Alert.alert(t.accessDenied, t.sorryNoWorkHere);
         return;
       }
 
@@ -53,12 +58,12 @@ const FetchSMNonLnsSnt = () => {
       });
       const items = recordsRes?.data?.VwMyRecMny?.items || [];
       if (!items.length) {
-        Alert.alert('No Records', 'No money received yet from businesses.');
+        Alert.alert(t.noRecords, t.noMoneyReceived);
       }
       setRecvrs(items);
     } catch (e) {
       console.error('Error fetching loanees:', e);
-      Alert.alert("Error", "Could not fetch records. Please retry or check your connection.");
+      Alert.alert(t.errorTitle, t.fetchError);
     } finally {
       setLoading(false);
     }
@@ -74,15 +79,15 @@ const FetchSMNonLnsSnt = () => {
   }, [bizPhone]);
   return <View style={styles.container}>
       <View style={styles.inputBlock}>
-        <TextInput placeholder="Enter My Business Phone" value={bizPhone} onChangeText={setBizPhone} style={styles.input} />
-        <TextInput placeholder="Buyer Name even partial" value={searchQuery} onChangeText={setSearchQuery} style={styles.input} />
+        <TextInput placeholder={t.enterMyBusinessPhone} value={bizPhone} onChangeText={setBizPhone} style={styles.input} />
+        <TextInput placeholder={t.buyerNamePartial} value={searchQuery} onChangeText={setSearchQuery} style={styles.input} />
       </View>
 
       <FlatList data={filteredRecvrs} renderItem={({
       item
     }) => <NonLnRec SMAc={item} />} keyExtractor={(item, index) => index.toString()} onRefresh={fetchLoanees} refreshing={loading} showsVerticalScrollIndicator={false} ListHeaderComponent={() => <>
-            <Text style={styles.label2}>(Please swipe down to load)</Text>
-            <Text style={styles.label}>Sales to Businesses</Text>
+            <Text style={styles.label2}>{t.swipeToLoad}</Text>
+            <Text style={styles.label}>{t.salesToBusinesses}</Text>
           </>} />
     </View>;
 };

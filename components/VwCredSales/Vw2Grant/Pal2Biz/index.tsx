@@ -8,7 +8,8 @@ import {useExchange} from '../../../../src/contexts/ExchangeContext';
 import { getSMAccount } from '../../../../src/graphql/queries';
 import {fetchUserAttributes} from 'aws-amplify/auth';
 import { generateClient } from 'aws-amplify/api';
-
+import { useTranslation } from 'react-i18next';
+import translations from './translation';
 
 export interface SMAccount {
     SMAc: {
@@ -45,6 +46,9 @@ const SMCvLnStts = (props:SMAccount) => {
    const [userNationality, setUserNationality] = useState<string>(null);
    const navigation = useNavigation();
    const client = generateClient();
+   const { i18n } = useTranslation();
+   const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+   const t = translations[lang] || translations.en;
    const userCode = nationalityToCode(userNationality);
    const {ratesMap} = useExchange();
 
@@ -72,10 +76,16 @@ const SMCvLnStts = (props:SMAccount) => {
                       <View style = {styles.card}>
                       <Text style = {styles.prodName}>                       
                        {/*loaner details */}   
-                      Hi! it's business {loaneeName}. Kindly Loan me {itemName} worth {formatAmountSync(amount, userCode,ratesMap)}. I 
-                      commit to repay at a compound interest of {repaymentAmt}% per  within {repaymentPeriod} days. 
-                      Each Installment is {installmentAmount} after every {paymentFrequency} days.
-                      You can reach me through {loaneePhone}. {status}  
+                      {t.loanRequestMessage
+                        .replace('{name}', loaneeName)
+                        .replace('{itemName}', itemName)
+                        .replace('{amount}', formatAmountSync(amount, userCode, ratesMap))
+                        .replace('{repaymentAmt}', repaymentAmt)
+                        .replace('{period}', repaymentPeriod)
+                        .replace('{installmentAmount}', installmentAmount)
+                        .replace('{paymentFrequency}', paymentFrequency)
+                        .replace('{phone}', loaneePhone)
+                        .replace('{status}', status)}
                     </Text>
                     </View>  
                      
@@ -85,13 +95,13 @@ const SMCvLnStts = (props:SMAccount) => {
                       onPress={SndChmMmbrMny}
                       style = {styles.loanFriendButton}
                       >            
-                        <Text>Accept</Text>            
+                        <Text>{t.accept}</Text>            
                     </Pressable>
                   
                     <Pressable
                       onPress={SndChmMmbrMny2}
                       style = {styles.redeemButton}>            
-                        <Text>Decline</Text>            
+                        <Text>{t.decline}</Text>            
                     </Pressable>  
                     </View>
                      

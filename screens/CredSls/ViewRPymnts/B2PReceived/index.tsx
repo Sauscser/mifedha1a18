@@ -7,11 +7,16 @@ import { getCompany, getSMAccount, listLoanRepayments, listNonLoans } from '../.
 import { updateCompany, updateSMAccount } from '../../../../src/graphql/mutations';
 import { getCurrentUser, fetchUserAttributes } from "aws-amplify/auth";
 import { generateClient } from "aws-amplify/api";
+import { useTranslation } from 'react-i18next';
+import translations from './translation';
 const client = generateClient();
 const FetchSMNonLnsRec = props => {
   const [loading, setLoading] = useState(false);
   const [Loanees, setLoanees] = useState([]);
   const route = useRoute();
+  const { i18n } = useTranslation();
+  const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+  const t = translations[lang] || translations.en;
   const fetchUsrDtls = async () => {
     const userInfo = await getCurrentUser();
     const attributes = await fetchUserAttributes();
@@ -63,7 +68,7 @@ const FetchSMNonLnsRec = props => {
                   });
                 } catch (error) {
                   if (error) {
-                    Alert.alert("Check your internet connection");
+                    Alert.alert(t.checkInternet);
                     return;
                   }
                 }
@@ -82,19 +87,19 @@ const FetchSMNonLnsRec = props => {
                   });
                 } catch (error) {
                   if (error) {
-                    Alert.alert("Retry or update app or call customer care");
+                    Alert.alert(t.retryOrUpdate);
                     return;
                   }
                 }
               };
               if (parseFloat(balances) < parseFloat(enquiryFees)) {
-                Alert.alert("Account Balance is very little");
+                Alert.alert(t.accountBalanceLow);
               } else {
                 await updtActAdm();
               }
             } catch (e) {
               if (e) {
-                Alert.alert("User does not exist does not exist; otherwise check internet connection");
+                Alert.alert(t.userDoesNotExist);
                 return;
               }
               console.log(e);
@@ -103,14 +108,14 @@ const FetchSMNonLnsRec = props => {
           await fetchCompDtls();
         } catch (e) {
           if (e) {
-            Alert.alert("Retry or update app or call customer care");
+            Alert.alert(t.retryOrUpdate);
             return;
           }
           console.log(e);
         }
       };
       if (userInfo.userId !== owner) {
-        Alert.alert("Please first create a main account");
+        Alert.alert(t.createMainAccount);
         return;
       } else {
         await fetchLoanees();
@@ -133,8 +138,8 @@ const FetchSMNonLnsRec = props => {
       alignItems: 'center'
     }} ListHeaderComponent={() => <>
             
-            <Text style={styles.label}>Received Biz LP </Text>
-            <Text style={styles.label2}> (Please swipe down to load)</Text>
+            <Text style={styles.label}>{t.title}</Text>
+            <Text style={styles.label2}>{t.swipeToLoad}</Text>
           </>} />
     </View>;
 };

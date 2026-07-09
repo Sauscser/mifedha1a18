@@ -6,6 +6,8 @@ import {View, Text,   ScrollView, Pressable} from 'react-native';
 import styles from './styles';
 import { TouchableOpacity } from 'react-native-gesture-handler';
 import { updateReqLoanCredSl } from '../../../src/graphql/mutations';
+import { useTranslation } from 'react-i18next';
+import translations from './translation';
 
 
 export interface SMAccount {
@@ -22,6 +24,11 @@ export interface SMAccount {
     }}
 
 const SMCvLnStts = (props:SMAccount) => {
+  const { i18n } = useTranslation();
+  const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+  const t = translations[lang] || translations.en;
+  const fmt = (template: string, vars: Record<string, string | number>) =>
+    template.replace(/\{(\w+)\}/g, (_, k) => String(vars[k] ?? ''));
    const {
       SMAc: {
         loaneeEmail,
@@ -59,9 +66,15 @@ const SMCvLnStts = (props:SMAccount) => {
                       <View style = {styles.card}>
                       <Text style = {styles.prodName}>                       
                        {/*loaner details */}   
-                      Hi! it's {loaneeName}. Kindly Loan me {itemName} worth Ksh. {amount}. I 
-                      commit to repay a Total of Ksh. {repaymentAmt} within {repaymentPeriod} days. 
-                      You can reach me through {loaneePhone}. {status}    
+                      {fmt(t.requestSummary, {
+                        name: loaneeName,
+                        item: itemName,
+                        amount,
+                        repaymentAmt,
+                        repaymentPeriod,
+                        phone: loaneePhone,
+                        status,
+                      })}
                     </Text>
                     </View>  
                      
@@ -71,13 +84,13 @@ const SMCvLnStts = (props:SMAccount) => {
                       onPress={SndChmMmbrMny}
                       style = {styles.loanFriendButton}
                       >            
-                        <Text>Accept</Text>            
+                        <Text>{t.accept}</Text>            
                     </Pressable>
 
                     <Pressable
                       onPress={SndChmMmbrMny2}
                       style = {styles.redeemButton}>            
-                        <Text>Decline</Text>            
+                        <Text>{t.decline}</Text>            
                     </Pressable>  
                     </View>
                     

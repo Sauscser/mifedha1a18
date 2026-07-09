@@ -11,6 +11,8 @@ import { nationalityToCode } from '../../../../../src/utils/nationalityToCode';
 import {useExchange} from '../../../../../src/contexts/ExchangeContext';
 import { formatAmountSync } from '../../../../../src/utils/exchange';
 import { getSMAccount } from '../../../../../src/graphql/queries';
+import { useTranslation } from 'react-i18next';
+import translations from './translation';
 
 
 export interface SMAccount {
@@ -40,6 +42,9 @@ const SMCvLnStts = (props:SMAccount) => {
    }} = props ;
 
    const navigation = useNavigation();
+  const { i18n } = useTranslation();
+  const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+  const t = translations[lang] || translations.en;
    
 
    const LinkPalBeneficiary = () => {
@@ -78,8 +83,8 @@ const SMCvLnStts = (props:SMAccount) => {
         
              <View style = {styles.pageContainer}>
             <View style = {styles.card}>              
-                <Text style={styles.prodInfo}><Text style={styles.label}>Product Creator:</Text> {creatorName}</Text>
-                <Text style={styles.prodInfo}><Text style={styles.label}>Product Cost:</Text> {formatAmountSync(prodCost, userCode, ratesMap)}</Text>
+              <Text style={styles.prodInfo}><Text style={styles.label}>{t.productCreator}</Text> {creatorName}</Text>
+              <Text style={styles.prodInfo}><Text style={styles.label}>{t.productCost}</Text> {formatAmountSync(prodCost, userCode, ratesMap)}</Text>
                 <Text style={styles.prodDesc}>{prodDesc}</Text> 
                         
                     
@@ -90,13 +95,13 @@ const SMCvLnStts = (props:SMAccount) => {
 onPress={LinkPalBeneficiary}
 style = {styles.loanFriendButton}
 >            
-  <Text>Link Pal Beneficiary </Text>            
+  <Text>{t.linkPalBeneficiary}</Text>            
 </Pressable>
 
 <Pressable
 onPress={LinkBizBeneficiary}
 style = {styles.redeemButton}>            
-  <Text>Link Biz Beneficiary </Text>            
+  <Text>{t.linkBizBeneficiary}</Text>            
 </Pressable>  
 </View>
 </View>

@@ -5,9 +5,14 @@ import styles from './styles';
 import { getSMAccount, listPersonels } from '../../../../src/graphql/queries';
 import { getCurrentUser, fetchUserAttributes } from "aws-amplify/auth";
 import { generateClient } from "aws-amplify/api";
+import { useTranslation } from 'react-i18next';
+import translations from './translation';
 const client = generateClient();
 const ChmSignIn = props => {
   const navigation = useNavigation();
+  const { i18n } = useTranslation();
+  const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+  const t = translations[lang] || translations.en;
   const [grpContact, setChmPhn] = useState('');
   const [nam, setName] = useState(null);
   const [phoneContacts, setPhoneContacts] = useState("");
@@ -54,9 +59,9 @@ const ChmSignIn = props => {
             }
           });
           if (signitoryPWs !== pword) {
-            Alert.alert("Wrong User credentials");
+            Alert.alert(t.wrongUserCredentials);
           } else if (UsrDtls.data.listPersonels.items.length < 1) {
-            Alert.alert("You do not work here");
+            Alert.alert(t.youDoNotWorkHere);
             return;
           } else {
             FetchGrpLonsSts();
@@ -64,14 +69,14 @@ const ChmSignIn = props => {
         } catch (e) {
           console.log(e);
           if (e) {
-            Alert.alert("Retry or update app or call customer care");
+            Alert.alert(t.retryOrUpdateApp);
             return;
           }
         }
         setIsLoading(false);
       };
       if (userInfo.userId !== owners) {
-        Alert.alert("Please first create a main account");
+        Alert.alert(t.pleaseCreateMainAccount);
         return;
       } else {
         await ChckPersonelExistence();
@@ -79,7 +84,7 @@ const ChmSignIn = props => {
     } catch (e) {
       console.log(e);
       if (e) {
-        Alert.alert("Retry or update app or call customer care");
+        Alert.alert(t.retryOrUpdateApp);
         return;
       }
     }
@@ -145,23 +150,23 @@ const ChmSignIn = props => {
                 <ScrollView>
            
                   <View style={styles.loanTitleView}>
-                    <Text style={styles.title}>Fill Details Below</Text>
+                    <Text style={styles.title}>{t.fillDetailsBelow}</Text>
                   </View>
         
                   <View style={styles.sendLoanView}>
-                    <TextInput placeholder="+2547xxxxxxxx" value={ChmDesc} onChangeText={setChmDesc} style={styles.sendLoanInput} editable={true}></TextInput>
-                    <Text style={styles.sendLoanText}>Business Phone</Text>
+                    <TextInput placeholder={t.businessPhonePlaceholder} placeholderTextColor="#444" value={ChmDesc} onChangeText={setChmDesc} style={styles.sendLoanInput} editable={true}></TextInput>
+                    <Text style={styles.sendLoanText}>{t.businessPhone}</Text>
                   </View>
 
                   
                   <View style={styles.sendLoanView}>
                     <TextInput value={pword} onChangeText={setPW} secureTextEntry={true} style={styles.sendLoanInput} editable={true}></TextInput>
-                    <Text style={styles.sendLoanText}>MainAcPassword</Text>
+                    <Text style={styles.sendLoanText}>{t.mainAccountPassword}</Text>
                   </View>
 
                   <TouchableOpacity onPress={gtChmDtls} style={styles.sendLoanButton}>
                     <Text style={styles.sendLoanButtonText}>
-                      Click to View
+                      {t.clickToView}
                     </Text>
                     {isLoading && <ActivityIndicator size="large" color="blue" />}
                   </TouchableOpacity>

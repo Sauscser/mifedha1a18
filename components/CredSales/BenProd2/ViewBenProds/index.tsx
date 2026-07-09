@@ -11,6 +11,8 @@ import {useExchange} from '../../../../src/contexts/ExchangeContext';
 import { generateClient } from 'aws-amplify/api';  
 import { getSMAccount } from '../../../../src/graphql/queries';
 import {fetchUserAttributes} from 'aws-amplify/auth';
+import { useTranslation } from 'react-i18next';
+import translations from './translation';
 
 
 export interface SMAccount {
@@ -40,6 +42,9 @@ const SMCvLnStts = (props:SMAccount) => {
    }} = props ;
 
    const navigation = useNavigation();
+  const { i18n } = useTranslation();
+  const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+  const t = translations[lang] || translations.en;
    
 
    const SndChmMmbrMny = () => {
@@ -75,10 +80,10 @@ const SMCvLnStts = (props:SMAccount) => {
 <View style={styles.pageContainer}>
             <View style={styles.card}>
               
-              <Text style={styles.prodInfo}><Text style={styles.label}>Product Creator:</Text> {creatorName}</Text>
-              <Text style={styles.prodInfo}><Text style={styles.label}>Product Cost:</Text> {formatAmountSync(Math.floor(prodCost), userCode, ratesMap)}</Text>
-              <Text style={styles.prodInfo}><Text style={styles.label}>Phone:</Text> {benefactorAc}</Text>
-              <Text style={styles.prodInfo}><Text style={styles.label}>Product Name:</Text> {prodName}</Text>
+              <Text style={styles.prodInfo}><Text style={styles.label}>{t.productCreator}</Text> {creatorName}</Text>
+              <Text style={styles.prodInfo}><Text style={styles.label}>{t.productCost}</Text> {formatAmountSync(Math.floor(prodCost), userCode, ratesMap)}</Text>
+              <Text style={styles.prodInfo}><Text style={styles.label}>{t.phone}</Text> {benefactorAc}</Text>
+              <Text style={styles.prodInfo}><Text style={styles.label}>{t.productName}</Text> {prodName}</Text>
               <Text style={styles.prodDesc}>{prodDesc}</Text>
              
           </View >      

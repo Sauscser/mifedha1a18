@@ -917,6 +917,88 @@ type LoanRepayments
   createdAt: String!
 }
 
+type PartialPay
+  @model
+  @auth(
+    rules: [
+      { allow: owner, operations: [read, update, create, delete] }
+      { allow: private, operations: [read, create, delete, update] }
+      { allow: groups, groups: ["BranchAdminTwo"], operations: [read, delete, create, update] }
+      {
+        allow: groups
+        groups: ["Executive"]
+        operations: [read, create, update, delete]
+      }
+    ]
+  )
+
+ 
+   {
+ 
+  id:ID!
+ 
+  sellerEmail: String! @index(name: "sellerEmail", sortKeyFields: ["createdAt"], queryField: "sellerByEmail")
+  sellerAccount: String! @index(name: "sellerAccount", sortKeyFields: ["createdAt"], queryField: "sellerByAccount")
+  buyerEmail: String! @index(name: "buyerEmail", sortKeyFields: ["createdAt"], queryField: "buyerByEmail")
+  buyerAccount: String! @index(name: "buyerAccount", sortKeyFields: ["createdAt"], queryField: "buyerByAccount")
+  sellerName: String!
+  buyerName: String!
+  buyerType: String!
+  sellerType: String!
+  itemCost: Float!
+  amountPaid: Float!
+  validityPeriod: Float
+  itemDesc: String
+  itemName: String
+  itemPhoto: String
+  itemUrl: String
+  owner: String 
+  createdAt: String!
+  saleStatus: String  
+
+}
+
+type PartialPayContributions
+  @model
+  @auth(
+    rules: [
+      { allow: owner, operations: [read, update, create, delete] }
+      { allow: private, operations: [read, create, delete, update] }
+      { allow: groups, groups: ["BranchAdminTwo"], operations: [read, delete, create, update] }
+      {
+        allow: groups
+        groups: ["Executive"]
+        operations: [read, create, update, delete]
+      }
+    ]
+  )
+
+ 
+   {
+ 
+  id:ID!
+ 
+  sellerEmail: String! @index(name: "sellerEmailContributions", sortKeyFields: ["createdAt"], queryField: "sellerByEmailContributions")
+  sellerAccount: String! @index(name: "sellerAccountContributions", sortKeyFields: ["createdAt"], queryField: "sellerByAccountContributions")
+  buyerEmail: String! @index(name: "buyerEmailContributions", sortKeyFields: ["createdAt"], queryField: "buyerByEmailContributions")
+  buyerAccount: String! @index(name: "buyerAccountContributions", sortKeyFields: ["createdAt"], queryField: "buyerByAccountContributions")
+  sellerName: String!
+  buyerName: String!
+  buyerType: String!
+  sellerType: String!
+  itemCost: Float!
+  amountPaid: Float!
+  validityPeriod: Float
+  itemDesc: String
+  itemName: String
+  itemPhoto: String
+  itemUrl: String
+  owner: String 
+  createdAt: String!
+  saleStatus: String  
+
+}
+
 
 type SokoAd
   @model
@@ -966,8 +1048,11 @@ type SokoAd
   bizName: String! 
   bizContact: String!
   Nationality: String!
+  purchaseType: String!
 
 }
+
+
 
 type TransportBizna
   @model

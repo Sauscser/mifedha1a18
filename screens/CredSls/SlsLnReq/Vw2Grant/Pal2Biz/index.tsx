@@ -6,12 +6,17 @@ import { listReqLoanCredSls, listSMAccounts } from '../../../../../src/graphql/q
 import { useRoute } from '@react-navigation/native';
 import { getCurrentUser, fetchUserAttributes } from "aws-amplify/auth";
 import { generateClient } from "aws-amplify/api";
+import { useTranslation } from 'react-i18next';
+import translations from './translation';
 const client = generateClient();
 const FetchSMNonCovLns = props => {
   const [Loaneesz, setLoaneesz] = useState([]);
   const [loading, setLoading] = useState(false);
   const [Loanees, setLoanees] = useState([]);
   const route = useRoute();
+  const { i18n } = useTranslation();
+  const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+  const t = translations[lang] || translations.en;
 
   /*
   
@@ -64,7 +69,7 @@ const FetchSMNonCovLns = props => {
         }
       };
       if (Lonees.data.listSMAccounts.items.length < 1) {
-        Alert.alert("Please create main account on main page");
+        Alert.alert(t.pleaseCreateMainAccount);
       }
       await fetchLoanees();
     } catch (e) {
@@ -86,9 +91,9 @@ const FetchSMNonCovLns = props => {
     }} ListHeaderComponent={() => <>
             
             
-            <Text style={styles.label}> Swipe down to refresh</Text>
+            <Text style={styles.label}>{t.swipeDownToRefresh}</Text>
             
-            <Text style={styles.label2}> (Select Loan Request to Grant)</Text>
+            <Text style={styles.label2}>{t.selectLoanRequestToGrant}</Text>
             
           </>} />
 

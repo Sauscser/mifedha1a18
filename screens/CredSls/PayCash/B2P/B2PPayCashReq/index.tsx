@@ -8,6 +8,8 @@ import { getCurrentUser, fetchUserAttributes } from 'aws-amplify/auth';
 import { generateClient } from 'aws-amplify/api';
 import { convertForeignToKsh } from '../../../../../src/utils/exchange';
 import { nationalityToCode } from '../../../../../src/utils/nationalityToCode';
+import { useTranslation } from 'react-i18next';
+import translations from './translation';
 const client = generateClient();
 const SMASendNonLns = props => {
   const [SenderNatId, setSenderNatId] = useState('');
@@ -18,6 +20,9 @@ const SMASendNonLns = props => {
   const [AttendAdmin, setAttendAdmin] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const navigation = useNavigation();
+  const { i18n } = useTranslation();
+  const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+  const t = translations[lang] || translations.en;
   const SndChmMmbrMny = () => {
     navigation.navigate("AutomaticRepayAllTyps");
   };
@@ -39,7 +44,7 @@ const SMASendNonLns = props => {
       const pw = accountDtl.data.getBizna.pw;
       const amountInput = parseFloat(amounts);
       if (!Number.isFinite(amountInput) || amountInput <= 0) {
-        Alert.alert("Enter a valid amount");
+        Alert.alert(t.enterValidAmount);
         setIsLoading(false);
         return;
       }
@@ -47,7 +52,7 @@ const SMASendNonLns = props => {
       const senderCode = nationalityToCode(rawNationality) || rawNationality || 'KE';
       const amountKes = await convertForeignToKsh(amountInput, senderCode);
       if (!Number.isFinite(amountKes) || amountKes <= 0) {
-        Alert.alert("Unable to convert amount. Please try again.");
+        Alert.alert(t.unableConvertAmount);
         setIsLoading(false);
         return;
       }
@@ -132,21 +137,21 @@ const SMASendNonLns = props => {
 
       // Conditional checks
       if (UsrDtls.data.listPersonels.items.length < 1) {
-        Alert.alert("You dont work here");
+        Alert.alert(t.youDoNotWorkHere);
       } else if (RecAcstatus === "AccountInactive") {
-        Alert.alert('Receiver account is inactive');
+        Alert.alert(t.receiverInactive);
       } else if (SnderPW !== pwscx) {
-        Alert.alert('Wrong Password');
+        Alert.alert(t.wrongPassword);
       } else if (SenderAcstatus === "AccountInactive") {
-        Alert.alert('Sender account is inactive');
+        Alert.alert(t.senderInactive);
       } else if (!Admins.includes(AttendAdmin)) {
-        Alert.alert("The admin is not an admin in this business");
+        Alert.alert(t.adminNotInBusiness);
       } else {
         await sendSMNonLn();
       }
     } catch (error) {
       console.error(error);
-      Alert.alert("Retry, update app or call customer care");
+      Alert.alert(t.retryUpdateOrCall);
     } finally {
       setIsLoading(false);
       setSenderNatId('');
@@ -162,44 +167,44 @@ const SMASendNonLns = props => {
         <ScrollView>
          
           <View style={styles.amountTitleView}>
-            <Text style={styles.title}>Fill account Details Below</Text>
+            <Text style={styles.title}>{t.fillAccountDetails}</Text>
           </View>
 
           <View style={styles.sendAmtView}>
-            <TextInput placeholder="Sending Business Phone" value={SenderNatId} onChangeText={setSenderNatId} style={styles.sendAmtInput} editable={true}></TextInput>
-            <Text style={styles.sendAmtText}>Sending Business Phone</Text>
+            <TextInput placeholder={t.sendingBusinessPhone} value={SenderNatId} onChangeText={setSenderNatId} style={styles.sendAmtInput} editable={true}></TextInput>
+            <Text style={styles.sendAmtText}>{t.sendingBusinessPhone}</Text>
           </View>
 
           <View style={styles.sendAmtView}>
-            <TextInput placeholder="Receiving Person Email" value={RecNatId} onChangeText={setRecNatId} style={styles.sendAmtInput} editable={true}></TextInput>
-            <Text style={styles.sendAmtText}>Receiving Person Email</Text>
+            <TextInput placeholder={t.receivingPersonEmail} value={RecNatId} onChangeText={setRecNatId} style={styles.sendAmtInput} editable={true}></TextInput>
+            <Text style={styles.sendAmtText}>{t.receivingPersonEmail}</Text>
           </View>
 
           <View style={styles.sendAmtView}>
-            <TextInput placeholder="AttendingAdminEmail" value={AttendAdmin} onChangeText={setAttendAdmin} style={styles.sendAmtInput} editable={true}></TextInput>
-            <Text style={styles.sendAmtText}>Attending Admin Email</Text>
+            <TextInput placeholder={t.attendingAdminEmailPlaceholder} value={AttendAdmin} onChangeText={setAttendAdmin} style={styles.sendAmtInput} editable={true}></TextInput>
+            <Text style={styles.sendAmtText}>{t.attendingAdminEmail}</Text>
           </View>
 
           <View style={styles.sendAmtView}>
             <TextInput keyboardType={"decimal-pad"} value={amounts} onChangeText={setAmount} style={styles.sendAmtInput} editable={true}></TextInput>
               
-            <Text style={styles.sendAmtText}>Amount Sent</Text>
+            <Text style={styles.sendAmtText}>{t.amountSent}</Text>
           </View>
 
 
           <View style={styles.sendAmtView}>
             <TextInput value={SnderPW} onChangeText={setSnderPW} secureTextEntry={true} style={styles.sendAmtInput} editable={true}></TextInput>
-            <Text style={styles.sendAmtText}>Main Account PassWord</Text>
+            <Text style={styles.sendAmtText}>{t.mainAccountPassword}</Text>
           </View>
 
 
           <View style={styles.sendAmtViewDesc}>
             <TextInput multiline={true} value={Desc} onChangeText={setDesc} style={styles.sendAmtInputDesc} editable={true}></TextInput>
-            <Text style={styles.sendAmtText}>Description</Text>
+            <Text style={styles.sendAmtText}>{t.description}</Text>
           </View>
 
           <TouchableOpacity onPress={fetchSenderUsrDtls} style={styles.sendAmtButton}>
-            <Text style={styles.sendAmtButtonText}>Send</Text>
+            <Text style={styles.sendAmtButtonText}>{t.send}</Text>
             {isLoading && <ActivityIndicator size="large" color="blue" />}
           </TouchableOpacity>
 

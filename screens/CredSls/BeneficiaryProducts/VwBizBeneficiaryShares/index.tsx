@@ -5,6 +5,8 @@ import { listBiznas, listLinkBeneficiary2s } from '../../../../src/graphql/queri
 import * as Clipboard from 'expo-clipboard';
 import { getCurrentUser, fetchUserAttributes } from 'aws-amplify/auth';
 import { generateClient } from 'aws-amplify/api';
+import { useTranslation } from 'react-i18next';
+import translations from './translation';
 const client = generateClient();
 const FetchSMNonCovLns = props => {
   const [Loanees, setLoanees] = useState([]);
@@ -12,6 +14,9 @@ const FetchSMNonCovLns = props => {
   const [loading, setLoading] = useState(false);
   const [awsEmail, setAWSEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const { i18n } = useTranslation();
+  const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+  const t = translations[lang] || translations.en;
   const ChckPersonelExistence = async () => {
     setIsLoading(true);
     try {
@@ -50,20 +55,20 @@ const FetchSMNonCovLns = props => {
           const contribution = Lonees.data.listLinkBeneficiary2s.items;
           setLoanees(contribution);
           if (contribution.length < 1) {
-            Alert.alert("No one has contributed for you");
+            Alert.alert(t.noContribution);
           }
         } catch (e) {
           console.error("Error fetching accounts:", e);
         }
       };
       if (benefitContributors.length < 1) {
-        Alert.alert("This is not your Business/Company");
+        Alert.alert(t.notYourBusiness);
       } else {
         await fetchLoanees();
       }
     } catch (e) {
       console.log(e);
-      Alert.alert("Error! Access denied");
+      Alert.alert(t.accessDenied);
       return;
     }
     setIsLoading(false);
@@ -75,9 +80,9 @@ const FetchSMNonCovLns = props => {
       <View style={styles.container}>
         {/* Search Bar */}
         <View style={styles.searchBar}>
-          <TextInput placeholder="Company/Biz Account Number..." value={awsEmail} onChangeText={setAWSEmail} style={styles.searchInput} />
+          <TextInput placeholder={t.companyBizAccountNumber} value={awsEmail} onChangeText={setAWSEmail} style={styles.searchInput} />
           <Text style={styles.placeholderText}>
-            Swipe down to load or refresh.
+            {t.swipeToLoadRefresh}
           </Text>
         </View>
 

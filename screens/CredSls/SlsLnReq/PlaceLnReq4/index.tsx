@@ -7,6 +7,8 @@ import styles from './styles';
 import { createReqLoan } from '../../../../src/graphql/mutations';
 import { getCurrentUser, fetchUserAttributes } from "aws-amplify/auth";
 import { generateClient } from "aws-amplify/api";
+import { useTranslation } from 'react-i18next';
+import translations from './translation';
 const client = generateClient();
 const CreateBiz = props => {
   const [ChmPhn, setChmPhn] = useState('');
@@ -25,6 +27,11 @@ const CreateBiz = props => {
   const [InstAmt, setInstAmt] = useState("");
   const [InstFreq, setInstFreq] = useState("");
   const route = useRoute();
+  const { i18n } = useTranslation();
+  const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+  const t = translations[lang] || translations.en;
+  const fmt = (template: string, vars: Record<string, string | number>) =>
+    template.replace(/\{(\w+)\}/g, (_, k) => String(vars[k] ?? ''));
   const gtBizna = async () => {
     if (isLoading) {
       return;
@@ -114,11 +121,11 @@ const CreateBiz = props => {
                 } catch (error) {
                   console.log(error);
                   if (error) {
-                    Alert.alert("Please enter details correctly");
+                    Alert.alert(t.pleaseEnterDetailsCorrectly);
                     return;
                   }
                 }
-                Alert.alert("Loan Request Successful");
+                Alert.alert(t.loanRequestSuccessful);
                 const loanReqMsg11 = "NiSenti. " + name + ' has requested ' + ' you to loan goods/services worth ' + itemPrys + '. Please go to your NiSenti' + ' app to view the loan details and thereafter' + ' grant me the request. Thank you.';
                 try {
                   const msgRes = await client.graphql({
@@ -187,11 +194,11 @@ const CreateBiz = props => {
                     } catch (error) {
                       console.log(error);
                       if (error) {
-                        Alert.alert("Please enter details correctly");
+                                Alert.alert(t.pleaseEnterDetailsCorrectly);
                         return;
                       }
                     }
-                    Alert.alert("Loan Request Successful");
+                            Alert.alert(t.loanRequestSuccessful);
                     const loanReqMsg12 = 'NiSenti. Greetings! ' + 'We ' + name + ', the loanee and ' + namesz + ', the Loaning Business humbly' + ' request that you witness our loan contract on NiSenti app amounting to ' + itemPrys + ' repayable with ' + lnPrsntg + '% interest by the end of ' + rpymntPrd + ' days. Default penalty is ' + MmbaID + '. You can reach my loaner through ' + awsEmail + '. You can also reach me through ' + phonecontacts + '. Thank you.';
                     try {
                       const msgRes = await client.graphql({
@@ -211,20 +218,20 @@ const CreateBiz = props => {
                   CreateNewSMAc();
                 } catch (e) {
                   if (e) {
-                    Alert.alert("Error! Please enter advocate license correctly");
+                    Alert.alert(t.invalidAdvocateLicense);
                   }
                   console.error(e);
                 }
                 setIsLoading(false);
               };
               if (pword !== pws) {
-                Alert.alert("Wrong User main account password");
+                Alert.alert(t.wrongUserPassword);
               } else if (parseFloat(rpymntPrd) < 1) {
-                Alert.alert("Enter repayment Period greater than 1 day");
+                Alert.alert(t.repaymentPeriodGreaterThanOneDay);
               } else if (parseFloat(lnPrsntg) > 100) {
-                Alert.alert("Interest exploits you; enter lesser repayment amount");
+                Alert.alert(t.interestExploits);
               } else if (ExpInstmnt > parseFloat(InstAmt)) {
-                Alert.alert("Enter Installment greater than " + (ExpInstmnt + 1).toFixed(0));
+                Alert.alert(fmt(t.installmentGreaterThan, { amount: (ExpInstmnt + 1).toFixed(0) }));
               } else if (Sign2Phn != "") {
                 await gtAdv();
               } else {
@@ -232,7 +239,7 @@ const CreateBiz = props => {
               }
             } catch (e) {
               if (e) {
-                Alert.alert("Retry or update app or call customer care");
+                Alert.alert(t.retryOrUpdate);
               }
               console.error(e);
             }
@@ -241,7 +248,7 @@ const CreateBiz = props => {
           await gtBiznaInfo();
         } catch (e) {
           if (e) {
-            Alert.alert("Retry or update app or call customer care");
+            Alert.alert(t.retryOrUpdate);
           }
           console.error(e);
         }
@@ -250,7 +257,7 @@ const CreateBiz = props => {
       await gtComp();
     } catch (e) {
       if (e) {
-        Alert.alert("Retry or update app or call customer care");
+        Alert.alert(t.retryOrUpdate);
       }
       console.error(e);
     }
@@ -387,53 +394,53 @@ const CreateBiz = props => {
                 <ScrollView>
            
                   <View style={styles.loanTitleView}>
-                    <Text style={styles.title}>Fill Details Below</Text>
+                    <Text style={styles.title}>{t.fillDetailsBelow}</Text>
                   </View>
         
                   
                   <View style={styles.sendLoanView}>
-                    <TextInput placeholder='Pal Email' value={awsEmail} onChangeText={setAWSEmail} style={styles.sendLoanInput} editable={true}></TextInput>
-                    <Text style={styles.sendLoanText}>Pal Email</Text>
+                    <TextInput placeholder={t.palEmailPlaceholder} value={awsEmail} onChangeText={setAWSEmail} style={styles.sendLoanInput} editable={true}></TextInput>
+                    <Text style={styles.sendLoanText}>{t.palEmail}</Text>
                   </View>
 
                   <View style={styles.sendLoanView}>
-                    <TextInput placeholder='Advocate License Number (Optional)' value={Sign2Phn} onChangeText={setSign2Phn} style={styles.sendLoanInput} editable={true}></TextInput>
-                    <Text style={styles.sendLoanText}>Advocate License Number</Text>
+                    <TextInput placeholder={t.advocateLicensePlaceholder} value={Sign2Phn} onChangeText={setSign2Phn} style={styles.sendLoanInput} editable={true}></TextInput>
+                    <Text style={styles.sendLoanText}>{t.advocateLicenseNumber}</Text>
                   </View>
                   
                   <View style={styles.sendLoanView}>
-                    <TextInput placeholder='Item Name' value={ChmDesc} onChangeText={setChmDesc} style={styles.sendLoanInput} editable={true}></TextInput>
-                    <Text style={styles.sendLoanText}>Item/Service Name</Text>
+                    <TextInput placeholder={t.itemNamePlaceholder} value={ChmDesc} onChangeText={setChmDesc} style={styles.sendLoanInput} editable={true}></TextInput>
+                    <Text style={styles.sendLoanText}>{t.itemServiceName}</Text>
                   </View>
 
                   <View style={styles.sendLoanView}>
-                    <TextInput placeholder='Loan Description (Optional)' value={ChmNm} multiline={true} onChangeText={setChmNm} style={styles.sendLoanInput} editable={true}></TextInput>
-                    <Text style={styles.sendLoanText}>Loan Description</Text>
+                    <TextInput placeholder={t.loanDescriptionPlaceholder} value={ChmNm} multiline={true} onChangeText={setChmNm} style={styles.sendLoanInput} editable={true}></TextInput>
+                    <Text style={styles.sendLoanText}>{t.loanDescription}</Text>
                   </View>
 
                   <View style={styles.sendLoanView}>
                     <TextInput keyboardType='decimal-pad' value={itemPrys} onChangeText={setitemPrys} style={styles.sendLoanInput} editable={true}></TextInput>
-                    <Text style={styles.sendLoanText}>Loan Amount</Text>
+                    <Text style={styles.sendLoanText}>{t.loanAmount}</Text>
                   </View>
 
                   <View style={styles.sendLoanView}>
-                    <TextInput keyboardType='decimal-pad' placeholder='Example: 8% write 8' value={lnPrsntg} onChangeText={setlnPrsntg} style={styles.sendLoanInput} editable={true}></TextInput>
-                    <Text style={styles.sendLoanText}>Monthly Interest rate</Text>
+                    <TextInput keyboardType='decimal-pad' placeholder={t.interestRatePlaceholder} value={lnPrsntg} onChangeText={setlnPrsntg} style={styles.sendLoanInput} editable={true}></TextInput>
+                    <Text style={styles.sendLoanText}>{t.monthlyInterestRate}</Text>
                   </View>
 
 
                   <View style={styles.sendLoanView}>
-                    <TextInput keyboardType='decimal-pad' placeholder='Enter number of Days' value={rpymntPrd} onChangeText={setrpymntPrd} style={styles.sendLoanInput} editable={true}></TextInput>
-                    <Text style={styles.sendLoanText}>Repayment Period</Text>
+                    <TextInput keyboardType='decimal-pad' placeholder={t.repaymentDaysPlaceholder} value={rpymntPrd} onChangeText={setrpymntPrd} style={styles.sendLoanInput} editable={true}></TextInput>
+                    <Text style={styles.sendLoanText}>{t.repaymentPeriod}</Text>
                   </View>
 
                   <View style={styles.sendLoanView}>
-                    <TextInput placeholder='Payment Frequency (Days)' keyboardType='decimal-pad' value={InstFreq} onChangeText={setInstFreq} style={styles.sendLoanInput} editable={true}></TextInput>
+                    <TextInput placeholder={t.paymentFrequencyPlaceholder} keyboardType='decimal-pad' value={InstFreq} onChangeText={setInstFreq} style={styles.sendLoanInput} editable={true}></TextInput>
                     
                   </View>           
                   
                      <View style={styles.sendLoanView}>
-                    <TextInput placeholder='Installment Amount' keyboardType='decimal-pad' value={InstAmt} onChangeText={setInstAmt} style={styles.sendLoanInput} editable={true}></TextInput>
+                    <TextInput placeholder={t.installmentAmountPlaceholder} keyboardType='decimal-pad' value={InstAmt} onChangeText={setInstAmt} style={styles.sendLoanInput} editable={true}></TextInput>
                     
                   </View>
 
@@ -441,19 +448,19 @@ const CreateBiz = props => {
                   
                    <View style={styles.sendLoanView}>
                     <TextInput keyboardType='decimal-pad' value={MmbaID} onChangeText={setMmbaID} style={styles.sendLoanInput} editable={true}></TextInput>
-                    <Text style={styles.sendLoanText}>Default Penalty</Text>
+                    <Text style={styles.sendLoanText}>{t.defaultPenalty}</Text>
                   </View>
 
                  
 
                   <View style={styles.sendLoanView}>
                     <TextInput value={pword} onChangeText={setPW} secureTextEntry={true} style={styles.sendLoanInput} editable={true}></TextInput>
-                    <Text style={styles.sendLoanText}> User Main AC PassWord</Text>
+                    <Text style={styles.sendLoanText}>{t.userMainAcPassword}</Text>
                   </View>
 
                   <TouchableOpacity onPress={gtBizna} style={styles.sendLoanButton}>
                     <Text style={styles.sendLoanButtonText}>
-                      Click to Request 
+                      {t.clickToRequest}
                     </Text>
                     {isLoading && <ActivityIndicator size="large" color="blue" />}
                   </TouchableOpacity>

@@ -161,14 +161,14 @@ const SMASendNonLns = (props: any) => {
             await sendSMNonLn();
           }
         } catch (e) {
-          Alert.alert('Retry or update app or call customer care');
+          Alert.alert(t.retryOrUpdate);
           return;
         }
         setIsLoading(false);
       };
       await fetchCompDtls();
     } catch (e) {
-      Alert.alert('Retry or update app or call customer care');
+      Alert.alert(t.retryOrUpdate);
       return;
     }
     setIsLoading(false);

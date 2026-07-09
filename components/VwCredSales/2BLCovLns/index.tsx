@@ -8,6 +8,8 @@ import {useExchange} from '../../../src/contexts/ExchangeContext';
 import { getSMAccount } from '../../../src/graphql/queries';
 import {fetchUserAttributes} from 'aws-amplify/auth';
 import { generateClient } from 'aws-amplify/api';
+import { useTranslation } from 'react-i18next';
+import translations from './translation';
 
 
 export interface ChmCvLnSttusRec {
@@ -33,6 +35,9 @@ export interface ChmCvLnSttusRec {
     }}
 
 const CredSlrCvLnStts = (props:ChmCvLnSttusRec) => {
+    const { i18n } = useTranslation();
+    const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+    const t = translations[lang] || translations.en;
    const {
     Loanee: {
       id,
@@ -88,10 +93,10 @@ const CredSlrCvLnStts = (props:ChmCvLnSttusRec) => {
                        {/*loaner details */}   
                        {buyerName}               
                     </Text>
-           <Text style={styles.prodInfo}><Text style={styles.label}>Loan ID:</Text> {id}</Text>
-            <Text style={styles.prodInfo}><Text style={styles.label}>Loan Balance:</Text> {formatAmountSync(lonBala, userCode, ratesMap)}</Text>
-            <Text style={styles.prodInfo}><Text style={styles.label}>Item Name:</Text> {itemName}</Text>
-            <Text style={styles.prodInfo}><Text style={styles.label}>Time loan was given:</Text> {createdAt}</Text>
+           <Text style={styles.prodInfo}><Text style={styles.label}>{t.loanIdLabel}:</Text> {id}</Text>
+            <Text style={styles.prodInfo}><Text style={styles.label}>{t.loanBalanceLabel}:</Text> {formatAmountSync(lonBala, userCode, ratesMap)}</Text>
+            <Text style={styles.prodInfo}><Text style={styles.label}>{t.itemNameLabel}:</Text> {itemName}</Text>
+            <Text style={styles.prodInfo}><Text style={styles.label}>{t.timeLoanGivenLabel}:</Text> {createdAt}</Text>
            
         </Pressable>
 

@@ -123,6 +123,7 @@ ViewMinutes: {
       ViewMessages:undefined;
       FunderClearBill:undefined;
             UpdateExRates2:undefined;
+            PartialPayFlow: undefined;
 
       
       FloatLnReq: {grpContact:string}

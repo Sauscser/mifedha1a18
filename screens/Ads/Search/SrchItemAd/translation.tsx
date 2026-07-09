@@ -17,6 +17,7 @@ export const translations = {
     enterPassword: "Enter Password",
     quickCheckout: "Check out",
     fullCheckout: "Buy with transport",
+    partialPay: "Partial Pay",
     error: "Error",
     addItemsToCart: "Add items to cart.",
     enterPasswordToProceed: "Enter your password to proceed.",

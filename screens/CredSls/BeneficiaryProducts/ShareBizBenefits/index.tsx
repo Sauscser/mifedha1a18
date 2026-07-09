@@ -10,6 +10,8 @@ import { View, Text, TextInput, ScrollView, StyleSheet, TouchableOpacity, Alert,
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useTranslation } from 'react-i18next';
+import translations from './translation';
 const client = generateClient();
 const SMASendNonLns = props => {
   const [SenderNatId, setSenderNatId] = useState('');
@@ -23,6 +25,11 @@ const SMASendNonLns = props => {
   const route = useRoute();
   const routeParams: any = route.params;
   const { ratesMap } = useExchange();
+  const { i18n } = useTranslation();
+  const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+  const t = translations[lang] || translations.en;
+  const fmt = (template: string, vars: Record<string, string | number>) =>
+    template.replace(/\{(\w+)\}/g, (_, k) => String(vars[k] ?? ''));
   const fetchBenProdUsrDtls = async () => {
     if (isLoading) return;
     setIsLoading(true);
@@ -80,14 +87,14 @@ const SMASendNonLns = props => {
 
               const amountInput = parseFloat(amounts);
               if (!amountInput || amountInput <= 0) {
-                Alert.alert('Enter a valid amount');
+                Alert.alert(t.enterValidAmount);
                 setIsLoading(false);
                 return;
               }
 
               const amountKes = await convertForeignToKsh(amountInput, userCode);
               if (!amountKes || amountKes <= 0) {
-                Alert.alert('Unable to convert amount. Please try again.');
+                Alert.alert(t.unableConvertAmount);
                 setIsLoading(false);
                 return;
               }
@@ -133,7 +140,7 @@ const SMASendNonLns = props => {
                         }
                       });
                     } catch (error) {
-                      Alert.alert('Sharing unsuccessful; Retry');
+                          Alert.alert(t.sharingUnsuccessfulRetry);
                       return;
                     }
                     await updtSendrAc();
@@ -150,7 +157,7 @@ const SMASendNonLns = props => {
                         }
                       });
                     } catch (error) {
-                      Alert.alert('Error! Enter details correctly');
+                        Alert.alert(t.errorEnterDetails);
                       return;
                     }
                     await updtLinkedBenefits();
@@ -167,7 +174,7 @@ const SMASendNonLns = props => {
                         }
                       });
                     } catch (error) {
-                      Alert.alert('Retry or update app or call customer care');
+                        Alert.alert(t.retryOrUpdate);
                       return;
                     }
                     await updtRecAc();
@@ -184,7 +191,7 @@ const SMASendNonLns = props => {
                         }
                       });
                     } catch (error) {
-                      Alert.alert('Retry or update app or call customer care');
+                        Alert.alert(t.retryOrUpdate);
                       return;
                     }
                     await updtComp();
@@ -204,12 +211,15 @@ const SMASendNonLns = props => {
                         }
                       });
                     } catch (error) {
-                      Alert.alert('Check your internet connection');
+                        Alert.alert(t.checkInternet);
                       return;
                     }
                     const formattedAmount = formatAmountSync(amountKes, userCode, ratesMap);
                     const formattedTxFee = formatAmountSync((UsrTransferFee * amountKes), userCode, ratesMap);
-                    Alert.alert('Success', `Amount: ${formattedAmount} Transaction fee: ${formattedTxFee}`);
+                      Alert.alert(t.success, fmt(t.amountTxFee, {
+                        amount: formattedAmount,
+                        fee: formattedTxFee
+                      }));
                     const benefitMessage1 = `Confirmed. ${busNames} Benefactor has sent you ${formattedAmount} as Benefits. Please confirm this transaction record is on your NiSenti app. Thank you. NiSenti`;
                     try {
                       const msgRes: any = await client.graphql({
@@ -219,7 +229,7 @@ const SMASendNonLns = props => {
                       if (msgRes?.data?.createMessages) {
                         await client.graphql({
                           query: sendNotification,
-                          variables: { riderEmail: beneficiaryPhones, title: 'NiSenti: Benefits Shared', body: benefitMessage1 }
+                            variables: { riderEmail: beneficiaryPhones, title: t.benefitsSharedTitle, body: benefitMessage1 }
                         });
                       }
                     } catch (notifErr) {
@@ -228,26 +238,26 @@ const SMASendNonLns = props => {
                     setIsLoading(false);
                   };
                   if (statuss !== 'AccountActive') {
-                    Alert.alert('Beneficiary account is inactive');
+                    Alert.alert(t.beneficiaryInactive);
                   } else if (statussx !== 'AccountActive') {
-                    Alert.alert('Benefactor account is inactive');
+                    Alert.alert(t.benefactorInactive);
                   } else if (parseFloat(benefitsAmountsz) < TotalTransacted) {
-                    Alert.alert('Requested amount is more than your Benefits');
+                    Alert.alert(t.requestedMoreThanBenefits);
                   } else if (benefitStatuss !== 'Active') {
-                    Alert.alert('This Beneficiary linkage is not active');
+                    Alert.alert(t.linkageNotActive);
                   } else if (noBL > 0) {
-                    Alert.alert('Please first clear your lenders');
+                    Alert.alert(t.clearLenders);
                   } else if (usrPW !== SnderPW) {
-                    Alert.alert('Wrong Business Password');
+                    Alert.alert(t.wrongBusinessPassword);
                   } else if (userInfo.userId !== SenderSub) {
-                    Alert.alert('You do not own this business');
+                    Alert.alert(t.doNotOwnBusiness);
                   } else {
                     await sendSMNonLn();
                   }
                 } catch (e) {
                   console.log(e);
                   if (e) {
-                    Alert.alert('Retry or update app or call customer care');
+                    Alert.alert(t.retryOrUpdate);
                     return;
                   }
                 }
@@ -256,7 +266,7 @@ const SMASendNonLns = props => {
             } catch (e) {
               console.log(e);
               if (e) {
-                Alert.alert('Retry or update app or call customer care');
+                Alert.alert(t.retryOrUpdate);
                 return;
               }
             }
@@ -265,7 +275,7 @@ const SMASendNonLns = props => {
         } catch (e) {
           console.log(e);
           if (e) {
-            Alert.alert('Retry or update app or call customer care');
+            Alert.alert(t.retryOrUpdate);
             return;
           }
         }
@@ -274,7 +284,7 @@ const SMASendNonLns = props => {
     } catch (e) {
       console.log(e);
       if (e) {
-        Alert.alert('Retry or update app or call customer care');
+        Alert.alert(t.retryOrUpdate);
         return;
       }
     }
@@ -292,15 +302,15 @@ const SMASendNonLns = props => {
                                   <ScrollView>
               
                         <View style={styles.formContainer}>
-                          <TextInput placeholder="My Business Phone Number" value={SenderNatId} onChangeText={setSenderNatId} style={styles.input} editable={true}></TextInput>
+                          <TextInput placeholder={t.myBusinessPhoneNumber} value={SenderNatId} onChangeText={setSenderNatId} style={styles.input} editable={true}></TextInput>
 
-                            <TextInput placeholder="Amount to share" value={amounts} onChangeText={setAmount} style={styles.input} keyboardType={"decimal-pad"} editable={true}></TextInput>
+                            <TextInput placeholder={t.amountToShare} value={amounts} onChangeText={setAmount} style={styles.input} keyboardType={"decimal-pad"} editable={true}></TextInput>
 
 
                           
                           
                          <View style={styles.passwordContainer}>
-                                                                       <TextInput placeholder="Business/Company Account Password" style={styles.passwordInput} value={SnderPW} onChangeText={setSnderPW} secureTextEntry={!isPasswordVisible} placeholderTextColor="#ccc" />
+                                                                       <TextInput placeholder={t.businessCompanyPassword} style={styles.passwordInput} value={SnderPW} onChangeText={setSnderPW} secureTextEntry={!isPasswordVisible} placeholderTextColor="#ccc" />
                                                                      <TouchableOpacity onPress={() => setIsPasswordVisible(!isPasswordVisible)}>
                                                                     <Ionicons name={isPasswordVisible ? 'eye' : 'eye-off'} size={24} color="gray" />
                                                                      </TouchableOpacity>
@@ -308,7 +318,7 @@ const SMASendNonLns = props => {
                            
                                                                     
                         <TouchableOpacity onPress={fetchBenProdUsrDtls} style={styles.button}>
-                          {isLoading ? <ActivityIndicator color="#fff" /> : <Text style={styles.locationText}>Submit</Text>}
+                          {isLoading ? <ActivityIndicator color="#fff" /> : <Text style={styles.locationText}>{t.submit}</Text>}
                                                 </TouchableOpacity>
                                               </View>
                                             </ScrollView>

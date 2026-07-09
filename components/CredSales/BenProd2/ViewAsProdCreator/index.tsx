@@ -11,6 +11,8 @@ import {useExchange} from '../../../../src/contexts/ExchangeContext';
 import { generateClient } from 'aws-amplify/api';  
 import { getSMAccount } from '../../../../src/graphql/queries';
 import {fetchUserAttributes} from 'aws-amplify/auth';
+import { useTranslation } from 'react-i18next';
+import translations from './translation';
 
 
 export interface SMAccount {
@@ -48,6 +50,9 @@ const SMCvLnStts = (props:SMAccount) => {
    }} = props ;
 
    const navigation = useNavigation();
+  const { i18n } = useTranslation();
+  const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+  const t = translations[lang] || translations.en;
    
    const VwBenefactorContriDtls = () => {
     navigation.navigate("VwBenCreatorContriDtls", 
@@ -83,12 +88,12 @@ const SMCvLnStts = (props:SMAccount) => {
         <View style={styles.pageContainer}>
             <View style={styles.card}>
               <Text style={styles.prodName}>{prodName}</Text>
-              <Text style={styles.prodInfo}><Text style={styles.label}>Beneficiary Name:</Text> {beneficiaryPhone}</Text>
-              <Text style={styles.prodInfo}><Text style={styles.label}>Benefactor Name:</Text> {creatorName}</Text>
-             <Text style={styles.prodInfo}><Text style={styles.label}>Cost:</Text> {formatAmountSync(Math.floor(prodCost), userCode, ratesMap)}</Text>
-              <Text style={styles.prodInfo}><Text style={styles.label}>Status:</Text> {benefitStatus}</Text>
+              <Text style={styles.prodInfo}><Text style={styles.label}>{t.beneficiaryName}</Text> {beneficiaryPhone}</Text>
+              <Text style={styles.prodInfo}><Text style={styles.label}>{t.benefactorName}</Text> {creatorName}</Text>
+             <Text style={styles.prodInfo}><Text style={styles.label}>{t.cost}</Text> {formatAmountSync(Math.floor(prodCost), userCode, ratesMap)}</Text>
+              <Text style={styles.prodInfo}><Text style={styles.label}>{t.status}</Text> {benefitStatus}</Text>
              
-              <Text style={styles.prodInfo}><Text style={styles.label}>Benefits Pooled:</Text> {formatAmountSync(Math.floor(benefitsAmount), userCode, ratesMap)}</Text>
+              <Text style={styles.prodInfo}><Text style={styles.label}>{t.benefitsPooled}</Text> {formatAmountSync(Math.floor(benefitsAmount), userCode, ratesMap)}</Text>
               <Text style={styles.prodDesc}>{prodDesc}</Text>
             </View >
             <View style = {styles.buttonRow}>
@@ -96,7 +101,7 @@ const SMCvLnStts = (props:SMAccount) => {
             <Pressable
               onPress={VwBenefactorContriDtls}
               style = {styles.loanFriendButton}>
-              <Text>View Client's Contributions</Text>            
+              <Text>{t.viewClientsContributions}</Text>            
             </Pressable>
 
             </View>

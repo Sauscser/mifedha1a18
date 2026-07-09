@@ -5,7 +5,7 @@ const translations = {
     changePassword: 'Change PassWord',
     stopOperations: 'Stop Operations',
     allowOperations: 'Allow Operations',
-    dissolveBusiness: 'Dissolve Business'
+    dissolveBusiness: 'Dissolve Business',
   },
   sw: {
     updateBizAccount: 'Sasisha Akaunti ya Biashara',
@@ -13,7 +13,31 @@ const translations = {
     changePassword: 'Badilisha Nenosiri',
     stopOperations: 'Zima Operesheni',
     allowOperations: 'Ruhusu Operesheni',
-    dissolveBusiness: 'Gundua Biashara'
+    dissolveBusiness: 'Gundua Biashara',
+  },
+  he: {
+    updateBizAccount: 'עדכן חשבון עסק',
+    addAdmin: 'הוסף מנהל',
+    changePassword: 'שנה סיסמה',
+    stopOperations: 'עצור פעולות',
+    allowOperations: 'אפשר פעולות',
+    dissolveBusiness: 'מחק עסק',
+  },
+  hi: {
+    updateBizAccount: 'व्यापार खाता अपडेट करें',
+    addAdmin: 'व्यवस्थापक जोड़ें',
+    changePassword: 'पासवर्ड बदलें',
+    stopOperations: 'ऑपरेशन रोकें',
+    allowOperations: 'ऑपरेशन की अनुमति दें',
+    dissolveBusiness: 'व्यवसाय भंग करें',
+  },
+  zh: {
+    updateBizAccount: '更新商业账户',
+    addAdmin: '添加管理员',
+    changePassword: '更改密码',
+    stopOperations: '停止运营',
+    allowOperations: '允许运营',
+    dissolveBusiness: '解散企业',
   },
   fr: {
     updateBizAccount: 'Mettre à jour le compte Biz',
@@ -21,7 +45,31 @@ const translations = {
     changePassword: 'Changer le mot de passe',
     stopOperations: 'Arrêter les opérations',
     allowOperations: 'Autoriser les opérations',
-    dissolveBusiness: 'Dissoudre l\'entreprise'
+    dissolveBusiness: 'Dissoudre l\'entreprise',
+  },
+  pt: {
+    updateBizAccount: 'Atualizar conta comercial',
+    addAdmin: 'Adicionar administrador',
+    changePassword: 'Alterar senha',
+    stopOperations: 'Parar operações',
+    allowOperations: 'Permitir operações',
+    dissolveBusiness: 'Dissolver negócio',
+  },
+  it: {
+    updateBizAccount: 'Aggiorna account aziendale',
+    addAdmin: 'Aggiungi amministratore',
+    changePassword: 'Cambia password',
+    stopOperations: 'Blocca operazioni',
+    allowOperations: 'Consenti operazioni',
+    dissolveBusiness: 'Sciogli l\'attività',
+  },
+  am: {
+    updateBizAccount: 'የንግድ መለያ አዘምን',
+    addAdmin: 'አስተዳዳሪ ጨምር',
+    changePassword: 'የይለፍ ቃል ቀይር',
+    stopOperations: 'ክወናዎችን አቁም',
+    allowOperations: 'ክወናዎችን ፍቀድ',
+    dissolveBusiness: 'ንግድ አስወግድ',
   },
   ar: {
     updateBizAccount: 'تحديث حساب العمل',
@@ -29,8 +77,32 @@ const translations = {
     changePassword: 'تغيير كلمة المرور',
     stopOperations: 'إيقاف العمليات',
     allowOperations: 'السماح بالعمليات',
-    dissolveBusiness: 'حل النشاط التجاري'
-  }
+    dissolveBusiness: 'حل النشاط التجاري',
+  },
+  de: {
+    updateBizAccount: 'Geschäftskonto aktualisieren',
+    addAdmin: 'Administrator hinzufügen',
+    changePassword: 'Passwort ändern',
+    stopOperations: 'Operationen stoppen',
+    allowOperations: 'Operationen erlauben',
+    dissolveBusiness: 'Unternehmen auflösen',
+  },
+  es: {
+    updateBizAccount: 'Actualizar cuenta comercial',
+    addAdmin: 'Agregar administrador',
+    changePassword: 'Cambiar contraseña',
+    stopOperations: 'Detener operaciones',
+    allowOperations: 'Permitir operaciones',
+    dissolveBusiness: 'Disolver negocio',
+  },
+  ru: {
+    updateBizAccount: 'Обновить бизнес-аккаунт',
+    addAdmin: 'Добавить администратора',
+    changePassword: 'Изменить пароль',
+    stopOperations: 'Остановить операции',
+    allowOperations: 'Разрешить операции',
+    dissolveBusiness: 'Распустить бизнес',
+  },
 };
 
 export default translations;

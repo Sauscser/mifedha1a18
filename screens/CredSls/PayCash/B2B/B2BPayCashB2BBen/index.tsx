@@ -6,11 +6,18 @@ import { View, Text, Alert, ActivityIndicator } from 'react-native';
 import styles from './styles';
 import { getCurrentUser, fetchUserAttributes } from 'aws-amplify/auth';
 import { generateClient } from 'aws-amplify/api';
+import { useTranslation } from 'react-i18next';
+import translations from './translation';
 const client = generateClient();
 const SMASendNonLns = props => {
   const [isLoading, setIsLoading] = useState(false);
   const route = useRoute();
   const navigation = useNavigation();
+  const { i18n } = useTranslation();
+  const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+  const t = translations[lang] || translations.en;
+  const fmt = (template: string, vars: Record<string, string | number>) =>
+    template.replace(/\{(\w+)\}/g, (_, k) => String(vars[k] ?? ''));
   const SndChmMmbrMny = () => {
     navigation.navigate("AutomaticRepayAllTyps");
   };
@@ -257,27 +264,30 @@ const SMASendNonLns = props => {
                 }
               });
               if (response?.data?.updateBizSlsReq) {
-                Alert.alert("Success", `Amount: ${parseFloat(amount).toFixed(0)}. Transaction fee: ${biznaCashSaleFeeAmt.toFixed(0)}`);
+                Alert.alert(t.successTitle, fmt(t.amountFee, {
+                  amount: parseFloat(amount).toFixed(0),
+                  fee: biznaCashSaleFeeAmt.toFixed(0)
+                }));
               } else {
-                Alert.alert("Update failed", "No response or invalid response from the database.");
+                Alert.alert(t.updateFailedTitle, t.updateFailedMessage);
               }
             } // end sendSMNonLn7
 
             // Authorization and conditional checks preserved
             if (userInfo.userId !== ownerz && ![senderBiz.data.getBizna.Admin1, senderBiz.data.getBizna.Admin2, senderBiz.data.getBizna.Admin3, senderBiz.data.getBizna.Admin4, senderBiz.data.getBizna.Admin5, senderBiz.data.getBizna.Admin6, senderBiz.data.getBizna.Admin7, senderBiz.data.getBizna.Admin8, senderBiz.data.getBizna.Admin9, senderBiz.data.getBizna.Admin10, senderBiz.data.getBizna.Admin11, senderBiz.data.getBizna.Admin12, senderBiz.data.getBizna.Admin13, senderBiz.data.getBizna.Admin14, senderBiz.data.getBizna.Admin15, senderBiz.data.getBizna.Admin16, senderBiz.data.getBizna.Admin17, senderBiz.data.getBizna.Admin18, senderBiz.data.getBizna.Admin19, senderBiz.data.getBizna.Admin20, senderBiz.data.getBizna.Admin21, senderBiz.data.getBizna.Admin22, senderBiz.data.getBizna.Admin23, senderBiz.data.getBizna.Admin24, senderBiz.data.getBizna.Admin25, senderBiz.data.getBizna.Admin26, senderBiz.data.getBizna.Admin27, senderBiz.data.getBizna.Admin28, senderBiz.data.getBizna.Admin29, senderBiz.data.getBizna.Admin30, senderBiz.data.getBizna.Admin31, senderBiz.data.getBizna.Admin32, senderBiz.data.getBizna.Admin33, senderBiz.data.getBizna.Admin34, senderBiz.data.getBizna.Admin35, senderBiz.data.getBizna.Admin36, senderBiz.data.getBizna.Admin37, senderBiz.data.getBizna.Admin38, senderBiz.data.getBizna.Admin39, senderBiz.data.getBizna.Admin40, senderBiz.data.getBizna.Admin41, senderBiz.data.getBizna.Admin42, senderBiz.data.getBizna.Admin43, senderBiz.data.getBizna.Admin44, senderBiz.data.getBizna.Admin45, senderBiz.data.getBizna.Admin46, senderBiz.data.getBizna.Admin47, senderBiz.data.getBizna.Admin48, senderBiz.data.getBizna.Admin49, senderBiz.data.getBizna.Admin50].includes(attributes.email)) {
-              Alert.alert("Unauthorised to pay on behalf of the business!");
+              Alert.alert(t.unauthorizedPay);
               return;
             }
             if (RecAcstatus === "AccountInactive") {
-              Alert.alert("Receiver account is inactive");
+              Alert.alert(t.receiverInactive);
             } else if (SenderAcstatus === "AccountInactive") {
-              Alert.alert("Sender account is inactive");
+              Alert.alert(t.senderInactive);
             } else if (objectionStatus === "Objected") {
-              Alert.alert("Business account locked by the creator or admin");
+              Alert.alert(t.businessLocked);
             } else if (Lonees3.data.listCovCreditSellers.items.length > 0) {
               SndChmMmbrMny();
             } else if (TotalTransacted > SenderUsrBal) {
-              Alert.alert("Your account balance is insufficient");
+              Alert.alert(t.insufficientBalance);
             } else {
               await sendSMNonLn7();
             }
@@ -292,7 +302,7 @@ const SMASendNonLns = props => {
       await fetchCLCrdSl();
     } catch (error) {
       console.error(error);
-      Alert.alert("Retry or update app or call customer care");
+      Alert.alert(t.retryOrUpdate);
     } finally {
       setIsLoading(false);
     }
@@ -301,7 +311,7 @@ const SMASendNonLns = props => {
     fetchSaleReqDtls();
   }, []);
   return <View style={styles.image}>
-      <Text style={styles.sendAmtButtonText}>Please wait for feedback</Text>
+      <Text style={styles.sendAmtButtonText}>{t.pleaseWaitFeedback}</Text>
       {isLoading && <ActivityIndicator size="large" color="blue" />}
     </View>;
 };

@@ -10,6 +10,8 @@ import React, {useState, useEffect} from 'react';
 import {useExchange} from '../../../../src/contexts/ExchangeContext';
 import { formatAmountSync } from '../../../../src/utils/exchange';
 import { getSMAccount } from '../../../../src/graphql/queries';
+import { useTranslation } from 'react-i18next';
+import translations from './translation';
 
 
 export interface SMAccount {
@@ -49,6 +51,9 @@ const SMCvLnStts = (props:SMAccount) => {
    }} = props ;
 
    const navigation = useNavigation();
+  const { i18n } = useTranslation();
+  const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+  const t = translations[lang] || translations.en;
    
    const VwBenefactorContriDtls = () => {
     navigation.navigate("VwBeneficiaryContriDtls", 
@@ -71,13 +76,13 @@ const SMCvLnStts = (props:SMAccount) => {
                   
             
             <View style = {styles.card}>              
-        <Text style={styles.prodInfo}><Text style={styles.label}>Benefactor Name:</Text> {creatorName}</Text>
-          <Text style={styles.prodInfo}><Text style={styles.label}>Benefactor Account:</Text> {benefactorAc}</Text>
-       <Text style={styles.prodInfo}><Text style={styles.label}>Product Creator Account:</Text> {benefactorPhone}</Text>
-      <Text style={styles.prodInfo}><Text style={styles.label}>Beneficiary Name:</Text> {beneficiaryPhone}</Text>
-         <Text style={styles.prodInfo}><Text style={styles.label}>Status:</Text> {benefitStatus}</Text>
-        <Text style={styles.prodInfo}><Text style={styles.label}>Cost:</Text> {formatAmountSync(Math.floor(prodCost), nationality, ratesMap)}</Text>
-        <Text style={styles.prodInfo}><Text style={styles.label}>Benefits Pooled:</Text> {formatAmountSync((benefitsAmount), nationality, ratesMap)}</Text>
+          <Text style={styles.prodInfo}><Text style={styles.label}>{t.benefactorName}</Text> {creatorName}</Text>
+           <Text style={styles.prodInfo}><Text style={styles.label}>{t.benefactorAccount}</Text> {benefactorAc}</Text>
+         <Text style={styles.prodInfo}><Text style={styles.label}>{t.productCreatorAccount}</Text> {benefactorPhone}</Text>
+        <Text style={styles.prodInfo}><Text style={styles.label}>{t.beneficiaryName}</Text> {beneficiaryPhone}</Text>
+          <Text style={styles.prodInfo}><Text style={styles.label}>{t.status}</Text> {benefitStatus}</Text>
+          <Text style={styles.prodInfo}><Text style={styles.label}>{t.cost}</Text> {formatAmountSync(Math.floor(prodCost), nationality, ratesMap)}</Text>
+          <Text style={styles.prodInfo}><Text style={styles.label}>{t.benefitsPooled}</Text> {formatAmountSync((benefitsAmount), nationality, ratesMap)}</Text>
        <Text style={styles.prodDesc}>{prodDesc}</Text> 
                         
                     
@@ -88,7 +93,7 @@ const SMCvLnStts = (props:SMAccount) => {
 onPress={VwBenefactorContriDtls}
 style = {styles.loanFriendButton}
 >            
-  <Text>View My Contributions</Text>            
+  <Text>{t.viewMyContributions}</Text>            
 </Pressable>
 </View>   
 

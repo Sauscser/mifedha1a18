@@ -8,6 +8,8 @@ import { generateClient } from 'aws-amplify/api';
 import { useExchange } from '../../../../src/contexts/ExchangeContext';
 import { formatAmountSync } from '../../../../src/utils/exchange';
 import { nationalityToCode } from '../../../../src/utils/nationalityToCode';
+import { useTranslation } from 'react-i18next';
+import translations from './translation';
 import styles from './styles';
 
 const client = generateClient();
@@ -18,6 +20,12 @@ const BLCovCredByr = () => {
   const routeParams: any = route.params;
   const [isLoading, setIsLoading] = useState(false);
   const { ratesMap } = useExchange();
+  const { i18n } = useTranslation();
+  const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+  const t = translations[lang] || translations.en;
+
+  const fmt = (template: string, values: Record<string, string>) =>
+    template.replace(/\{\{(\w+)\}\}/g, (_, k) => values[k] ?? '');
 
   const gtCompDtls = async () => {
     if (isLoading) return;
@@ -88,11 +96,11 @@ const BLCovCredByr = () => {
       const userCode = nationalityToCode(loaneeNationality) || loaneeNationality || (attributes as any).nationality || 'KE';
 
       if (parseFloat(lonBala) === 0) {
-        Alert.alert('Loanee has cleared this loan');
+        Alert.alert(t.loaneeCleared);
       } else if (acStatus === 'AccountInactive') {
-        Alert.alert('Loanee account has been deactivated');
+        Alert.alert(t.loaneeDeactivated);
       } else if (tmDif < parseFloat(paymentFrequency)) {
-        Alert.alert('Time to Blacklist is not yet');
+        Alert.alert(t.timeToBlacklistNotYet);
       } else if (tmDif2 > parseFloat(paymentFrequency) && amountRepaid < LonBal1a && tmDif2 < repaymentPeriod && status !== 'LoanBL') {
         await client.graphql({
           query: updateCovCreditSeller,
@@ -107,7 +115,7 @@ const BLCovCredByr = () => {
             }
           }
         });
-        Alert.alert(`${loanerName}, you have Penalised ${loaneeName}`);
+        Alert.alert(fmt(t.penalisedUser, { loanerName, loaneeName }));
 
         const formattedLonBal5 = formatAmountSync(LonBal5, userCode, ratesMap);
         const blCredMsg1 = `NiSenti. Hi ${loaneeName}, your loan of ID ${routeParams.loanID} has been Penalised by ${loanerName}. Total repayable: ${formattedLonBal5}.`;
@@ -164,7 +172,7 @@ const BLCovCredByr = () => {
             }
           }
         });
-        Alert.alert(`${loanerName}, you have blacklisted ${loaneeName}`);
+        Alert.alert(fmt(t.blacklistedUser, { loanerName, loaneeName }));
 
         const formattedLonBal4 = formatAmountSync(LonBal4, userCode, ratesMap);
         const blCredMsg2 = `NiSenti. Hi ${loaneeName}, your loan of ID ${routeParams.loanID} has been blacklisted by ${loanerName}. Total repayable: ${formattedLonBal4}.`;
@@ -208,7 +216,7 @@ const BLCovCredByr = () => {
             }
           }
         });
-        Alert.alert(`${loanerName}, you have penalised after blacklisting ${loaneeName}`);
+        Alert.alert(fmt(t.penalisedAfterBlacklistUser, { loanerName, loaneeName }));
 
         const formattedLonBal5After = formatAmountSync(LonBal5, userCode, ratesMap);
         const blCredMsg3 = `NiSenti. Hi ${loaneeName}, your loan of ID ${routeParams.loanID} has been Penalised after blacklisting by ${loanerName}. Total repayable: ${formattedLonBal5After}.`;
@@ -228,11 +236,11 @@ const BLCovCredByr = () => {
           console.log('Notification error:', notifErr);
         }
       } else {
-        Alert.alert('Time to Blacklist/Penalise is not yet');
+        Alert.alert(t.timeToBlacklistPenaliseNotYet);
       }
     } catch (error) {
       console.log(error);
-      Alert.alert('Retry or update app or call customer care');
+      Alert.alert(t.retryOrUpdate);
     } finally {
       setIsLoading(false);
     }
@@ -243,7 +251,7 @@ const BLCovCredByr = () => {
       <View style={styles.image}>
         <ScrollView>
           <TouchableOpacity onPress={gtCompDtls} style={styles.sendLoanButton}>
-            <Text style={styles.sendLoanButtonText}>Click to Black List</Text>
+            <Text style={styles.sendLoanButtonText}>{t.clickToBlacklist}</Text>
             {isLoading && <ActivityIndicator size="large" color="blue" />}
           </TouchableOpacity>
         </ScrollView>

@@ -1,0 +1,38 @@
+const translations = {
+  en: {
+    enterValidAmount: 'Enter a valid amount',
+    unableConvertAmount: 'Unable to convert amount. Please try again.',
+    wrongPassword: 'Wrong password',
+    senderInactive: 'Sender account is inactive',
+    sendFromOwnAccount: 'Please send from your own account',
+    sendLimitExceeded: 'Send limit exceeded',
+    insufficientBalance: 'Insufficient balance',
+    successTransactionFee: 'Successful! Transaction fee: {fee}',
+    transactionFailedRetry: 'Transaction failed, please retry or update your app',
+    fillAccountDetails: 'Fill account Details Below',
+    businessPhone: 'Business Phone',
+    amount: 'Amount',
+    description: 'Description',
+    password: 'Password',
+    send: 'Send',
+  },
+  sw: {
+    enterValidAmount: 'Weka kiasi sahihi',
+    unableConvertAmount: 'Imeshindikana kubadili kiasi. Tafadhali jaribu tena.',
+    wrongPassword: 'Nenosiri si sahihi',
+    senderInactive: 'Akaunti ya mtumaji haifanyi kazi',
+    sendFromOwnAccount: 'Tafadhali tuma kutoka kwenye akaunti yako',
+    sendLimitExceeded: 'Kikomo cha kutuma kimezidiwa',
+    insufficientBalance: 'Salio halitoshi',
+    successTransactionFee: 'Imefanikiwa! Ada ya muamala: {fee}',
+    transactionFailedRetry: 'Muamala umeshindikana, tafadhali jaribu tena au sasisha app',
+    fillAccountDetails: 'Jaza maelezo ya akaunti hapa chini',
+    businessPhone: 'Namba ya Biashara',
+    amount: 'Kiasi',
+    description: 'Maelezo',
+    password: 'Nenosiri',
+    send: 'Tuma',
+  },
+};
+
+export default translations;

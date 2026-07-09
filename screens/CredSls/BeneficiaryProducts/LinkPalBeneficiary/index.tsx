@@ -7,6 +7,8 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { View, Text, TextInput, ScrollView, StyleSheet, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
+import { useTranslation } from 'react-i18next';
+import translations from './translation';
 export type UserReg = {
   usr: String;
 };
@@ -35,6 +37,9 @@ const CreateChama = (props: UserReg) => {
   const [lat, setLat] = useState('');
   const [twn, settwn] = useState('');
   const [lon, setLon] = useState('');
+  const { i18n } = useTranslation();
+  const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+  const t = translations[lang] || translations.en;
   const WorkerID = ChmDesc + ChmRegNo;
   const route = useRoute();
   const ProdId = route.params.id;
@@ -124,23 +129,23 @@ const CreateChama = (props: UserReg) => {
             }
           });
           if (resp?.data?.createLinkBeneficiary2) {
-            Alert.alert('Beneficiary Linked successfully');
+            Alert.alert(t.beneficiaryLinked);
           }
         } catch (error) {
           console.log(error);
-          Alert.alert('Error! Access denied!');
+          Alert.alert(t.accessDenied);
         }
       };
       if (pwsz !== pword) {
-        Alert.alert('Wrong Admin password');
+        Alert.alert(t.wrongAdminPassword);
       } else if (ownerz === userInfo.userId || admins.includes(attributes.email)) {
         await onCreateNewSMAc();
       } else {
-        Alert.alert('You are Neither the Creator/Admin of this business');
+        Alert.alert(t.neitherCreatorAdmin);
       }
     } catch (e) {
       console.error(e);
-      Alert.alert('Error! Access denied!');
+      Alert.alert(t.accessDenied);
     }
     setIsLoading(false);
     setChmPhn('');
@@ -168,17 +173,17 @@ const CreateChama = (props: UserReg) => {
                             <ScrollView>
         
                   <View style={styles.formContainer}>
-                  <TextInput placeholder="Benefactor Business Number" value={ChmRegNo} onChangeText={setChmRegNo} style={styles.input} editable={true}></TextInput>
+                    <TextInput placeholder={t.benefactorBusinessNumber} value={ChmRegNo} onChangeText={setChmRegNo} style={styles.input} editable={true}></TextInput>
                       
-                      <TextInput placeholder="Beneficiary email" value={ChmNm} onChangeText={setChmNm} style={styles.input} editable={true}></TextInput>
+                      <TextInput placeholder={t.beneficiaryEmail} value={ChmNm} onChangeText={setChmNm} style={styles.input} editable={true}></TextInput>
                    <View style={styles.passwordContainer}>
-                                                                 <TextInput placeholder="Admin Main Account Password" style={styles.passwordInput} value={pword} onChangeText={setPW} secureTextEntry={!isPasswordVisible} placeholderTextColor="#ccc" />
+                                           <TextInput placeholder={t.adminMainPassword} style={styles.passwordInput} value={pword} onChangeText={setPW} secureTextEntry={!isPasswordVisible} placeholderTextColor="#ccc" />
                                                                <TouchableOpacity onPress={() => setIsPasswordVisible(!isPasswordVisible)}>
                                                               <Ionicons name={isPasswordVisible ? 'eye' : 'eye-off'} size={24} color="gray" />
                                                                </TouchableOpacity>
                                                                </View>
                   <TouchableOpacity onPress={ChckUsrExistence} style={styles.button}>
-                    {isLoading ? <ActivityIndicator color="#fff" /> : <Text style={styles.locationText}>Submit</Text>}
+                    {isLoading ? <ActivityIndicator color="#fff" /> : <Text style={styles.locationText}>{t.submit}</Text>}
                                           </TouchableOpacity>
                                         </View>
                                       </ScrollView>

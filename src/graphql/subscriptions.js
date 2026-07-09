@@ -1153,6 +1153,186 @@ export const onDeleteLoanRepayments = /* GraphQL */ `
     }
   }
 `;
+export const onCreatePartialPay = /* GraphQL */ `
+  subscription OnCreatePartialPay(
+    $filter: ModelSubscriptionPartialPayFilterInput
+    $owner: String
+  ) {
+    onCreatePartialPay(filter: $filter, owner: $owner) {
+      id
+      sellerEmail
+      sellerAccount
+      buyerEmail
+      buyerAccount
+      sellerName
+      buyerName
+      buyerType
+      sellerType
+      itemCost
+      amountPaid
+      validityPeriod
+      itemDesc
+      itemName
+      itemPhoto
+      itemUrl
+      owner
+      createdAt
+      saleStatus
+      updatedAt
+      __typename
+    }
+  }
+`;
+export const onUpdatePartialPay = /* GraphQL */ `
+  subscription OnUpdatePartialPay(
+    $filter: ModelSubscriptionPartialPayFilterInput
+    $owner: String
+  ) {
+    onUpdatePartialPay(filter: $filter, owner: $owner) {
+      id
+      sellerEmail
+      sellerAccount
+      buyerEmail
+      buyerAccount
+      sellerName
+      buyerName
+      buyerType
+      sellerType
+      itemCost
+      amountPaid
+      validityPeriod
+      itemDesc
+      itemName
+      itemPhoto
+      itemUrl
+      owner
+      createdAt
+      saleStatus
+      updatedAt
+      __typename
+    }
+  }
+`;
+export const onDeletePartialPay = /* GraphQL */ `
+  subscription OnDeletePartialPay(
+    $filter: ModelSubscriptionPartialPayFilterInput
+    $owner: String
+  ) {
+    onDeletePartialPay(filter: $filter, owner: $owner) {
+      id
+      sellerEmail
+      sellerAccount
+      buyerEmail
+      buyerAccount
+      sellerName
+      buyerName
+      buyerType
+      sellerType
+      itemCost
+      amountPaid
+      validityPeriod
+      itemDesc
+      itemName
+      itemPhoto
+      itemUrl
+      owner
+      createdAt
+      saleStatus
+      updatedAt
+      __typename
+    }
+  }
+`;
+export const onCreatePartialPayContributions = /* GraphQL */ `
+  subscription OnCreatePartialPayContributions(
+    $filter: ModelSubscriptionPartialPayContributionsFilterInput
+    $owner: String
+  ) {
+    onCreatePartialPayContributions(filter: $filter, owner: $owner) {
+      id
+      sellerEmail
+      sellerAccount
+      buyerEmail
+      buyerAccount
+      sellerName
+      buyerName
+      buyerType
+      sellerType
+      itemCost
+      amountPaid
+      validityPeriod
+      itemDesc
+      itemName
+      itemPhoto
+      itemUrl
+      owner
+      createdAt
+      saleStatus
+      updatedAt
+      __typename
+    }
+  }
+`;
+export const onUpdatePartialPayContributions = /* GraphQL */ `
+  subscription OnUpdatePartialPayContributions(
+    $filter: ModelSubscriptionPartialPayContributionsFilterInput
+    $owner: String
+  ) {
+    onUpdatePartialPayContributions(filter: $filter, owner: $owner) {
+      id
+      sellerEmail
+      sellerAccount
+      buyerEmail
+      buyerAccount
+      sellerName
+      buyerName
+      buyerType
+      sellerType
+      itemCost
+      amountPaid
+      validityPeriod
+      itemDesc
+      itemName
+      itemPhoto
+      itemUrl
+      owner
+      createdAt
+      saleStatus
+      updatedAt
+      __typename
+    }
+  }
+`;
+export const onDeletePartialPayContributions = /* GraphQL */ `
+  subscription OnDeletePartialPayContributions(
+    $filter: ModelSubscriptionPartialPayContributionsFilterInput
+    $owner: String
+  ) {
+    onDeletePartialPayContributions(filter: $filter, owner: $owner) {
+      id
+      sellerEmail
+      sellerAccount
+      buyerEmail
+      buyerAccount
+      sellerName
+      buyerName
+      buyerType
+      sellerType
+      itemCost
+      amountPaid
+      validityPeriod
+      itemDesc
+      itemName
+      itemPhoto
+      itemUrl
+      owner
+      createdAt
+      saleStatus
+      updatedAt
+      __typename
+    }
+  }
+`;
 export const onCreateSokoAd = /* GraphQL */ `
   subscription OnCreateSokoAd(
     $filter: ModelSubscriptionSokoAdFilterInput
@@ -1181,6 +1361,7 @@ export const onCreateSokoAd = /* GraphQL */ `
       bizName
       bizContact
       Nationality
+      purchaseType
       updatedAt
       __typename
     }
@@ -1214,6 +1395,7 @@ export const onUpdateSokoAd = /* GraphQL */ `
       bizName
       bizContact
       Nationality
+      purchaseType
       updatedAt
       __typename
     }
@@ -1247,6 +1429,7 @@ export const onDeleteSokoAd = /* GraphQL */ `
       bizName
       bizContact
       Nationality
+      purchaseType
       updatedAt
       __typename
     }

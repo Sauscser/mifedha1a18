@@ -103,15 +103,19 @@ function SalesItemMapScreenInner({ navigation }: { navigation: any }) {
   const [biznas, setBiznas] = useState<any[]>([]);
   const [loadingBiznas, setLoadingBiznas] = useState(false);
   const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [selectedPurchaseFlow, setSelectedPurchaseFlow] = useState<'PayFull' | null>(null);
+  const [showPurchaseFlowModal, setShowPurchaseFlowModal] = useState(true);
+  const [showFilterPanel, setShowFilterPanel] = useState(true);
 
   // Show mode modal if mode is not set
   useEffect(() => {
-    if (!mode) setShowModeModal(true);
+    if (!mode && selectedPurchaseFlow === 'PayFull') setShowModeModal(true);
     else setShowModeModal(false);
-  }, [mode]);
+  }, [mode, selectedPurchaseFlow]);
 
   // When B2B is selected, fetch Biznas where user is admin
   useEffect(() => {
+    if (selectedPurchaseFlow !== 'PayFull') return;
     if (mode === 'B2B' && !selectedBizna) {
       setShowBiznaModal(true);
       fetchUserEmailAndBiznas();
@@ -119,7 +123,8 @@ function SalesItemMapScreenInner({ navigation }: { navigation: any }) {
       setShowBiznaModal(false);
     }
     // eslint-disable-next-line
-  }, [mode, selectedBizna]);
+  }, [mode, selectedBizna, selectedPurchaseFlow]);
+
   // Polyline state for showing route from user to selected item
   const [polylineCoords, setPolylineCoords] = useState<Array<{ latitude: number; longitude: number }>>([]);
   // Dynamic currency context
@@ -142,6 +147,7 @@ function SalesItemMapScreenInner({ navigation }: { navigation: any }) {
   const [allItems, setAllItems] = useState<any[]>([]);
   const [userLocation, setUserLocation] = useState<any>(null);
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
+  const [mapLabelPoints, setMapLabelPoints] = useState<{ item?: { x: number; y: number } | null }>({});
 
   // Update polyline when selected item or user location changes
   useEffect(() => {
@@ -158,9 +164,19 @@ function SalesItemMapScreenInner({ navigation }: { navigation: any }) {
       try {
         const url = buildOsrmRouteUrl(userLocation, { latitude: Number(item.latitude), longitude: Number(item.longitude) }, { overview: 'full', geometries: 'geojson' });
         const res = await axios.get(url);
-        if (res.data.routes && res.data.routes.length > 0) {
-          const coords = res.data.routes[0].geometry.coordinates.map(([lng, lat]) => ({ latitude: lat, longitude: lng }));
-          setPolylineCoords(coords);
+        const routeGeometry = res?.data?.routes?.[0]?.geometry;
+        const rawCoords = routeGeometry?.coordinates;
+        if (Array.isArray(rawCoords) && rawCoords.length > 0) {
+          const coords = rawCoords
+            .filter((coord: any) => Array.isArray(coord) && coord.length >= 2 && Number.isFinite(coord[0]) && Number.isFinite(coord[1]))
+            .map((coord: any) => ({
+              latitude: Number(coord[1]),
+              longitude: Number(coord[0])
+            }));
+          setPolylineCoords(coords.length > 0 ? coords : [
+            { latitude: userLocation.latitude, longitude: userLocation.longitude },
+            { latitude: item.latitude, longitude: item.longitude }
+          ]);
         } else {
           setPolylineCoords([
             { latitude: userLocation.latitude, longitude: userLocation.longitude },
@@ -179,15 +195,40 @@ function SalesItemMapScreenInner({ navigation }: { navigation: any }) {
   const [quantities, setQuantities] = useState<Record<string, number>>({});
   const [cart, setCart] = useState<any[]>([]);
   const [cartExpanded, setCartExpanded] = useState(true);
+  const [showCart, setShowCart] = useState(true);
+  const [showCarousel, setShowCarousel] = useState(true);
   const [password, setPassword] = useState('');
   const [filteredItems2, setItems3] = useState<any[]>([]);
   const [Ttl, setFilteredItems3] = useState<any[]>([]);
   const [company, setCompany] = useState<any | null>(null);
+
+  const createMarketConsumptionForItem = async (item: any, buyerId: string) => {
+    const qty = quantities[item.id] || 1;
+    const itemCost = parseFloat(item.sokoprice || '0') * qty;
+    await client.graphql({
+      query: createMarketConsumption,
+      variables: {
+        input: {
+          marketItemID: item.id,
+          price: itemCost.toFixed(2),
+          sellerID: item.sokokntct,
+          buyerID,
+          soldAt: Date.now(),
+          sokoname: item.sokoname || '',
+          itemBrand: item.itemBrand || item.sokoname || '',
+          itemSpecifications: item.itemSpecifications || '',
+          Nationality: item.Nationality || item.sellerNationality || ''
+        }
+      }
+    });
+    return itemCost;
+  };
+
   const VwSalesDtls4Transport = () => {
     navigation.navigate('VwSalesDtls4Transport', { mode, selectedBizna });
   };
   const [OverallTotalDebit, setOverallTotalDebit] = useState(0);
-  const carouselPosition = useRef(new Animated.Value(SCREEN_HEIGHT * 0.55)).current;
+  const carouselPosition = useRef(new Animated.Value(SCREEN_HEIGHT * 0.4)).current;
   const [isLoading2, setIsLoading2] = useState(false); // For Quick Checkout
   const [isLoadingTransport, setIsLoadingTransport] = useState(false); // For Purchase (Ask for Transport)
   const [isLoading, setIsLoading] = useState(false);
@@ -220,7 +261,7 @@ function SalesItemMapScreenInner({ navigation }: { navigation: any }) {
     });
     const keyboardDidHideListener = Keyboard.addListener('keyboardDidHide', () => {
       Animated.spring(carouselPosition, {
-        toValue: SCREEN_HEIGHT * 0.55,
+        toValue: SCREEN_HEIGHT * 0.4,
         useNativeDriver: false
       }).start();
     });
@@ -229,32 +270,6 @@ function SalesItemMapScreenInner({ navigation }: { navigation: any }) {
       keyboardDidHideListener.remove();
     };
   }, []);
-
-  // Draggable filter panel
-  const pan = useRef(new Animated.ValueXY({
-    x: 20,
-    y: 40
-  })).current;
-  const panResponder = useRef(PanResponder.create({
-    onStartShouldSetPanResponder: () => true,
-    onPanResponderGrant: () => {
-      pan.setOffset({
-        x: (pan.x as any)._value,
-        y: (pan.y as any)._value
-      });
-      pan.setValue({
-        x: 0,
-        y: 0
-      });
-    },
-    onPanResponderMove: Animated.event([null, {
-      dx: pan.x,
-      dy: pan.y
-    }], {
-      useNativeDriver: false
-    }),
-    onPanResponderRelease: () => pan.flattenOffset()
-  })).current;
 
   // Carousel drag
   const carouselPanResponder = useRef(PanResponder.create({
@@ -313,7 +328,12 @@ function SalesItemMapScreenInner({ navigation }: { navigation: any }) {
     setIsRefreshing(true);
     try {
       const res: any = await client.graphql({
-        query: listSokoAds
+        query: listSokoAds,
+        variables: {
+          filter: {
+            purchaseType: { eq: 'PayFull' }
+          }
+        }
       });
       const rawItems = res.data.listSokoAds.items || [];
       const ads = await Promise.all(rawItems.map(async (item: any) => {
@@ -397,6 +417,26 @@ function SalesItemMapScreenInner({ navigation }: { navigation: any }) {
       });
     }
   }, [filteredItems]);
+
+  const activeItem = useMemo(() => filteredItems.find(i => i.id === selectedItemId) || null, [filteredItems, selectedItemId]);
+  const refreshMapLabelPoints = useCallback(async () => {
+    const map: any = mapRef.current;
+    if (!map || !activeItem) {
+      setMapLabelPoints({ item: null });
+      return;
+    }
+    try {
+      const itemCoord = { latitude: Number(activeItem.latitude), longitude: Number(activeItem.longitude) };
+      const itemPt = await map.pointForCoordinate(itemCoord);
+      setMapLabelPoints({ item: itemPt || null });
+    } catch (e) {
+      setMapLabelPoints({ item: null });
+    }
+  }, [activeItem]);
+
+  useEffect(() => {
+    refreshMapLabelPoints();
+  }, [refreshMapLabelPoints, selectedItemId, filteredItems]);
 
   // Quantity updates
   const updateQuantity = useCallback((id: string, delta: number) => {
@@ -590,6 +630,7 @@ function SalesItemMapScreenInner({ navigation }: { navigation: any }) {
           return;
         }
       }
+      const buyerId = mode === 'B2B' && selectedBizna && selectedBizna.BusKntct ? selectedBizna.BusKntct : attributes.email;
       const companyResult: any = await client.graphql({
         query: getCompany,
         variables: {
@@ -619,22 +660,7 @@ function SalesItemMapScreenInner({ navigation }: { navigation: any }) {
           Alert.alert(t.insufficientFundsTitle, t.insufficientFunds);
           return;
         }
-        await client.graphql({
-          query: createMarketConsumption,
-          variables: {
-            input: {
-              marketItemID: item.id,
-              price: parseFloat(item.sokoprice).toFixed(2),
-              sellerID: item.sokokntct,
-              buyerID: attributes.email,
-              soldAt: Date.now(),
-              sokoname: item.sokoname,
-              itemBrand: item.itemBrand,
-              itemSpecifications: item.itemSpecifications,
-              Nationality: item.Nationality
-            }
-          }
-        });
+        await createMarketConsumptionForItem(item, buyerId);
         const bizResult: any = await client.graphql({
           query: getBizna,
           variables: {
@@ -932,22 +958,7 @@ function SalesItemMapScreenInner({ navigation }: { navigation: any }) {
           Alert.alert("Insufficient Funds");
           return;
         }
-        await client.graphql({
-          query: createMarketConsumption,
-          variables: {
-            input: {
-              marketItemID: item.id,
-              price: parseFloat(item.sokoprice).toFixed(2),
-              sellerID: item.sokokntct,
-              buyerID: attributes.email,
-              soldAt: Date.now(),
-              sokoname: item.sokoname,
-              itemBrand: item.itemBrand,
-              itemSpecifications: item.itemSpecifications,
-              Nationality: item.Nationality
-            }
-          }
-        });
+        await createMarketConsumptionForItem(item, buyerId);
         const bizResult: any = await client.graphql({
           query: getBizna,
           variables: {
@@ -1042,9 +1053,9 @@ function SalesItemMapScreenInner({ navigation }: { navigation: any }) {
             variables: {
               input: {
                 BusKntct: sokokntct,
-                netEarnings: Maths.floor(netEarnings + totalInKes),
-                earningsBal: Maths.floor(earningsBal + totalInKes),
-                benefitsAmount: Maths.floor(benefitsAmount + benefitInKes)
+                netEarnings: Math.floor(netEarnings + totalInKes),
+                earningsBal: Math.floor(earningsBal + totalInKes),
+                benefitsAmount: Math.floor(benefitsAmount + benefitInKes)
               }
             }
           });
@@ -1232,6 +1243,41 @@ function SalesItemMapScreenInner({ navigation }: { navigation: any }) {
         </View>
       )}
       <View style={{ flex: 1 }}>
+      {showPurchaseFlowModal && (
+        <View style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0,0,0,0.5)',
+          zIndex: 1200,
+          justifyContent: 'center',
+          alignItems: 'center',
+        }}>
+          <View style={{ backgroundColor: 'white', borderRadius: 12, padding: 24, alignItems: 'center', width: 320 }}>
+            <Text style={{ fontWeight: 'bold', fontSize: 18, marginBottom: 16 }}>Choose Purchase Type</Text>
+            <TouchableOpacity
+              style={{ marginVertical: 8, padding: 12, backgroundColor: '#e58d29', borderRadius: 8, width: 240, alignItems: 'center' }}
+              onPress={() => {
+                setSelectedPurchaseFlow('PayFull');
+                setShowPurchaseFlowModal(false);
+              }}
+            >
+              <Text style={{ color: 'white', fontWeight: 'bold' }}>Pay Full Amount</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={{ marginVertical: 8, padding: 12, backgroundColor: '#2a7be4', borderRadius: 8, width: 240, alignItems: 'center' }}
+              onPress={() => {
+                setShowPurchaseFlowModal(false);
+                navigation.navigate('PartialPayFlow');
+              }}
+            >
+              <Text style={{ color: 'white', fontWeight: 'bold' }}>Partially Pay For Item</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
       {/* MapView with floating refresh icon */}
       <View style={{ flex: 1 }}>
         <MapView
@@ -1253,9 +1299,10 @@ function SalesItemMapScreenInner({ navigation }: { navigation: any }) {
               }}
               {...({ onPress: () => onSelectItem(item, index), onLongPress: () => onAddToCart(item) } as any)}
             >
-              <View style={[styles.markerContainer, selectedItemId === item.id && styles.selectedMarker]}>
-                <Text style={styles.markerText}>{item.sokoprice}</Text>
-              </View>
+              <View style={[
+                styles.mapMarkerDot,
+                selectedItemId === item.id ? styles.selectedMapMarkerDot : styles.mapMarkerDotDefault
+              ]} />
             </Marker>
           ))}
           {polylineCoords.length > 1 && (
@@ -1266,6 +1313,37 @@ function SalesItemMapScreenInner({ navigation }: { navigation: any }) {
             />
           )}
         </MapView>
+        <View style={styles.mapTextOverlay} pointerEvents="none">
+          {mapLabelPoints.item && activeItem && (
+            <>
+              <View
+                style={[
+                  styles.mapConnectorLine,
+                  styles.itemConnectorLine,
+                  {
+                    left: mapLabelPoints.item.x - 1,
+                    top: mapLabelPoints.item.y - 16
+                  }
+                ]}
+              />
+              <View
+                style={[
+                  styles.mapTextChip,
+                  styles.itemTextChip,
+                  {
+                    left: mapLabelPoints.item.x,
+                    top: mapLabelPoints.item.y - 34,
+                    transform: [{ translateX: -50 }]
+                  }
+                ]}
+              >
+                <Text style={styles.itemText} numberOfLines={1}>
+                  {formatAmountSync(Number(activeItem.sokoprice), natCode, ratesMap)}
+                </Text>
+              </View>
+            </>
+          )}
+        </View>
         {/* Floating Refresh Icon (on top of map) */}
         <TouchableOpacity
           onPress={isRefreshing ? undefined : () => {
@@ -1299,47 +1377,72 @@ function SalesItemMapScreenInner({ navigation }: { navigation: any }) {
             <FontAwesome name="refresh" size={28} color="#fff" />
           </Animated.View>
         </TouchableOpacity>
+
+        <TouchableOpacity style={styles.purchaseTypeIcon} onPress={() => navigation.navigate('PartialPayFlow')}>
+          <FontAwesome name="arrows-h" size={20} color="#333" />
+        </TouchableOpacity>
       </View>
 
-      {/* Draggable Filter Panel */}
-      <Animated.View style={[styles.filterPanel, pan.getLayout()]} {...panResponder.panHandlers}>
-        <View style={styles.inputsRow}>
-          {INPUT_KEYS.map((key, idx) => <View key={key} style={{
-          width: INPUT_WIDTH,
-          marginRight: idx < INPUT_KEYS.length - 1 ? GAP : 0
-        }}>
-              <TextInput
-                placeholder={
-                  key === 'radius' ? t.radiusPlaceholder :
-                  key === 'brand' ? t.brandPlaceholder :
-                  key === 'business' ? t.businessPlaceholder :
-                  key === 'itemName' ? t.itemNamePlaceholder :
-                  key === 'cheapestRank' ? t.cheapestRankPlaceholder :
-                  key === 'bizName' ? t.bizNamePlaceholder :
-                  (PLACEHOLDERS as any)[key]
-                }
-                keyboardType={['radius', 'cheapestRank'].includes(key) ? 'numeric' : 'default'}
-                style={styles.input}
-                placeholderTextColor="#999"
-                value={(filters as any)[key]}
-                onChangeText={text => setFilters(f => ({
-                  ...f,
-                  [key]: text
-                }))}
-              />
-            </View>)}
+      {/* Collapsible Filter Panel */}
+      {showFilterPanel ? (
+        <View style={styles.filterPanel}>
+          <TouchableOpacity onPress={() => setShowFilterPanel(false)} style={[styles.hideIconButton, styles.filterCloseButton]}>
+            <FontAwesome name="times" size={16} color="#333" />
+          </TouchableOpacity>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ paddingHorizontal: 4, paddingRight: 56 }}
+          >
+            {INPUT_KEYS.map((key, idx) => (
+              <View
+                key={key}
+                style={{
+                  width: INPUT_WIDTH,
+                  marginRight: idx < INPUT_KEYS.length - 1 ? GAP : 0
+                }}
+              >
+                <TextInput
+                  placeholder={
+                    key === 'radius' ? t.radiusPlaceholder :
+                    key === 'brand' ? t.brandPlaceholder :
+                    key === 'business' ? t.businessPlaceholder :
+                    key === 'itemName' ? t.itemNamePlaceholder :
+                    key === 'cheapestRank' ? t.cheapestRankPlaceholder :
+                    key === 'bizName' ? t.bizNamePlaceholder :
+                    (PLACEHOLDERS as any)[key]
+                  }
+                  keyboardType={['radius', 'cheapestRank'].includes(key) ? 'numeric' : 'default'}
+                  style={styles.input}
+                  placeholderTextColor="#999"
+                  value={(filters as any)[key]}
+                  onChangeText={text => setFilters(f => ({
+                    ...f,
+                    [key]: text
+                  }))}
+                />
+              </View>
+            ))}
+          </ScrollView>
         </View>
-        <View style={styles.handleWrapper}><View style={styles.handleLine} /></View>
-      </Animated.View>
+      ) : (
+        <TouchableOpacity style={styles.filterIcon} onPress={() => setShowFilterPanel(true)}>
+          <FontAwesome name="search" size={20} color="#333" />
+        </TouchableOpacity>
+      )}
 
       {/* Responsive Carousel */}
-      <Animated.View style={[styles.carouselContainer, {
-      top: carouselPosition
-    }]} {...carouselPanResponder.panHandlers}>
-        <FlatList ref={listRef} data={filteredItems} horizontal showsHorizontalScrollIndicator={false} keyExtractor={item => item.id} renderItem={({
-        item,
-        index
-      }: {
+      {showCarousel ? (
+        <Animated.View style={[styles.carouselContainer, {
+          top: carouselPosition
+        }]} {...carouselPanResponder.panHandlers}>
+          <TouchableOpacity style={styles.carouselCloseButton} onPress={() => setShowCarousel(false)}>
+            <FontAwesome name="times" size={16} color="#333" />
+          </TouchableOpacity>
+          <FlatList ref={listRef} data={filteredItems} horizontal showsHorizontalScrollIndicator={false} keyExtractor={item => item.id} renderItem={({
+            item,
+            index
+          }: {
         item: SokoItem;
         index: number;
       }) => {
@@ -1398,53 +1501,70 @@ function SalesItemMapScreenInner({ navigation }: { navigation: any }) {
                 </View>
               </TouchableOpacity>;
       }} />
-      </Animated.View>
+        </Animated.View>
+      ) : (
+        <TouchableOpacity style={styles.carouselIcon} onPress={() => setShowCarousel(true)}>
+          <FontAwesome name="archive" size={20} color="#333" />
+        </TouchableOpacity>
+      )}
 
       {/* Cart - collapsible */}
-        <View style={styles.cartContainer}> 
-        <TouchableOpacity onPress={() => setCartExpanded(!cartExpanded)}>
-          <Text style={{
-          fontWeight: 'bold'
-        }}>{cartExpanded ? t.hideCart : t.showCart} ({cart.length})</Text>
+      {showCart ? (
+        <View style={styles.cartContainer}>
+          <View style={styles.cartHeader}>
+            <TouchableOpacity onPress={() => setShowCart(false)} style={styles.hideIconButton}>
+              <FontAwesome name="times" size={16} color="#333" />
+            </TouchableOpacity>
+            <Text style={[styles.cartHeaderText, { flex: 1, marginLeft: 8 }]}>{t.yourCart || 'Your Cart'} ({cart.length})</Text>
+            <TouchableOpacity onPress={() => setCartExpanded(!cartExpanded)} style={styles.cartToggleButton}>
+              <FontAwesome name={cartExpanded ? 'chevron-up' : 'chevron-down'} size={14} color="#333" />
+            </TouchableOpacity>
+          </View>
+          {cartExpanded && (
+            <ScrollView>
+              {cart.length === 0 ? (
+                <Text style={{ textAlign: 'center', paddingVertical: 10, color: '#999' }}>{t.addItemsToCart}</Text>
+              ) : (
+                <>
+                  {cart.map(item => (
+                    <View key={item.id} style={styles.cartItem}>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.cartItemTitle}>{item.sokoname}</Text>
+                        <Text style={styles.cartItemSubtitle}>
+                          {formatAmountSync(Number(item.sokoprice), natCode, ratesMap)} × {quantities[item.id] || 1}
+                        </Text>
+                      </View>
+                      <TouchableOpacity onPress={() => removeFromCart(item.id)}>
+                        <FontAwesome name="trash" size={14} color="#e53935" />
+                      </TouchableOpacity>
+                    </View>
+                  ))}
+                  <View style={styles.cartFooter}>
+                    <Text style={styles.cartTotal}>Total: {formatAmountSync(Number(OverallTotalDebit), natCode, ratesMap)}</Text>
+                    <TextInput
+                      placeholder={t.enterPassword}
+                      secureTextEntry={!isPasswordVisible}
+                      value={password}
+                      onChangeText={setPassword}
+                      style={styles.partialAmountInput}
+                    />
+                    <TouchableOpacity onPress={() => validateAndTransact()} style={styles.startBtn}>
+                      {isLoading ? <ActivityIndicator color="#fff" /> : <Text style={styles.btnText}>{t.quickCheckout}</Text>}
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={() => validateAndTransact2('transport')} style={[styles.startBtn, { marginTop: 10, backgroundColor: '#2a7be4' }]}>
+                      {isLoadingTransport ? <ActivityIndicator color="#fff" /> : <Text style={[styles.btnText, { fontWeight: 'bold' }]}>Purchase (Ask for Transport)</Text>}
+                    </TouchableOpacity>
+                  </View>
+                </>
+              )}
+            </ScrollView>
+          )}
+        </View>
+      ) : (
+        <TouchableOpacity style={styles.cartIcon} onPress={() => setShowCart(true)}>
+          <FontAwesome name="shopping-cart" size={20} color="#333" />
         </TouchableOpacity>
-        {cartExpanded && <ScrollView>
-            {cart.map(item => <View key={item.id} style={{
-          marginVertical: 5
-        }}>
-                <Text>{item.sokoname} @ {formatAmountSync(Number(item.sokoprice), natCode, ratesMap)}{item.sellerNationality ? ` (${formatAmountSync(Number(item.sokoprice), nationalityToCode(item.sellerNationality), ratesMap)})` : ''} × {quantities[item.id] || 1}</Text>
-                <TouchableOpacity onPress={() => removeFromCart(item.id)}>
-                  <Text style={{
-              color: 'red'
-            }}>{t.remove}</Text>
-                </TouchableOpacity>
-              </View>)}
-            <Text style={{
-          fontWeight: 'bold',
-          marginTop: 10
-        }}>{`${t.total}: ${formatAmountSync(Number(OverallTotalDebit), natCode, ratesMap)}`}</Text>
-                        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                          <TextInput
-                            placeholder={t.enterPassword}
-                            secureTextEntry={!isPasswordVisible}
-                            value={password}
-                            onChangeText={setPassword}
-                            style={[styles.passwordInput, { flex: 1 }]}
-                          />
-                          <TouchableOpacity
-                            onPress={() => setIsPasswordVisible(v => !v)}
-                            style={{ marginLeft: 8, padding: 4 }}
-                          >
-                            <FontAwesome name={isPasswordVisible ? 'eye-slash' : 'eye'} size={20} color="#888" />
-                          </TouchableOpacity>
-                        </View>
-            <TouchableOpacity onPress={() => validateAndTransact2('quick')} style={styles.checkoutBtn}>
-              {isLoading2 ? <ActivityIndicator color="white" /> : <Text style={{ color: 'white' }}>{t.quickCheckout}</Text>}
-            </TouchableOpacity>
-            <TouchableOpacity onPress={() => validateAndTransact2('transport')} style={[styles.checkoutBtn, { marginTop: 10, backgroundColor: '#2a7be4' }]}> 
-              {isLoadingTransport ? <ActivityIndicator color="white" /> : <Text style={{ color: 'white', fontWeight: 'bold' }}>Purchase (Ask for Transport)</Text>}
-            </TouchableOpacity>
-          </ScrollView>}
-      </View>
+      )}
     </View>;
     </>
   );
@@ -1464,30 +1584,114 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center'
   },
-  markerContainer: {
-    backgroundColor: '#fff',
-    padding: 6,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#333'
+  mapMarkerDot: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: '#fff',
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2
   },
-  selectedMarker: {
+  mapMarkerDotDefault: {
+    backgroundColor: '#e58d29'
+  },
+  selectedMapMarkerDot: {
     backgroundColor: '#e58d29',
-    borderColor: '#e58d29'
+    width: 20,
+    height: 20,
+    borderRadius: 10
   },
-  markerText: {
-    fontWeight: 'bold',
-    color: '#000'
+  mapTextOverlay: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 200,
+    pointerEvents: 'none'
+  },
+  mapConnectorLine: {
+    position: 'absolute',
+    width: 2,
+    height: 16,
+    backgroundColor: '#333',
+    opacity: 0.9,
+    borderRadius: 1,
+    zIndex: 201
+  },
+  mapTextChip: {
+    position: 'absolute',
+    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    backgroundColor: '#e58d29',
+    maxWidth: SCREEN_WIDTH * 0.42,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.45)',
+    zIndex: 202
+  },
+  itemConnectorLine: {
+    backgroundColor: '#e58d29'
+  },
+  itemText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#fff'
   },
   filterPanel: {
     position: 'absolute',
-    top: 20,
+    top: SCREEN_HEIGHT * 0.28,
     left: 10,
     right: 10,
     backgroundColor: '#f9f9f9',
     borderRadius: 12,
     padding: 8,
-    elevation: 4
+    elevation: 4,
+    zIndex: 220
+  },
+  filterIcon: {
+    position: 'absolute',
+    top: 20,
+    left: (SCREEN_WIDTH - 44) / 2,
+    zIndex: 150,
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    elevation: 6
+  },
+  purchaseTypeIcon: {
+    position: 'absolute',
+    top: 20,
+    right: 84,
+    zIndex: 160,
+    backgroundColor: '#fff',
+    borderRadius: 22,
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    elevation: 6,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4
+  },
+  filterCloseButton: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    zIndex: 225,
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    padding: 6,
+    elevation: 5
   },
   inputsRow: {
     flexDirection: 'row',
@@ -1517,17 +1721,51 @@ const styles = StyleSheet.create({
     width: SCREEN_WIDTH,
     paddingVertical: 8
   },
+  carouselCloseButton: {
+    position: 'absolute',
+    top: 8,
+    right: 16,
+    zIndex: 999,
+    backgroundColor: '#fff',
+    borderRadius: 18,
+    width: 36,
+    height: 36,
+    padding: 4,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#ddd',
+    elevation: 7,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.18,
+    shadowRadius: 3
+  },
+  carouselIcon: {
+    position: 'absolute',
+    bottom: 24,
+    left: 16,
+    zIndex: 150,
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    elevation: 6
+  },
   card: {
     width: SCREEN_WIDTH * 0.8,
     marginHorizontal: 8,
     borderRadius: 12,
     backgroundColor: '#fff',
     padding: 10,
-    elevation: 3
+    elevation: 3,
+    alignItems: 'center'
   },
   cardSelected: {
-    borderWidth: 2,
-    borderColor: '#e58d29'
+    borderColor: '#2a7be4',
+    borderWidth: 2
   },
   carouselImage: {
     width: 80,
@@ -1553,17 +1791,89 @@ const styles = StyleSheet.create({
     justifyContent: 'center'
   },
   cartContainer: {
-     position: 'absolute',
+    position: 'absolute',
     top: 20,
     left: 10,
-     backgroundColor: '#fff',
-     borderBottomLeftRadius: 12,
-     borderTopRightRadius: 12,
-     padding: 10,
-     elevation: 6,
-     minWidth: 180,
-     maxWidth: 260,
-     zIndex: 100,
+    backgroundColor: '#fff',
+    borderBottomLeftRadius: 12,
+    borderTopRightRadius: 12,
+    padding: 10,
+    elevation: 6,
+    minWidth: 180,
+    maxWidth: 260,
+    zIndex: 100
+  },
+  cartHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#ddd'
+  },
+  cartHeaderText: { fontSize: 14, fontWeight: 'bold' },
+  cartItem: {
+    flexDirection: 'row',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+    alignItems: 'center'
+  },
+  cartItemTitle: { fontWeight: 'bold', fontSize: 12 },
+  cartItemSubtitle: { fontSize: 10, color: '#666', marginTop: 2 },
+  cartFooter: {
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderTopWidth: 1,
+    borderTopColor: '#ddd',
+    backgroundColor: '#fafafa'
+  },
+  cartTotal: { fontWeight: 'bold', marginBottom: 8, fontSize: 12 },
+  partialAmountInput: {
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    height: 36,
+    marginBottom: 8,
+    fontWeight: 'bold',
+    color: '#222',
+    fontSize: 12
+  },
+  startBtn: {
+    backgroundColor: '#2e8b57',
+    paddingVertical: 10,
+    borderRadius: 6,
+    alignItems: 'center'
+  },
+  btnText: { color: '#fff', fontWeight: 'bold' },
+  cartIcon: {
+    position: 'absolute',
+    top: 24,
+    left: 16,
+    zIndex: 150,
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+    elevation: 6
+  },
+  hideIconButton: {
+    padding: 8,
+    borderRadius: 20,
+    backgroundColor: '#fff',
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2
+  },
+  cartToggleButton: {
+    padding: 8
   },
   passwordInput: {
     borderWidth: 1,

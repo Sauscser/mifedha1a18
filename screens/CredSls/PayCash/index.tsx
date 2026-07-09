@@ -2,8 +2,13 @@ import React, { useState } from 'react';
 import { useNavigation } from '@react-navigation/native';
 import { View, Text, Pressable, SafeAreaView, ScrollView } from 'react-native';
 import styles from './styles';
+import { useTranslation } from 'react-i18next';
+import translations from './translation';
 const MyLoanAccount = props => {
   const navigation = useNavigation();
+  const { i18n } = useTranslation();
+  const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+  const t = translations[lang] || translations.en;
   const [id, setID] = useState("");
   const [ChamaNMember, setChamaNMember] = useState("");
   const ItemAds = () => {
@@ -99,13 +104,13 @@ const MyLoanAccount = props => {
 
 
             <View style={styles.clientsView}>
-              <Text style={styles.salesText}>Request Cash Transfer</Text>
+              <Text style={styles.salesText}>{t.requestCashTransfer}</Text>
 
               <View style={styles.viewForClientsAndTitle}>
               <View style={styles.viewForClientsCategories7}>
                   
                   <Pressable onPress={B2BPayCashReq} style={styles.viewForClientsPressables}>
-                  <Text style={styles.salesPressableText}>Biz2Biz</Text>
+                  <Text style={styles.salesPressableText}>{t.biz2biz}</Text>
                   </Pressable>
                 </View>
 
@@ -114,7 +119,7 @@ const MyLoanAccount = props => {
                 <View style={styles.viewForClientsCategories7}>
                   
                   <Pressable onPress={B2PPayCashReq} style={styles.viewForClientsPressables}>
-                  <Text style={styles.salesPressableText}>Biz2Pal</Text>
+                  <Text style={styles.salesPressableText}>{t.biz2pal}</Text>
 
                   </Pressable>
                 </View>
@@ -124,13 +129,13 @@ const MyLoanAccount = props => {
             </View>
 
             <View style={styles.clientsView}>
-              <Text style={styles.salesText}>Granting Cash Transfers</Text>
+              <Text style={styles.salesText}>{t.grantingCashTransfers}</Text>
 
               <View style={styles.viewForClientsAndTitle}>
               <View style={styles.viewForClientsCategories7}>
                   
                   <Pressable onPress={B2BPayCashVw2Grant} style={styles.viewForClientsPressables}>
-                  <Text style={styles.salesPressableText}>Biz2Biz</Text>
+                  <Text style={styles.salesPressableText}>{t.biz2biz}</Text>
                   </Pressable>
                 </View>
 
@@ -139,14 +144,14 @@ const MyLoanAccount = props => {
                 <View style={styles.viewForClientsCategories7}>
                   
                   <Pressable onPress={B2PPayCashVw2Grant} style={styles.viewForClientsPressables}>
-                  <Text style={styles.salesPressableText}>Biz2Pal</Text>
+                  <Text style={styles.salesPressableText}>{t.biz2pal}</Text>
 
                   </Pressable>
                 </View>
 
                 <View style={styles.viewForClientsCategories7}>
                 <Pressable onPress={P2BPayCash} style={styles.viewForClientsPressables}>
-                  <Text style={styles.salesPressableText}>Pal2Biz</Text>
+                  <Text style={styles.salesPressableText}>{t.pal2biz}</Text>
 
                   </Pressable>
                 </View>
@@ -155,20 +160,20 @@ const MyLoanAccount = props => {
             </View>
 
             <View style={styles.clientsView}>
-              <Text style={styles.salesText}>View Cash Sent</Text>
+              <Text style={styles.salesText}>{t.viewCashSent}</Text>
 
               <View style={styles.viewForClientsAndTitle}>
               <View style={styles.viewForClientsCategories}>
-                  <Text style={styles.salesPressableText}>Biz2Biz</Text>
+                  <Text style={styles.salesPressableText}>{t.biz2biz}</Text>
 
                   <View style={styles.viewForClientsPressables}>
                     <Pressable onPress={ViewBiznaShareSentB2B} style={styles.ClientsPressables}>
-                      <Text style={styles.clientsPressableText}>Sent</Text>
+                      <Text style={styles.clientsPressableText}>{t.sent}</Text>
                     </Pressable>
 
                     <Pressable onPress={ViewBiznaShareRecB2B} style={styles.ClientsPressables}>
                       <Text style={styles.clientsPressableText}>
-                        Received
+                        {t.received}
                       </Text>
                     </Pressable>
                   </View>
@@ -177,32 +182,32 @@ const MyLoanAccount = props => {
             
 
                 <View style={styles.viewForClientsCategories}>
-                  <Text style={styles.salesPressableText}>Biz2Pal</Text>
+                  <Text style={styles.salesPressableText}>{t.biz2pal}</Text>
 
                   <View style={styles.viewForClientsPressables}>
                     <Pressable onPress={ViewBiznaShareSentB2P} style={styles.ClientsPressables}>
-                      <Text style={styles.clientsPressableText}>Sent</Text>
+                      <Text style={styles.clientsPressableText}>{t.sent}</Text>
                     </Pressable>
 
                     <Pressable onPress={ViewBiznaShareRecB2P} style={styles.ClientsPressables}>
                       <Text style={styles.clientsPressableText}>
-                       Received
+                       {t.received}
                       </Text>
                     </Pressable>
                   </View>
                 </View>
 
                 <View style={styles.viewForClientsCategories}>
-                  <Text style={styles.salesPressableText}>Pal2Biz</Text>
+                  <Text style={styles.salesPressableText}>{t.pal2biz}</Text>
 
                   <View style={styles.viewForClientsPressables}>
                     <Pressable onPress={ViewBiznaShareSentP2B} style={styles.ClientsPressables}>
-                      <Text style={styles.clientsPressableText}>Sent</Text>
+                      <Text style={styles.clientsPressableText}>{t.sent}</Text>
                     </Pressable>
 
                     <Pressable onPress={ViewBiznaShareRecP2B} style={styles.ClientsPressables}>
                       <Text style={styles.clientsPressableText}>
-                      Received
+                      {t.received}
                       </Text>
                     </Pressable>
                   </View>

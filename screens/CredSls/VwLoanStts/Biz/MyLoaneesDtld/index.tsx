@@ -1,18 +1,24 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, ImageBackground, Pressable, FlatList, Alert } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, FlatList, Alert } from 'react-native';
 import LnerStts from "../../../../../components/VwCredSales/CrdStatus/Biz/Biz2BizLoaneesDtld";
 import styles from './styles';
 import { useRoute } from '@react-navigation/native';
-import { getCompany, getSMAccount, listCovCreditSellers, listSMLoansCovereds } from '../../../../../src/graphql/queries';
-import { updateCompany, updateSMAccount } from '../../../../../src/graphql/mutations';
+import { getSMAccount, listCovCreditSellers } from '../../../../../src/graphql/queries';
 import { getCurrentUser, fetchUserAttributes } from "aws-amplify/auth";
 import { generateClient } from "aws-amplify/api";
+import { useTranslation } from 'react-i18next';
+import translations from './translation';
 const client = generateClient();
 const FetchSMCovLns = props => {
   const [LnerPhn, setLnerPhn] = useState(null);
   const [loading, setLoading] = useState(false);
   const [Loanees, setLoanees] = useState([]);
-  const route = useRoute();
+  const route = useRoute<any>();
+  const { i18n } = useTranslation();
+  const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+  const t = translations[lang] || translations.en;
+  const routeParams = (route?.params || {}) as Record<string, any>;
+  const loanId = routeParams.loanID;
   const fetchUsrDtls = async () => {
     const userInfo = await getCurrentUser();
     const attributes = await fetchUserAttributes();
@@ -28,32 +34,33 @@ const FetchSMCovLns = props => {
       const fetchLoanees = async () => {
         setLoading(true);
         try {
+          const filter: any = {
+            and: {
+              lonBala: {
+                gt: 0
+              },
+              loanID: {
+                eq: loanId
+              }
+            }
+          };
           const Lonees: any = await client.graphql({
             query: listCovCreditSellers,
             variables: {
-              filter: {
-                and: {
-                  lonBala: {
-                    gt: 0
-                  },
-                  loanID: {
-                    eq: route.params.loanID
-                  }
-                }
-              }
+              filter
             }
           });
           setLoanees(Lonees.data.listCovCreditSellers.items);
         } catch (e) {
           if (e) {
-            Alert.alert("Retry or update app or call customer care");
+            Alert.alert(t.retryOrUpdateApp);
             return;
           }
           console.log(e);
         }
       };
       if (userInfo.userId !== owner) {
-        Alert.alert("Please first create a main account");
+        Alert.alert(t.pleaseCreateMainAccount);
         return;
       } else {
         await fetchLoanees();
@@ -76,8 +83,8 @@ const FetchSMCovLns = props => {
       alignItems: 'center'
     }} ListHeaderComponent={() => <>
             
-            <Text style={styles.label}> My Loanees</Text>
-            <Text style={styles.label2}> (Please swipe down to load)</Text>
+            <Text style={styles.label}>{t.myLoaneesTitle}</Text>
+            <Text style={styles.label2}>{t.pleaseSwipeDownToLoad}</Text>
           </>} />
     </View>;
 };

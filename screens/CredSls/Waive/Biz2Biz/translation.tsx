@@ -1,0 +1,38 @@
+const translations = {
+  en: {
+    enterValidAmount: 'Enter a valid amount',
+    unableConvertAmount: 'Unable to convert amount. Please try again.',
+    waiverUnsuccessfulRetry: 'Waiver unsuccessful; Retry',
+    retryUpdateCallSupport: 'Retry or update app or call customer care',
+    cleared: 'Cleared.',
+    partiallyWaived: 'Partially Waived.',
+    notCeoOfBusiness: 'You are not the CEO of the business',
+    tooLittleWaiverPrefix: 'Too little Waiver: at least',
+    loanBalanceLesserPrefix: 'The Loan Balance is lesser:',
+    fillAccountDetails: 'Fill account Details Below',
+    amountPlaceholder: 'Amount',
+    descriptionPlaceholder: 'Description',
+    amountWaived: 'Amount Waived',
+    description: 'Description',
+    waive: 'Waive',
+  },
+  sw: {
+    enterValidAmount: 'Weka kiasi halali',
+    unableConvertAmount: 'Imeshindikana kubadili kiasi. Tafadhali jaribu tena.',
+    waiverUnsuccessfulRetry: 'Msamaha haukufaulu; jaribu tena',
+    retryUpdateCallSupport: 'Jaribu tena au sasisha app au piga huduma kwa wateja',
+    cleared: 'Imesafishwa.',
+    partiallyWaived: 'Imesamehewa sehemu.',
+    notCeoOfBusiness: 'Wewe si CEO wa biashara',
+    tooLittleWaiverPrefix: 'Msamaha ni mdogo sana: angalau',
+    loanBalanceLesserPrefix: 'Salio la mkopo ni dogo:',
+    fillAccountDetails: 'Jaza maelezo ya akaunti hapa chini',
+    amountPlaceholder: 'Kiasi',
+    descriptionPlaceholder: 'Maelezo',
+    amountWaived: 'Kiasi kilichosamehewa',
+    description: 'Maelezo',
+    waive: 'Samehe',
+  },
+};
+
+export default translations;

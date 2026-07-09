@@ -5,8 +5,13 @@ import LnerStts from "../../../../../components/VwCredSales/2RepayCov";
 import styles from './styles';
 import { getCurrentUser, fetchUserAttributes } from "aws-amplify/auth";
 import { generateClient } from "aws-amplify/api";
+import { useTranslation } from 'react-i18next';
+import translations from './translation';
 const client = generateClient();
 const FetchSMCovLns = props => {
+  const { i18n } = useTranslation();
+  const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+  const t = translations[lang] || translations.en;
   const [loading, setLoading] = useState(false);
   const [Loanees, setLoanees] = useState([]);
   const fetchUsrDtls = async () => {
@@ -48,7 +53,7 @@ const FetchSMCovLns = props => {
         }
       };
       if (userInfo.userId !== owner) {
-        Alert.alert("Please first create a main account");
+        Alert.alert(t.createMainAccount);
         return;
       } else {
         await fetchLoanees();
@@ -71,8 +76,8 @@ const FetchSMCovLns = props => {
       alignItems: 'center'
     }} ListHeaderComponent={() => <>
             
-            <Text style={styles.label}> My Loaners</Text>
-            <Text style={styles.label2}> (Please swipe down to load)</Text>
+          <Text style={styles.label}> {t.title}</Text>
+          <Text style={styles.label2}> {t.swipeToLoad}</Text>
           </>} />
     </View>;
 };

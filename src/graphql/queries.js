@@ -825,6 +825,134 @@ export const listLoanRepayments = /* GraphQL */ `
     }
   }
 `;
+export const getPartialPay = /* GraphQL */ `
+  query GetPartialPay($id: ID!) {
+    getPartialPay(id: $id) {
+      id
+      sellerEmail
+      sellerAccount
+      buyerEmail
+      buyerAccount
+      sellerName
+      buyerName
+      buyerType
+      sellerType
+      itemCost
+      amountPaid
+      validityPeriod
+      itemDesc
+      itemName
+      itemPhoto
+      itemUrl
+      owner
+      createdAt
+      saleStatus
+      updatedAt
+      __typename
+    }
+  }
+`;
+export const listPartialPays = /* GraphQL */ `
+  query ListPartialPays(
+    $filter: ModelPartialPayFilterInput
+    $limit: Int
+    $nextToken: String
+  ) {
+    listPartialPays(filter: $filter, limit: $limit, nextToken: $nextToken) {
+      items {
+        id
+        sellerEmail
+        sellerAccount
+        buyerEmail
+        buyerAccount
+        sellerName
+        buyerName
+        buyerType
+        sellerType
+        itemCost
+        amountPaid
+        validityPeriod
+        itemDesc
+        itemName
+        itemPhoto
+        itemUrl
+        owner
+        createdAt
+        saleStatus
+        updatedAt
+        __typename
+      }
+      nextToken
+      __typename
+    }
+  }
+`;
+export const getPartialPayContributions = /* GraphQL */ `
+  query GetPartialPayContributions($id: ID!) {
+    getPartialPayContributions(id: $id) {
+      id
+      sellerEmail
+      sellerAccount
+      buyerEmail
+      buyerAccount
+      sellerName
+      buyerName
+      buyerType
+      sellerType
+      itemCost
+      amountPaid
+      validityPeriod
+      itemDesc
+      itemName
+      itemPhoto
+      itemUrl
+      owner
+      createdAt
+      saleStatus
+      updatedAt
+      __typename
+    }
+  }
+`;
+export const listPartialPayContributions = /* GraphQL */ `
+  query ListPartialPayContributions(
+    $filter: ModelPartialPayContributionsFilterInput
+    $limit: Int
+    $nextToken: String
+  ) {
+    listPartialPayContributions(
+      filter: $filter
+      limit: $limit
+      nextToken: $nextToken
+    ) {
+      items {
+        id
+        sellerEmail
+        sellerAccount
+        buyerEmail
+        buyerAccount
+        sellerName
+        buyerName
+        buyerType
+        sellerType
+        itemCost
+        amountPaid
+        validityPeriod
+        itemDesc
+        itemName
+        itemPhoto
+        itemUrl
+        owner
+        createdAt
+        saleStatus
+        updatedAt
+        __typename
+      }
+      nextToken
+      __typename
+    }
+  }
+`;
 export const getSokoAd = /* GraphQL */ `
   query GetSokoAd($id: ID!) {
     getSokoAd(id: $id) {
@@ -850,6 +978,7 @@ export const getSokoAd = /* GraphQL */ `
       bizName
       bizContact
       Nationality
+      purchaseType
       updatedAt
       __typename
     }
@@ -885,6 +1014,7 @@ export const listSokoAds = /* GraphQL */ `
         bizName
         bizContact
         Nationality
+        purchaseType
         updatedAt
         __typename
       }
@@ -5453,6 +5583,366 @@ export const VwMyRecMnysxz = /* GraphQL */ `
     }
   }
 `;
+export const sellerByEmail = /* GraphQL */ `
+  query SellerByEmail(
+    $sellerEmail: String!
+    $createdAt: ModelStringKeyConditionInput
+    $sortDirection: ModelSortDirection
+    $filter: ModelPartialPayFilterInput
+    $limit: Int
+    $nextToken: String
+  ) {
+    sellerByEmail(
+      sellerEmail: $sellerEmail
+      createdAt: $createdAt
+      sortDirection: $sortDirection
+      filter: $filter
+      limit: $limit
+      nextToken: $nextToken
+    ) {
+      items {
+        id
+        sellerEmail
+        sellerAccount
+        buyerEmail
+        buyerAccount
+        sellerName
+        buyerName
+        buyerType
+        sellerType
+        itemCost
+        amountPaid
+        validityPeriod
+        itemDesc
+        itemName
+        itemPhoto
+        itemUrl
+        owner
+        createdAt
+        saleStatus
+        updatedAt
+        __typename
+      }
+      nextToken
+      __typename
+    }
+  }
+`;
+export const sellerByAccount = /* GraphQL */ `
+  query SellerByAccount(
+    $sellerAccount: String!
+    $createdAt: ModelStringKeyConditionInput
+    $sortDirection: ModelSortDirection
+    $filter: ModelPartialPayFilterInput
+    $limit: Int
+    $nextToken: String
+  ) {
+    sellerByAccount(
+      sellerAccount: $sellerAccount
+      createdAt: $createdAt
+      sortDirection: $sortDirection
+      filter: $filter
+      limit: $limit
+      nextToken: $nextToken
+    ) {
+      items {
+        id
+        sellerEmail
+        sellerAccount
+        buyerEmail
+        buyerAccount
+        sellerName
+        buyerName
+        buyerType
+        sellerType
+        itemCost
+        amountPaid
+        validityPeriod
+        itemDesc
+        itemName
+        itemPhoto
+        itemUrl
+        owner
+        createdAt
+        saleStatus
+        updatedAt
+        __typename
+      }
+      nextToken
+      __typename
+    }
+  }
+`;
+export const buyerByEmail = /* GraphQL */ `
+  query BuyerByEmail(
+    $buyerEmail: String!
+    $createdAt: ModelStringKeyConditionInput
+    $sortDirection: ModelSortDirection
+    $filter: ModelPartialPayFilterInput
+    $limit: Int
+    $nextToken: String
+  ) {
+    buyerByEmail(
+      buyerEmail: $buyerEmail
+      createdAt: $createdAt
+      sortDirection: $sortDirection
+      filter: $filter
+      limit: $limit
+      nextToken: $nextToken
+    ) {
+      items {
+        id
+        sellerEmail
+        sellerAccount
+        buyerEmail
+        buyerAccount
+        sellerName
+        buyerName
+        buyerType
+        sellerType
+        itemCost
+        amountPaid
+        validityPeriod
+        itemDesc
+        itemName
+        itemPhoto
+        itemUrl
+        owner
+        createdAt
+        saleStatus
+        updatedAt
+        __typename
+      }
+      nextToken
+      __typename
+    }
+  }
+`;
+export const buyerByAccount = /* GraphQL */ `
+  query BuyerByAccount(
+    $buyerAccount: String!
+    $createdAt: ModelStringKeyConditionInput
+    $sortDirection: ModelSortDirection
+    $filter: ModelPartialPayFilterInput
+    $limit: Int
+    $nextToken: String
+  ) {
+    buyerByAccount(
+      buyerAccount: $buyerAccount
+      createdAt: $createdAt
+      sortDirection: $sortDirection
+      filter: $filter
+      limit: $limit
+      nextToken: $nextToken
+    ) {
+      items {
+        id
+        sellerEmail
+        sellerAccount
+        buyerEmail
+        buyerAccount
+        sellerName
+        buyerName
+        buyerType
+        sellerType
+        itemCost
+        amountPaid
+        validityPeriod
+        itemDesc
+        itemName
+        itemPhoto
+        itemUrl
+        owner
+        createdAt
+        saleStatus
+        updatedAt
+        __typename
+      }
+      nextToken
+      __typename
+    }
+  }
+`;
+export const sellerByEmailContributions = /* GraphQL */ `
+  query SellerByEmailContributions(
+    $sellerEmail: String!
+    $createdAt: ModelStringKeyConditionInput
+    $sortDirection: ModelSortDirection
+    $filter: ModelPartialPayContributionsFilterInput
+    $limit: Int
+    $nextToken: String
+  ) {
+    sellerByEmailContributions(
+      sellerEmail: $sellerEmail
+      createdAt: $createdAt
+      sortDirection: $sortDirection
+      filter: $filter
+      limit: $limit
+      nextToken: $nextToken
+    ) {
+      items {
+        id
+        sellerEmail
+        sellerAccount
+        buyerEmail
+        buyerAccount
+        sellerName
+        buyerName
+        buyerType
+        sellerType
+        itemCost
+        amountPaid
+        validityPeriod
+        itemDesc
+        itemName
+        itemPhoto
+        itemUrl
+        owner
+        createdAt
+        saleStatus
+        updatedAt
+        __typename
+      }
+      nextToken
+      __typename
+    }
+  }
+`;
+export const sellerByAccountContributions = /* GraphQL */ `
+  query SellerByAccountContributions(
+    $sellerAccount: String!
+    $createdAt: ModelStringKeyConditionInput
+    $sortDirection: ModelSortDirection
+    $filter: ModelPartialPayContributionsFilterInput
+    $limit: Int
+    $nextToken: String
+  ) {
+    sellerByAccountContributions(
+      sellerAccount: $sellerAccount
+      createdAt: $createdAt
+      sortDirection: $sortDirection
+      filter: $filter
+      limit: $limit
+      nextToken: $nextToken
+    ) {
+      items {
+        id
+        sellerEmail
+        sellerAccount
+        buyerEmail
+        buyerAccount
+        sellerName
+        buyerName
+        buyerType
+        sellerType
+        itemCost
+        amountPaid
+        validityPeriod
+        itemDesc
+        itemName
+        itemPhoto
+        itemUrl
+        owner
+        createdAt
+        saleStatus
+        updatedAt
+        __typename
+      }
+      nextToken
+      __typename
+    }
+  }
+`;
+export const buyerByEmailContributions = /* GraphQL */ `
+  query BuyerByEmailContributions(
+    $buyerEmail: String!
+    $createdAt: ModelStringKeyConditionInput
+    $sortDirection: ModelSortDirection
+    $filter: ModelPartialPayContributionsFilterInput
+    $limit: Int
+    $nextToken: String
+  ) {
+    buyerByEmailContributions(
+      buyerEmail: $buyerEmail
+      createdAt: $createdAt
+      sortDirection: $sortDirection
+      filter: $filter
+      limit: $limit
+      nextToken: $nextToken
+    ) {
+      items {
+        id
+        sellerEmail
+        sellerAccount
+        buyerEmail
+        buyerAccount
+        sellerName
+        buyerName
+        buyerType
+        sellerType
+        itemCost
+        amountPaid
+        validityPeriod
+        itemDesc
+        itemName
+        itemPhoto
+        itemUrl
+        owner
+        createdAt
+        saleStatus
+        updatedAt
+        __typename
+      }
+      nextToken
+      __typename
+    }
+  }
+`;
+export const buyerByAccountContributions = /* GraphQL */ `
+  query BuyerByAccountContributions(
+    $buyerAccount: String!
+    $createdAt: ModelStringKeyConditionInput
+    $sortDirection: ModelSortDirection
+    $filter: ModelPartialPayContributionsFilterInput
+    $limit: Int
+    $nextToken: String
+  ) {
+    buyerByAccountContributions(
+      buyerAccount: $buyerAccount
+      createdAt: $createdAt
+      sortDirection: $sortDirection
+      filter: $filter
+      limit: $limit
+      nextToken: $nextToken
+    ) {
+      items {
+        id
+        sellerEmail
+        sellerAccount
+        buyerEmail
+        buyerAccount
+        sellerName
+        buyerName
+        buyerType
+        sellerType
+        itemCost
+        amountPaid
+        validityPeriod
+        itemDesc
+        itemName
+        itemPhoto
+        itemUrl
+        owner
+        createdAt
+        saleStatus
+        updatedAt
+        __typename
+      }
+      nextToken
+      __typename
+    }
+  }
+`;
 export const DakaByName = /* GraphQL */ `
   query DakaByName(
     $sokoname: String!
@@ -5493,6 +5983,7 @@ export const DakaByName = /* GraphQL */ `
         bizName
         bizContact
         Nationality
+        purchaseType
         updatedAt
         __typename
       }

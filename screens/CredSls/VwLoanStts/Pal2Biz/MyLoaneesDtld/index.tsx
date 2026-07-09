@@ -7,12 +7,17 @@ import { updateCompany, updateSMAccount } from '../../../../../src/graphql/mutat
 import { useRoute } from '@react-navigation/native';
 import { getCurrentUser, fetchUserAttributes } from "aws-amplify/auth";
 import { generateClient } from "aws-amplify/api";
+import { useTranslation } from 'react-i18next';
+import translations from './translation';
 const client = generateClient();
 const FetchSMCovLns = props => {
   const [LnerPhn, setLnerPhn] = useState(null);
   const [loading, setLoading] = useState(false);
   const [Loanees, setLoanees] = useState([]);
   const route = useRoute();
+  const { i18n } = useTranslation();
+  const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+  const t = translations[lang] || translations.en;
   const fetchUsrDtls = async () => {
     const userInfo = await getCurrentUser();
     const attributes = await fetchUserAttributes();
@@ -46,14 +51,14 @@ const FetchSMCovLns = props => {
           setLoanees(Lonees.data.listCovCreditSellers.items);
         } catch (e) {
           if (e) {
-            Alert.alert("Retry or update app or call customer care");
+            Alert.alert(t.retryAlertTitle);
             return;
           }
           console.log(e);
         }
       };
       if (userInfo.userId !== owner) {
-        Alert.alert("Please first create a main account");
+        Alert.alert(t.mainAccountAlert);
         return;
       } else {
         await fetchLoanees();
@@ -76,8 +81,8 @@ const FetchSMCovLns = props => {
       alignItems: 'center'
     }} ListHeaderComponent={() => <>
             
-            <Text style={styles.label}> My Loanees</Text>
-            <Text style={styles.label2}> (Please swipe down to load)</Text>
+            <Text style={styles.label}>{t.myLoaneesTitle}</Text>
+            <Text style={styles.label2}>{t.pleaseSwipeDownToLoad}</Text>
           </>} />
     </View>;
 };

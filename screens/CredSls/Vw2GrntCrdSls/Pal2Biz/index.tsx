@@ -5,8 +5,13 @@ import LnerStts from "../../../../components/VwCredSales/Vw2CrdSlNonCov";
 import styles from './styles';
 import { getCurrentUser, fetchUserAttributes } from "aws-amplify/auth";
 import { generateClient } from "aws-amplify/api";
+import { useTranslation } from 'react-i18next';
+import translations from './translation';
 const client = generateClient();
 const FetchSMCovLns = props => {
+  const { i18n } = useTranslation();
+  const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+  const t = translations[lang] || translations.en;
   const [loading, setLoading] = useState(false);
   const [Loanees, setLoanees] = useState([]);
   const fetchUsrDtls = async () => {
@@ -45,7 +50,7 @@ const FetchSMCovLns = props => {
         }
       };
       if (userInfo.userId !== owner) {
-        Alert.alert("Please first create main account");
+        Alert.alert(t.pleaseCreateMainAccount);
       } else {
         await fetchLoanees();
       }
@@ -67,8 +72,8 @@ const FetchSMCovLns = props => {
       alignItems: 'center'
     }} ListHeaderComponent={() => <>
             
-            <Text style={styles.label}> Select work place to sell</Text>
-            <Text style={styles.label2}> (Please swipe down to load)</Text>
+            <Text style={styles.label}>{t.selectWorkPlaceToSell}</Text>
+            <Text style={styles.label2}>{t.swipeDownToLoad}</Text>
           </>} />
     </View>;
 };

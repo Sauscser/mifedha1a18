@@ -8,6 +8,8 @@ import {useExchange} from '../../../../../src/contexts/ExchangeContext';
 import { getSMAccount } from '../../../../../src/graphql/queries';
 import {fetchUserAttributes} from 'aws-amplify/auth';
 import { generateClient } from 'aws-amplify/api';
+import { useTranslation } from 'react-i18next';
+import translations from './translation';
 
 
 export interface ChmCvLnSttusRec {
@@ -79,6 +81,9 @@ const CredByrCvLnStts = (props:ChmCvLnSttusRec) => {
       const client = generateClient();
       const [Uzer, setUzer] = useState<string>(null);
       const [userNationality, setUserNationality] = useState<string>(null);
+      const { i18n } = useTranslation();
+      const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+      const t = translations[lang] || translations.en;
       const userCode = nationalityToCode(userNationality);
       const {ratesMap} = useExchange();
         
@@ -136,12 +141,12 @@ const CredByrCvLnStts = (props:ChmCvLnSttusRec) => {
            <Pressable onPress={SndChmMmbrMny} style = {styles.card}>
            <Text style = {styles.prodName}>                       
                       {/*loaner details */}   
-                      Seller Name: {SellerName}               
+{t.sellerNameLabel}: {SellerName}               
                    </Text>
-                 
-                  <Text style={styles.prodInfo}><Text style={styles.label}>Loan ID:</Text> {loanID}</Text>
-               <Text style={styles.prodInfo}><Text style={styles.label}>Loan Balance with Penalties:</Text> {formatAmountSync(Math.floor(LonBal1), userCode, ratesMap)}</Text>
-               <Text style={styles.prodInfo}><Text style={styles.label}>Seller Contact:</Text> {sellerContact}</Text>
+                  
+                  <Text style={styles.prodInfo}><Text style={styles.label}>{t.loanIdLabel}:</Text> {loanID}</Text>
+               <Text style={styles.prodInfo}><Text style={styles.label}>{t.loanBalanceLabel}:</Text> {formatAmountSync(Math.floor(LonBal1), userCode, ratesMap)}</Text>
+               <Text style={styles.prodInfo}><Text style={styles.label}>{t.sellerContactLabel}:</Text> {sellerContact}</Text>
 
                    </Pressable>
 
@@ -151,13 +156,13 @@ const CredByrCvLnStts = (props:ChmCvLnSttusRec) => {
                      onPress={VwRpayments}
                      style = {styles.loanFriendButton}
                      >            
-                       <Text style = {styles.buttonText}>ViewRpymnts</Text>            
+                       <Text style = {styles.buttonText}>{t.viewRepayments}</Text>            
                    </Pressable>
                   
                    <Pressable
                      onPress={Repay}
                      style = {styles.redeemButton}>            
-                       <Text style = {styles.buttonText}>Repay</Text>            
+                       <Text style = {styles.buttonText}>{t.repay}</Text>            
                    </Pressable>  
                   
                    </View>

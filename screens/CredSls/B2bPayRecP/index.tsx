@@ -22,6 +22,8 @@ import { useNavigation } from '@react-navigation/native';
 import { useExchange } from '../../../src/contexts/ExchangeContext';
 import { convertForeignToKsh, formatAmountSync } from '../../../src/utils/exchange';
 import { nationalityToCode } from '../../../src/utils/nationalityToCode';
+import { useTranslation } from 'react-i18next';
+import translations from './translation';
 import {
   View,
   Text,
@@ -44,15 +46,24 @@ const SMASendNonLns = (props: any) => {
   const [isLoading, setIsLoading] = useState(false);
   const navigation = useNavigation();
   const { ratesMap } = useExchange();
+  const { i18n } = useTranslation();
+  const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+  const t = translations[lang] || translations.en;
+  const fmt = (template: string, vars: Record<string, string | number>) =>
+    template.replace(/\{(\w+)\}/g, (_, k) => String(vars[k] ?? ''));
 
   const confirmSendTransfer = (amountDisplay: string, receiverBusiness: string, description: string) =>
     new Promise<boolean>((resolve) => {
       Alert.alert(
-        'Confirm Transfer',
-        `Send ${amountDisplay} to ${receiverBusiness}?\n\nDescription: ${description || 'N/A'}`,
+        t.confirmTransferTitle,
+        fmt(t.confirmTransferMessage, {
+          amount: amountDisplay,
+          receiver: receiverBusiness,
+          description: description || 'N/A',
+        }),
         [
-          { text: 'Cancel', style: 'cancel', onPress: () => resolve(false) },
-          { text: 'Send', onPress: () => resolve(true) },
+          { text: t.cancel, style: 'cancel', onPress: () => resolve(false) },
+          { text: t.send, onPress: () => resolve(true) },
         ],
         { cancelable: true, onDismiss: () => resolve(false) }
       );
@@ -76,14 +87,14 @@ const SMASendNonLns = (props: any) => {
     const amountInput = parseFloat(amounts);
 
     if (!Number.isFinite(amountInput) || amountInput <= 0) {
-      Alert.alert('Enter a valid amount');
+      Alert.alert(t.enterValidAmount);
       setIsLoading(false);
       return;
     }
 
     const amountKes = await convertForeignToKsh(amountInput, userCode);
     if (!Number.isFinite(amountKes) || amountKes <= 0) {
-      Alert.alert('Unable to convert amount. Please try again.');
+      Alert.alert(t.unableConvertAmount);
       setIsLoading(false);
       return;
     }
@@ -245,7 +256,7 @@ const SMASendNonLns = (props: any) => {
                                       });
                                     } catch (error) {
                                       if (error) {
-                                        Alert.alert('Sending unsuccessful; Retry');
+                                        Alert.alert(t.sendingUnsuccessful);
                                         return;
                                       }
                                     }
@@ -276,7 +287,7 @@ const SMASendNonLns = (props: any) => {
                                       });
                                     } catch (error) {
                                       if (error) {
-                                        Alert.alert('Sending unsuccessful; Retry');
+                                        Alert.alert(t.sendingUnsuccessful);
                                         return;
                                       }
                                     }
@@ -301,7 +312,7 @@ const SMASendNonLns = (props: any) => {
                                       });
                                     } catch (error) {
                                       if (error) {
-                                        Alert.alert('Check your internet connection');
+                                        Alert.alert(t.checkInternet);
                                         return;
                                       }
                                     }
@@ -326,7 +337,7 @@ const SMASendNonLns = (props: any) => {
                                       });
                                     } catch (error) {
                                       if (error) {
-                                        Alert.alert('Check your internet connection');
+                                        Alert.alert(t.checkInternet);
                                         return;
                                       }
                                     }
@@ -352,7 +363,7 @@ const SMASendNonLns = (props: any) => {
                                       });
                                     } catch (error) {
                                       if (error) {
-                                        Alert.alert('Check your internet connection');
+                                        Alert.alert(t.checkInternet);
                                         return;
                                       }
                                     }
@@ -377,7 +388,7 @@ const SMASendNonLns = (props: any) => {
                                       });
                                     } catch (error) {
                                       if (error) {
-                                        Alert.alert('Check your internet connection');
+                                        Alert.alert(t.checkInternet);
                                         return;
                                       }
                                     }
@@ -402,7 +413,7 @@ const SMASendNonLns = (props: any) => {
                                       });
                                     } catch (error) {
                                       if (error) {
-                                        Alert.alert('Check your internet connection');
+                                        Alert.alert(t.checkInternet);
                                         return;
                                       }
                                     }
@@ -428,7 +439,7 @@ const SMASendNonLns = (props: any) => {
                                       });
                                     } catch (error) {
                                       if (error) {
-                                        Alert.alert('Check your internet connection');
+                                        Alert.alert(t.checkInternet);
                                         return;
                                       }
                                     }
@@ -456,7 +467,7 @@ const SMASendNonLns = (props: any) => {
                                       });
                                     } catch (error) {
                                       if (error) {
-                                        Alert.alert('Check your internet connection');
+                                        Alert.alert(t.checkInternet);
                                         return;
                                       }
                                     }
@@ -516,7 +527,7 @@ const SMASendNonLns = (props: any) => {
                                       });
                                     } catch (error) {
                                       if (error) {
-                                        Alert.alert('Check your internet connection');
+                                        Alert.alert(t.checkInternet);
                                         return;
                                       }
                                     }
@@ -557,18 +568,18 @@ const SMASendNonLns = (props: any) => {
                                   };
 
                                   if (userInfo.userId !== ownerz) {
-                                    Alert.alert('Unauthorised to pay on behalf of the business!');
+                                    Alert.alert(t.unauthorizedPay);
                                     return;
                                   } else if (bizType === 'Public') {
                                     NoBizBen();
                                   } else if (RecAcstatus === 'AccountInactive') {
-                                    Alert.alert('Receiver account is inactive');
+                                    Alert.alert(t.receiverInactive);
                                   } else if (SenderAcstatus === 'AccountInactive') {
-                                    Alert.alert('Sender account is inactive');
+                                    Alert.alert(t.senderInactive);
                                   } else if (UsrTransferFee2 < 0) {
-                                    Alert.alert('Requested amount is more than you have in your account');
+                                    Alert.alert(t.requestedMoreThanBalance);
                                   } else if (pw !== SnderPW) {
-                                    Alert.alert('Wrong password');
+                                    Alert.alert(t.wrongPassword);
                                   } else if (Lonees3.data.listCovCreditSellers.items.length > 0) {
                                     SndChmMmbrMny();
                                   } else if (!(await confirmSendTransfer(formatAmountSync(amountInput, userCode, ratesMap), RecNatId, Desc))) {
@@ -581,7 +592,7 @@ const SMASendNonLns = (props: any) => {
                                   }
                                 } catch (e) {
                                   if (e) {
-                                    Alert.alert('Reciever does not exist');
+                                    Alert.alert(t.receiverDoesNotExist);
                                     return;
                                   }
                                 }
@@ -590,7 +601,7 @@ const SMASendNonLns = (props: any) => {
                               await fetchRecBizUsrDtls();
                             } catch (e) {
                               if (e) {
-                                Alert.alert('Reciever does not exist');
+                                Alert.alert(t.receiverDoesNotExist);
                                 return;
                               }
                             }
@@ -599,7 +610,7 @@ const SMASendNonLns = (props: any) => {
                           await fetchSenderBizUsrDtls();
                         } catch (e) {
                           if (e) {
-                            Alert.alert('Reciever does not exist');
+                            Alert.alert(t.receiverDoesNotExist);
                             return;
                           }
                         }
@@ -608,7 +619,7 @@ const SMASendNonLns = (props: any) => {
                       await fetchRecUsrDtls();
                     } catch (e) {
                       if (e) {
-                        Alert.alert('Check your internet connection');
+                        Alert.alert(t.checkInternet);
                         return;
                       }
                     }
@@ -617,7 +628,7 @@ const SMASendNonLns = (props: any) => {
                   await fetchCompDtls();
                 } catch (e) {
                   if (e) {
-                    Alert.alert('Check your internet connection');
+                    Alert.alert(t.checkInternet);
                     return;
                   }
                 }
@@ -627,7 +638,7 @@ const SMASendNonLns = (props: any) => {
               await fetchSenderUsrDtls();
             } catch (e) {
               if (e) {
-                Alert.alert('Check your internet connection');
+                Alert.alert(t.checkInternet);
                 return;
               }
             }
@@ -637,7 +648,7 @@ const SMASendNonLns = (props: any) => {
           await fetchCLChm();
         } catch (e) {
           if (e) {
-            Alert.alert('Check your internet connection');
+            Alert.alert(t.checkInternet);
             return;
           }
         }
@@ -647,7 +658,7 @@ const SMASendNonLns = (props: any) => {
       await fetchCLCrdSl();
     } catch (e) {
       if (e) {
-        Alert.alert('Please fill details correctly or check your internet connection');
+        Alert.alert(t.fillDetailsOrCheckInternet);
         return;
       }
     }
@@ -710,36 +721,36 @@ const SMASendNonLns = (props: any) => {
       <View style={styles.image}>
         <ScrollView>
           <View style={styles.amountTitleView}>
-            <Text style={styles.title}>Fill account Details Below</Text>
+            <Text style={styles.title}>{t.fillAccountDetails}</Text>
           </View>
 
           <View style={styles.sendAmtView}>
-            <TextInput placeholder="Sending Business Phone" value={SenderNatId} onChangeText={setSenderNatId} style={styles.sendAmtInput} editable={true}></TextInput>
-            <Text style={styles.sendAmtText}>Sending Business Phone</Text>
+            <TextInput placeholder={t.sendingBusinessPhone} value={SenderNatId} onChangeText={setSenderNatId} style={styles.sendAmtInput} editable={true}></TextInput>
+            <Text style={styles.sendAmtText}>{t.sendingBusinessPhone}</Text>
           </View>
 
           <View style={styles.sendAmtView}>
-            <TextInput placeholder="Receiving Business Phone" value={RecNatId} onChangeText={setRecNatId} style={styles.sendAmtInput} editable={true}></TextInput>
-            <Text style={styles.sendAmtText}>Receiving Business Phone</Text>
+            <TextInput placeholder={t.receivingBusinessPhone} value={RecNatId} onChangeText={setRecNatId} style={styles.sendAmtInput} editable={true}></TextInput>
+            <Text style={styles.sendAmtText}>{t.receivingBusinessPhone}</Text>
           </View>
 
           <View style={styles.sendAmtView}>
             <TextInput keyboardType={'decimal-pad'} value={amounts} onChangeText={setAmount} style={styles.sendAmtInput} editable={true}></TextInput>
-            <Text style={styles.sendAmtText}>Amount Sent</Text>
+            <Text style={styles.sendAmtText}>{t.amountSent}</Text>
           </View>
 
           <View style={styles.sendAmtView}>
             <TextInput value={SnderPW} onChangeText={setSnderPW} secureTextEntry={true} style={styles.sendAmtInput} editable={true}></TextInput>
-            <Text style={styles.sendAmtText}>Buyer PassWord</Text>
+            <Text style={styles.sendAmtText}>{t.buyerPassword}</Text>
           </View>
 
           <View style={styles.sendAmtViewDesc}>
             <TextInput multiline={true} value={Desc} onChangeText={setDesc} style={styles.sendAmtInputDesc} editable={true}></TextInput>
-            <Text style={styles.sendAmtText}>Description</Text>
+            <Text style={styles.sendAmtText}>{t.description}</Text>
           </View>
 
           <TouchableOpacity onPress={fetchCvLnSM} style={styles.sendAmtButton}>
-            <Text style={styles.sendAmtButtonText}>Send</Text>
+            <Text style={styles.sendAmtButtonText}>{t.send}</Text>
             {isLoading && <ActivityIndicator size="large" color="blue" />}
           </TouchableOpacity>
         </ScrollView>

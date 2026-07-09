@@ -8,6 +8,8 @@ import { parse } from 'expo-linking';
 import { getCurrentUser, fetchUserAttributes } from "aws-amplify/auth";
 import { convertForeignToKsh } from '../../../../../../src/utils/exchange';
 import { generateClient } from "aws-amplify/api";
+import { useTranslation } from 'react-i18next';
+import translations from './translation';
 const client = generateClient();
 const CovCredSls = props => {
   const [SenderNatId, setSenderNatId] = useState('');
@@ -25,6 +27,9 @@ const CovCredSls = props => {
   const [DfltPnlty, setDfltPnlty] = useState("");
   const route = useRoute();
   const navigation = useNavigation();
+  const { i18n } = useTranslation();
+  const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+  const t = translations[lang] || translations.en;
   const SndChmMmbrMny = () => {
     navigation.navigate("AutomaticRepayAllTyps");
   };
@@ -385,7 +390,7 @@ const CovCredSls = props => {
                                     return;
                                   }
                                 }
-                                Alert.alert("Success. TransactionFee:" + UsrTransferFee2.toFixed(2));
+                                Alert.alert(t.successTransactionFee.replace('{{fee}}', UsrTransferFee2.toFixed(2)));
                                 const credLoanMsg1 = 'NiSenti. Hi ' + namess + ', you have been loaned goods worth ' + formatAmountSync(parseFloat(amount), attributes.nationality, ratesMap) + ' by ' + name + ' . For clarification call the business Owner: ' + BusinessRegNos + '. The following is a break down of your repayable loan: ' + ' Cash price of the goods is ' + formatAmountSync(parseFloat(amount), attributes.nationality, ratesMap) + '. Amount you had committed to repay is ' + formatAmountSync(amtrpayable2, attributes.nationality, ratesMap) + '. Transaction fee is ' + formatAmountSync(lnTrnsfrFee, attributes.nationality, ratesMap) + '. Total Repayable is ' + formatAmountSync(TotalAmtExp3, attributes.nationality, ratesMap) + '. Thank you.';
                                 try {
                                   const msgRes = await client.graphql({
@@ -559,7 +564,7 @@ const CovCredSls = props => {
                                     return;
                                   }
                                 }
-                                Alert.alert("Success. TransactionFee:" + (parseFloat(userLoanTransferFees) * parseFloat(amount)).toFixed(2));
+                                Alert.alert(t.successTransactionFee.replace('{{fee}}', (parseFloat(userLoanTransferFees) * parseFloat(amount)).toFixed(2)));
                                 const credLoanMsg2 = 'NiSenti. Hi ' + namess + ', you have been loaned services/goods worth ' + formatAmountSync(Number(amount), nationality || undefined, ratesMap) + ' by ' + name + '. For clarification call the Loaner: ' + phonecontact + '. The following is a break down of your repayable loan: ' + ' Cash price of the goods is ' + formatAmountSync(Number(amount), nationality || undefined, ratesMap) + '. Amount you had committed to repay is ' + formatAmountSync(Number(amtrpayable2), nationality || undefined, ratesMap) + '. Transaction fee is ' + formatAmountSync(Number(lnTrnsfrFee), nationality || undefined, ratesMap) + '. Total Repayable is ' + formatAmountSync(Number(TotalAmtExp2), nationality || undefined, ratesMap) + '. Thank you.';
                                 try {
                                   const msgRes = await client.graphql({
@@ -645,7 +650,7 @@ const CovCredSls = props => {
                                     } catch (error) {
                                       if (error) {
                                         console.log(error);
-                                        Alert.alert("Credit Sale unsuccessful; Retry");
+                                        Alert.alert(t.creditSaleUnsuccessfulRetry);
                                         return;
                                       }
                                     }
@@ -780,7 +785,7 @@ const CovCredSls = props => {
                                         return;
                                       }
                                     }
-                                    Alert.alert("Success. AdvocateFee:" + (parseFloat(CoverageFees) * parseFloat(amount)).toFixed(2) + ", TransactionFee:" + (parseFloat(userLoanTransferFees) * parseFloat(amount)).toFixed(2));
+                                    Alert.alert(t.successAdvocateFeeTransactionFee.replace('{{advocateFee}}', (parseFloat(CoverageFees) * parseFloat(amount)).toFixed(2)).replace('{{transactionFee}}', (parseFloat(userLoanTransferFees) * parseFloat(amount)).toFixed(2)));
                                     const credLoanMsg3 = 'NiSenti. Hi ' + namess + ', you have been loaned Services/goods worth ' + formatAmountSync(Number(amount), nationality || undefined, ratesMap) + ' by ' + name + '. For clarification call the loaner: ' + phonecontact + '. The following is a break down of your repayable loan: ' + ' Cash price of the goods is ' + formatAmountSync(Number(amount), nationality || undefined, ratesMap) + '. Amount you had committed to repay is ' + formatAmountSync(Number(amtrpayable), nationality || undefined, ratesMap) + '. Transaction fee is ' + formatAmountSync(Number(lnTrnsfrFee), nationality || undefined, ratesMap) + '. Advocacy Fee is ' + formatAmountSync(Number(ttlCovFeeAmount), nationality || undefined, ratesMap) + '. Total Repayable is ' + formatAmountSync(Number(TotalAmtExp), nationality || undefined, ratesMap) + '. Thank you.';
                                     try {
                                       const msgRes = await client.graphql({
@@ -800,32 +805,32 @@ const CovCredSls = props => {
                                   };
                                 } catch (e) {
                                   if (e) {
-                                    Alert.alert("Error! No advocate involved during request");
+                                    Alert.alert(t.errorNoAdvocateInvolved);
                                     return;
                                   }
                                 }
                                 setIsLoading(false);
                               };
                               if (userInfo.userId !== owner) {
-                                Alert.alert("Please first create a main account");
+                                Alert.alert(t.pleaseCreateMainAccount);
                                 return;
                               } else if (parseFloat(usrNoBL) > parseFloat(maxBLss)) {
-                                Alert.alert('Unsuccessful....Apologies. Liase with the Loaned');
+                                Alert.alert(t.unsuccessfulApologiesLiase);
                                 return;
                               } else if (statusNumber === 0 && advLicNo != "None") {
-                                Alert.alert('Advocate has not yet witnessed');
+                                Alert.alert(t.advocateHasNotYetWitnessed);
                               } else if (BusinessRegNos === loaneeEmail) {
-                                Alert.alert('You cannot Loan Yourself');
+                                Alert.alert(t.youCannotLoanYourself);
                               } else if (status === "AccountInactive") {
-                                Alert.alert('Receiver account is inactive');
+                                Alert.alert(t.receiverAccountInactive);
                               } else if (status === "Approved") {
-                                Alert.alert('Loan already granted');
+                                Alert.alert(t.loanAlreadyGranted);
                               } else if (parseFloat(RecUsrBal) < TransCost && advLicNo != " ") {
-                                Alert.alert("Unsuccessful!." + "Buyer top up " + (TransCost - parseFloat(RecUsrBal)).toFixed(2) + ' more');
+                                Alert.alert(t.buyerTopUpMore.replace('{{amount}}', (TransCost - parseFloat(RecUsrBal)).toFixed(2)));
                               } else if (parseFloat(RecUsrBal) < TransCost2 && advLicNo == " ") {
-                                Alert.alert("Unsuccessful." + "Buyer top up " + (TransCost2 - parseFloat(RecUsrBal)).toFixed(2) + ' more');
+                                Alert.alert(t.buyerTopUpMore.replace('{{amount}}', (TransCost2 - parseFloat(RecUsrBal)).toFixed(2)));
                               } else if (pwz !== SnderPW) {
-                                Alert.alert('Wrong password');
+                                Alert.alert(t.wrongPassword);
                               } else if (Lonees1.data.listSMLoansCovereds.items.length > 0 || Lonees3.data.listCovCreditSellers.items.length > 0 || Lonees5.data.listCvrdGroupLoans.items.length > 0) {
                                 SndChmMmbrMny();
                               } else if (advLicNo == "None" && RecUsrBal < TransCost2) {
@@ -837,7 +842,7 @@ const CovCredSls = props => {
                               }
                             } catch (e) {
                               if (e) {
-                                Alert.alert("Error! ");
+                                Alert.alert(t.errorGeneric);
                                 return;
                               }
                             }
@@ -1014,19 +1019,19 @@ const CovCredSls = props => {
         <ScrollView>
          
          <View style={styles.amountTitleView}>
-           <Text style={styles.title}>Enter Password Below</Text>
+           <Text style={styles.title}>{t.enterPasswordBelow}</Text>
          </View>
 
          
          
          <View style={styles.sendAmtView}>
-           <TextInput placeholder='User Main PassWord' value={SnderPW} onChangeText={setSnderPW} secureTextEntry={true} style={styles.sendAmtInput} editable={true}></TextInput>
+           <TextInput placeholder={t.userMainPassword} value={SnderPW} onChangeText={setSnderPW} secureTextEntry={true} style={styles.sendAmtInput} editable={true}></TextInput>
            
          </View>
 
 
          <TouchableOpacity onPress={fetchCredSlLnReq} style={styles.sendAmtButton}>
-           <Text style={styles.sendAmtButtonText}>Click to loan</Text>
+           <Text style={styles.sendAmtButtonText}>{t.clickToLoan}</Text>
            {isLoading && <ActivityIndicator size="large" color="blue" />}
          </TouchableOpacity>
 

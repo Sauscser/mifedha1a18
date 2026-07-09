@@ -11,6 +11,8 @@ import { nationalityToCode } from '../../../../../src/utils/nationalityToCode';
 import {useExchange} from '../../../../../src/contexts/ExchangeContext';
 import { formatAmountSync } from '../../../../../src/utils/exchange';
 import { getSMAccount } from '../../../../../src/graphql/queries';
+import { useTranslation } from 'react-i18next';
+import translations from './translation';
 
 
 export interface SMAccount {
@@ -47,6 +49,9 @@ const SMCvLnStts = (props: SMAccount) => {
 
   const [isLoading, setIsLoading] = useState(false);
   const navigation = useNavigation();
+  const { i18n } = useTranslation();
+  const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+  const t = translations[lang] || translations.en;
 
   const SndChmMmbrMny = () => {
     navigation.navigate("B2BPayCashB2BBen", { id });
@@ -105,9 +110,7 @@ const SMCvLnStts = (props: SMAccount) => {
       <View style={styles.card}>
         <Text style={styles.prodName}>
           {/*loaner details */}
-          Hi! Kindly approve this cash payment to {RecName} business
-          amounting to  {formatAmountSync(Math.floor(amount), userCode, ratesMap)}. More about the payment is
-          as follows: {description}. Thank you.
+          {t.requestMessagePrefix} {RecName} {t.requestBusinessWord} {t.requestMessageMiddle} {formatAmountSync(Math.floor(amount), userCode, ratesMap)}. {t.requestMessageMore} {description}. {t.requestMessageThanks}
         </Text>
       </View>
 
@@ -116,14 +119,14 @@ const SMCvLnStts = (props: SMAccount) => {
           onPress={SndChmMmbrMny}
           style={styles.loanFriendButton}
         >
-          <Text>Approve</Text>
+          <Text>{t.approve}</Text>
         </Pressable>
 
         <Pressable
           onPress={updtCashSale}
           style={styles.redeemButton}
         >
-          <Text>Decline</Text>
+          <Text>{t.decline}</Text>
         </Pressable>
       </View>
     </View>

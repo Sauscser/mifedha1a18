@@ -6,11 +6,18 @@ import { View, Text, Alert, ActivityIndicator } from 'react-native';
 import styles from './styles';
 import { getCurrentUser, fetchUserAttributes } from 'aws-amplify/auth';
 import { generateClient } from 'aws-amplify/api';
+import { useTranslation } from 'react-i18next';
+import translations from './translation';
 const client = generateClient();
 const SMASendNonLns = props => {
   const [isLoading, setIsLoading] = useState(false);
   const route = useRoute();
   const navigation = useNavigation();
+  const { i18n } = useTranslation();
+  const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+  const t = translations[lang] || translations.en;
+  const fmt = (template: string, vars: Record<string, string | number>) =>
+    template.replace(/\{(\w+)\}/g, (_, k) => String(vars[k] ?? ''));
   const SndChmMmbrMny = () => {
     navigation.navigate("AutomaticRepayAllTyps");
   };
@@ -264,19 +271,22 @@ const SMASendNonLns = props => {
           }
         });
         if (upcredsl?.data?.updateBizSlsReq) {
-          Alert.alert("Success", `Amount: ${parseFloat(amount).toFixed(0)}. Transaction fee: ${UsrTransferFeeAmt.toFixed(0)}`);
+          Alert.alert(t.success, fmt(t.amountFee, {
+            amount: parseFloat(amount).toFixed(0),
+            fee: UsrTransferFeeAmt.toFixed(0)
+          }));
         }
       }
 
       // Final conditional checks
       if (RecAcstatus === "AccountInactive") {
-        Alert.alert("Receiver account is inactive");
+        Alert.alert(t.receiverInactive);
       } else if (SenderAcstatus === "AccountInactive") {
-        Alert.alert("Sender account is inactive");
+        Alert.alert(t.senderInactive);
       } else if (objectionStatus === "Objected") {
-        Alert.alert("Business account locked by the creator or admin");
+        Alert.alert(t.businessLocked);
       } else if (TotalTransacted > SenderUsrBal) {
-        Alert.alert("Your account balance is insufficient");
+        Alert.alert(t.insufficientBalance);
       } else if (Lonees3.data.listCovCreditSellers.items.length > 0) {
         SndChmMmbrMny();
       } else {
@@ -284,7 +294,7 @@ const SMASendNonLns = props => {
       }
     } catch (error) {
       console.error(error);
-      Alert.alert("Retry or update app or call customer care");
+      Alert.alert(t.retryOrUpdate);
     } finally {
       setIsLoading(false);
     }
@@ -293,7 +303,7 @@ const SMASendNonLns = props => {
     fetchSaleReqDtls();
   }, []);
   return <View style={styles.image}>
-      <Text style={styles.sendAmtButtonText}>Please wait for feedback</Text>
+      <Text style={styles.sendAmtButtonText}>{t.pleaseWaitFeedback}</Text>
       {isLoading && <ActivityIndicator size="large" color="blue" />}
     </View>;
 };

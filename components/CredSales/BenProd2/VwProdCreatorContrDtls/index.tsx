@@ -11,6 +11,8 @@ import { nationalityToCode } from '../../../../src/utils/nationalityToCode';
 import {useExchange} from '../../../../src/contexts/ExchangeContext';
 import { formatAmountSync } from '../../../../src/utils/exchange';
 import { getSMAccount } from '../../../../src/graphql/queries';
+import { useTranslation } from 'react-i18next';
+import translations from './translation';
 
 
 export interface SMAccount {
@@ -48,6 +50,9 @@ const SMCvLnStts = (props:SMAccount) => {
    }} = props ;
 
    const navigation = useNavigation();
+  const { i18n } = useTranslation();
+  const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+  const t = translations[lang] || translations.en;
    
    const VwBenefactorContriDtls = () => {
     navigation.navigate("VwBenefactorContriDtls", 
@@ -84,9 +89,9 @@ const SMCvLnStts = (props:SMAccount) => {
                         
       <View style = {styles.pageContainer}>
         <View style = {styles.card}>              
-       <Text style={styles.prodInfo}><Text style={styles.label}>ProdCost:</Text> {formatAmountSync(prodCost, userCode, ratesMap)}</Text>
-        <Text style={styles.prodInfo}><Text style={styles.label}>Contributer:</Text> {benefitsID}</Text>
-       <Text style={styles.prodInfo}><Text style={styles.label}>Contributions Amount:</Text> {formatAmountSync(amount, userCode, ratesMap)}</Text>
+       <Text style={styles.prodInfo}><Text style={styles.label}>{t.prodCost}</Text> {formatAmountSync(prodCost, userCode, ratesMap)}</Text>
+        <Text style={styles.prodInfo}><Text style={styles.label}>{t.contributor}</Text> {benefitsID}</Text>
+       <Text style={styles.prodInfo}><Text style={styles.label}>{t.contributionsAmount}</Text> {formatAmountSync(amount, userCode, ratesMap)}</Text>
        
        
        <Text style={styles.prodDesc}>{prodDesc}</Text>                   

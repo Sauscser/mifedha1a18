@@ -10,6 +10,8 @@ import {useExchange} from '../../../../src/contexts/ExchangeContext';
 import { generateClient } from 'aws-amplify/api';  
 import { getSMAccount } from '../../../../src/graphql/queries';
 import {fetchUserAttributes} from 'aws-amplify/auth';
+import { useTranslation } from 'react-i18next';
+import translations from './translation';
 
 export interface SMAccount {
     SMAc: {
@@ -40,6 +42,9 @@ const SMCvLnStts = (props:SMAccount) => {
    }} = props ;
 
    const navigation = useNavigation();
+  const { i18n } = useTranslation();
+  const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+  const t = translations[lang] || translations.en;
    
    const client = generateClient();
    const [Uzer, setUzer] = useState<string>(null);
@@ -69,11 +74,11 @@ const SMCvLnStts = (props:SMAccount) => {
             <View style={styles.pageContainer}>
             <View style={styles.card}>
               
-              <Text style={styles.prodInfo}><Text style={styles.label}>Benefactor Business/Company:</Text> {creatorName}</Text>
-              <Text style={styles.prodInfo}><Text style={styles.label}>Product Cost:</Text> {formatAmountSync(Math.floor(prodCost), userCode, ratesMap)}</Text>
-              <Text style={styles.prodInfo}><Text style={styles.label}>Benefits Shared:</Text> {formatAmountSync(Math.floor(benefitsAmount), userCode, ratesMap)}</Text>
-              <Text style={styles.prodInfo}><Text style={styles.label}>Product Name:</Text> {prodName}</Text>
-              <Text style={styles.prodInfo}><Text style={styles.label}>Beneficiary Name:</Text> {beneficiaryPhone}</Text>
+              <Text style={styles.prodInfo}><Text style={styles.label}>{t.benefactorBusiness}</Text> {creatorName}</Text>
+              <Text style={styles.prodInfo}><Text style={styles.label}>{t.productCost}</Text> {formatAmountSync(Math.floor(prodCost), userCode, ratesMap)}</Text>
+              <Text style={styles.prodInfo}><Text style={styles.label}>{t.benefitsShared}</Text> {formatAmountSync(Math.floor(benefitsAmount), userCode, ratesMap)}</Text>
+              <Text style={styles.prodInfo}><Text style={styles.label}>{t.productName}</Text> {prodName}</Text>
+              <Text style={styles.prodInfo}><Text style={styles.label}>{t.beneficiaryName}</Text> {beneficiaryPhone}</Text>
               <Text style={styles.prodDesc}>{prodDesc}</Text>
              
           </View >      

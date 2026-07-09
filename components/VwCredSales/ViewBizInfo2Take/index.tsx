@@ -4,6 +4,8 @@ import React from 'react';
 import {View, Text,   ScrollView, Pressable} from 'react-native';
 
 import styles from './styles';
+import { useTranslation } from 'react-i18next';
+import translations from './translation';
 
 
 export interface ChmaInfo {
@@ -20,6 +22,9 @@ export interface ChmaInfo {
     }}
 
 const ChmInfo = (props:ChmaInfo) => {
+   const { i18n } = useTranslation();
+   const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+   const t = translations[lang] || translations.en;
    const {
       ChmDtls: {
         
@@ -45,9 +50,9 @@ const ChmInfo = (props:ChmaInfo) => {
       onPress={SndChmMmbrMny}
       style = {styles.card}>   
 
-      <Text style={styles.prodInfo}><Text style={styles.label}>Business Name:</Text> {busName}</Text>
-      <Text style={styles.prodInfo}><Text style={styles.label}>Business Contact:</Text> {BusKntct}</Text>
-      <Text style={styles.prodInfo}><Text style={styles.label}>Business Status:</Text> {status}</Text>
+      <Text style={styles.prodInfo}><Text style={styles.label}>{t.businessNameLabel}:</Text> {busName}</Text>
+      <Text style={styles.prodInfo}><Text style={styles.label}>{t.businessContactLabel}:</Text> {BusKntct}</Text>
+      <Text style={styles.prodInfo}><Text style={styles.label}>{t.businessStatusLabel}:</Text> {status}</Text>
            
         </Pressable>
         </View>
