@@ -25,6 +25,7 @@ import { nationalityToCode } from '../../../src/utils/nationalityToCode';
 import { buildOsrmRouteUrl } from '../../../src/config/osrm';
 import { generateClient } from "aws-amplify/api";
 import { formatAmountForUser, getUserNationalityByEmail, getExRatesForNationality, convertForeignToKsh } from '../../../src/utils/exchange';
+import { resolveTransportOwnership } from '../../../src/utils/transportRequest';
 const client = generateClient();
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const SCREEN_HEIGHT = Dimensions.get('window').height;
@@ -70,6 +71,7 @@ export default function SalesItemMapScreen({
   const [cart, setCart] = useState([]);
   const [cartExpanded, setCartExpanded] = useState(true);
   const [cardsCollapsed, setCardsCollapsed] = useState(false);
+  const [showFilterPanel, setShowFilterPanel] = useState(true);
   const [mapLabelPoints, setMapLabelPoints] = useState<{
     rider: { x: number; y: number } | null;
     pickup: { x: number; y: number } | null;
@@ -91,7 +93,7 @@ export default function SalesItemMapScreen({
   const [ItemUrlz, setItemUrlz] = useState('');
   const [loadingItemId, setLoadingItemId] = useState<string | null>(null);
   const [OverallTotalDebit, setOverallTotalDebit] = useState(0);
-  const carouselPosition = useRef(new Animated.Value(SCREEN_HEIGHT * 0.55)).current;
+  const carouselPosition = useRef(new Animated.Value(SCREEN_HEIGHT * 0.4)).current;
   const [isLoading2, setIsLoading2] = useState(false);
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const mapRef = useRef();
@@ -188,7 +190,7 @@ try {
     });
     const keyboardDidHideListener = Keyboard.addListener('keyboardDidHide', () => {
       Animated.spring(carouselPosition, {
-        toValue: SCREEN_HEIGHT * 0.55,
+        toValue: SCREEN_HEIGHT * 0.4,
         useNativeDriver: false
       }).start();
     });
@@ -214,30 +216,6 @@ try {
     };
     fetchUserNat();
   }, []);
-  const pan = useRef(new Animated.ValueXY({
-    x: 20,
-    y: 40
-  })).current;
-  const panResponder = useRef(PanResponder.create({
-    onStartShouldSetPanResponder: () => true,
-    onPanResponderGrant: () => {
-      pan.setOffset({
-        x: pan.x._value,
-        y: pan.y._value
-      });
-      pan.setValue({
-        x: 0,
-        y: 0
-      });
-    },
-    onPanResponderMove: Animated.event([null, {
-      dx: pan.x,
-      dy: pan.y
-    }], {
-      useNativeDriver: false
-    }),
-    onPanResponderRelease: () => pan.flattenOffset()
-  })).current;
   const carouselPanResponder = useRef(PanResponder.create({
     onMoveShouldSetPanResponder: (_, gestureState) => Math.abs(gestureState.dy) > 10,
     onPanResponderMove: (_, gestureState) => {
@@ -448,6 +426,7 @@ try {
     SenderName: string;
     senderPhn: string;
     amount: number;
+    fees?: number | string;
     id: string;
     owner: string;
     description: string;
@@ -495,6 +474,10 @@ try {
     dutyStatus: string;
     engagementStatus: string;
     transportOwnerEmail: string;
+    ownerShipType: string;
+    transportOwnerAc: string;
+    buyerOfficerEmail?: string;
+    purchaseType?: string;
     Earnings: number;
     UsrAcCommitment: number;
     ChmAcCommitment: number;
@@ -563,6 +546,8 @@ try {
         }
       });
       const ItemDtls4: NonLoanDetails = res4.data.getNonLoans;
+      const feeFromNonLoanRecord = Number(ItemDtls4?.fees || 0);
+      console.log('[registerTransport] feeFromNonLoanRecord:', feeFromNonLoanRecord);
       const res2 = await client.graphql({
         query: getSokoAd,
         variables: {
@@ -667,6 +652,7 @@ try {
         engagementStatus: "TransportNotEngaged",
         transportRequest: "transportRequestYes",
         transportOwnerEmail: ItemDtls6.transportOwnerEmail,
+        ...resolveTransportOwnership(ItemDtls6, userInfo.email),
         buyerOfficerEmail: userInfo.email,
         Earnings: 0,
         UsrAcCommitment: 0,
@@ -791,8 +777,12 @@ try {
       }
       // --- End Notification and Message Logic for Delivery Receipt ---
     } catch (err) {
-      Alert.alert(t.errorTitle || 'Error', t.failedRequestTransport || 'Failed to request transport. Try again.');
+      const errorMessage = err?.errors?.[0]?.message || err?.message || JSON.stringify(err);
       console.log('[registerTransport] Caught error:', err);
+      Alert.alert(
+        t.errorTitle || 'Error',
+        `${t.failedRequestTransport || 'Failed to request transport. Try again.'}${errorMessage ? `\n${errorMessage}` : ''}`
+      );
     } finally {
       setLoadingItemId(null);
     }
@@ -1007,37 +997,46 @@ try {
           </Animated.View>
         </TouchableOpacity>
       </View>
-      {/* Draggable Filter Panel */}
-      <Animated.View style={[styles.filterPanel, pan.getLayout()]} {...panResponder.panHandlers}>
-        <View style={styles.inputsRow}>
-          {INPUT_KEYS.map((key, idx) => (
-            <View
-              key={key}
-              style={{
-                width: INPUT_WIDTH,
-                marginRight: idx < INPUT_KEYS.length - 1 ? GAP : 0
-              }}
-            >
-              <TextInput
-                placeholder={t[key] || (PLACEHOLDERS as any)[key]}
-                keyboardType={['radius', 'transportRate'].includes(key) ? 'numeric' : 'default'}
-                style={styles.input}
-                placeholderTextColor="#999"
-                value={(filters as any)[key]}
-                onChangeText={text =>
-                  setFilters(f => ({
-                    ...f,
-                    [key]: text
-                  }))
-                }
-              />
-            </View>
-          ))}
-        </View>
-        <View style={styles.handleWrapper}>
-          <View style={styles.handleLine} />
-        </View>
-      </Animated.View>
+      {/* Collapsible Filter Panel */}
+      {showFilterPanel ? (
+        <Animated.View style={styles.filterPanel}>
+          <TouchableOpacity onPress={() => setShowFilterPanel(false)} style={[styles.hideIconButton, styles.filterCloseButton]}>
+            <FontAwesome name="times" size={16} color="#333" />
+          </TouchableOpacity>
+          <View style={styles.inputsRow}>
+            {INPUT_KEYS.map((key, idx) => (
+              <View
+                key={key}
+                style={{
+                  width: INPUT_WIDTH,
+                  marginRight: idx < INPUT_KEYS.length - 1 ? GAP : 0
+                }}
+              >
+                <TextInput
+                  placeholder={t[key] || (PLACEHOLDERS as any)[key]}
+                  keyboardType={['radius', 'transportRate'].includes(key) ? 'numeric' : 'default'}
+                  style={styles.input}
+                  placeholderTextColor="#999"
+                  value={(filters as any)[key]}
+                  onChangeText={text =>
+                    setFilters(f => ({
+                      ...f,
+                      [key]: text
+                    }))
+                  }
+                />
+              </View>
+            ))}
+          </View>
+          <View style={styles.handleWrapper}>
+            <View style={styles.handleLine} />
+          </View>
+        </Animated.View>
+      ) : (
+        <TouchableOpacity style={styles.filterIcon} onPress={() => setShowFilterPanel(true)}>
+          <FontAwesome name="search" size={20} color="#333" />
+        </TouchableOpacity>
+      )}
       {/* Responsive Carousel */}
       {cardsCollapsed && (
         <TouchableOpacity
@@ -1145,11 +1144,14 @@ const styles = StyleSheet.create({
   },
   filterPanel: {
     position: 'absolute',
-    backgroundColor: 'white',
-    borderRadius: 8,
-    padding: 6,
-    elevation: 5,
-    zIndex: 1
+    top: 120,
+    left: 10,
+    right: 10,
+    backgroundColor: '#f9f9f9',
+    borderRadius: 12,
+    padding: 8,
+    elevation: 4,
+    zIndex: 2
   },
   inputsRow: {
     flexDirection: 'row',
@@ -1164,6 +1166,39 @@ const styles = StyleSheet.create({
     height: 10,
     backgroundColor: '#aaa',
     borderRadius: 2
+  },
+  hideIconButton: {
+    padding: 8,
+    borderRadius: 20,
+    backgroundColor: '#fff',
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2
+  },
+  filterCloseButton: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    zIndex: 150,
+    width: 32,
+    height: 32,
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  filterIcon: {
+    position: 'absolute',
+    top: 20,
+    left: (SCREEN_WIDTH - 44) / 2,
+    zIndex: 150,
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    elevation: 6
   },
   input: {
     borderBottomWidth: 1,

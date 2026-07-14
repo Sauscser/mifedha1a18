@@ -99,6 +99,40 @@
 				"$gradle"
 			],
 			"group": "build"
+		},
+		{
+			"label": "Build Android APK (release) from D drive",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-Command",
+				"New-Item -ItemType Directory -Force -Path \"D:\\gradle\",\"D:\\temp\" | Out-Null; $env:GRADLE_USER_HOME=\"D:\\gradle\"; $env:TMP=\"D:\\temp\"; $env:TEMP=\"D:\\temp\"; Set-Location \"D:\\mifedha1a18\\android\"; .\\gradlew.bat assembleRelease"
+			],
+			"isBackground": false,
+			"problemMatcher": [
+				"$gradle"
+			],
+			"group": "build"
+		},
+		{
+			"label": "Build Android AAB (release) from D drive",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-Command",
+				"New-Item -ItemType Directory -Force -Path \"D:\\gradle\",\"D:\\temp\" | Out-Null; $env:GRADLE_USER_HOME=\"D:\\gradle\"; $env:TMP=\"D:\\temp\"; $env:TEMP=\"D:\\temp\"; Set-Location \"D:\\mifedha1a18\\android\"; .\\gradlew.bat bundleRelease"
+			],
+			"isBackground": false,
+			"problemMatcher": [
+				"$gradle"
+			],
+			"group": "build"
 		}
 	]
 }

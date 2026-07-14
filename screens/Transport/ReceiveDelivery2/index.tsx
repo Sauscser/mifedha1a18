@@ -41,13 +41,15 @@ import {
   getGroup,
   getCompany,
   getTransportRegister,
+  getNonLoans,
+  getTransportBizna,
 } from "../../../src/graphql/queries";
 import {
   updateTransportOrder,
   updateSMAccount,
   updateGroup,
   updateCompany,
-  createNonLoans,
+  updateNonLoans,
   updateTransportRegister,
   updateBizna,
   createBenefitContributions2,
@@ -407,11 +409,39 @@ const TransportOrdersScreen = () => {
       });
       const compDtls = CompDtls.data.getCompany;
 
-      const compEarningShare = compDtls.transportCompanyShare;
-      const CompEarning = compEarningShare * parseFloat(orderDtlz.deliveryCost);
-      const TransporterEarning = parseFloat(orderDtlz.deliveryCost) - CompEarning;
+      const nonLoanResult: any = await client.graphql({
+        query: getNonLoans,
+        variables: { id: orderDtlz.deliveryID },
+      });
+      const nonLoanDtlz = nonLoanResult?.data?.getNonLoans;
 
-      const fee = parseFloat(orderDtlz.orderCost) * parseFloat(compDtls.biznaCashSaleFee);
+      const compEarningShare = Number(compDtls.transportCompanyShare ?? 0) / 100;
+      const companyShare = parseFloat(orderDtlz.deliveryCost) * compEarningShare;
+      const transporterShare = parseFloat(orderDtlz.deliveryCost) - companyShare;
+
+      let transportRegisterShare = transporterShare;
+      let transportBiznaShare = 0;
+      let transportBizna: any = null;
+      const rideOwnershipType = transportDtlz?.ownerShipType;
+      const rideTransportOwnerAc = transportDtlz?.transportOwnerAc;
+      if (rideOwnershipType === 'Company' && rideTransportOwnerAc) {
+        try {
+          const transportBiznaRes: any = await client.graphql({
+            query: getTransportBizna,
+            variables: { BizAc: rideTransportOwnerAc },
+          });
+          transportBizna = transportBiznaRes?.data?.getTransportBizna || null;
+          if (transportBizna) {
+            const rate = Math.max(0, Math.min(100, Number(transportBizna.shareRates ?? 0)));
+            transportRegisterShare = Number((transporterShare * (rate / 100)).toFixed(2));
+            transportBiznaShare = Number((transporterShare - transportRegisterShare).toFixed(2));
+          }
+        } catch (e) {
+          console.warn('Failed to load TransportBizna for delivery receipt split; falling back to transport register only', e);
+        }
+      }
+
+      const fee = parseFloat(nonLoanDtlz?.fees || "0");
       const benefit = fee * parseFloat(compDtls.p2BBenCom) * 0.01;
       const compEarnings = fee - 2 * benefit;
 
@@ -426,18 +456,17 @@ const TransportOrdersScreen = () => {
         },
       });
 
+      if (!nonLoanDtlz?.id) {
+        Alert.alert(t.error, t.couldNotFetchOrderDetails);
+        return;
+      }
+
       await client.graphql({
-        query: createNonLoans,
+        query: updateNonLoans,
         variables: {
           input: {
-            senderPhn: orderDtlz.customerEmail,
-            recPhn: orderDtlz.transportOwnerEmail,
-            RecName: orderDtlz.transportName,
-            description: `Payment for delivery of ${orderDtlz.deliveryDesc} to ${orderDtlz.buyerName}.`,
-            SenderName: orderDtlz.buyerName,
-            amount: parseFloat(orderDtlz.deliveryCost) - CompEarning,
+            id: nonLoanDtlz.id,
             status: "DeliveryPayment",
-            owner: user.userId,
           },
         },
       });
@@ -448,8 +477,8 @@ const TransportOrdersScreen = () => {
           input: {
             AdminId: "BaruchHabaB'ShemAdonai2",
             companyEarningBal:
-              parseFloat(compDtls.companyEarningBal) + CompEarning + compEarnings,
-            companyEarning: parseFloat(compDtls.companyEarning) + CompEarning + compEarnings,
+              parseFloat(compDtls.companyEarningBal) + companyShare + compEarnings,
+            companyEarning: parseFloat(compDtls.companyEarning) + companyShare + compEarnings,
           },
         },
       });
@@ -515,10 +544,22 @@ const TransportOrdersScreen = () => {
         variables: {
           input: {
             id: orderDtlz.bizAc,
-            Earnings: TransporterEarning + parseFloat(transportDtlz.Earnings),
+            Earnings: transportRegisterShare + parseFloat(transportDtlz.Earnings),
           },
         },
       });
+
+      if (transportBizna && transportBiznaShare > 0) {
+        await client.graphql({
+          query: updateBizna,
+          variables: {
+            input: {
+              BusKntct: transportBizna.biznaOwnerEmail || transportBizna.owner,
+              Earnings: Number((Number(transportBizna.Earnings ?? 0) + transportBiznaShare).toFixed(2)),
+            },
+          },
+        });
+      }
 
       Alert.alert(t.success, t.deliveryReceived);
 

@@ -189,7 +189,8 @@ const SMASendNonLns = () => {
               RecName: recipientName,
               SenderName: name,
               status: "cashSales",
-              owner: userInfo.userId
+              owner: userInfo.userId,
+              fees: 0
             }
           }
         });
@@ -265,7 +266,8 @@ const SMASendNonLns = () => {
               RecName: recipientName,
               SenderName: name,
               status: "cashSales",
-              owner: userInfo.userId
+              owner: userInfo.userId,
+              fees: 0
             }
           }
         });

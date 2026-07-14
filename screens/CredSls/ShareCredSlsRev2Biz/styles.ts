@@ -1,94 +1,109 @@
 import { StyleSheet, Dimensions } from 'react-native';
+const screenWidth = Dimensions.get('screen').width;
 const styles = StyleSheet.create({
   image: {
+    flex: 1,
     width: '100%',
-    height: "100%",
-    resizeMode: 'cover',
-    justifyContent: 'center',
+    paddingTop: 20,
+    paddingBottom: 40,
+    backgroundColor: '#eef6ff',
     alignItems: 'center'
   },
   title: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: 'black'
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#1f2937'
   },
   amountTitleView: {
-    backgroundColor: 'white',
-    marginHorizontal: 10,
-    width: Dimensions.get('screen').width - 20,
-    borderRadius: 5,
-    marginTop: "5%",
+    backgroundColor: '#ffffff',
+    width: screenWidth - 30,
+    borderRadius: 20,
+    marginTop: 16,
+    paddingVertical: 18,
+    paddingHorizontal: 18,
     justifyContent: 'center',
     alignItems: 'center',
-    flexDirection: 'column'
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 3
   },
   sendAmtView: {
-    backgroundColor: 'skyblue',
-    marginHorizontal: 10,
-    width: Dimensions.get('screen').width - 20,
-    height: "8%",
-    borderRadius: 20,
-    marginTop: "5%",
-    justifyContent: 'center',
-    alignItems: 'center',
-    flexDirection: 'column',
-    padding: "1%"
+    backgroundColor: '#ffffff',
+    width: screenWidth - 30,
+    borderRadius: 18,
+    marginTop: 14,
+    padding: 18,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 3
   },
   sendAmtText: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: 'white',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginLeft: 30
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#0f172a',
+    marginTop: 12
   },
   sendAmtButton: {
-    backgroundColor: '#fff',
-    height: "3%",
-    borderRadius: 30,
-    marginHorizontal: 10,
-    width: Dimensions.get('screen').width - 20,
+    backgroundColor: '#2563eb',
+    height: 54,
+    borderRadius: 18,
+    width: screenWidth - 30,
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: "3%",
-    marginBottom: "95%"
+    marginTop: 24,
+    shadowColor: '#2563eb',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.16,
+    shadowRadius: 12,
+    elevation: 4
   },
   sendAmtButtonText: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: 'black'
+    color: '#ffffff'
   },
   sendAmtInput: {
-    backgroundColor: 'white',
-    marginHorizontal: 15,
-    width: Dimensions.get('screen').width - 30,
-    height: "60%",
-    borderRadius: 10,
-    marginTop: "2%",
-    justifyContent: 'center',
-    alignItems: 'center'
+    backgroundColor: '#f8fafc',
+    width: '100%',
+    minHeight: 50,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#cbd5e1',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    marginTop: 10,
+    fontSize: 16,
+    color: '#0f172a'
   },
   sendAmtViewDesc: {
-    backgroundColor: 'skyblue',
-    marginHorizontal: 10,
-    width: Dimensions.get('screen').width - 20,
-    height: "15%",
-    borderRadius: 20,
-    marginTop: "4%",
-    justifyContent: 'center',
-    alignItems: 'center',
-    flexDirection: 'column',
-    padding: "1%"
+    backgroundColor: '#ffffff',
+    width: screenWidth - 30,
+    borderRadius: 18,
+    marginTop: 14,
+    padding: 18,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 3
   },
   sendAmtInputDesc: {
-    backgroundColor: 'white',
-    marginHorizontal: 15,
-    width: Dimensions.get('screen').width - 30,
-    height: "60%",
-    borderRadius: 10,
-    marginTop: "2%",
-    justifyContent: 'center',
-    alignItems: 'center'
+    backgroundColor: '#f8fafc',
+    width: '100%',
+    minHeight: 110,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#cbd5e1',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    marginTop: 10,
+    fontSize: 16,
+    color: '#0f172a',
+    textAlignVertical: 'top'
   }
 });
 export default styles;

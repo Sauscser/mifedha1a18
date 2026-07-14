@@ -35,6 +35,7 @@ const translations = {
     palbizLoanees: "PalBiz Loanees",
     cashSalesPurchasesDeposits: "Cash Sales/purchases & Deposits",
     cashSales: "Cash Sales",
+    sellerPartialPayRecords: "Seller Partial Pay Records",
     makeDeposits: "Make Deposits",
     viewDeposits: "View Deposits",
     businessCashTransfers: "Business Cash Transfers ",

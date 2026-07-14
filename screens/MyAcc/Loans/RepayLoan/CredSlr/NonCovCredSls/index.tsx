@@ -215,7 +215,8 @@ const RepayNonCovCredSlsLnsss = props => {
                             amount: amountKes.toFixed(0),
                             description: Desc,
                             status: "CredSlrLonRepayment",
-                            owner: userInfo.userId
+                            owner: userInfo.userId,
+                            fees: 0
                           }
                         }
                       });
@@ -325,7 +326,8 @@ const RepayNonCovCredSlsLnsss = props => {
                             amount: amountKes.toFixed(0),
                             description: Desc,
                             status: "CredSlrLonRepayment",
-                            owner: userInfo.userId
+                            owner: userInfo.userId,
+                            fees: 0
                           }
                         }
                       });

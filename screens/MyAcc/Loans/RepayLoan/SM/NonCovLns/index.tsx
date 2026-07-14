@@ -227,7 +227,8 @@ const RepayNonCovLnsss = props => {
                             amount: amountKes.toFixed(0),
                             description: Desc,
                             status: "SMLonRepayment",
-                            owner: userInfo.userId
+                            owner: userInfo.userId,
+                            fees: 0
                           }
                         }
                       });
@@ -370,7 +371,8 @@ const RepayNonCovLnsss = props => {
                             amount: amountKes.toFixed(0),
                             description: Desc,
                             status: "SMLonRepayment",
-                            owner: userInfo.userId
+                            owner: userInfo.userId,
+                            fees: 0
                           }
                         }
                       });

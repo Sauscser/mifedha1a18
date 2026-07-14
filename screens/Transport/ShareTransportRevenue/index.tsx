@@ -147,7 +147,8 @@ const SMASendNonLns = props => {
             SenderName: transportDtlz.transportName,
             amount: Number(amountKes),
             status: "SMNonLons",
-            owner: attributes.sub
+            owner: attributes.sub,
+            fees: 0
           }
         }
       });

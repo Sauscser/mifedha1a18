@@ -6,8 +6,13 @@ import { View, Text, TextInput, ScrollView, TouchableOpacity, Alert, ActivityInd
 import styles from './styles';
 import { getCurrentUser, fetchUserAttributes } from "aws-amplify/auth";
 import { generateClient } from "aws-amplify/api";
+import { useTranslation } from 'react-i18next';
+import translations from './translation';
 const client = generateClient();
 const CreateBiz = props => {
+  const { i18n } = useTranslation();
+  const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+  const t = translations[lang] || translations.en;
   const [ChmPhn, setChmPhn] = useState('');
   const [nam, setName] = useState(null);
   const [awsEmail, setAWSEmail] = useState("");
@@ -55,21 +60,21 @@ const CreateBiz = props => {
           });
         } catch (error) {
           if (error) {
-            Alert.alert("Error; update app or call customer care");
+            Alert.alert(t.errorUpdateAppCallCare);
             return;
           }
         }
         setIsLoading(false);
       };
       if (owner2email !== attributes.email) {
-        Alert.alert("Bizna not yet transfered to you");
+        Alert.alert(t.biznaNotYetTransferred);
       } else {
         await CreateNewSMAc();
       }
     } catch (e) {
       console.log(e);
       if (e) {
-        Alert.alert("Error! update app or call customer care");
+        Alert.alert(t.errorUpdateAppCallCare);
         return;
       }
     }
@@ -147,26 +152,26 @@ const CreateBiz = props => {
     }
     setSign2Phn(Sign2Phns);
   }, [Sign2Phn]);
-  return <View>
+  return <View style={{ flex: 1 }}>
               <View style={styles.image}>
-                <ScrollView>
+                <ScrollView contentContainerStyle={{ paddingBottom: 24 }}>
                   <View style={styles.loanTitleView}>
-                    <Text style={styles.title}>Fill Details Below</Text>
+                    <Text style={styles.title}>{t.fillDetailsBelow}</Text>
                   </View>
         
                   <View style={styles.sendLoanView}>
                     <TextInput placeholder="+2547xxxxxxxx" value={Sign2Phn} onChangeText={setSign2Phn} style={styles.sendLoanInput} editable={true}></TextInput>
-                    <Text style={styles.sendLoanText}>Business Phone</Text>
+                    <Text style={styles.sendLoanText}>{t.businessPhone}</Text>
                   </View>
         
                   <View style={styles.sendLoanView}>
                     <TextInput value={pword} onChangeText={setPW} secureTextEntry={true} style={styles.sendLoanInput} editable={true}></TextInput>
-                    <Text style={styles.sendLoanText}>User PassWord</Text>
+                    <Text style={styles.sendLoanText}>{t.userPassword}</Text>
                   </View>
         
                   <TouchableOpacity onPress={fetchAcDtls} style={styles.sendLoanButton}>
                     <Text style={styles.sendLoanButtonText}>
-                      Click to Receive
+                      {t.clickToReceive}
                     </Text>
                   </TouchableOpacity>
                 </ScrollView>

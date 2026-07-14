@@ -162,6 +162,9 @@ const MyLoanAccount = () => {
   const VwBenToShare = () => {
     navigation.navigate('VwBenToShare');
   };
+  const OpenSellerPartialPayRecords = () => {
+    navigation.navigate('SellerPartialPayRecords');
+  };
   return <SafeAreaView>
       <ScrollView>
       <LinearGradient colors={['#FF8C00', 'skyblue', 'white']} // Linear gradient for orange hues
@@ -274,6 +277,10 @@ const MyLoanAccount = () => {
             <Section title="cashSalesPurchasesDeposits" options={[{
               label: 'cashSales',
               onPress: PayCash,
+              style: styles.ClientsPressables
+            }, {
+              label: 'sellerPartialPayRecords',
+              onPress: OpenSellerPartialPayRecords,
               style: styles.ClientsPressables
             }, {
               label: 'makeDeposits',

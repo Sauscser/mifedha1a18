@@ -895,6 +895,7 @@ export const onCreateNonLoans = /* GraphQL */ `
       RecName
       SenderName
       amount
+      fees
       description
       status
       owner
@@ -916,6 +917,7 @@ export const onUpdateNonLoans = /* GraphQL */ `
       RecName
       SenderName
       amount
+      fees
       description
       status
       owner
@@ -937,6 +939,7 @@ export const onDeleteNonLoans = /* GraphQL */ `
       RecName
       SenderName
       amount
+      fees
       description
       status
       owner
@@ -1178,6 +1181,7 @@ export const onCreatePartialPay = /* GraphQL */ `
       owner
       createdAt
       saleStatus
+      partialfees
       updatedAt
       __typename
     }
@@ -1208,6 +1212,7 @@ export const onUpdatePartialPay = /* GraphQL */ `
       owner
       createdAt
       saleStatus
+      partialfees
       updatedAt
       __typename
     }
@@ -1238,6 +1243,7 @@ export const onDeletePartialPay = /* GraphQL */ `
       owner
       createdAt
       saleStatus
+      partialfees
       updatedAt
       __typename
     }

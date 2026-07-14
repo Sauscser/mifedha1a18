@@ -178,7 +178,8 @@ const SMASendNonLns = props => {
                                     RecName: namess,
                                     SenderName: names,
                                     status: "SMNonLons",
-                                    owner: userInfo.userId
+                                    owner: userInfo.userId,
+                                    fees: 0
                                   }
                                 }
                               });

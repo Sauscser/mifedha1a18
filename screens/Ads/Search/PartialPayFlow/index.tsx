@@ -11,10 +11,11 @@ import { getDistance } from 'geolib';
 import { generateClient } from 'aws-amplify/api';
 import { getCurrentUser, fetchUserAttributes } from 'aws-amplify/auth';
 import { getUrl } from 'aws-amplify/storage';
-import { listPartialPays, listSokoAds, getSMAccount, getBizna, getCompany, listBiznas, buyerByAccountContributions } from '../../../../src/graphql/queries';
+import { listPartialPays, listSokoAds, getSMAccount, getBizna, getCompany, listBiznas, listPartialPayContributions } from '../../../../src/graphql/queries';
 import { createPartialPay, updatePartialPay, createPartialPayContributions, updateSMAccount, updateBizna, createBenefitContributions2, createNonLoans, updateCompany, createMarketConsumption } from '../../../../src/graphql/mutations';
 import { useTranslation } from 'react-i18next';
 import { translations } from './translation';
+import { ShoppingModeProvider, useShoppingMode } from '../ShoppingModeContext';
 import { useExchange } from '../../../../src/contexts/ExchangeContext';
 import { formatAmountSync, convertForeignToKsh } from '../../../../src/utils/exchange';
 import { nationalityToCode } from '../../../../src/utils/nationalityToCode';
@@ -38,9 +39,8 @@ function PartialPayFlowInner({ navigation, route }: { navigation: any; route: an
   const safeNationality = typeof nationality === 'string' ? nationality : (nationality && typeof nationality === 'object' && 'nationality' in nationality ? (nationality as any).nationality : null);
   const natCode = nationalityToCode(safeNationality);
 
-  // Mode and shopping context - manage locally
-  const [mode, setMode] = useState<'B2C' | 'B2B' | undefined>(route?.params?.mode);
-  const [selectedBizna, setSelectedBizna] = useState<any>(route?.params?.selectedBizna || null);
+  // Share the selected shopping mode and business through the navigation chain.
+  const { mode, setMode, selectedBizna, setSelectedBizna } = useShoppingMode();
   const [biznas, setBiznas] = useState<any[]>([]);
   const [loadingBiznas, setLoadingBiznas] = useState(false);
   const [showBuyerModeModal, setShowBuyerModeModal] = useState(false);
@@ -99,6 +99,7 @@ function PartialPayFlowInner({ navigation, route }: { navigation: any; route: an
   const [entries, setEntries] = useState<any[]>([]);
   const [selectedEntry, setSelectedEntry] = useState<any>(null);
   const [payAmount, setPayAmount] = useState('');
+  const [sellerNameFilter, setSellerNameFilter] = useState('');
   const [isOverpaying, setIsOverpaying] = useState(false);
   const [showContributionModal, setShowContributionModal] = useState(false);
   const [contributions, setContributions] = useState<any[]>([]);
@@ -130,16 +131,17 @@ function PartialPayFlowInner({ navigation, route }: { navigation: any; route: an
   const programmaticScroll = useRef(false);
   const userInteracting = useRef(false);
   const carouselPosition = useRef(new Animated.Value(SCREEN_HEIGHT * 0.4)).current;
+  const pan = useRef(new Animated.ValueXY({ x: 20, y: 40 })).current;
   const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
 
   useEffect(() => {
-    if (route?.params?.mode) {
+    if (route?.params?.mode && !mode) {
       setMode(route.params.mode);
     }
-    if (route?.params?.selectedBizna) {
+    if (route?.params?.selectedBizna && !selectedBizna) {
       setSelectedBizna(route.params.selectedBizna);
     }
-  }, [route?.params?.mode, route?.params?.selectedBizna]);
+  }, [route?.params?.mode, route?.params?.selectedBizna, mode, selectedBizna, setMode, setSelectedBizna]);
 
   useEffect(() => {
     const fetchCompany = async () => {
@@ -221,6 +223,38 @@ function PartialPayFlowInner({ navigation, route }: { navigation: any; route: an
   // Carousel visibility toggle
   const [showCarousel, setShowCarousel] = useState(true);
 
+  const panResponder = useRef(PanResponder.create({
+    onStartShouldSetPanResponder: () => true,
+    onPanResponderGrant: () => {
+      pan.setOffset({
+        x: pan.x._value,
+        y: pan.y._value
+      });
+      pan.setValue({ x: 0, y: 0 });
+    },
+    onPanResponderMove: Animated.event([null, {
+      dx: pan.x,
+      dy: pan.y
+    }], {
+      useNativeDriver: false
+    }),
+    onPanResponderRelease: () => pan.flattenOffset()
+  })).current;
+
+  const carouselPanResponder = useRef(PanResponder.create({
+    onMoveShouldSetPanResponder: (_, gestureState) => Math.abs(gestureState.dy) > 10,
+    onPanResponderMove: (_, gestureState) => {
+      carouselPosition.setValue(Math.min(Math.max(gestureState.moveY, SCREEN_HEIGHT * 0.2), SCREEN_HEIGHT * 0.8));
+    },
+    onPanResponderRelease: (_, gestureState) => {
+      const finalY = gestureState.moveY;
+      let toValue = SCREEN_HEIGHT * 0.4;
+      if (finalY < SCREEN_HEIGHT * 0.4) toValue = SCREEN_HEIGHT * 0.25;
+      else if (finalY > SCREEN_HEIGHT * 0.7) toValue = SCREEN_HEIGHT * 0.75;
+      Animated.spring(carouselPosition, { toValue, useNativeDriver: false }).start();
+    }
+  })).current;
+
   // Keyboard listeners to move carousel up when keyboard appears
   useEffect(() => {
     const showSub = Keyboard.addListener('keyboardDidShow', () => {
@@ -237,9 +271,9 @@ function PartialPayFlowInner({ navigation, route }: { navigation: any; route: an
     };
   }, []);
 
-  const loadPartialPayContributions = useCallback(async (buyerAccount: string) => {
-    if (!buyerAccount) {
-      setContributionsError('Buyer account missing.');
+  const loadPartialPayContributions = useCallback(async (partialPayId: string) => {
+    if (!partialPayId) {
+      setContributionsError('Partial pay record missing.');
       setContributions([]);
       return;
     }
@@ -247,14 +281,15 @@ function PartialPayFlowInner({ navigation, route }: { navigation: any; route: an
     setContributionsError(null);
     try {
       const res: any = await client.graphql({
-        query: buyerByAccountContributions,
+        query: listPartialPayContributions,
         variables: {
-          buyerAccount,
-          sortDirection: 'DESC',
-          limit: 50
+          limit: 200,
+          nextToken: null
         }
       });
-      setContributions(res?.data?.buyerByAccountContributions?.items || []);
+      const items = res?.data?.listPartialPayContributions?.items || [];
+      const matchingItems = items.filter((item: any) => String(item?.saleStatus || '') === String(partialPayId));
+      setContributions(matchingItems);
     } catch (e) {
       console.error('Failed to load partial pay contributions:', e);
       setContributionsError(t.failedToLoadItems || 'Failed to load contributions.');
@@ -279,7 +314,7 @@ function PartialPayFlowInner({ navigation, route }: { navigation: any; route: an
     setSelectedEntry(entry);
     setPayAmount('');
     setIsOverpaying(false);
-    await loadPartialPayContributions(entry.buyerAccount);
+    await loadPartialPayContributions(entry.id);
     setShowContributionModal(true);
   }, [loadPartialPayContributions]);
 
@@ -314,12 +349,27 @@ function PartialPayFlowInner({ navigation, route }: { navigation: any; route: an
           filter: {
             and: [
               { buyerAccount: { eq: buyerAccount } },
-              { saleStatus: { eq: 'Active' } }
+              {
+                or: [
+                  { saleStatus: { eq: 'Active' } },
+                  { saleStatus: { eq: 'Complete' } },
+                  { saleStatus: { eq: 'Completed' } },
+                  { saleStatus: { eq: 'Inactive' } }
+                ]
+              }
             ]
-          }
+          },
+          limit: 100,
+          nextToken: null
         }
       });
-      setEntries(res?.data?.listPartialPays?.items || []);
+      const items = res?.data?.listPartialPays?.items || [];
+      const sortedItems = [...items].sort((a, b) => {
+        const aTime = a?.createdAt || '';
+        const bTime = b?.createdAt || '';
+        return bTime.localeCompare(aTime);
+      });
+      setEntries(sortedItems);
     } catch (e) {
       Alert.alert('Error', 'Failed to load partial payments.');
     } finally {
@@ -667,6 +717,125 @@ function PartialPayFlowInner({ navigation, route }: { navigation: any; route: an
     });
   };
 
+  const transferPartialPayCompanyFee = async ({
+    amountPaid,
+    sellerAccount,
+    sellerName,
+    buyer,
+    creatorEmail,
+    creatorPhone,
+    itemName,
+    itemDesc,
+    itemUrl
+  }: {
+    amountPaid: number;
+    sellerAccount: string;
+    sellerName: string;
+    buyer: any;
+    creatorEmail: string;
+    creatorPhone: string;
+    itemName: string;
+    itemDesc: string;
+    itemUrl: string;
+  }) => {
+    if (!sellerAccount || amountPaid <= 0) {
+      return;
+    }
+
+    const companyRecord = company || (await client.graphql({
+      query: getCompany,
+      variables: { AdminId: "BaruchHabaB'ShemAdonai2" }
+    })).data.getCompany;
+    if (!companyRecord) {
+      throw new Error('Company record not found');
+    }
+
+    const feeRate = parseFloat(companyRecord.biznaCashSaleFee || '0') || 0;
+    const benefitRate = parseFloat(companyRecord.p2BBenCom || '0') || 0;
+    const fee = amountPaid * feeRate;
+    const totalBenefit = fee * benefitRate;
+    const companyEarnings = fee - 2 * totalBenefit;
+
+    const sellerRes: any = await client.graphql({
+      query: getBizna,
+      variables: { BusKntct: sellerAccount }
+    });
+    const seller = sellerRes?.data?.getBizna;
+    if (!seller) {
+      throw new Error('Seller record not found');
+    }
+
+    await client.graphql({
+      query: updateBizna,
+      variables: {
+        input: {
+          BusKntct: sellerAccount,
+          benefitsAmount: Math.floor(parseFloat(seller.benefitsAmount || '0') + totalBenefit)
+        }
+      }
+    });
+
+    await client.graphql({
+      query: updateCompany,
+      variables: {
+        input: {
+          AdminId: "BaruchHabaB'ShemAdonai2",
+          companyEarningBal: companyEarnings + parseFloat(companyRecord.companyEarningBal || '0'),
+          companyEarning: companyEarnings + parseFloat(companyRecord.companyEarning || '0'),
+          ttlNonLonssRecSM: amountPaid + parseFloat(companyRecord.ttlNonLonssRecSM || '0'),
+          ttlNonLonssSentSM: amountPaid + parseFloat(companyRecord.ttlNonLonssSentSM || '0')
+        }
+      }
+    });
+
+    if (buyer.buyerType === 'Biz') {
+      await client.graphql({
+        query: updateBizna,
+        variables: {
+          input: {
+            BusKntct: buyer.buyerAccount,
+            benefitsAmount: parseFloat(buyer.account.benefitsAmount || '0') + totalBenefit
+          }
+        }
+      });
+    } else {
+      await client.graphql({
+        query: updateSMAccount,
+        variables: {
+          input: {
+            awsemail: buyer.buyerEmail,
+            ttlNonLonsSentSM: parseFloat(buyer.account.ttlNonLonsSentSM || '0') + amountPaid,
+            balance: Number(buyer.account.balance),
+            benefitsAmount: parseFloat(buyer.account.benefitsAmount || '0') + totalBenefit
+          }
+        }
+      });
+    }
+
+    await client.graphql({
+      query: createBenefitContributions2,
+      variables: {
+        input: {
+          benefitsID: "String",
+          benefactorAc: sellerAccount,
+          benefactorPhone: sellerName || '',
+          beneficiaryAc: buyer.buyerAccount,
+          beneficiaryPhone: creatorPhone || 'String',
+          creatorEmail: creatorEmail || buyer.buyerEmail,
+          prodName: itemName || '',
+          creatorName: buyer.buyerName || creatorEmail || buyer.buyerEmail,
+          owner: buyer.buyerAccount || creatorEmail || buyer.buyerEmail,
+          prodCost: 0,
+          benefitsAmount: totalBenefit,
+          beneficiaryType: buyer.buyerType === 'Biz' ? 'Biz' : 'Pal',
+          prodDesc: itemDesc || '',
+          benefitStatus: 'Active',
+          amount: totalBenefit
+        }
+      }
+    });
+  };
+
   const VwSalesDtls4Transport = () => {
     navigation.navigate('VwSalesDtls4Transport', { mode, selectedBizna });
   };
@@ -703,20 +872,7 @@ function PartialPayFlowInner({ navigation, route }: { navigation: any; route: an
     try {
       const attrs = await fetchUserAttributes();
       const user = await getCurrentUser();
-      const companyRecord = company || (await client.graphql({
-        query: getCompany,
-        variables: { AdminId: "BaruchHabaB'ShemAdonai2" }
-      })).data.getCompany;
-      if (!companyRecord) {
-        throw new Error('Company record not found');
-      }
-
       const itemCost = Number(selectedEntry.itemCost || 0);
-      const feeRate = parseFloat(companyRecord.biznaCashSaleFee || '0') || 0;
-      const benefitRate = parseFloat(companyRecord.p2BBenCom || '0') || 0;
-      const fee = itemCost * feeRate;
-      const totalBenefit = fee * benefitRate;
-      const companyEarnings = fee - 2 * totalBenefit;
       const sellerAccount = selectedEntry.sellerAccount;
       if (!sellerAccount) {
         throw new Error('Seller account missing');
@@ -731,7 +887,12 @@ function PartialPayFlowInner({ navigation, route }: { navigation: any; route: an
         throw new Error('Seller record not found');
       }
 
-      await createMarketConsumptionForPartialPayEntry(selectedEntry);
+      const companyRecord = company || (await client.graphql({
+        query: getCompany,
+        variables: { AdminId: "BaruchHabaB'ShemAdonai2" }
+      })).data.getCompany;
+      const feeRate = parseFloat(companyRecord?.biznaCashSaleFee || '0') || 0;
+      const accumulatedFees = Number(selectedEntry.partialfees || 0);
 
       await client.graphql({
         query: updateBizna,
@@ -739,11 +900,14 @@ function PartialPayFlowInner({ navigation, route }: { navigation: any; route: an
           input: {
             BusKntct: sellerAccount,
             netEarnings: Math.floor(parseFloat(seller.netEarnings || '0') + itemCost),
-            earningsBal: Math.floor(parseFloat(seller.earningsBal || '0') + itemCost),
-            benefitsAmount: Math.floor(parseFloat(seller.benefitsAmount || '0') + totalBenefit)
+            earningsBal: Math.floor(parseFloat(seller.earningsBal || '0') + itemCost)
           }
         }
       });
+
+      const nonLoanStatus = modeParam === 'quick'
+        ? 'DeliveryPayment'
+        : (selectedEntry.buyerType === 'Biz' ? 'Biz2Biz' : 'Biz2Pal');
 
       await client.graphql({
         query: createNonLoans,
@@ -755,72 +919,47 @@ function PartialPayFlowInner({ navigation, route }: { navigation: any; route: an
             description: selectedEntry.itemDesc || selectedEntry.itemName || '',
             RecName: selectedEntry.sellerName || '',
             SenderName: selectedEntry.buyerName || attrs.email,
-            status: selectedEntry.buyerType === 'Biz' ? 'Biz2Biz' : 'Biz2Pal',
-            owner: selectedEntry.itemUrl || selectedEntry.id
+            status: nonLoanStatus,
+            owner: selectedEntry.itemUrl || selectedEntry.id,
+            fees: accumulatedFees.toFixed(0)
           }
         }
       });
 
-      await client.graphql({
-        query: updateCompany,
-        variables: {
-          input: {
-            AdminId: "BaruchHabaB'ShemAdonai2",
-            companyEarningBal: companyEarnings + parseFloat(companyRecord.companyEarningBal || '0'),
-            companyEarning: companyEarnings + parseFloat(companyRecord.companyEarning || '0'),
-            ttlNonLonssRecSM: itemCost + parseFloat(companyRecord.ttlNonLonssRecSM || '0'),
-            ttlNonLonssSentSM: itemCost + parseFloat(companyRecord.ttlNonLonssSentSM || '0')
-          }
+      if (modeParam === 'quick') {
+        let buyerAccountDetails: any = null;
+        if (selectedEntry.buyerType === 'Biz') {
+          const buyerRes: any = await client.graphql({
+            query: getBizna,
+            variables: { BusKntct: selectedEntry.buyerAccount || selectedEntry.buyerEmail }
+          });
+          buyerAccountDetails = buyerRes?.data?.getBizna;
+        } else {
+          const buyerRes: any = await client.graphql({
+            query: getSMAccount,
+            variables: { awsemail: selectedEntry.buyerEmail }
+          });
+          buyerAccountDetails = buyerRes?.data?.getSMAccount;
         }
-      });
 
-      const buyer = await resolvePartialPayBuyer(attrs);
-      if (buyer.buyerType === 'Biz') {
-        await client.graphql({
-          query: updateBizna,
-          variables: {
-            input: {
-              BusKntct: buyer.buyerAccount,
-              benefitsAmount: parseFloat(buyer.account.benefitsAmount || '0') + totalBenefit
-            }
-          }
-        });
-      } else {
-        await client.graphql({
-          query: updateSMAccount,
-          variables: {
-            input: {
-              awsemail: buyer.buyerEmail,
-              ttlNonLonsSentSM: parseFloat(buyer.account.ttlNonLonsSentSM || '0') + itemCost,
-              balance: Number(buyer.account.balance),
-              benefitsAmount: parseFloat(buyer.account.benefitsAmount || '0') + totalBenefit
-            }
-          }
+        await transferPartialPayCompanyFee({
+          amountPaid: itemCost,
+          sellerAccount,
+          sellerName: selectedEntry.sellerName || selectedEntry.sellerEmail || '',
+          buyer: {
+            buyerType: selectedEntry.buyerType,
+            buyerAccount: selectedEntry.buyerAccount || selectedEntry.buyerEmail,
+            buyerEmail: selectedEntry.buyerEmail,
+            buyerName: selectedEntry.buyerName || attrs.email,
+            account: buyerAccountDetails
+          },
+          creatorEmail: attrs.email,
+          creatorPhone: attrs.phone_number || 'String',
+          itemName: selectedEntry.itemName || '',
+          itemDesc: selectedEntry.itemDesc || '',
+          itemUrl: selectedEntry.itemUrl || ''
         });
       }
-
-      await client.graphql({
-        query: createBenefitContributions2,
-        variables: {
-          input: {
-            benefitsID: "String",
-            benefactorAc: selectedEntry.sellerAccount,
-            benefactorPhone: selectedEntry.sellerName || selectedEntry.sellerEmail || '',
-            beneficiaryAc: selectedEntry.buyerAccount,
-            beneficiaryPhone: attrs.phone_number || 'String',
-            creatorEmail: attrs.email,
-            prodName: selectedEntry.itemName || '',
-            creatorName: buyer.buyerName || attrs.email,
-            owner: (user as any)?.userId || attrs.email,
-            prodCost: 0,
-            benefitsAmount: totalBenefit,
-            beneficiaryType: buyer.buyerType === 'Biz' ? 'Biz' : 'Pal',
-            prodDesc: selectedEntry.itemDesc || '',
-            benefitStatus: 'Active',
-            amount: totalBenefit
-          }
-        }
-      });
 
       await loadExistingPartialPays();
       setSelectedEntry(null);
@@ -884,9 +1023,8 @@ function PartialPayFlowInner({ navigation, route }: { navigation: any; route: an
       }
 
       const totalFee = totalAmount * feeRate;
-      const totalDebitAmount = totalAmount + totalFee;
 
-      if (buyer.currentBalance < totalDebitAmount) {
+      if (buyer.currentBalance < totalAmount) {
         Alert.alert(t.insufficientFunds);
         setLoading(false);
         return;
@@ -913,7 +1051,7 @@ function PartialPayFlowInner({ navigation, route }: { navigation: any; route: an
       const itemPhoto = cart.map(item => item.itemPhoto).filter(Boolean).join(', ');
       const itemUrl = cart.map(item => item.id).join(', ');
 
-      await debitBuyer(buyer, totalDebitAmount);
+      await debitBuyer(buyer, totalAmount);
 
       const partialPayRes: any = await client.graphql({
         query: createPartialPay,
@@ -929,6 +1067,7 @@ function PartialPayFlowInner({ navigation, route }: { navigation: any; route: an
             sellerType: 'Biz',
             itemCost: totalCost,
             amountPaid: totalAmount,
+            partialfees: totalFee.toFixed(0),
             itemDesc,
             itemName,
             itemPhoto,
@@ -937,6 +1076,7 @@ function PartialPayFlowInner({ navigation, route }: { navigation: any; route: an
           }
         }
       });
+      const createdPartialPay = partialPayRes?.data?.createPartialPay || {};
 
       await createPartialPayContributionRecord({
         sellerEmail: seller.email,
@@ -953,7 +1093,32 @@ function PartialPayFlowInner({ navigation, route }: { navigation: any; route: an
         itemName,
         itemPhoto,
         itemUrl,
-        saleStatus: 'Active'
+        saleStatus: createdPartialPay.id || ''
+      });
+
+      await transferPartialPayCompanyFee({
+        amountPaid: totalAmount,
+        sellerAccount: sellerContact,
+        sellerName: seller.busName || cart[0]?.bizName || seller.email || '',
+        buyer,
+        creatorEmail: attrs.email,
+        creatorPhone: attrs.phone_number || 'String',
+        itemName,
+        itemDesc,
+        itemUrl
+      });
+
+      await createMarketConsumptionForPartialPayEntry({
+        id: createdPartialPay.id || itemUrl,
+        itemCost: totalCost,
+        sellerAccount: sellerContact,
+        buyerAccount: buyer.buyerAccount,
+        itemName,
+        itemBrand: cart[0]?.itemBrand || cart[0]?.sokoname || cart[0]?.bizName || '',
+        itemDesc,
+        itemPhoto,
+        itemUrl,
+        sellerNationality: cart[0]?.Nationality || cart[0]?.sellerNationality || ''
       });
 
       Alert.alert(t.successPartialPayment, t.partialPaymentRecorded);
@@ -998,7 +1163,7 @@ function PartialPayFlowInner({ navigation, route }: { navigation: any; route: an
       }
       const buyer = await resolveBuyer(attrs);
       const amountKes = await convertForeignToKsh(enteredAmount, natCode);
-      if (amountKes > remainingForSelected) {
+      if (amountKes > selectedGrandRemaining) {
         Alert.alert(t.error, 'Amount exceeds remaining total.');
         setLoading(false);
         return;
@@ -1012,14 +1177,15 @@ function PartialPayFlowInner({ navigation, route }: { navigation: any; route: an
 
       const itemCost = Number(selectedEntry.itemCost || 0);
       const alreadyPaid = Number(selectedEntry.amountPaid || 0);
-      const remaining = Math.max(0, itemCost - alreadyPaid);
-      const amountToApply = Math.min(amountKes, remaining);
+      const remainingBase = Math.max(0, itemCost - alreadyPaid);
+      const remainingGrand = remainingBase + remainingBase * feeRate;
+      const amountToApply = Math.min(amountKes, remainingBase);
       const amountFee = amountToApply * feeRate;
-      const totalDebit = amountToApply + amountFee;
+      const accumulatedFees = Number(selectedEntry.partialfees || 0) + amountFee;
       const nextPaid = alreadyPaid + amountToApply;
       const isCompleted = nextPaid >= itemCost;
 
-      await debitBuyer(buyer, totalDebit);
+      await debitBuyer(buyer, amountKes);
 
       await client.graphql({
         query: updatePartialPay,
@@ -1027,6 +1193,7 @@ function PartialPayFlowInner({ navigation, route }: { navigation: any; route: an
           input: {
             id: selectedEntry.id,
             amountPaid: nextPaid,
+            partialfees: accumulatedFees.toFixed(0),
             saleStatus: isCompleted ? 'Completed' : 'Active'
           }
         }
@@ -1047,7 +1214,7 @@ function PartialPayFlowInner({ navigation, route }: { navigation: any; route: an
         itemName: selectedEntry.itemName,
         itemPhoto: selectedEntry.itemPhoto,
         itemUrl: selectedEntry.itemUrl,
-        saleStatus: isCompleted ? 'Completed' : 'Active'
+        saleStatus: selectedEntry.id
       });
 
       if (!isCompleted) {
@@ -1171,12 +1338,6 @@ function PartialPayFlowInner({ navigation, route }: { navigation: any; route: an
     }
   };
 
-  const remainingForSelected = useMemo(() => {
-    if (!selectedEntry) return 0;
-    const remaining = Math.max(0, Number(selectedEntry.itemCost || 0) - Number(selectedEntry.amountPaid || 0));
-    return remaining + remaining * feeRate;
-  }, [selectedEntry, feeRate]);
-
   const cartMaxPartialAmount = useMemo(() => {
     if (cartNetTotal <= 0) return 0;
     const sellingPrice = ratesMap && natCode && ratesMap[natCode] ? parseFloat(String(ratesMap[natCode].sellingPrice)) || 1 : 1;
@@ -1211,12 +1372,9 @@ function PartialPayFlowInner({ navigation, route }: { navigation: any; route: an
     return Math.max(0, Number(selectedEntry.itemCost || 0) - Number(selectedEntry.amountPaid || 0));
   }, [selectedEntry]);
   const selectedRemainingFee = useMemo(() => selectedRemainingBase * feeRate, [selectedRemainingBase, feeRate]);
-
-  const selectedRemainingDisplayLimit = useMemo(() => {
-    if (!selectedEntry) return 0;
-    const rate = ratesMap && natCode && ratesMap[natCode] ? parseFloat(String(ratesMap[natCode].buyingPrice)) || 1 : 1;
-    return remainingForSelected * rate;
-  }, [remainingForSelected, ratesMap, natCode, selectedEntry]);
+  const selectedGrandRemaining = useMemo(() => {
+    return selectedRemainingBase + selectedRemainingFee;
+  }, [selectedRemainingBase, selectedRemainingFee]);
 
   const enteredPayAmountKes = useMemo(() => {
     if (!payAmount || !selectedEntry) return 0;
@@ -1227,9 +1385,9 @@ function PartialPayFlowInner({ navigation, route }: { navigation: any; route: an
   }, [payAmount, ratesMap, natCode, selectedEntry]);
 
   const dynamicRemainingForSelected = useMemo(() => {
-    if (!selectedEntry) return selectedRemainingBase;
-    return Math.max(0, selectedRemainingBase - enteredPayAmountKes);
-  }, [selectedRemainingBase, enteredPayAmountKes, selectedEntry]);
+    if (!selectedEntry) return selectedGrandRemaining;
+    return Math.max(0, selectedGrandRemaining - enteredPayAmountKes);
+  }, [selectedGrandRemaining, enteredPayAmountKes, selectedEntry]);
 
   const onPayAmountChange = useCallback((value: string) => {
     const sanitized = value.replace(/[^0-9.]/g, '');
@@ -1244,13 +1402,23 @@ function PartialPayFlowInner({ navigation, route }: { navigation: any; route: an
     }
     const parsed = Number(normalized);
     if (Number.isNaN(parsed)) return;
-    if (selectedEntry && selectedRemainingDisplayLimit > 0 && parsed > selectedRemainingDisplayLimit) {
-      setIsOverpaying(true);
-      return;
-    }
+
     setPayAmount(normalized);
-    setIsOverpaying(false);
-  }, [selectedEntry, selectedRemainingDisplayLimit]);
+
+    const sellingPrice = ratesMap && natCode && ratesMap[natCode] ? parseFloat(String(ratesMap[natCode].sellingPrice)) || 1 : 1;
+    const amountInKsh = parsed / sellingPrice;
+    const isBeyondGrandRemaining = selectedEntry && selectedGrandRemaining > 0 && amountInKsh > selectedGrandRemaining;
+    setIsOverpaying(Boolean(isBeyondGrandRemaining));
+  }, [selectedEntry, selectedGrandRemaining, natCode, ratesMap]);
+
+  const visibleEntries = useMemo(() => {
+    const needle = sellerNameFilter.trim().toLowerCase();
+    if (!needle) return entries;
+    return entries.filter((entry: any) => {
+      const sellerText = `${entry?.sellerName || ''} ${entry?.sellerEmail || ''}`.toLowerCase();
+      return sellerText.includes(needle);
+    });
+  }, [entries, sellerNameFilter]);
 
   if (!userLocation && screenMode === 'new') {
     return (
@@ -1368,8 +1536,27 @@ function PartialPayFlowInner({ navigation, route }: { navigation: any; route: an
           {loading ? (
             <ActivityIndicator size="large" style={{ marginVertical: 8 }} />
           ) : (
-            <FlatList
-              data={entries}
+            <>
+              <TextInput
+                value={sellerNameFilter}
+                onChangeText={setSellerNameFilter}
+                placeholder={t.sellerName || 'Seller name'}
+                placeholderTextColor="#444"
+                style={{
+                  height: 36,
+                  width: '60%',
+                  marginBottom: 8,
+                  paddingHorizontal: 10,
+                  borderWidth: 1,
+                  borderColor: '#ccc',
+                  borderRadius: 8,
+                  backgroundColor: '#fff',
+                  fontWeight: 'bold',
+                  color: '#222'
+                }}
+              />
+              <FlatList
+              data={visibleEntries}
               keyExtractor={(item: any) => item.id}
               keyboardShouldPersistTaps="handled"
               contentContainerStyle={{ paddingBottom: 220 }}
@@ -1408,17 +1595,19 @@ function PartialPayFlowInner({ navigation, route }: { navigation: any; route: an
                   </TouchableOpacity>
                 );
               }}
-              ListEmptyComponent={<Text style={{ marginTop: 10 }}>{t.noActivePartialPayRecords}</Text>}
+              ListEmptyComponent={<Text style={{ marginTop: 10 }}>{sellerNameFilter ? 'No matching seller records.' : (t.noActivePartialPayRecords || 'No records found.')}</Text>}
             />
+            </>
           )}
 
           <TextInput
             value={payAmount}
             onChangeText={onPayAmountChange}
-            keyboardType="numeric"
-            placeholder={t.enterAmountToPay}
+            keyboardType="decimal-pad"
+            placeholder={selectedGrandRemaining === 0 ? t.paymentComplete || 'Payment Complete' : t.enterAmountToPay}
             placeholderTextColor="#444"
-            style={[styles.amountInput, { fontWeight: 'bold', color: '#222', borderColor: isOverpaying ? '#d32f2f' : '#ccc' }]}
+            editable={selectedGrandRemaining > 0}
+            style={[styles.amountInput, { fontWeight: 'bold', color: selectedGrandRemaining > 0 ? '#222' : '#aaa', borderColor: isOverpaying ? '#d32f2f' : '#ccc' }]}
           />
           <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
               <TouchableOpacity
@@ -1551,9 +1740,9 @@ function PartialPayFlowInner({ navigation, route }: { navigation: any; route: an
             <FontAwesome name="arrows-h" size={20} color="#333" />
           </TouchableOpacity>
 
-          {/* Filter Panel (toggleable) */}
+          {/* Filter Panel (toggleable + draggable) */}
           {showFilterPanel ? (
-            <Animated.View style={styles.filterPanel}>
+            <Animated.View style={[styles.filterPanel, pan.getLayout()]} {...panResponder.panHandlers}>
               <TouchableOpacity onPress={() => setShowFilterPanel(false)} style={[styles.hideIconButton, styles.filterCloseButton]}>
                 <FontAwesome name="times" size={16} color="#333" />
               </TouchableOpacity>
@@ -1567,7 +1756,13 @@ function PartialPayFlowInner({ navigation, route }: { navigation: any; route: an
                   <TextInput
                     key={key}
                     style={[styles.filterInput, { width: INPUT_WIDTH }]}
-                    placeholder={t[`${key}Placeholder`] || key}
+                    placeholder={
+                      key === 'radius'
+                        ? 'Radius (KM)'
+                        : key === 'cheapestRank'
+                          ? 'Rank (Cost)'
+                          : t[`${key}Placeholder`] || key
+                    }
                     placeholderTextColor="#999"
                     keyboardType={['radius', 'cheapestRank'].includes(key) ? 'numeric' : 'default'}
                     value={filters[key] || ''}
@@ -1575,6 +1770,9 @@ function PartialPayFlowInner({ navigation, route }: { navigation: any; route: an
                   />
                 ))}
               </ScrollView>
+              <View style={styles.handleWrapper}>
+                <View style={styles.handleLine} />
+              </View>
             </Animated.View>
           ) : (
             <TouchableOpacity style={styles.filterIcon} onPress={() => setShowFilterPanel(true)}>
@@ -1582,9 +1780,9 @@ function PartialPayFlowInner({ navigation, route }: { navigation: any; route: an
             </TouchableOpacity>
           )}
 
-          {/* Carousel (toggleable) */}
+          {/* Carousel (toggleable + draggable) */}
           {showCarousel ? (
-            <Animated.View style={[styles.carouselContainer, { top: carouselPosition }]}> 
+            <Animated.View style={[styles.carouselContainer, { top: carouselPosition }]} {...carouselPanResponder.panHandlers}> 
               <TouchableOpacity style={styles.carouselCloseButton} onPress={() => setShowCarousel(false)}>
                 <FontAwesome name="times" size={16} color="#333" />
               </TouchableOpacity>
@@ -1767,7 +1965,7 @@ function PartialPayFlowInner({ navigation, route }: { navigation: any; route: an
                         style={styles.partialAmountInput}
                         placeholder={t.enterAmountToPay}
                         placeholderTextColor="#444"
-                        keyboardType="numeric"
+                        keyboardType="decimal-pad"
                         value={partialAmount}
                         onChangeText={onPartialAmountChange}
                       />
@@ -1800,7 +1998,11 @@ function PartialPayFlowInner({ navigation, route }: { navigation: any; route: an
 }
 
 export default function PartialPayFlowScreen(props: any) {
-  return <PartialPayFlowInner {...props} />;
+  return (
+    <ShoppingModeProvider>
+      <PartialPayFlowInner {...props} />
+    </ShoppingModeProvider>
+  );
 }
 
 const styles = StyleSheet.create({

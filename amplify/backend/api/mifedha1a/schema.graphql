@@ -736,7 +736,7 @@ type NonLoans
   RecName:String!
   SenderName:String!
   amount: Float!
- 
+  fees: Float
   description: String
   status:Status!
   owner: String!
@@ -955,6 +955,7 @@ type PartialPay
   owner: String 
   createdAt: String!
   saleStatus: String  
+  partialfees: Float
 
 }
 

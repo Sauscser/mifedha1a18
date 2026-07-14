@@ -638,6 +638,7 @@ export const getNonLoans = /* GraphQL */ `
       RecName
       SenderName
       amount
+      fees
       description
       status
       owner
@@ -661,6 +662,7 @@ export const listNonLoans = /* GraphQL */ `
         RecName
         SenderName
         amount
+        fees
         description
         status
         owner
@@ -847,6 +849,7 @@ export const getPartialPay = /* GraphQL */ `
       owner
       createdAt
       saleStatus
+      partialfees
       updatedAt
       __typename
     }
@@ -879,6 +882,7 @@ export const listPartialPays = /* GraphQL */ `
         owner
         createdAt
         saleStatus
+        partialfees
         updatedAt
         __typename
       }
@@ -5307,6 +5311,7 @@ export const VwMySntMny = /* GraphQL */ `
         RecName
         SenderName
         amount
+        fees
         description
         status
         owner
@@ -5343,6 +5348,7 @@ export const VwMyRecMny = /* GraphQL */ `
         RecName
         SenderName
         amount
+        fees
         description
         status
         owner
@@ -5620,6 +5626,7 @@ export const sellerByEmail = /* GraphQL */ `
         owner
         createdAt
         saleStatus
+        partialfees
         updatedAt
         __typename
       }
@@ -5665,6 +5672,7 @@ export const sellerByAccount = /* GraphQL */ `
         owner
         createdAt
         saleStatus
+        partialfees
         updatedAt
         __typename
       }
@@ -5710,6 +5718,7 @@ export const buyerByEmail = /* GraphQL */ `
         owner
         createdAt
         saleStatus
+        partialfees
         updatedAt
         __typename
       }
@@ -5755,6 +5764,7 @@ export const buyerByAccount = /* GraphQL */ `
         owner
         createdAt
         saleStatus
+        partialfees
         updatedAt
         __typename
       }

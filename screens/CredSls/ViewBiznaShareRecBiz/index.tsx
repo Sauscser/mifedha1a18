@@ -6,12 +6,17 @@ import { updateCompany, updateSMAccount } from '../../../src/graphql/mutations';
 import { useRoute } from '@react-navigation/native';
 import { getCurrentUser, fetchUserAttributes } from "aws-amplify/auth";
 import { generateClient } from "aws-amplify/api";
+import { useTranslation } from 'react-i18next';
+import translations from './translation';
 const client = generateClient();
 const FetchSMNonLnsSnt = props => {
   const [loading, setLoading] = useState(false);
   const [Recvrs, setRecvrs] = useState([]);
   const route = useRoute();
   const [awsEmail, setAWSEmail] = useState("");
+  const { i18n } = useTranslation();
+  const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+  const t = translations[lang] || translations.en;
   const fetchUsrDtls = async () => {
     const userInfo = await getCurrentUser();
     try {
@@ -53,7 +58,7 @@ const FetchSMNonLnsSnt = props => {
             } catch (e) {
               console.log(e);
               if (e) {
-                Alert.alert("Retry or update app or call customer care");
+                Alert.alert(t.retryOrUpdate);
                 return;
               }
               console.log(e);
@@ -63,13 +68,13 @@ const FetchSMNonLnsSnt = props => {
         } catch (e) {
           console.log(e);
           if (e) {
-            Alert.alert("Retry or update app or call customer care");
+            Alert.alert(t.retryOrUpdate);
             return;
           }
         }
       };
       if (userInfo.userId !== owner) {
-        Alert.alert("This is not your Business");
+        Alert.alert(t.notYourBusiness);
         return;
       } else {
         await fetchLoanees();
@@ -87,9 +92,9 @@ const FetchSMNonLnsSnt = props => {
                 <View style={styles.container}>
                     {/* Search Bar */}
                     <View style={styles.searchBar}>
-                        <TextInput placeholder="Company/Biz Phone Number..." value={awsEmail} onChangeText={setAWSEmail} style={styles.searchInput} />
+                        <TextInput placeholder={t.companyPhonePlaceholder} value={awsEmail} onChangeText={setAWSEmail} style={styles.searchInput} />
                         <Text style={styles.placeholderText}>
-                            Swipe down to load or refresh.
+                            {t.swipeToRefresh}
                         </Text>
                     </View>
     

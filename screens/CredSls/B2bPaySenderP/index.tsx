@@ -205,7 +205,8 @@ const SMASendNonLns = (props: any) => {
                                             RecName: namess,
                                             SenderName: name,
                                             status: 'cashSales',
-                                            owner: ownerz
+                                            owner: ownerz,
+                                            fees: 0
                                           }
                                         }
                                       });
@@ -234,7 +235,8 @@ const SMASendNonLns = (props: any) => {
                                             RecName: namess,
                                             SenderName: name,
                                             status: 'cashSales',
-                                            owner: ownerz
+                                            owner: ownerz,
+                                            fees: 0
                                           }
                                         }
                                       });
@@ -520,7 +522,7 @@ const SMASendNonLns = (props: any) => {
                                     SndChmMmbrMny();
                                   } else {
                                     const formattedAmountDisplay = formatAmountSync(amountKes, userCode, ratesMap);
-                                    const confirmed = await confirmSendTransfer(formattedAmountDisplay, namess, Desc);
+                                    const confirmed = await confirmSendTransfer(formattedAmountDisplay, namess, Desc, t, fmt);
                                     if (!confirmed) {
                                       setIsLoading(false);
                                       return;

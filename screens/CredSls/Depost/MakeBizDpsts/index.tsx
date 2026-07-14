@@ -9,6 +9,8 @@ import { generateClient } from 'aws-amplify/api';
 import { useExchange } from '../../../../src/contexts/ExchangeContext';
 import { convertForeignToKsh, formatAmountSync } from '../../../../src/utils/exchange';
 import { nationalityToCode } from '../../../../src/utils/nationalityToCode';
+import { useTranslation } from 'react-i18next';
+import translations from './translation';
 const client = generateClient();
 const SMADepositForm = props => {
   const [nationalId, setNationalid] = useState("");
@@ -19,6 +21,9 @@ const SMADepositForm = props => {
   const [isLoading, setIsLoading] = useState(false);
   const [ownr, setownr] = useState(null);
   const { nationality, ratesMap } = useExchange();
+  const { i18n } = useTranslation();
+  const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+  const t = translations[lang] || translations.en;
   const userCurrencyKey = nationalityToCode(nationality);
   const currencySymbol = ratesMap?.[userCurrencyKey]?.symbol || 'KES';
   const fetchAcDtls = async () => {
@@ -70,7 +75,7 @@ const SMADepositForm = props => {
       const userCurrency = nationalityToCode(rawNationality) || userCurrencyKey || 'KE';
       const enteredAmount = parseFloat(amount);
       if (Number.isNaN(enteredAmount) || enteredAmount <= 0) {
-        Alert.alert("Invalid Amount", "Please enter a valid deposit amount greater than 0.");
+        Alert.alert(t.invalidAmountTitle, t.invalidAmountMessage);
         setIsLoading(false);
         return;
       }
@@ -80,22 +85,22 @@ const SMADepositForm = props => {
 
       // Validation checks
       if (usrStts === "AccountInactive") {
-        Alert.alert("User Account is inactive");
+        Alert.alert(t.inactiveUserTitle);
         setIsLoading(false);
         return;
       }
       if (AgAcAct === "AccountInactive") {
-        Alert.alert("NSNdogo Account is Inactive");
+        Alert.alert(t.inactiveAgentTitle);
         setIsLoading(false);
         return;
       }
       if (parseFloat(agtFltBl) < amountKES) {
-        Alert.alert("Insufficient NSNdogo Balance: " + formatAmountSync(parseFloat(agtFltBl), userCode, ratesMap));
+        Alert.alert(t.insufficientBalanceTitle + ': ' + formatAmountSync(parseFloat(agtFltBl), userCode, ratesMap));
         setIsLoading(false);
         return;
       }
       if (agPW !== agPWd) {
-        Alert.alert("NSNdogo access denied");
+        Alert.alert(t.accessDeniedTitle);
         setIsLoading(false);
         return;
       }
@@ -151,8 +156,8 @@ const SMADepositForm = props => {
           }
         }
       });
-      Alert.alert(formatAmountSync(amountKES, userCode, ratesMap) + " deposited in " + names + "'s NSNdogo account");
-      const depositMessage2 = 'Confirmed. You have successfully deposited ' + formatAmountSync(amountKES, userCode, ratesMap) + ' into your Business account.' + ' Please confirm this deposit record is on your NiSenti app. Thank you. NiSenti';
+      Alert.alert(formatAmountSync(amountKES, userCode, ratesMap) + ' ' + t.depositSuccessPrefix + ' ' + names + t.depositSuccessSuffix);
+      const depositMessage2 = t.depositMessagePrefix + ' ' + formatAmountSync(amountKES, userCode, ratesMap) + ' ' + t.depositMessageMiddle;
       try {
         const msgRes = await client.graphql({
           query: createMessages,
@@ -161,7 +166,7 @@ const SMADepositForm = props => {
         if (msgRes?.data?.createMessages) {
           await client.graphql({
             query: sendNotification,
-            variables: { riderEmail: nationalId, title: 'NiSenti: Deposit Confirmed', body: depositMessage2 }
+            variables: { riderEmail: nationalId, title: t.notificationTitle, body: depositMessage2 }
           });
         }
       } catch (notifErr) {
@@ -169,7 +174,7 @@ const SMADepositForm = props => {
       }
     } catch (error) {
       console.log(error);
-      Alert.alert("Error! Update app or call customer care");
+      Alert.alert(t.errorTitle);
     } finally {
       setIsLoading(false);
       setNationalid("");
@@ -181,31 +186,30 @@ const SMADepositForm = props => {
   };
   return <LinearGradient colors={['#e58d29', 'skyblue']} style={styles.gradientBackground}>
       <ScrollView contentContainerStyle={styles.container}>
-        <Text style={styles.title}>Fill Account Details Below</Text>
+        <Text style={styles.title}>{t.fillAccountDetails}</Text>
 
         <View style={styles.inputGroup}>
-          <Text style={styles.label}>Business Phone</Text>
-          <TextInput placeholder="e.g. 0712XXXXXX" value={nationalId} onChangeText={setNationalid} style={styles.input} placeholderTextColor="#95A5A6" />
-        </View>
-
-
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>NSNdogo Phone</Text>
-          <TextInput placeholder="+2547xxxxxxxx" value={AgentPhn} onChangeText={setAgentPhn} style={styles.input} placeholderTextColor="#95A5A6" />
+          <Text style={styles.label}>{t.businessPhone}</Text>
+          <TextInput placeholder={t.placeholderBusinessPhone} value={nationalId} onChangeText={setNationalid} style={styles.input} placeholderTextColor="#444" />
         </View>
 
         <View style={styles.inputGroup}>
-          <Text style={styles.label}>Amount ({currencySymbol})</Text>
-          <TextInput placeholder={`e.g. 500 ${currencySymbol}`} keyboardType="decimal-pad" value={amount} onChangeText={setAmount} style={styles.input} placeholderTextColor="#95A5A6" />
+          <Text style={styles.label}>{t.nsndogoPhone}</Text>
+          <TextInput placeholder={t.placeholderAgentPhone} value={AgentPhn} onChangeText={setAgentPhn} style={styles.input} placeholderTextColor="#444" />
         </View>
 
         <View style={styles.inputGroup}>
-          <Text style={styles.label}>NSNdogo Password</Text>
-          <TextInput placeholder="••••••••" secureTextEntry value={agPWd} onChangeText={setAgPWd} style={styles.input} placeholderTextColor="#95A5A6" />
+          <Text style={styles.label}>{`${t.amountLabel} (${currencySymbol})`}</Text>
+          <TextInput placeholder={`${t.placeholderAmount} ${currencySymbol}`} keyboardType="decimal-pad" value={amount} onChangeText={setAmount} style={styles.input} placeholderTextColor="#444" />
+        </View>
+
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>{t.nsndogoPassword}</Text>
+          <TextInput placeholder={t.placeholderPassword} secureTextEntry value={agPWd} onChangeText={setAgPWd} style={styles.input} placeholderTextColor="#444" />
         </View>
 
         <TouchableOpacity style={styles.button} onPress={fetchAcDtls}>
-          <Text style={styles.buttonText}>Click to Deposit</Text>
+          <Text style={styles.buttonText}>{t.depositButton}</Text>
           {isLoading && <ActivityIndicator size="small" color="#fff" />}
         </TouchableOpacity>
       </ScrollView>
@@ -241,7 +245,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 15,
     paddingVertical: 12,
     fontSize: 16,
-    color: '#2C3E50'
+    color: '#222',
+    fontWeight: 'bold'
   },
   button: {
     backgroundColor: '#e58d29',

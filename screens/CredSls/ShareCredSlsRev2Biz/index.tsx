@@ -96,7 +96,8 @@ const SMASendNonLns = props => {
                         RecName: namess,
                         SenderName: busNames,
                         status: "BiznaShareCash2Biz",
-                        owner: userInfo.userId
+                        owner: userInfo.userId,
+                        fees: 0
                       }
                     }
                   });

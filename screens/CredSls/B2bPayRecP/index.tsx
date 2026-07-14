@@ -251,6 +251,7 @@ const SMASendNonLns = (props: any) => {
                                             SenderName: name,
                                             status: 'cashSales',
                                             owner: ownerz,
+                                            fees: 0
                                           },
                                         },
                                       });
@@ -282,6 +283,7 @@ const SMASendNonLns = (props: any) => {
                                             SenderName: name,
                                             status: 'cashSales',
                                             owner: ownerz,
+                                            fees: 0
                                           },
                                         },
                                       });

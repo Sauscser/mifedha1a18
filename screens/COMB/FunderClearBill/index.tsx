@@ -640,7 +640,8 @@ const FunderClearApprovedVoucherScreen = () => {
             RecName: voucher.sellerName,
             SenderName: voucher.funderName,
             status: 'cashSales',
-            owner: voucher.id
+            owner: voucher.id,
+            fees: 0
           }
         }
       });

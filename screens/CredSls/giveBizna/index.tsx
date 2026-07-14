@@ -6,9 +6,14 @@ import { View, Text, TextInput, ScrollView, TouchableOpacity, Alert, ActivityInd
 import styles from './styles';
 import { getCurrentUser, fetchUserAttributes } from 'aws-amplify/auth';
 import { generateClient } from 'aws-amplify/api';
+import { useTranslation } from 'react-i18next';
+import translations from './translation';
 const client = generateClient();
 const CreateBiz = props => {
   const navigation = useNavigation();
+  const { i18n } = useTranslation();
+  const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+  const t = translations[lang] || translations.en;
   const [ChmPhn, setChmPhn] = useState('');
   const [nam, setName] = useState<string | null>(null);
   const [awsEmail, setAWSEmail] = useState("");
@@ -50,21 +55,21 @@ const CreateBiz = props => {
           Alert.alert(attributes.email + " has taken over " + accountDtl.data.getBizna.busName + " Business");
         } catch (error) {
           console.log(error);
-          Alert.alert("Error! Update app or call customer care");
+          Alert.alert(t.errorUpdateAppCallCare);
         } finally {
           setIsLoading(false);
         }
       };
       if (pw !== pword) {
-        Alert.alert("Wrong Business Password");
+        Alert.alert(t.wrongBusinessPassword);
       } else if (userInfo.userId !== owners) {
-        Alert.alert("This is not your Business!");
+        Alert.alert(t.notYourBusiness);
       } else {
         await CreateNewSMAc();
       }
     } catch (e) {
       console.log(e);
-      Alert.alert("Check your Details");
+      Alert.alert(t.checkYourDetails);
     } finally {
       setIsLoading(false);
       setChmPhn('');
@@ -133,31 +138,31 @@ const CreateBiz = props => {
     }
     setSign2Phn(Sign2Phn);
   }, [Sign2Phn]);
-  return <View>
+  return <View style={{ flex: 1 }}>
       <View style={styles.image}>
-        <ScrollView>
+        <ScrollView contentContainerStyle={{ paddingBottom: 24 }}>
           <View style={styles.loanTitleView}>
-            <Text style={styles.title}>Fill Business Details Below</Text>
+            <Text style={styles.title}>{t.fillBusinessDetailsBelow}</Text>
           </View>
 
           <View style={styles.sendLoanView}>
             <TextInput placeholder="+2547xxxxxxxx" value={ChmPhn} onChangeText={setChmPhn} style={styles.sendLoanInput} editable={true} />
-            <Text style={styles.sendLoanText}>Business Phone</Text>
+            <Text style={styles.sendLoanText}>{t.businessPhone}</Text>
           </View>
 
           <View style={styles.sendLoanView}>
             <TextInput value={ChmNm} onChangeText={setChmNm} style={styles.sendLoanInput} editable={true} />
-            <Text style={styles.sendLoanText}>New Owner Email</Text>
+            <Text style={styles.sendLoanText}>{t.newOwnerEmail}</Text>
           </View>
 
           <View style={styles.sendLoanView}>
             <TextInput value={pword} onChangeText={setPW} secureTextEntry={true} style={styles.sendLoanInput} editable={true} />
-            <Text style={styles.sendLoanText}>Business Pass Word</Text>
+            <Text style={styles.sendLoanText}>{t.businessPassword}</Text>
           </View>
 
           <TouchableOpacity onPress={fetchAcDtls} style={styles.sendLoanButton}>
             <Text style={styles.sendLoanButtonText}>
-              Click to Hand Over
+              {t.clickToHandOver}
             </Text>
             {isLoading && <ActivityIndicator size="large" color="blue" />}
           </TouchableOpacity>

@@ -769,6 +769,9 @@ function SalesItemMapScreenInner({ navigation }: { navigation: any }) {
           });
         }
         console.log('Creating NonLoans for', sokokntct, 'owner:', allItemsID);
+        const feeForSeller = Number(totals.totalItemCost) > 0
+          ? Number(totals.totalItemCost) * parseFloat(company.biznaCashSaleFee)
+          : 0;
         await client.graphql({
           query: createNonLoans,
           variables: {
@@ -780,7 +783,8 @@ function SalesItemMapScreenInner({ navigation }: { navigation: any }) {
               RecName: biz ? biz.busName : '',
               SenderName: mode === 'B2B' && selectedBizna && selectedBizna.busName ? selectedBizna.busName : usrDtlsx.name,
               status: mode === 'B2B' ? 'Biz2Biz' : 'Biz2Pal',
-              owner: allItemsID
+              owner: allItemsID,
+              fees: feeForSeller.toFixed(0)
             }
           }
         });
@@ -1061,6 +1065,9 @@ function SalesItemMapScreenInner({ navigation }: { navigation: any }) {
           });
         }
         console.log('Creating NonLoans for', sokokntct, 'owner:', allItemsID);
+        const feeForSeller2 = Number(totalInKes) > 0
+          ? Number(totalInKes) * parseFloat(company.biznaCashSaleFee)
+          : 0;
         await client.graphql({
           query: createNonLoans,
           variables: {
@@ -1071,8 +1078,9 @@ function SalesItemMapScreenInner({ navigation }: { navigation: any }) {
               description: totals.description.join('\n'),
               RecName: biz ? biz.busName : '',
               SenderName: mode === 'B2B' && selectedBizna && selectedBizna.busName ? selectedBizna.busName : usrDts.name,
-              status: mode === 'B2B' ? 'Biz2Biz' : 'Biz2Pal',
-              owner: allItemsID
+              status: 'DeliveryPayment',
+              owner: allItemsID, 
+              fees: feeForSeller2.toFixed(0)
             }
           }
         });

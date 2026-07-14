@@ -91,7 +91,8 @@ const SMASendNonLns = (props: any) => {
                     RecName: busNames,
                     SenderName: busNames,
                     status: 'BenefitBoost',
-                    owner: userInfo.userId
+                    owner: userInfo.userId,
+                    fees: 0
                   }
                 }
               });

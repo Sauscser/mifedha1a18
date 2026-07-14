@@ -206,7 +206,8 @@ const SMASendNonLns = props => {
                                             RecName: ReceiverName,
                                             SenderName: names,
                                             status: "SMNonLons",
-                                            owner: userInfo.userId
+                                            owner: userInfo.userId,
+                                            fees: 0
                                           }
                                         }
                                       });
@@ -385,7 +386,8 @@ const SMASendNonLns = props => {
                                             RecName: ReceiverName,
                                             SenderName: names,
                                             status: "SMNonLons",
-                                            owner: userInfo.userId
+                                            owner: userInfo.userId,
+                                            fees: 0
                                           }
                                         }
                                       });
@@ -573,7 +575,8 @@ const SMASendNonLns = props => {
                                             RecName: ReceiverName,
                                             SenderName: names,
                                             status: "SMNonLons",
-                                            owner: userInfo.userId
+                                            owner: userInfo.userId,
+                                            fees: 0
                                           }
                                         }
                                       });
@@ -762,7 +765,8 @@ const SMASendNonLns = props => {
                                             RecName: ReceiverName,
                                             SenderName: names,
                                             status: "SMNonLons",
-                                            owner: userInfo.userId
+                                            owner: userInfo.userId,
+                                            fees: 0
                                           }
                                         }
                                       });

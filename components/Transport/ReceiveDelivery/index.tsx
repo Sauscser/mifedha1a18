@@ -228,6 +228,7 @@ const [distanceMeters, setDistanceMeters] = useState<number>(0);
                              amount: parseFloat(orderDtlz.deliveryCost) - CompEarning,
                              status: "DeliveryPayment",
                              owner: user.userID,
+                             fees: 0
                            }}
                          })
 
@@ -362,6 +363,7 @@ const [distanceMeters, setDistanceMeters] = useState<number>(0);
                                amount: parseFloat(orderDtlz.deliveryCost) - CompEarning,
                                status: "DeliveryPayment",
                                owner: user.userID,
+                               fees:0
                            }}})
 
                            

@@ -270,7 +270,8 @@ const RepayNonCovChmLnsss = props => {
                                 amount: amountKes.toFixed(0),
                                 description: Desc,
                                 status: "ChmLonRepayment",
-                                owner: userInfo.userId
+                                owner: userInfo.userId,
+                                fees: 0
                               }
                             }
                           });
@@ -485,7 +486,8 @@ const RepayNonCovChmLnsss = props => {
                                 amount: amountKes.toFixed(0),
                                 description: Desc,
                                 status: "ChmLonRepayment",
-                                owner: userInfo.userId
+                                owner: userInfo.userId,
+                                fees: 0
                               }
                             }
                           });

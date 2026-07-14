@@ -1,7 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { createSMLoansCovered, createNonLoans, updateCompany, updateSMAccount, updateBizna, createBizSlsReq, createMessages, sendNotification } from '../../../../../src/graphql/mutations';
 import { getBizna, getCompany, getSMAccount, listCovCreditSellers, listCvrdGroupLoans, listPersonels, listSMLoansCovereds } from '../../../../../src/graphql/queries';
 import { useNavigation } from '@react-navigation/native';
+import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { View, Text, Alert, ActivityIndicator, ScrollView, TextInput, TouchableOpacity } from 'react-native';
 import styles from './styles';
 import { getCurrentUser, fetchUserAttributes } from 'aws-amplify/auth';
@@ -19,6 +21,7 @@ const SMASendNonLns = props => {
   const [Desc, setDesc] = useState("");
   const [AttendAdmin, setAttendAdmin] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const navigation = useNavigation();
   const { i18n } = useTranslation();
   const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
@@ -162,55 +165,53 @@ const SMASendNonLns = props => {
       setSnderPW("");
     }
   };
-  return <View>
-      <View style={styles.image}>
-        <ScrollView>
-         
-          <View style={styles.amountTitleView}>
+  return <LinearGradient colors={['#e58d29', 'skyblue']} start={[0, 0]} end={[1, 1]} style={styles.image}>
+      <View style={styles.container}>
+        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+          <View style={styles.formContainer}>
             <Text style={styles.title}>{t.fillAccountDetails}</Text>
+
+            <View style={styles.sendAmtView}>
+              <Text style={styles.sendAmtText}>{t.sendingBusinessPhone}</Text>
+              <TextInput placeholder={t.sendingBusinessPhone} placeholderTextColor="#999" value={SenderNatId} onChangeText={setSenderNatId} style={styles.sendAmtInput} editable={true} />
+            </View>
+
+            <View style={styles.sendAmtView}>
+              <Text style={styles.sendAmtText}>{t.receivingPersonEmail}</Text>
+              <TextInput placeholder={t.receivingPersonEmail} placeholderTextColor="#999" value={RecNatId} onChangeText={setRecNatId} style={styles.sendAmtInput} editable={true} />
+            </View>
+
+            <View style={styles.sendAmtView}>
+              <Text style={styles.sendAmtText}>{t.attendingAdminEmail}</Text>
+              <TextInput placeholder={t.attendingAdminEmailPlaceholder} placeholderTextColor="#999" value={AttendAdmin} onChangeText={setAttendAdmin} style={styles.sendAmtInput} editable={true} />
+            </View>
+
+            <View style={styles.sendAmtView}>
+              <Text style={styles.sendAmtText}>{t.amountSent}</Text>
+              <TextInput keyboardType={"decimal-pad"} placeholder={t.amountSent} placeholderTextColor="#999" value={amounts} onChangeText={setAmount} style={styles.sendAmtInput} editable={true} />
+            </View>
+
+            <View style={styles.sendAmtView}>
+              <Text style={styles.sendAmtText}>{t.mainAccountPassword}</Text>
+              <View style={styles.passwordContainer}>
+                <TextInput placeholder={t.mainAccountPassword} placeholderTextColor="#999" value={SnderPW} onChangeText={setSnderPW} secureTextEntry={!isPasswordVisible} style={styles.passwordInput} editable={true} />
+                <TouchableOpacity onPress={() => setIsPasswordVisible(!isPasswordVisible)}>
+                  <Ionicons name={isPasswordVisible ? 'eye' : 'eye-off'} size={22} color="gray" />
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            <View style={styles.sendAmtViewDesc}>
+              <Text style={styles.sendAmtText}>{t.description}</Text>
+              <TextInput multiline={true} placeholder={t.description} placeholderTextColor="#999" value={Desc} onChangeText={setDesc} style={styles.sendAmtInputDesc} editable={true} textAlignVertical="top" />
+            </View>
+
+            <TouchableOpacity onPress={fetchSenderUsrDtls} style={styles.sendAmtButton}>
+              {isLoading ? <ActivityIndicator color="#fff" /> : <Text style={styles.sendAmtButtonText}>{t.send}</Text>}
+            </TouchableOpacity>
           </View>
-
-          <View style={styles.sendAmtView}>
-            <TextInput placeholder={t.sendingBusinessPhone} value={SenderNatId} onChangeText={setSenderNatId} style={styles.sendAmtInput} editable={true}></TextInput>
-            <Text style={styles.sendAmtText}>{t.sendingBusinessPhone}</Text>
-          </View>
-
-          <View style={styles.sendAmtView}>
-            <TextInput placeholder={t.receivingPersonEmail} value={RecNatId} onChangeText={setRecNatId} style={styles.sendAmtInput} editable={true}></TextInput>
-            <Text style={styles.sendAmtText}>{t.receivingPersonEmail}</Text>
-          </View>
-
-          <View style={styles.sendAmtView}>
-            <TextInput placeholder={t.attendingAdminEmailPlaceholder} value={AttendAdmin} onChangeText={setAttendAdmin} style={styles.sendAmtInput} editable={true}></TextInput>
-            <Text style={styles.sendAmtText}>{t.attendingAdminEmail}</Text>
-          </View>
-
-          <View style={styles.sendAmtView}>
-            <TextInput keyboardType={"decimal-pad"} value={amounts} onChangeText={setAmount} style={styles.sendAmtInput} editable={true}></TextInput>
-              
-            <Text style={styles.sendAmtText}>{t.amountSent}</Text>
-          </View>
-
-
-          <View style={styles.sendAmtView}>
-            <TextInput value={SnderPW} onChangeText={setSnderPW} secureTextEntry={true} style={styles.sendAmtInput} editable={true}></TextInput>
-            <Text style={styles.sendAmtText}>{t.mainAccountPassword}</Text>
-          </View>
-
-
-          <View style={styles.sendAmtViewDesc}>
-            <TextInput multiline={true} value={Desc} onChangeText={setDesc} style={styles.sendAmtInputDesc} editable={true}></TextInput>
-            <Text style={styles.sendAmtText}>{t.description}</Text>
-          </View>
-
-          <TouchableOpacity onPress={fetchSenderUsrDtls} style={styles.sendAmtButton}>
-            <Text style={styles.sendAmtButtonText}>{t.send}</Text>
-            {isLoading && <ActivityIndicator size="large" color="blue" />}
-          </TouchableOpacity>
-
-          
         </ScrollView>
       </View>
-    </View>;
+    </LinearGradient>;
 };
 export default SMASendNonLns;
