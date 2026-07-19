@@ -2401,6 +2401,7 @@ type Company
   EmploymentFee: Float  
   userClearanceFee: Float!
   CoverageFee: Float!
+  cascadePaymentFee: Float
   vat:Float!
   ttlvat:Float!
   enquiryFee: Float!
@@ -3554,6 +3555,79 @@ type RideRequest
   endTime: AWSDateTime
   riderLatitude:Float!
   riderLongitude: Float!
+}
+
+type CascadePaymentFlow
+  @model
+  @auth(
+    rules: [
+      { allow: owner, operations: [create, read, update, delete] }
+      { allow: private, operations: [create, read, update] }
+      { allow: groups, groups: ["Executive"], operations: [read, update, delete] }
+    ]
+  )
+{
+  id: ID!
+  owner: String! @index(name: "byCascadeFlowOwner", sortKeyFields: ["createdAt"], queryField: "cascadePaymentFlowsByOwner")
+  title: String!
+  description: String
+  senderAccountRef: String!
+  senderAccountName: String
+  recipientAccountRef: String!
+  recipientAccountName: String
+  recipientType: CascadeAccountType!
+  amount: Float!
+  currency: String!
+  status: CascadeFlowStatus!
+
+  currentLevel: Int!
+  totalDisbursed: Float!
+  totalAllocated: Float!
+  rootNodeId: ID
+  createdAt: AWSDateTime!
+  updatedAt: AWSDateTime
+}
+
+type CascadePaymentNode
+  @model
+  @auth(
+    rules: [
+      { allow: owner, operations: [create, read, update, delete] }
+      { allow: private, operations: [create, read, update] }
+      { allow: groups, groups: ["Executive"], operations: [read, update, delete] }
+    ]
+  )
+{
+  id: ID!
+  owner: String! @index(name: "byCascadeNodeOwner", sortKeyFields: ["createdAt"], queryField: "cascadePaymentNodesByOwner")
+  flowId: ID! @index(name: "byCascadeFlowNode", sortKeyFields: ["level"], queryField: "cascadePaymentNodesByFlow")
+  parentNodeId: ID
+  level: Int!
+  senderAccountRef: String!
+  senderAccountName: String
+  recipientAccountRef: String!
+  recipientAccountName: String
+  recipientType: CascadeAccountType!
+  amount: Float!
+  description: String
+  isLeaf: Boolean!
+  childCount: Int!
+  subtotal: Float!
+  createdAt: AWSDateTime!
+  updatedAt: AWSDateTime
+}
+
+enum CascadeAccountType {
+  BUSINESS
+  INDIVIDUAL
+  SUBUNIT
+}
+
+enum CascadeFlowStatus {
+  DRAFT
+  IN_PROGRESS
+  COMPLETED
+  CANCELED
 }
 
 # 💳 Payment Record Type

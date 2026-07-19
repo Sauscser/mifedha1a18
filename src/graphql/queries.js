@@ -2644,6 +2644,7 @@ export const getCompany = /* GraphQL */ `
       EmploymentFee
       userClearanceFee
       CoverageFee
+      cascadePaymentFee
       vat
       ttlvat
       enquiryFee
@@ -2824,6 +2825,7 @@ export const listCompanies = /* GraphQL */ `
         EmploymentFee
         userClearanceFee
         CoverageFee
+        cascadePaymentFee
         vat
         ttlvat
         enquiryFee
@@ -4354,6 +4356,128 @@ export const listRideRequests = /* GraphQL */ `
         createdAt
         updatedAt
         owner
+        __typename
+      }
+      nextToken
+      __typename
+    }
+  }
+`;
+export const getCascadePaymentFlow = /* GraphQL */ `
+  query GetCascadePaymentFlow($id: ID!) {
+    getCascadePaymentFlow(id: $id) {
+      id
+      owner
+      title
+      description
+      senderAccountRef
+      senderAccountName
+      recipientAccountRef
+      recipientAccountName
+      recipientType
+      amount
+      currency
+      status
+      currentLevel
+      totalDisbursed
+      totalAllocated
+      rootNodeId
+      createdAt
+      updatedAt
+      __typename
+    }
+  }
+`;
+export const listCascadePaymentFlows = /* GraphQL */ `
+  query ListCascadePaymentFlows(
+    $filter: ModelCascadePaymentFlowFilterInput
+    $limit: Int
+    $nextToken: String
+  ) {
+    listCascadePaymentFlows(
+      filter: $filter
+      limit: $limit
+      nextToken: $nextToken
+    ) {
+      items {
+        id
+        owner
+        title
+        description
+        senderAccountRef
+        senderAccountName
+        recipientAccountRef
+        recipientAccountName
+        recipientType
+        amount
+        currency
+        status
+        currentLevel
+        totalDisbursed
+        totalAllocated
+        rootNodeId
+        createdAt
+        updatedAt
+        __typename
+      }
+      nextToken
+      __typename
+    }
+  }
+`;
+export const getCascadePaymentNode = /* GraphQL */ `
+  query GetCascadePaymentNode($id: ID!) {
+    getCascadePaymentNode(id: $id) {
+      id
+      owner
+      flowId
+      parentNodeId
+      level
+      senderAccountRef
+      senderAccountName
+      recipientAccountRef
+      recipientAccountName
+      recipientType
+      amount
+      description
+      isLeaf
+      childCount
+      subtotal
+      createdAt
+      updatedAt
+      __typename
+    }
+  }
+`;
+export const listCascadePaymentNodes = /* GraphQL */ `
+  query ListCascadePaymentNodes(
+    $filter: ModelCascadePaymentNodeFilterInput
+    $limit: Int
+    $nextToken: String
+  ) {
+    listCascadePaymentNodes(
+      filter: $filter
+      limit: $limit
+      nextToken: $nextToken
+    ) {
+      items {
+        id
+        owner
+        flowId
+        parentNodeId
+        level
+        senderAccountRef
+        senderAccountName
+        recipientAccountRef
+        recipientAccountName
+        recipientType
+        amount
+        description
+        isLeaf
+        childCount
+        subtotal
+        createdAt
+        updatedAt
         __typename
       }
       nextToken
@@ -8314,6 +8438,133 @@ export const rideRequestsByRider = /* GraphQL */ `
         createdAt
         updatedAt
         owner
+        __typename
+      }
+      nextToken
+      __typename
+    }
+  }
+`;
+export const cascadePaymentFlowsByOwner = /* GraphQL */ `
+  query CascadePaymentFlowsByOwner(
+    $owner: String!
+    $createdAt: ModelStringKeyConditionInput
+    $sortDirection: ModelSortDirection
+    $filter: ModelCascadePaymentFlowFilterInput
+    $limit: Int
+    $nextToken: String
+  ) {
+    cascadePaymentFlowsByOwner(
+      owner: $owner
+      createdAt: $createdAt
+      sortDirection: $sortDirection
+      filter: $filter
+      limit: $limit
+      nextToken: $nextToken
+    ) {
+      items {
+        id
+        owner
+        title
+        description
+        senderAccountRef
+        senderAccountName
+        recipientAccountRef
+        recipientAccountName
+        recipientType
+        amount
+        currency
+        status
+        currentLevel
+        totalDisbursed
+        totalAllocated
+        rootNodeId
+        createdAt
+        updatedAt
+        __typename
+      }
+      nextToken
+      __typename
+    }
+  }
+`;
+export const cascadePaymentNodesByOwner = /* GraphQL */ `
+  query CascadePaymentNodesByOwner(
+    $owner: String!
+    $createdAt: ModelStringKeyConditionInput
+    $sortDirection: ModelSortDirection
+    $filter: ModelCascadePaymentNodeFilterInput
+    $limit: Int
+    $nextToken: String
+  ) {
+    cascadePaymentNodesByOwner(
+      owner: $owner
+      createdAt: $createdAt
+      sortDirection: $sortDirection
+      filter: $filter
+      limit: $limit
+      nextToken: $nextToken
+    ) {
+      items {
+        id
+        owner
+        flowId
+        parentNodeId
+        level
+        senderAccountRef
+        senderAccountName
+        recipientAccountRef
+        recipientAccountName
+        recipientType
+        amount
+        description
+        isLeaf
+        childCount
+        subtotal
+        createdAt
+        updatedAt
+        __typename
+      }
+      nextToken
+      __typename
+    }
+  }
+`;
+export const cascadePaymentNodesByFlow = /* GraphQL */ `
+  query CascadePaymentNodesByFlow(
+    $flowId: ID!
+    $level: ModelIntKeyConditionInput
+    $sortDirection: ModelSortDirection
+    $filter: ModelCascadePaymentNodeFilterInput
+    $limit: Int
+    $nextToken: String
+  ) {
+    cascadePaymentNodesByFlow(
+      flowId: $flowId
+      level: $level
+      sortDirection: $sortDirection
+      filter: $filter
+      limit: $limit
+      nextToken: $nextToken
+    ) {
+      items {
+        id
+        owner
+        flowId
+        parentNodeId
+        level
+        senderAccountRef
+        senderAccountName
+        recipientAccountRef
+        recipientAccountName
+        recipientType
+        amount
+        description
+        isLeaf
+        childCount
+        subtotal
+        createdAt
+        updatedAt
         __typename
       }
       nextToken

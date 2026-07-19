@@ -3600,6 +3600,7 @@ export const onCreateCompany = /* GraphQL */ `
       EmploymentFee
       userClearanceFee
       CoverageFee
+      cascadePaymentFee
       vat
       ttlvat
       enquiryFee
@@ -3770,6 +3771,7 @@ export const onUpdateCompany = /* GraphQL */ `
       EmploymentFee
       userClearanceFee
       CoverageFee
+      cascadePaymentFee
       vat
       ttlvat
       enquiryFee
@@ -3940,6 +3942,7 @@ export const onDeleteCompany = /* GraphQL */ `
       EmploymentFee
       userClearanceFee
       CoverageFee
+      cascadePaymentFee
       vat
       ttlvat
       enquiryFee
@@ -6033,6 +6036,171 @@ export const onDeleteRideRequest = /* GraphQL */ `
       createdAt
       updatedAt
       owner
+      __typename
+    }
+  }
+`;
+export const onCreateCascadePaymentFlow = /* GraphQL */ `
+  subscription OnCreateCascadePaymentFlow(
+    $filter: ModelSubscriptionCascadePaymentFlowFilterInput
+    $owner: String
+  ) {
+    onCreateCascadePaymentFlow(filter: $filter, owner: $owner) {
+      id
+      owner
+      title
+      description
+      senderAccountRef
+      senderAccountName
+      recipientAccountRef
+      recipientAccountName
+      recipientType
+      amount
+      currency
+      status
+      currentLevel
+      totalDisbursed
+      totalAllocated
+      rootNodeId
+      createdAt
+      updatedAt
+      __typename
+    }
+  }
+`;
+export const onUpdateCascadePaymentFlow = /* GraphQL */ `
+  subscription OnUpdateCascadePaymentFlow(
+    $filter: ModelSubscriptionCascadePaymentFlowFilterInput
+    $owner: String
+  ) {
+    onUpdateCascadePaymentFlow(filter: $filter, owner: $owner) {
+      id
+      owner
+      title
+      description
+      senderAccountRef
+      senderAccountName
+      recipientAccountRef
+      recipientAccountName
+      recipientType
+      amount
+      currency
+      status
+      currentLevel
+      totalDisbursed
+      totalAllocated
+      rootNodeId
+      createdAt
+      updatedAt
+      __typename
+    }
+  }
+`;
+export const onDeleteCascadePaymentFlow = /* GraphQL */ `
+  subscription OnDeleteCascadePaymentFlow(
+    $filter: ModelSubscriptionCascadePaymentFlowFilterInput
+    $owner: String
+  ) {
+    onDeleteCascadePaymentFlow(filter: $filter, owner: $owner) {
+      id
+      owner
+      title
+      description
+      senderAccountRef
+      senderAccountName
+      recipientAccountRef
+      recipientAccountName
+      recipientType
+      amount
+      currency
+      status
+      currentLevel
+      totalDisbursed
+      totalAllocated
+      rootNodeId
+      createdAt
+      updatedAt
+      __typename
+    }
+  }
+`;
+export const onCreateCascadePaymentNode = /* GraphQL */ `
+  subscription OnCreateCascadePaymentNode(
+    $filter: ModelSubscriptionCascadePaymentNodeFilterInput
+    $owner: String
+  ) {
+    onCreateCascadePaymentNode(filter: $filter, owner: $owner) {
+      id
+      owner
+      flowId
+      parentNodeId
+      level
+      senderAccountRef
+      senderAccountName
+      recipientAccountRef
+      recipientAccountName
+      recipientType
+      amount
+      description
+      isLeaf
+      childCount
+      subtotal
+      createdAt
+      updatedAt
+      __typename
+    }
+  }
+`;
+export const onUpdateCascadePaymentNode = /* GraphQL */ `
+  subscription OnUpdateCascadePaymentNode(
+    $filter: ModelSubscriptionCascadePaymentNodeFilterInput
+    $owner: String
+  ) {
+    onUpdateCascadePaymentNode(filter: $filter, owner: $owner) {
+      id
+      owner
+      flowId
+      parentNodeId
+      level
+      senderAccountRef
+      senderAccountName
+      recipientAccountRef
+      recipientAccountName
+      recipientType
+      amount
+      description
+      isLeaf
+      childCount
+      subtotal
+      createdAt
+      updatedAt
+      __typename
+    }
+  }
+`;
+export const onDeleteCascadePaymentNode = /* GraphQL */ `
+  subscription OnDeleteCascadePaymentNode(
+    $filter: ModelSubscriptionCascadePaymentNodeFilterInput
+    $owner: String
+  ) {
+    onDeleteCascadePaymentNode(filter: $filter, owner: $owner) {
+      id
+      owner
+      flowId
+      parentNodeId
+      level
+      senderAccountRef
+      senderAccountName
+      recipientAccountRef
+      recipientAccountName
+      recipientType
+      amount
+      description
+      isLeaf
+      childCount
+      subtotal
+      createdAt
+      updatedAt
       __typename
     }
   }

@@ -58,6 +58,20 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     width: '100%',
     marginBottom: 8
+  },
+  cascadeActionButton: {
+    backgroundColor: '#FF8C00',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 10,
+    alignItems: 'center',
+    marginBottom: 16,
+    width: '100%'
+  },
+  cascadeActionText: {
+    color: 'white',
+    fontWeight: '700',
+    fontSize: 16
   }
 });
 export default styles;

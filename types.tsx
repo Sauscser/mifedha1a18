@@ -798,6 +798,29 @@ ViewMinutes: {
       VwPlLn2Remove:undefined;
       AutomaticRepayAllTyps:undefined;
       VwMakeLnReq:undefined;
+      CascadePaymentsScreen:{
+        fromCascadePaymentsReturn?: boolean;
+        businessCheckoutPayload?: any;
+        recipientBusinessAccountNumber?: string;
+        amountSpent?: string;
+        feeAmount?: string | number;
+        senderAccountRef?: string;
+        senderAccountName?: string;
+        senderFlowId?: string;
+        senderOwner?: string;
+        recipientType?: string;
+      };
+      CascadePayShopping:{
+        fromCascadePayments?: boolean;
+        recipientBusinessAccountNumber?: string;
+        cascadeAmount?: string;
+        feeAmount?: string | number;
+        senderAccountRef?: string;
+        senderAccountName?: string;
+        senderFlowId?: string;
+        senderOwner?: string;
+        recipientType?: string;
+      };
       
       Vw2GrantLnReq:undefined;
       Vw2DelLnReqs:undefined;

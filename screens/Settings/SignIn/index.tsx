@@ -48,6 +48,7 @@ const AdminSignIn = props => {
             agentCom: 0.6,
             sagentCom: 0.19,
             companyCom: 0.2,
+            cascadePaymentFee: 0.05,
             
             AdvCom: 0.6,
             AdvCompanyCom:0.4,

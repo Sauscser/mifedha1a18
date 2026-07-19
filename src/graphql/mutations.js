@@ -3625,6 +3625,7 @@ export const createCompany = /* GraphQL */ `
       EmploymentFee
       userClearanceFee
       CoverageFee
+      cascadePaymentFee
       vat
       ttlvat
       enquiryFee
@@ -3795,6 +3796,7 @@ export const updateCompany = /* GraphQL */ `
       EmploymentFee
       userClearanceFee
       CoverageFee
+      cascadePaymentFee
       vat
       ttlvat
       enquiryFee
@@ -3965,6 +3967,7 @@ export const deleteCompany = /* GraphQL */ `
       EmploymentFee
       userClearanceFee
       CoverageFee
+      cascadePaymentFee
       vat
       ttlvat
       enquiryFee
@@ -6070,6 +6073,171 @@ export const deleteRideRequest = /* GraphQL */ `
       createdAt
       updatedAt
       owner
+      __typename
+    }
+  }
+`;
+export const createCascadePaymentFlow = /* GraphQL */ `
+  mutation CreateCascadePaymentFlow(
+    $input: CreateCascadePaymentFlowInput!
+    $condition: ModelCascadePaymentFlowConditionInput
+  ) {
+    createCascadePaymentFlow(input: $input, condition: $condition) {
+      id
+      owner
+      title
+      description
+      senderAccountRef
+      senderAccountName
+      recipientAccountRef
+      recipientAccountName
+      recipientType
+      amount
+      currency
+      status
+      currentLevel
+      totalDisbursed
+      totalAllocated
+      rootNodeId
+      createdAt
+      updatedAt
+      __typename
+    }
+  }
+`;
+export const updateCascadePaymentFlow = /* GraphQL */ `
+  mutation UpdateCascadePaymentFlow(
+    $input: UpdateCascadePaymentFlowInput!
+    $condition: ModelCascadePaymentFlowConditionInput
+  ) {
+    updateCascadePaymentFlow(input: $input, condition: $condition) {
+      id
+      owner
+      title
+      description
+      senderAccountRef
+      senderAccountName
+      recipientAccountRef
+      recipientAccountName
+      recipientType
+      amount
+      currency
+      status
+      currentLevel
+      totalDisbursed
+      totalAllocated
+      rootNodeId
+      createdAt
+      updatedAt
+      __typename
+    }
+  }
+`;
+export const deleteCascadePaymentFlow = /* GraphQL */ `
+  mutation DeleteCascadePaymentFlow(
+    $input: DeleteCascadePaymentFlowInput!
+    $condition: ModelCascadePaymentFlowConditionInput
+  ) {
+    deleteCascadePaymentFlow(input: $input, condition: $condition) {
+      id
+      owner
+      title
+      description
+      senderAccountRef
+      senderAccountName
+      recipientAccountRef
+      recipientAccountName
+      recipientType
+      amount
+      currency
+      status
+      currentLevel
+      totalDisbursed
+      totalAllocated
+      rootNodeId
+      createdAt
+      updatedAt
+      __typename
+    }
+  }
+`;
+export const createCascadePaymentNode = /* GraphQL */ `
+  mutation CreateCascadePaymentNode(
+    $input: CreateCascadePaymentNodeInput!
+    $condition: ModelCascadePaymentNodeConditionInput
+  ) {
+    createCascadePaymentNode(input: $input, condition: $condition) {
+      id
+      owner
+      flowId
+      parentNodeId
+      level
+      senderAccountRef
+      senderAccountName
+      recipientAccountRef
+      recipientAccountName
+      recipientType
+      amount
+      description
+      isLeaf
+      childCount
+      subtotal
+      createdAt
+      updatedAt
+      __typename
+    }
+  }
+`;
+export const updateCascadePaymentNode = /* GraphQL */ `
+  mutation UpdateCascadePaymentNode(
+    $input: UpdateCascadePaymentNodeInput!
+    $condition: ModelCascadePaymentNodeConditionInput
+  ) {
+    updateCascadePaymentNode(input: $input, condition: $condition) {
+      id
+      owner
+      flowId
+      parentNodeId
+      level
+      senderAccountRef
+      senderAccountName
+      recipientAccountRef
+      recipientAccountName
+      recipientType
+      amount
+      description
+      isLeaf
+      childCount
+      subtotal
+      createdAt
+      updatedAt
+      __typename
+    }
+  }
+`;
+export const deleteCascadePaymentNode = /* GraphQL */ `
+  mutation DeleteCascadePaymentNode(
+    $input: DeleteCascadePaymentNodeInput!
+    $condition: ModelCascadePaymentNodeConditionInput
+  ) {
+    deleteCascadePaymentNode(input: $input, condition: $condition) {
+      id
+      owner
+      flowId
+      parentNodeId
+      level
+      senderAccountRef
+      senderAccountName
+      recipientAccountRef
+      recipientAccountName
+      recipientType
+      amount
+      description
+      isLeaf
+      childCount
+      subtotal
+      createdAt
+      updatedAt
       __typename
     }
   }

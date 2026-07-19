@@ -32,7 +32,7 @@ const Section = ({
   );
 };
 const MyLoanAccount = () => {
-  const navigation = useNavigation();
+  const navigation = useNavigation<any>();
   const { i18n } = useTranslation();
   const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
   const t = translations[lang] || translations.en;
@@ -165,6 +165,9 @@ const MyLoanAccount = () => {
   const OpenSellerPartialPayRecords = () => {
     navigation.navigate('SellerPartialPayRecords');
   };
+  const OpenCascadePayments = () => {
+    navigation.navigate('CascadePaymentsScreen');
+  };
   return <SafeAreaView>
       <ScrollView>
       <LinearGradient colors={['#FF8C00', 'skyblue', 'white']} // Linear gradient for orange hues
@@ -176,60 +179,70 @@ const MyLoanAccount = () => {
         x: 1,
         y: 1
       }} style={styles.clientsPressableGradient}>
+          
             
+             <Section title="Cascade Payments" options={[{
+              label: 'Cascade Payments',
+              onPress: OpenCascadePayments,
+              style: styles.viewForClientsPressables
+            }]} />
             <Section title="bizProducts" options={[{
               label: 'benefitProductCreate',
               onPress: AddBeneficiaryProduct,
-              style: styles.ClientsPressables
+              style: styles.viewForClientsPressables
             }, {
               label: 'viewBusinessBenefitsShared',
               onPress: ViewBenShares,
-              style: styles.ClientsPressables
+              style: styles.viewForClientsPressables
             }, {
               label: 'shareBusinessBenefits',
               onPress: VwBenToShare,
-              style: styles.ClientsPressables
+              style: styles.viewForClientsPressables
             }, {
               label: 'linkBeneficiary',
               onPress: ViewBenProds,
-              style: styles.ClientsPressables
+              style: styles.viewForClientsPressables
             }, {
               label: 'boostPooledBenefits',
               onPress: BoostPooledBen,
-              style: styles.ClientsPressables
+              style: styles.viewForClientsPressables
             }, {
               label: 'viewAsProductCreator',
               onPress: ViewAsProdCreator,
-              style: styles.ClientsPressables
+              style: styles.viewForClientsPressables
             }]} />
             <Section title="manageBusiness" options={[{
               label: 'createBizInstitution',
               onPress: CrtBusinessss,
-              style: styles.ClientsPressables
+              style: styles.viewForClientsPressables
+            }, {
+              label: 'cascadePayments',
+              onPress: OpenCascadePayments,
+              style: styles.viewForClientsPressables
             }, {
               label: 'addItem',
               onPress: VwBiz2AddItem,
-              style: styles.ClientsPressables
+              style: styles.viewForClientsPressables
             }, {
               label: 'deleteSalesItem',
               onPress: VwSlsAds2Remove,
-              style: styles.ClientsPressables
+              style: styles.viewForClientsPressables
             }, {
               label: 'updateBiz',
               onPress: UpdateBizAc,
-              style: styles.ClientsPressables
+              style: styles.viewForClientsPressables
             }, {
               label: 'registerSalesOfficer',
               onPress: AddPersonelss,
-              style: styles.ClientsPressables
+              style: styles.viewForClientsPressables
             }, {
               label: 'deregSalesOfficer',
               onPress: RmvPersonnelsss,
-              style: styles.ClientsPressables
+              style: styles.viewForClientsPressables
             }, {
               label: 'viewAccount',
               onPress: SgnIn2VwBiznasss,
-              style: styles.ClientsPressables
+              style: styles.viewForClientsPressables
             }]} />
             <Section title="makeCreditSalesRequests" options={[{
               label: 'makeCreditSalesRequests',
@@ -277,49 +290,49 @@ const MyLoanAccount = () => {
             <Section title="cashSalesPurchasesDeposits" options={[{
               label: 'cashSales',
               onPress: PayCash,
-              style: styles.ClientsPressables
+              style: styles.viewForClientsPressables
             }, {
               label: 'sellerPartialPayRecords',
               onPress: OpenSellerPartialPayRecords,
-              style: styles.ClientsPressables
+              style: styles.viewForClientsPressables
             }, {
               label: 'makeDeposits',
               onPress: MakeNVwPayPalDpsits,
-              style: styles.ClientsPressables
+              style: styles.viewForClientsPressables
             }, {
               label: 'viewDeposits',
               onPress: VwBizDpsts,
-              style: styles.ClientsPressables
+              style: styles.viewForClientsPressables
             }]} />
             <Section title="businessCashTransfers" options={[{
               label: 'sendCashToPal',
               onPress: ShareCredSlsRevss,
-              style: styles.ClientsPressables
+              style: styles.viewForClientsPressables
             }, {
               label: 'sendCashToBiz',
               onPress: ShareCredSlsRev2Biz,
-              style: styles.ClientsPressables
+              style: styles.viewForClientsPressables
             }, {
               label: 'viewCashSentToPal',
               onPress: ViewBiznaShareSent2Pal,
-              style: styles.ClientsPressables
+              style: styles.viewForClientsPressables
             }, {
               label: 'viewCashReceivedFromBiz',
               onPress: ViewBiznaShareRecBiz,
-              style: styles.ClientsPressables
+              style: styles.viewForClientsPressables
             }, {
               label: 'viewCashSentToBiz',
               onPress: ViewBiznaShareSent,
-              style: styles.ClientsPressables
+              style: styles.viewForClientsPressables
             }]} />
             <Section title="bizAdverts" options={[{
               label: 'transferOwnership',
               onPress: giveBizna,
-              style: styles.ClientsPressables
+              style: styles.viewForClientsPressables
             }, {
               label: 'receiveOwnership',
               onPress: TakeOverBizna,
-              style: styles.ClientsPressables
+              style: styles.viewForClientsPressables
             }]} />
 
 
