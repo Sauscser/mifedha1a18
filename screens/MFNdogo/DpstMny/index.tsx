@@ -1,13 +1,14 @@
 // @ts-nocheck
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Alert, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, Alert, ActivityIndicator, StyleSheet, ScrollView, KeyboardAvoidingView, TouchableWithoutFeedback, Keyboard, Platform } from 'react-native';
 import { generateClient } from 'aws-amplify/api';
-import { getAgent, getSMAccount, getCompany } from '../../../src/graphql/queries';
-import { createFloatAdd, updateAgent, updateSMAccount, updateCompany } from '../../../src/graphql/mutations';
+import { getAgent, getGroup, getSMAccount, getCompany, getSAgent } from '../../../src/graphql/queries';
+import { createFloatAdd, updateAgent, updateGroup, updateSMAccount, updateCompany } from '../../../src/graphql/mutations';
 import { getCurrentUser, fetchUserAttributes } from 'aws-amplify/auth';
 import * as Location from 'expo-location';
 import { getDistance } from 'geolib';
 import { convertForeignToKsh, formatAmountForUser, formatAmountSync, getUserNationalityByEmail } from '../../../src/utils/exchange';
+import { nationalityToCode } from '../../../src/utils/nationalityToCode';
 import { useExchange } from '../../../src/contexts/ExchangeContext';
 
 const client = generateClient();
@@ -17,6 +18,9 @@ const UserDepositAtAgentScreen = () => {
   const [amount, setAmount] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const { nationality, ratesMap, formatAmount } = useExchange();
+  const safeNationality = typeof nationality === 'string' ? nationality : (nationality && typeof nationality === 'object' && 'nationality' in nationality ? (nationality as any).nationality : null);
+  const userCurrencyKey = nationalityToCode(safeNationality || '') || safeNationality || undefined;
+  const currencySymbol = userCurrencyKey && ratesMap?.[userCurrencyKey]?.symbol ? String(ratesMap[userCurrencyKey].symbol) : '';
 
   const handleDeposit = async () => {
     if (isLoading) return;
@@ -70,9 +74,20 @@ const UserDepositAtAgentScreen = () => {
         agentNat = smRes?.data?.getSMAccount?.nationality || null;
       }
 
-      // Convert deposited amount (in agent currency) to KES
+      // Convert deposited amount (in agent currency) to the backend CHF-based amount
       const amountForeign = Number(amount);
-      const amountKsh = await convertForeignToKsh(amountForeign, agentNat || undefined);
+      const resolvedCurrencyKey = userCurrencyKey || nationalityToCode(agentNat || '') || agentNat || undefined;
+      let amountKsh = amountForeign;
+      if (resolvedCurrencyKey) {
+        const rateForCurrency = ratesMap?.[resolvedCurrencyKey];
+        if (rateForCurrency?.sellingPrice && Number(rateForCurrency.sellingPrice) > 0) {
+          amountKsh = amountForeign / parseFloat(String(rateForCurrency.sellingPrice));
+        } else {
+          amountKsh = await convertForeignToKsh(amountForeign, resolvedCurrencyKey);
+        }
+      } else {
+        amountKsh = await convertForeignToKsh(amountForeign, agentNat || undefined);
+      }
 
       // Create record of deposit (FloatAdd) - store KES value for everything
       await client.graphql({ query: createFloatAdd, variables: { input: {
@@ -97,7 +112,33 @@ const UserDepositAtAgentScreen = () => {
       // Update agent's float balances (record as KES)
       const prevFloat = parseFloat(agent.floatBal || '0');
       const prevTtlFltIn = parseFloat(agent.TtlFltIn || '0');
-      await client.graphql({ query: updateAgent, variables: { input: { phonecontact: agentPhone, floatBal: (prevFloat + amountKsh).toFixed(0), TtlFltIn: (prevTtlFltIn + amountKsh).toFixed(0) } } });
+      const agentGroupFloatStatus = String(agent.groupFloatStatus || '').toUpperCase();
+      const prevAgentGroupFloatAmount = parseFloat(agent.groupFloatAmount || '0');
+      let groupFallbackUsed = 0;
+      if (agentGroupFloatStatus === 'YES' && prevAgentGroupFloatAmount > 0 && prevFloat < amountKsh) {
+        try {
+          const sAgentRes: any = await client.graphql({ query: getSAgent, variables: { saPhoneContact: agent.sagentregno } });
+          const linkedSAgent = sAgentRes?.data?.getSAgent;
+          if (linkedSAgent?.bkAcNo) {
+            const groupRes: any = await client.graphql({ query: getGroup, variables: { grpContact: linkedSAgent.bkAcNo } });
+            const linkedGroup = groupRes?.data?.getGroup;
+            const groupBalance = parseFloat(linkedGroup?.grpBal || '0');
+            const groupFloatLoan = parseFloat(linkedGroup?.groupFloatLoan || '0');
+            const shortfall = amountKsh - prevFloat;
+            const fallbackAmount = Math.min(prevAgentGroupFloatAmount, Math.max(0, shortfall));
+            if (linkedGroup && fallbackAmount > 0 && groupBalance >= fallbackAmount) {
+              groupFallbackUsed = fallbackAmount;
+              const nextGroupBalance = groupBalance - fallbackAmount;
+              const nextGroupFloatLoan = groupFloatLoan + fallbackAmount;
+              await client.graphql({ query: updateGroup, variables: { input: { grpContact: linkedGroup.grpContact, grpBal: nextGroupBalance, groupFloatLoan: nextGroupFloatLoan } } });
+            }
+          }
+        } catch (error) {
+          console.warn('Could not apply linked group float fallback', error);
+        }
+      }
+      const nextAgentGroupFloatAmount = Math.max(0, prevAgentGroupFloatAmount - groupFallbackUsed);
+      await client.graphql({ query: updateAgent, variables: { input: { phonecontact: agentPhone, floatBal: (prevFloat + amountKsh).toFixed(0), TtlFltIn: (prevTtlFltIn + amountKsh).toFixed(0), groupFloatAmount: nextAgentGroupFloatAmount, groupFloatStatus: nextAgentGroupFloatAmount > 0 ? 'YES' : 'NO' } } });
 
       // Optionally update company totals (agentFloatIn)
       try {
@@ -112,14 +153,23 @@ const UserDepositAtAgentScreen = () => {
       try {
         const nat = await getUserNationalityByEmail(attributes.email);
         const formatted = await formatAmountForUser(amountKsh, nat || undefined);
-        Alert.alert('Deposit successful', `You deposited ${formatted} (KES equivalent) at ${agent.name || 'Agent'}`);
+        const fallbackMessage = groupFallbackUsed > 0
+          ? ` The linked group covered ${await formatAmountForUser(groupFallbackUsed, nat || undefined)} of the shortfall.`
+          : '';
+        Alert.alert('Deposit successful', `You deposited ${formatted} (KES equivalent) at ${agent.name || 'Agent'}.${fallbackMessage}`);
       } catch (e) {
         try {
           const formatted = await formatAmount(amountKsh);
-          Alert.alert('Deposit successful', `You deposited ${formatted} (KES equivalent) at ${agent.name || 'Agent'}`);
+          const fallbackMessage = groupFallbackUsed > 0
+            ? ` The linked group covered ${formatAmountSync(groupFallbackUsed, nationality, ratesMap)} of the shortfall.`
+            : '';
+          Alert.alert('Deposit successful', `You deposited ${formatted} (KES equivalent) at ${agent.name || 'Agent'}.${fallbackMessage}`);
         } catch (e2) {
           const fallback = formatAmountSync(amountKsh, nationality, ratesMap);
-          Alert.alert('Deposit successful', `You deposited ${fallback} (KES equivalent) at ${agent.name || 'Agent'}`);
+          const fallbackMessage = groupFallbackUsed > 0
+            ? ` The linked group covered ${formatAmountSync(groupFallbackUsed, nationality, ratesMap)} of the shortfall.`
+            : '';
+          Alert.alert('Deposit successful', `You deposited ${fallback} (KES equivalent) at ${agent.name || 'Agent'}.${fallbackMessage}`);
         }
       }
 
@@ -134,21 +184,51 @@ const UserDepositAtAgentScreen = () => {
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Deposit at Agent</Text>
-      <TextInput placeholder="Agent Phone (+2547...)" value={agentPhone} onChangeText={setAgentPhone} style={styles.input} />
-      <TextInput placeholder="Amount (agent currency)" value={amount} onChangeText={setAmount} keyboardType="decimal-pad" style={styles.input} />
-      <TouchableOpacity onPress={handleDeposit} style={styles.button} disabled={isLoading}>
-        {isLoading ? <ActivityIndicator color="white" /> : <Text style={styles.buttonText}>Deposit</Text>}
-      </TouchableOpacity>
-    </View>
+    <KeyboardAvoidingView
+      style={styles.keyboardContainer}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 60 : 0}
+    >
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+        <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
+          <Text style={styles.title}>Deposit at Agent</Text>
+          <TextInput placeholder="Agent Phone (+2547...)" value={agentPhone} onChangeText={setAgentPhone} style={styles.input} />
+          <View style={styles.amountInputContainer}>
+            {currencySymbol ? <Text style={styles.amountPrefix}>{currencySymbol}</Text> : null}
+            <TextInput
+              placeholder="Amount"
+              value={amount}
+              onChangeText={setAmount}
+              keyboardType="decimal-pad"
+              style={styles.amountInput}
+            />
+          </View>
+          <TouchableOpacity onPress={handleDeposit} style={styles.button} disabled={isLoading}>
+            {isLoading ? <ActivityIndicator color="white" /> : <Text style={styles.buttonText}>Deposit</Text>}
+          </TouchableOpacity>
+        </ScrollView>
+      </TouchableWithoutFeedback>
+    </KeyboardAvoidingView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { padding: 12, flex: 1 },
+  keyboardContainer: { flex: 1, backgroundColor: '#f7f7f7' },
+  container: { padding: 12, flexGrow: 1, paddingBottom: 24 },
   title: { fontSize: 18, fontWeight: 'bold', marginBottom: 12 },
   input: { borderWidth: 1, borderColor: '#ccc', padding: 8, marginBottom: 8, borderRadius: 6 },
+  amountInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    marginBottom: 8
+  },
+  amountPrefix: { fontSize: 16, fontWeight: '700', color: '#1f2937', marginRight: 8 },
+  amountInput: { flex: 1, paddingVertical: 8, fontSize: 16 },
   button: { backgroundColor: '#4caf50', padding: 12, borderRadius: 8, alignItems: 'center' },
   buttonText: { color: 'white', fontWeight: 'bold' }
 });

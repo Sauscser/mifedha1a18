@@ -136,7 +136,9 @@ const RegisterKFNdgAcForm = props => {
                             MFNWithdrwlFee: 0,
                             town: twn,
                             owner: userInfo.userId,
-                            status: 'AccountActive'
+                            status: 'AccountActive',
+                            groupFloatStatus: 'NO',
+                            groupFloatAmount: 0,
                           }
                         }
                       });

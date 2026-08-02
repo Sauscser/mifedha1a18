@@ -1383,6 +1383,8 @@ export const getAgent = /* GraphQL */ `
       ttlEarnings
       pw
       email
+      groupFloatStatus
+      groupFloatAmount
       TtlFltIn
       TtlFltOut
       floatBal
@@ -1424,6 +1426,8 @@ export const listAgents = /* GraphQL */ `
         ttlEarnings
         pw
         email
+        groupFloatStatus
+        groupFloatAmount
         TtlFltIn
         TtlFltOut
         floatBal
@@ -3198,6 +3202,7 @@ export const getGroup = /* GraphQL */ `
     getGroup(grpContact: $grpContact) {
       grpContact
       transportShareRates
+      groupFloatLoan
       regNo
       signitoryContact
       SignitoryNatid
@@ -3305,6 +3310,7 @@ export const listGroups = /* GraphQL */ `
       items {
         grpContact
         transportShareRates
+        groupFloatLoan
         regNo
         signitoryContact
         SignitoryNatid
@@ -6530,6 +6536,8 @@ export const MFKVwMFN = /* GraphQL */ `
         ttlEarnings
         pw
         email
+        groupFloatStatus
+        groupFloatAmount
         TtlFltIn
         TtlFltOut
         floatBal
@@ -6576,6 +6584,8 @@ export const VwNatIdentitys = /* GraphQL */ `
         ttlEarnings
         pw
         email
+        groupFloatStatus
+        groupFloatAmount
         TtlFltIn
         TtlFltOut
         floatBal
@@ -7228,6 +7238,7 @@ export const VwNatIdentitysz = /* GraphQL */ `
       items {
         grpContact
         transportShareRates
+        groupFloatLoan
         regNo
         signitoryContact
         SignitoryNatid
@@ -7340,6 +7351,7 @@ export const ViaChmArea = /* GraphQL */ `
       items {
         grpContact
         transportShareRates
+        groupFloatLoan
         regNo
         signitoryContact
         SignitoryNatid
@@ -7452,6 +7464,7 @@ export const ViaChmVenture = /* GraphQL */ `
       items {
         grpContact
         transportShareRates
+        groupFloatLoan
         regNo
         signitoryContact
         SignitoryNatid

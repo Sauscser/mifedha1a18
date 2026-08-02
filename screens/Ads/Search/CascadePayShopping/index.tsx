@@ -762,7 +762,7 @@ function SalesItemMapScreenInner({ navigation }: { navigation: any }) {
             paddingRight: 10
           }}>
                   <Text style={styles.text}>
-                    [{qty}×{item.unitQuantity}] {item.itemUnit} {item.itemBrand} {item.sokoname} @ {formatAmountSync(Number(item.sokoprice), natCode, ratesMap)}{item.sellerNationality ? ` (${formatAmountSync(Number(item.sokoprice), nationalityToCode(item.sellerNationality), ratesMap)})` : ''} at {item.bizName} ({item.businessType}) = {formatAmountSync(Number(total), natCode, ratesMap)}
+                    [{qty}×{item.unitQuantity}] {item.itemUnit} {item.itemBrand} {item.sokoname} @ {formatAmountSync(Number(item.sokoprice), natCode, ratesMap)} at {item.bizName} ({item.businessType}) = {formatAmountSync(Number(total), natCode, ratesMap)}
                     {'\n'}{item.bizContact} | {t.longPressToAdd}
                   </Text>
 

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useExchange } from '../../../../src/contexts/ExchangeContext';
-import { convertForeignToKsh } from '../../../../src/utils/exchange';
+import { convertForeignToKsh, parseBackendNumericValue } from '../../../../src/utils/exchange';
 import { nationalityToCode } from '../../../../src/utils/nationalityToCode';
 import { View, Text, TextInput, ScrollView, StyleSheet, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -77,7 +77,8 @@ const DepositScreen = () => {
         setIsLoading(false);
         return;
       }
-      if (amountKes > parseFloat(account.depositLimit)) {
+      const backendDepositLimit = parseBackendNumericValue(account.depositLimit ?? 0);
+      if (amountKes > backendDepositLimit) {
         Alert.alert('Limit exceeded; contact customer care.');
         setIsLoading(false);
         return;

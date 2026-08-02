@@ -4,7 +4,7 @@ import { View, ActivityIndicator, Alert } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useExchange } from '../../../../src/contexts/ExchangeContext';
-import { convertForeignToKsh } from '../../../../src/utils/exchange';
+import { convertForeignToKsh, parseBackendNumericValue } from '../../../../src/utils/exchange';
 import { nationalityToCode } from '../../../../src/utils/nationalityToCode';
 import { getSMAccount } from '../../../../src/graphql/queries';
 import { getCurrentUser, fetchUserAttributes } from "aws-amplify/auth";
@@ -50,7 +50,8 @@ const PaystackPayment = () => {
         navigation.goBack();
         return;
       }
-      if (amountKes > parseFloat(account.depositLimit)) {
+      const backendDepositLimit = parseBackendNumericValue(account.depositLimit ?? 0);
+      if (amountKes > backendDepositLimit) {
         Alert.alert('Limit exceeded; contact customer care.');
         navigation.goBack();
         return;

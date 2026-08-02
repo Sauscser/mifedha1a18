@@ -6,7 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { getCurrentUser, fetchUserAttributes } from 'aws-amplify/auth';
 import { generateClient } from 'aws-amplify/api';
 import { getSMAccount, listBiznas, cascadePaymentFlowsByOwner, listCascadePaymentFlows, getCompany, getCascadePaymentFlow, getBizna, cascadePaymentNodesByFlow, listCascadePaymentNodes } from '../../../src/graphql/queries';
-import { createCascadePaymentFlow, createCascadePaymentNode, updateCascadePaymentFlow, createNonLoans, updateBizna, updateCompany, createMessages, sendNotification, updateSMAccount } from '../../../src/graphql/mutations';
+import { createCascadePaymentFlow, createCascadePaymentNode, updateCascadePaymentFlow, createNonLoans, updateBizna, updateCompany, createMessages, sendNotification, updateSMAccount, createBizSls } from '../../../src/graphql/mutations';
 import { useExchange } from '../../../src/contexts/ExchangeContext';
 import { formatAmountSync, convertForeignToKsh } from '../../../src/utils/exchange';
 import { nationalityToCode } from '../../../src/utils/nationalityToCode';
@@ -34,6 +34,9 @@ type CascadeAccount = {
 type BiznaOption = {
   BusKntct: string;
   busName: string;
+  earningsBal?: number;
+  pw?: string;
+  email?: string;
   [key: string]: any;
 };
 
@@ -77,6 +80,15 @@ const CascadePaymentsScreen = () => {
   const [loadingBiznas, setLoadingBiznas] = useState(false);
   const [showBiznaSelector, setShowBiznaSelector] = useState(false);
   const [biznaFilterText, setBiznaFilterText] = useState('');
+  const [addFundsBiznas, setAddFundsBiznas] = useState<BiznaOption[]>([]);
+  const [selectedAddFundsBizna, setSelectedAddFundsBizna] = useState<BiznaOption | null>(null);
+  const [loadingAddFundsBiznas, setLoadingAddFundsBiznas] = useState(false);
+  const [showAddFundsBiznaSelector, setShowAddFundsBiznaSelector] = useState(false);
+  const [addFundsBiznaFilterText, setAddFundsBiznaFilterText] = useState('');
+  const [showAddFundsByFlowId, setShowAddFundsByFlowId] = useState<Record<string, boolean>>({});
+  const [addFundsAmount, setAddFundsAmount] = useState('');
+  const [addFundsPassword, setAddFundsPassword] = useState('');
+  const [addingFunds, setAddingFunds] = useState(false);
   const [selectedParentFlow, setSelectedParentFlow] = useState<any>(null);
   const [showParentFlowSelector, setShowParentFlowSelector] = useState(false);
   const [parentFlowFilterText, setParentFlowFilterText] = useState('');
@@ -111,8 +123,20 @@ const CascadePaymentsScreen = () => {
   const [loadingSubunitsByFlowId, setLoadingSubunitsByFlowId] = useState<Record<string, boolean>>({});
   const [transactionNodesByFlowId, setTransactionNodesByFlowId] = useState<Record<string, any[]>>({});
   const [loadingTransactionsByFlowId, setLoadingTransactionsByFlowId] = useState<Record<string, boolean>>({});
+  const [expandedFlowIds, setExpandedFlowIds] = useState<Record<string, boolean>>({});
+  const [expandedSubunitIds, setExpandedSubunitIds] = useState<Record<string, boolean>>({});
   const [ownerEditValues, setOwnerEditValues] = useState<Record<string, string>>({});
   const [savingOwnerFlowIds, setSavingOwnerFlowIds] = useState<Record<string, boolean>>({});
+
+  const getCascadeFlowById = (flowId: string) => {
+    const ownedFlow = ownedCascadeFlows.find((item: any) => item.id === flowId);
+    if (ownedFlow) return ownedFlow;
+    for (const flows of Object.values(subunitFlowsByFlowId)) {
+      const found = flows.find((item: any) => item.id === flowId);
+      if (found) return found;
+    }
+    return null;
+  };
 
   const normalizeRecipientType = (value?: string): RecipientType => {
     if (value === 'BUSINESS') {
@@ -169,6 +193,17 @@ const CascadePaymentsScreen = () => {
       return candidateName.includes(normalizedFilter);
     });
   }, [biznas, biznaFilterText]);
+
+  const filteredAddFundsBiznas = useMemo(() => {
+    const normalizedFilter = addFundsBiznaFilterText.trim().toLowerCase();
+    return (addFundsBiznas || []).filter((biz: any) => {
+      if (!normalizedFilter) {
+        return true;
+      }
+      const candidateName = `${biz.busName || biz.BusKntct || ''}`.toLowerCase();
+      return candidateName.includes(normalizedFilter);
+    });
+  }, [addFundsBiznas, addFundsBiznaFilterText]);
 
   const filteredRecipientAccounts = useMemo(() => {
     const normalizedFilter = recipientAccountFilter.trim().toLowerCase();
@@ -265,10 +300,6 @@ const CascadePaymentsScreen = () => {
   };
 
   const loadSubunitFlowsForFlow = async (flowId: string) => {
-    const activeEmail = userEmail || (await hydrateUserContext()).email || '';
-    if (!activeEmail) {
-      return;
-    }
     setLoadingSubunitsByFlowId((current) => ({ ...current, [flowId]: true }));
     setViewSectionByFlowId((current) => ({ ...current, [flowId]: 'subunits' }));
     try {
@@ -277,12 +308,13 @@ const CascadePaymentsScreen = () => {
         variables: {
           limit: 100,
           filter: {
-            recipientAccountName: { eq: activeEmail },
+            title: { eq: flowId },
           },
         },
       });
       const items = response?.data?.listCascadePaymentFlows?.items || [];
-      setSubunitFlowsByFlowId((current) => ({ ...current, [flowId]: items }));
+      const filteredItems = items.filter((item: any) => item.id !== flowId);
+      setSubunitFlowsByFlowId((current) => ({ ...current, [flowId]: filteredItems }));
     } catch (error) {
       console.error('Failed to load subunit cascade payment flows', error);
       setSubunitFlowsByFlowId((current) => ({ ...current, [flowId]: [] }));
@@ -312,6 +344,119 @@ const CascadePaymentsScreen = () => {
     } finally {
       setLoadingTransactionsByFlowId((current) => ({ ...current, [flowId]: false }));
     }
+  };
+
+  const renderCascadeFlowCard = (flow: any) => {
+    const isExpanded = expandedSubunitIds[flow.id];
+    const childSubunits = subunitFlowsByFlowId[flow.id] || [];
+    const transactionNodes = transactionNodesByFlowId[flow.id] || [];
+
+    return (
+      <View key={flow.id} style={[styles.optionButton, styles.cascadeCard]}> 
+        <View style={[styles.row, styles.cardHeader]}>
+          <View style={styles.row}>
+            <TouchableOpacity
+              style={styles.iconButton}
+              onPress={() => setExpandedSubunitIds((current) => ({ ...current, [flow.id]: !current[flow.id] }))}
+            >
+              <Ionicons
+                name={isExpanded ? 'chevron-down' : 'chevron-forward'}
+                size={18}
+                color="#ff8c00"
+              />
+            </TouchableOpacity>
+            <Text style={[styles.optionButtonText, { marginLeft: 10 }]}>{flow.senderAccountName || flow.title || flow.id}</Text>
+          </View>
+          <View style={styles.row}>
+            <TouchableOpacity style={styles.iconButton} onPress={() => loadSubunitFlowsForFlow(flow.id)}>
+              <Ionicons name="eye" size={18} color="#ff8c00" />
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.iconButton} onPress={() => loadTransactionsForFlow(flow.id)}>
+              <Ionicons name="eye" size={18} color="#ff8c00" />
+            </TouchableOpacity>
+          </View>
+        </View>
+        {isExpanded ? (
+          <>
+            <Text style={styles.helperText}>{`${t.payerLabel}: ${flow.senderAccountName || '—'}`}</Text>
+            <View style={styles.row}>
+              <Text style={styles.helperText}>{`${t.totalDisbursedLabel}: ${formatMoneyForUser(flow.totalDisbursed)}`}</Text>
+              <Text style={styles.helperText}>{`${t.totalAllocatedLabel}: ${formatMoneyForUser(flow.totalAllocated)}`}</Text>
+            </View>
+            <TextInput
+              style={styles.input}
+              placeholder={t.enterNewAdminEmailPlaceholder}
+              value={ownerEditValues[flow.id] ?? flow.owner ?? ''}
+              onChangeText={(text) => setOwnerEditValues((current) => ({ ...current, [flow.id]: text }))}
+              autoCapitalize="none"
+              keyboardType="email-address"
+            />
+            <TouchableOpacity style={styles.secondaryButton} onPress={() => handleUpdateFlowOwner(flow.id)} disabled={savingOwnerFlowIds[flow.id]}>
+              {savingOwnerFlowIds[flow.id] ? (
+                <View style={styles.loadingRow}>
+                  <ActivityIndicator size="small" color="#ff8c00" />
+                  <Text style={styles.secondaryButtonText}>{t.savingOwnerButton}</Text>
+                </View>
+              ) : (
+                <Text style={styles.secondaryButtonText}>{t.updateOwnerButton}</Text>
+              )}
+            </TouchableOpacity>
+            {viewSectionByFlowId[flow.id] === 'subunits' ? (
+              <View style={styles.nestedSubunitList}>
+                {loadingSubunitsByFlowId[flow.id] ? (
+                  <View style={styles.loadingRow}>
+                    <ActivityIndicator size="small" color="#ff8c00" />
+                    <Text style={styles.helperText}>{t.loadingSubUnits}</Text>
+                  </View>
+                ) : null}
+                {!loadingSubunitsByFlowId[flow.id] && childSubunits.length > 0 ? (
+                  childSubunits.map((childSubunit: any) => renderCascadeFlowCard(childSubunit))
+                ) : null}
+                {!loadingSubunitsByFlowId[flow.id] && childSubunits.length === 0 ? (
+                  <Text style={styles.helperText}>{t.noSubUnitsFound}</Text>
+                ) : null}
+              </View>
+            ) : null}
+            {viewSectionByFlowId[flow.id] === 'transactions' ? (
+              <View style={styles.nestedSubunitList}>
+                {loadingTransactionsByFlowId[flow.id] ? (
+                  <View style={styles.loadingRow}>
+                    <ActivityIndicator size="small" color="#ff8c00" />
+                    <Text style={styles.helperText}>{t.loadingTransactions}</Text>
+                  </View>
+                ) : null}
+                {!loadingTransactionsByFlowId[flow.id] && transactionNodes.length > 0 ? (
+                  transactionNodes.map((node: any) => {
+                    const subtotalValue = Number(node?.subtotal ?? node?.subTotal ?? 0);
+                    const amountValue = Number(node?.amount ?? 0);
+                    const totalAmountValue = subtotalValue;
+                    const subTotalValue = amountValue;
+                    const feesValue = Math.max(0, totalAmountValue - subTotalValue);
+                    const receiverName = node?.recipientAccountName || node?.recipientName || node?.recipientAccountRef || '—';
+                    const receiverRef = node?.recipientAccountRef || '—';
+                    return (
+                      <View key={node.id} style={styles.optionButton}>
+                        <Text style={styles.optionButtonText}>{node.description || t.cascadeTransactionLabel}</Text>
+                        <Text style={styles.helperText}>{`${t.payerLabel}: ${node.senderAccountName || '—'}`}</Text>
+                        <Text style={styles.helperText}>{`Receiver Name: ${receiverName}`}</Text>
+                        <Text style={styles.helperText}>{`Receiver Account: ${receiverRef}`}</Text>
+                        <Text style={styles.helperText}>{`${t.recipientTypeLabel}: ${node.recipientType || '—'}`}</Text>
+                        <Text style={styles.helperText}>{`${t.totalAmountLabel}: ${formatMoneyForUser(totalAmountValue)}`}</Text>
+                        <Text style={styles.helperText}>{`${t.subTotalLabel}: ${formatMoneyForUser(subTotalValue)}`}</Text>
+                        <Text style={styles.helperText}>{`${t.feesLabel}: ${formatMoneyForUser(feesValue)}`}</Text>
+                      </View>
+                    );
+                  })
+                ) : null}
+                {!loadingTransactionsByFlowId[flow.id] && transactionNodes.length === 0 ? (
+                  <Text style={styles.helperText}>{t.noTransactionsFound}</Text>
+                ) : null}
+              </View>
+            ) : null}
+          </>
+        ) : null}
+      </View>
+    );
   };
 
   const handleUpdateFlowOwner = async (flowId: string) => {
@@ -505,6 +650,8 @@ const CascadePaymentsScreen = () => {
             },
           },
         });
+
+
         await client.graphql({
           query: createCascadePaymentNode,
           variables: {
@@ -655,6 +802,12 @@ const CascadePaymentsScreen = () => {
     setSelectedBizna(null);
     setShowBiznaSelector(false);
     setBiznaFilterText('');
+    setSelectedAddFundsBizna(null);
+    setShowAddFundsBiznaSelector(false);
+    setAddFundsBiznaFilterText('');
+    setAddFundsAmount('');
+    setAddFundsPassword('');
+    setShowAddFundsByFlowId({});
     setSelectedParentFlow(null);
     setShowParentFlowSelector(false);
     setParentFlowFilterText('');
@@ -683,6 +836,127 @@ const CascadePaymentsScreen = () => {
       setBiznas([]);
     } finally {
       setLoadingBiznas(false);
+    }
+  };
+
+  const loadAddFundsBiznaOptions = async () => {
+    const activeEmail = userEmail || (await hydrateUserContext()).email;
+    try {
+      setLoadingAddFundsBiznas(true);
+      const response: any = await client.graphql({ query: listBiznas });
+      const items = response?.data?.listBiznas?.items || [];
+      const filtered = items.filter((biz: any) => {
+        for (let i = 1; i <= 50; i += 1) {
+          const adminValue = biz[`Admin${i}`];
+          if (adminValue && adminValue !== 'None' && adminValue.toLowerCase().trim() === activeEmail.toLowerCase().trim()) {
+            return true;
+          }
+        }
+        return false;
+      });
+      setAddFundsBiznas(filtered);
+      setShowAddFundsBiznaSelector(true);
+    } catch (error) {
+      console.error(error);
+      setAddFundsBiznas([]);
+    } finally {
+      setLoadingAddFundsBiznas(false);
+    }
+  };
+
+  const handleAddFundsFromBiznaToFlow = async (flowId: string) => {
+    if (!selectedAddFundsBizna) {
+      Alert.alert(t.noBiznaSelected);
+      return;
+    }
+    if (!addFundsAmount || Number.isNaN(Number(addFundsAmount)) || Number(addFundsAmount) <= 0) {
+      Alert.alert(t.enterValidAmount);
+      return;
+    }
+    if (!addFundsPassword.trim()) {
+      Alert.alert(t.invalidBiznaPassword);
+      return;
+    }
+    setAddingFunds(true);
+    try {
+      const amountValue = Number(addFundsAmount);
+      const amountInKsh = await convertForeignToKsh(amountValue, userCurrencyKey || safeNationality || accountNationality || 'KE');
+      const biznaBalance = Number(selectedAddFundsBizna?.earningsBal || 0);
+      if (!Number.isFinite(amountInKsh) || amountInKsh <= 0) {
+        Alert.alert(t.enterValidAmount);
+        return;
+      }
+      if (biznaBalance < amountInKsh) {
+        Alert.alert(t.insufficientFundsTitle, t.biznaInsufficientFunds);
+        return;
+      }
+      const smResponse: any = await client.graphql({ query: getSMAccount, variables: { awsemail: userEmail || (await hydrateUserContext()).email } });
+      const smAccount = smResponse?.data?.getSMAccount || {};
+      if (addFundsPassword.trim() !== String(smAccount?.pw || '')) {
+        Alert.alert(t.insufficientFundsTitle, t.invalidBiznaPassword);
+        return;
+      }
+      const companyResponse: any = await client.graphql({ query: getCompany, variables: { AdminId: 'BaruchHabaB\'ShemAdonai2' } });
+      const company = companyResponse?.data?.getCompany || {};
+      const feeRate = Number(company?.cascadePaymentFee ?? company?.userTransferFee ?? 0);
+      const transactionFee = amountInKsh * feeRate;
+      const totalAmountDeducted = amountInKsh + transactionFee;
+      if (biznaBalance < totalAmountDeducted) {
+        Alert.alert(t.insufficientFundsTitle, t.biznaInsufficientFunds);
+        return;
+      }
+      const flowResponse: any = await client.graphql({ query: getCascadePaymentFlow, variables: { id: flowId } });
+      const currentFlow = flowResponse?.data?.getCascadePaymentFlow || {};
+      const nextTotalAllocated = Number(currentFlow.totalAllocated || 0) + amountInKsh;
+      await client.graphql({ query: updateCascadePaymentFlow, variables: { input: { id: flowId, totalAllocated: nextTotalAllocated } } });
+      await client.graphql({ query: updateBizna, variables: { input: { BusKntct: selectedAddFundsBizna.BusKntct, earningsBal: biznaBalance - totalAmountDeducted } } });
+      await client.graphql({ query: createNonLoans, variables: { input: {
+          recPhn: currentFlow.senderAccountRef || '',
+          senderPhn: selectedAddFundsBizna.BusKntct,
+          amount: String(amountInKsh),
+          description: 'funds transfer',
+          RecName: currentFlow.senderAccountName || currentFlow.title || 'Cascade flow',
+          SenderName: selectedAddFundsBizna.busName || selectedAddFundsBizna.BusKntct,
+          status: 'DeliveryPayment',
+          owner: userEmail || (await hydrateUserContext()).email || '',
+          fees: String(transactionFee),
+        } } });
+
+  
+      await client.graphql({ query: updateCompany, variables: { input: {
+          AdminId: 'BaruchHabaB\'ShemAdonai2',
+          companyEarningBal: Number(company.companyEarningBal || 0) + transactionFee,
+          companyEarning: Number(company.companyEarning || 0) + transactionFee,
+        } } });
+      await client.graphql({ query: createCascadePaymentNode, variables: { input: {
+          owner: userEmail || (await hydrateUserContext()).email || '',
+          flowId,
+          parentNodeId: flowId,
+          level: Number(currentFlow.currentLevel || 1) + 1,
+          senderAccountRef: selectedAddFundsBizna.BusKntct,
+          senderAccountName: selectedAddFundsBizna.busName || selectedAddFundsBizna.BusKntct,
+          recipientAccountRef: currentFlow.senderAccountRef || '',
+          recipientAccountName: currentFlow.senderAccountName || currentFlow.title || 'Cascade flow',
+          recipientType: 'BUSINESS',
+          amount: amountInKsh,
+          description: `Added funds from Bizna ${selectedAddFundsBizna.busName || selectedAddFundsBizna.BusKntct}`,
+          isLeaf: true,
+          childCount: 0,
+          subtotal: totalAmountDeducted,
+        } } });
+      await dispatchCascadeNotifications(userEmail || (await hydrateUserContext()).email || '', t.addFundsSuccessTitle, t.addFundsSuccessMessage.replace('{amount}', formatMoneyForUser(amountInKsh)).replace('{bizna}', selectedAddFundsBizna.busName || selectedAddFundsBizna.BusKntct));
+      Alert.alert(t.addFundsSuccessTitle, t.addFundsSuccessMessage.replace('{amount}', formatMoneyForUser(amountInKsh)).replace('{bizna}', selectedAddFundsBizna.busName || selectedAddFundsBizna.BusKntct));
+      setShowAddFundsByFlowId((current) => ({ ...current, [flowId]: false }));
+      setSelectedAddFundsBizna(null);
+      setAddFundsAmount('');
+      setAddFundsPassword('');
+      setShowAddFundsBiznaSelector(false);
+      await loadOwnedCascadeFlows();
+    } catch (error) {
+      console.error('Failed to add funds from Bizna to flow', error);
+      Alert.alert('Unable to add funds right now.');
+    } finally {
+      setAddingFunds(false);
     }
   };
 
@@ -821,6 +1095,7 @@ const CascadePaymentsScreen = () => {
         Alert.alert('Please select an existing CascadePaymentFlow to create the sub unit from.');
         return;
       }
+      const selectedParentFlowId = `${selectedParentFlow.id || ''}`.trim();
       const selectedParentTitle = `${selectedParentFlow.title || selectedParentFlow.senderAccountName || 'Selected flow'}`.trim();
       resolvedAccountName = businessSenderAccountName.trim() || selectedParentTitle || 'Sub unit account';
       resolvedAccountNumber = `${selectedParentFlow.senderAccountRef || selectedParentFlow.recipientAccountRef || selectedParentFlow.id || ''}`.trim();
@@ -829,7 +1104,7 @@ const CascadePaymentsScreen = () => {
       setAccountNumber(resolvedAccountNumber);
       flowInput = {
         owner: resolvedEmail || userEmail || '',
-        title: selectedParentTitle,
+        title: selectedParentFlowId,
         description: accountDescription.trim() || `${selectedParentTitle} sub unit`,
         senderAccountRef: selectedParentFlow.senderAccountRef || resolvedAccountNumber,
         senderAccountName: resolvedAccountName,
@@ -1194,54 +1469,62 @@ const CascadePaymentsScreen = () => {
             </View>
             <TextInput style={styles.input} placeholder={t.descriptionPlaceholder} value={accountDescription} onChangeText={setAccountDescription} multiline />
             {createMode === 'SUBUNIT' ? (
-              <View style={styles.selectorBox}>
-                <Text style={styles.helperText}>{t.selectParentFlowPrompt}</Text>
-                <TouchableOpacity style={styles.secondaryButton} onPress={async () => {
-                  setShowParentFlowSelector(true);
-                  const items = await loadFlowAccounts(parentFlowFilterText);
-                  const ownedItems = items.filter((account: any) => `${account.owner || ''}`.toLowerCase() === (userEmail || '').toLowerCase());
-                  setFlowAccounts(ownedItems);
-                }}>
-                  <Text style={styles.secondaryButtonText}>{selectedParentFlow ? `${t.selectedLabel} ${selectedParentFlow.senderAccountName || selectedParentFlow.title || selectedParentFlow.id}` : t.selectParentFlow}</Text>
-                </TouchableOpacity>
-                {showParentFlowSelector ? (
-                  <View style={styles.selectorBox}>
-                    <TextInput
-                      style={styles.input}
-                      placeholder={t.filterParentFlowPlaceholder}
-                      value={parentFlowFilterText}
-                      onChangeText={(text) => {
-                        setParentFlowFilterText(text);
-                      }}
-                      autoCapitalize="none"
-                    />
-                    {loadingSenderAccounts ? (
-                      <View style={styles.statusBanner}>
-                        <ActivityIndicator size="small" color="#ff8c00" />
-                        <Text style={styles.statusText}>{t.loadingParentFlows}</Text>
-                      </View>
-                    ) : null}
-                    {!loadingSenderAccounts && filteredParentFlows.length > 0 ? (
-                      <ScrollView style={styles.optionListScroll} contentContainerStyle={styles.optionList} nestedScrollEnabled>
-                        {filteredParentFlows.map((item: any) => (
-                          <TouchableOpacity key={item.id} style={styles.optionButton} onPress={() => {
-                            setSelectedParentFlow(item);
-                            setShowParentFlowSelector(false);
-                            setSelectedParentId(item.id || '');
-                          }}>
-                            <Text style={styles.optionButtonText}>{item.senderAccountName || item.title || item.id}</Text>
-                            <Text style={styles.helperText}>{item.senderAccountRef || item.recipientAccountRef || ''}</Text>
-                          </TouchableOpacity>
-                        ))}
-                      </ScrollView>
-                    ) : null}
-                    {!loadingSenderAccounts && filteredParentFlows.length === 0 ? (
-                      <View style={styles.statusBanner}>
-                        <Text style={styles.statusText}>{t.noParentFlowsFound}</Text>
-                      </View>
-                    ) : null}
-                  </View>
-                ) : null}
+              <View>
+                <TextInput
+                  style={styles.input}
+                  placeholder={t.unitNamePlaceholder}
+                  value={businessSenderAccountName}
+                  onChangeText={setBusinessSenderAccountName}
+                />
+                <View style={styles.selectorBox}>
+                  <Text style={styles.helperText}>{t.selectParentFlowPrompt}</Text>
+                  <TouchableOpacity style={styles.secondaryButton} onPress={async () => {
+                    setShowParentFlowSelector(true);
+                    const items = await loadFlowAccounts(parentFlowFilterText);
+                    const ownedItems = items.filter((account: any) => `${account.owner || ''}`.toLowerCase() === (userEmail || '').toLowerCase());
+                    setFlowAccounts(ownedItems);
+                  }}>
+                    <Text style={styles.secondaryButtonText}>{selectedParentFlow ? `${t.selectedLabel} ${selectedParentFlow.senderAccountName || selectedParentFlow.title || selectedParentFlow.id}` : t.selectParentFlow}</Text>
+                  </TouchableOpacity>
+                  {showParentFlowSelector ? (
+                    <View style={styles.selectorBox}>
+                      <TextInput
+                        style={styles.input}
+                        placeholder={t.filterParentFlowPlaceholder}
+                        value={parentFlowFilterText}
+                        onChangeText={(text) => {
+                          setParentFlowFilterText(text);
+                        }}
+                        autoCapitalize="none"
+                      />
+                      {loadingSenderAccounts ? (
+                        <View style={styles.statusBanner}>
+                          <ActivityIndicator size="small" color="#ff8c00" />
+                          <Text style={styles.statusText}>{t.loadingParentFlows}</Text>
+                        </View>
+                      ) : null}
+                      {!loadingSenderAccounts && filteredParentFlows.length > 0 ? (
+                        <ScrollView style={styles.optionListScroll} contentContainerStyle={styles.optionList} nestedScrollEnabled>
+                          {filteredParentFlows.map((item: any) => (
+                            <TouchableOpacity key={item.id} style={styles.optionButton} onPress={() => {
+                              setSelectedParentFlow(item);
+                              setShowParentFlowSelector(false);
+                              setSelectedParentId(item.id || '');
+                            }}>
+                              <Text style={styles.optionButtonText}>{item.senderAccountName || item.title || item.id}</Text>
+                              <Text style={styles.helperText}>{item.senderAccountRef || item.recipientAccountRef || ''}</Text>
+                            </TouchableOpacity>
+                          ))}
+                        </ScrollView>
+                      ) : null}
+                      {!loadingSenderAccounts && filteredParentFlows.length === 0 ? (
+                        <View style={styles.statusBanner}>
+                          <Text style={styles.statusText}>{t.noParentFlowsFound}</Text>
+                        </View>
+                      ) : null}
+                    </View>
+                  ) : null}
+                </View>
               </View>
             ) : (
               <View>
@@ -1403,6 +1686,7 @@ const CascadePaymentsScreen = () => {
                     </View>
                     <Text style={styles.optionButtonText}>{selectedSenderAccount?.senderAccountName || selectedSenderAccount?.title || t.selectedSenderLabel}</Text>
                     <Text style={styles.helperText}>{selectedSenderAccount?.senderAccountRef || selectedSenderAccount?.recipientAccountRef || ''}</Text>
+                    <Text style={styles.helperText}>{`${t.senderAccountBalanceLabel}: ${formatMoneyForUser(Number(selectedSenderAccount?.totalAllocated || 0) - Number(selectedSenderAccount?.totalDisbursed || 0))}`}</Text>
                   </View>
                 )}
               </View>
@@ -1569,10 +1853,122 @@ const CascadePaymentsScreen = () => {
                     const activeView = viewSectionByFlowId[flow.id];
                     return (
                       <View key={flow.id} style={styles.viewSelectorBox}>
-                        <Text style={styles.optionButtonText}>{flow.senderAccountName || flow.title || flow.id}</Text>
-                        <Text style={styles.helperText}>{`${t.descriptionLabel}: ${flow.description || '—'}`}</Text>
-                        <Text style={styles.helperText}>{`${t.totalAllocatedLabel}: ${formatMoneyForUser(flow.totalAllocated)}`}</Text>
-                        <Text style={styles.helperText}>{`${t.totalDisbursedLabel}: ${formatMoneyForUser(flow.totalDisbursed)}`}</Text>
+                        <View style={[styles.row, styles.cardHeader]}>
+                          <View style={styles.row}>
+                            <TouchableOpacity
+                              style={styles.iconButton}
+                              onPress={() => setExpandedFlowIds((current) => ({ ...current, [flow.id]: !current[flow.id] }))}
+                            >
+                              <Ionicons
+                                name={expandedFlowIds[flow.id] ? 'chevron-down' : 'chevron-forward'}
+                                size={18}
+                                color="#ff8c00"
+                              />
+                            </TouchableOpacity>
+                            <Text style={[styles.optionButtonText, { marginLeft: 10 }]}>{flow.senderAccountName || flow.title || flow.id}</Text>
+                          </View>
+                        </View>
+                        {expandedFlowIds[flow.id] ? (
+                          <>
+                            <Text style={styles.helperText}>{`${t.descriptionLabel}: ${flow.description || '—'}`}</Text>
+                            <Text style={styles.helperText}>{`${t.totalAllocatedLabel}: ${formatMoneyForUser(flow.totalAllocated)}`}</Text>
+                            <Text style={styles.helperText}>{`${t.totalDisbursedLabel}: ${formatMoneyForUser(flow.totalDisbursed)}`}</Text>
+                            {flow.currentLevel === 1 ? (
+                          <View style={{ marginBottom: 10 }}>
+                            <TouchableOpacity
+                              style={styles.secondaryButton}
+                              onPress={() => {
+                                setShowAddFundsByFlowId((current) => ({ ...current, [flow.id]: !current[flow.id] }));
+                                if (!showAddFundsByFlowId[flow.id]) {
+                                  setSelectedAddFundsBizna(null);
+                                  setAddFundsAmount('');
+                                  setAddFundsPassword('');
+                                  loadAddFundsBiznaOptions();
+                                }
+                              }}
+                            >
+                              <Text style={styles.secondaryButtonText}>{t.addFundsButton}</Text>
+                            </TouchableOpacity>
+                            {showAddFundsByFlowId[flow.id] ? (
+                              <View style={styles.selectorBox}>
+                                <TouchableOpacity
+                                  style={styles.secondaryButton}
+                                  onPress={() => loadAddFundsBiznaOptions()}
+                                >
+                                  <Text style={styles.secondaryButtonText}>
+                                    {selectedAddFundsBizna ? `${t.selectedLabel} ${selectedAddFundsBizna.busName || selectedAddFundsBizna.BusKntct}` : t.selectBiznaAccount}
+                                  </Text>
+                                </TouchableOpacity>
+                                {showAddFundsBiznaSelector ? (
+                                  <View style={styles.selectorBox}>
+                                    <TextInput
+                                      style={styles.input}
+                                      placeholder={t.filterBiznaPlaceholder}
+                                      value={addFundsBiznaFilterText}
+                                      onChangeText={setAddFundsBiznaFilterText}
+                                      autoCapitalize="none"
+                                    />
+                                    {loadingAddFundsBiznas ? (
+                                      <View style={styles.loadingRow}>
+                                        <ActivityIndicator size="small" color="#ff8c00" />
+                                        <Text style={styles.helperText}>{t.loadingBiznas}</Text>
+                                      </View>
+                                    ) : null}
+                                    {!loadingAddFundsBiznas && filteredAddFundsBiznas.length > 0 ? (
+                                      <ScrollView style={styles.optionListScroll} contentContainerStyle={styles.optionList} nestedScrollEnabled>
+                                        {filteredAddFundsBiznas.map((item) => (
+                                          <TouchableOpacity
+                                            key={item.BusKntct}
+                                            style={styles.optionButton}
+                                            onPress={() => {
+                                              setSelectedAddFundsBizna(item);
+                                              setShowAddFundsBiznaSelector(false);
+                                            }}
+                                          >
+                                            <Text style={styles.optionButtonText}>{item.busName || item.BusKntct}</Text>
+                                            <Text style={styles.helperText}>{item.BusKntct}</Text>
+                                            <Text style={styles.helperText}>{`${t.totalAmountLabel}: ${formatMoneyForUser(Number(item.earningsBal || 0))}`}</Text>
+                                          </TouchableOpacity>
+                                        ))}
+                                      </ScrollView>
+                                    ) : null}
+                                    {!loadingAddFundsBiznas && filteredAddFundsBiznas.length === 0 ? (
+                                      <Text style={styles.helperText}>{t.noAdminBiznasFound}</Text>
+                                    ) : null}
+                                  </View>
+                                ) : null}
+                                <TextInput
+                                  style={styles.input}
+                                  placeholder={t.amountFieldPlaceholder}
+                                  value={addFundsAmount}
+                                  onChangeText={setAddFundsAmount}
+                                  keyboardType="numeric"
+                                />
+                                <TextInput
+                                  style={styles.input}
+                                  placeholder={t.passwordPlaceholder}
+                                  value={addFundsPassword}
+                                  onChangeText={setAddFundsPassword}
+                                  secureTextEntry
+                                />
+                                <TouchableOpacity
+                                  style={styles.button}
+                                  onPress={() => handleAddFundsFromBiznaToFlow(flow.id)}
+                                  disabled={addingFunds}
+                                >
+                                  {addingFunds ? (
+                                    <View style={styles.loadingRow}>
+                                      <ActivityIndicator size="small" color="#fff" />
+                                      <Text style={styles.buttonText}>{t.savingButton}</Text>
+                                    </View>
+                                  ) : (
+                                    <Text style={styles.buttonText}>{t.addFundsButton}</Text>
+                                  )}
+                                </TouchableOpacity>
+                              </View>
+                            ) : null}
+                          </View>
+                        ) : null}
                         <View style={styles.inlineButtonRow}>
                           <TouchableOpacity style={styles.secondaryButton} onPress={() => loadSubunitFlowsForFlow(flow.id)}>
                             <Text style={styles.secondaryButtonText}>{t.viewSubUnits}</Text>
@@ -1590,32 +1986,7 @@ const CascadePaymentsScreen = () => {
                               </View>
                             ) : null}
                             {!loadingSubunitsByFlowId[flow.id] && subunits.length > 0 ? (
-                              subunits.map((subunit: any) => (
-                                <View key={subunit.id} style={styles.optionButton}>
-                                  <Text style={styles.optionButtonText}>{subunit.senderAccountName || subunit.title || subunit.id}</Text>
-                                  <Text style={styles.helperText}>{`${t.payerLabel}: ${subunit.senderAccountName || '—'}`}</Text>
-                                  <Text style={styles.helperText}>{`${t.totalDisbursedLabel}: ${formatMoneyForUser(subunit.totalDisbursed)}`}</Text>
-                                  <Text style={styles.helperText}>{`${t.totalAllocatedLabel}: ${formatMoneyForUser(subunit.totalAllocated)}`}</Text>
-                                  <TextInput
-                                    style={styles.input}
-                                    placeholder={t.enterNewAdminEmailPlaceholder}
-                                    value={ownerEditValues[subunit.id] ?? subunit.owner ?? ''}
-                                    onChangeText={(text) => setOwnerEditValues((current) => ({ ...current, [subunit.id]: text }))}
-                                    autoCapitalize="none"
-                                    keyboardType="email-address"
-                                  />
-                                  <TouchableOpacity style={styles.secondaryButton} onPress={() => handleUpdateFlowOwner(subunit.id)} disabled={savingOwnerFlowIds[subunit.id]}>
-                                    {savingOwnerFlowIds[subunit.id] ? (
-                                      <View style={styles.loadingRow}>
-                                        <ActivityIndicator size="small" color="#ff8c00" />
-                                        <Text style={styles.secondaryButtonText}>{t.savingOwnerButton}</Text>
-                                      </View>
-                                    ) : (
-                                      <Text style={styles.secondaryButtonText}>{t.updateOwnerButton}</Text>
-                                    )}
-                                  </TouchableOpacity>
-                                </View>
-                              ))
+                              subunits.map((subunit: any) => renderCascadeFlowCard(subunit))
                             ) : null}
                             {!loadingSubunitsByFlowId[flow.id] && subunits.length === 0 ? (
                               <Text style={styles.helperText}>{t.noSubUnitsFound}</Text>
@@ -1658,6 +2029,8 @@ const CascadePaymentsScreen = () => {
                             ) : null}
                           </View>
                         ) : null}
+                      </>
+                    ) : null}
                       </View>
                     );
                   })}
@@ -1787,6 +2160,8 @@ const styles = StyleSheet.create({
     flexShrink: 1,
   },
   optionButton: {
+    width: '100%',
+    alignSelf: 'stretch',
     backgroundColor: '#fff5e6',
     borderColor: '#ff8c00',
     borderWidth: 1,
@@ -1928,6 +2303,8 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   viewSelectorBox: {
+    width: '100%',
+    alignSelf: 'stretch',
     borderWidth: 1,
     borderColor: '#f0d1a0',
     borderRadius: 12,
@@ -1993,6 +2370,30 @@ const styles = StyleSheet.create({
   },
   cardActions: {
     marginTop: 8,
+  },
+  iconButton: {
+    padding: 6,
+    borderRadius: 999,
+    backgroundColor: '#fff5e6',
+    borderWidth: 1,
+    borderColor: '#ff8c00',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  nestedSubunitList: {
+    width: '100%',
+    alignSelf: 'stretch',
+    marginTop: 10,
+    paddingLeft: 0,
+    paddingRight: 0,
+    marginRight: 0,
+    borderLeftWidth: 0,
+    borderLeftColor: 'transparent',
+  },
+  cascadeCard: {
+    width: '100%',
+    minWidth: '100%',
+    alignSelf: 'stretch',
   },
   childList: {
     marginTop: 8,

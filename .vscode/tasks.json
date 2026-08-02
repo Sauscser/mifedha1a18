@@ -109,7 +109,7 @@
 				"-ExecutionPolicy",
 				"Bypass",
 				"-Command",
-				"New-Item -ItemType Directory -Force -Path \"D:\\gradle\",\"D:\\temp\" | Out-Null; $env:GRADLE_USER_HOME=\"D:\\gradle\"; $env:TMP=\"D:\\temp\"; $env:TEMP=\"D:\\temp\"; Set-Location \"D:\\mifedha1a18\\android\"; .\\gradlew.bat assembleRelease"
+				"New-Item -ItemType Directory -Force -Path \"D:\\gradle\",\"D:\\temp\" | Out-Null; $env:GRADLE_USER_HOME=\"D:\\gradle\"; $env:TMP=\"D:\\temp\"; $env:TEMP=\"D:\\temp\"; Set-Location \"D:\\mifedha1a18\\android\"; .\\gradlew.bat --gradle-user-home D:\\gradle assembleRelease"
 			],
 			"isBackground": false,
 			"problemMatcher": [
@@ -126,7 +126,7 @@
 				"-ExecutionPolicy",
 				"Bypass",
 				"-Command",
-				"New-Item -ItemType Directory -Force -Path \"D:\\gradle\",\"D:\\temp\" | Out-Null; $env:GRADLE_USER_HOME=\"D:\\gradle\"; $env:TMP=\"D:\\temp\"; $env:TEMP=\"D:\\temp\"; Set-Location \"D:\\mifedha1a18\\android\"; .\\gradlew.bat bundleRelease"
+				"New-Item -ItemType Directory -Force -Path \"D:\\gradle\",\"D:\\temp\" | Out-Null; $env:GRADLE_USER_HOME=\"D:\\gradle\"; $env:TMP=\"D:\\temp\"; $env:TEMP=\"D:\\temp\"; Set-Location \"D:\\mifedha1a18\\android\"; .\\gradlew.bat --gradle-user-home D:\\gradle bundleRelease"
 			],
 			"isBackground": false,
 			"problemMatcher": [

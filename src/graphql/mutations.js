@@ -1959,6 +1959,8 @@ export const createAgent = /* GraphQL */ `
       ttlEarnings
       pw
       email
+      groupFloatStatus
+      groupFloatAmount
       TtlFltIn
       TtlFltOut
       floatBal
@@ -1990,6 +1992,8 @@ export const updateAgent = /* GraphQL */ `
       ttlEarnings
       pw
       email
+      groupFloatStatus
+      groupFloatAmount
       TtlFltIn
       TtlFltOut
       floatBal
@@ -2021,6 +2025,8 @@ export const deleteAgent = /* GraphQL */ `
       ttlEarnings
       pw
       email
+      groupFloatStatus
+      groupFloatAmount
       TtlFltIn
       TtlFltOut
       floatBal
@@ -4444,6 +4450,7 @@ export const createGroup = /* GraphQL */ `
     createGroup(input: $input, condition: $condition) {
       grpContact
       transportShareRates
+      groupFloatLoan
       regNo
       signitoryContact
       SignitoryNatid
@@ -4541,6 +4548,7 @@ export const updateGroup = /* GraphQL */ `
     updateGroup(input: $input, condition: $condition) {
       grpContact
       transportShareRates
+      groupFloatLoan
       regNo
       signitoryContact
       SignitoryNatid
@@ -4638,6 +4646,7 @@ export const deleteGroup = /* GraphQL */ `
     deleteGroup(input: $input, condition: $condition) {
       grpContact
       transportShareRates
+      groupFloatLoan
       regNo
       signitoryContact
       SignitoryNatid

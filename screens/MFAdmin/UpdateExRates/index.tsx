@@ -1,11 +1,14 @@
 // @ts-nocheck
 import React, { useEffect, useState, useMemo } from 'react';
 import { View, Text, TextInput, TouchableOpacity, Alert, ActivityIndicator, ScrollView, StyleSheet, FlatList } from 'react-native';
-import styles from './styles';
+import { Ionicons } from '@expo/vector-icons';
 import { generateClient } from 'aws-amplify/api';
 import { getCurrentUser } from 'aws-amplify/auth';
 import { listExRates, getCompany } from '../../../src/graphql/queries';
 import { updateExRates } from '../../../src/graphql/mutations';
+import { useTranslation } from 'react-i18next';
+import { translations } from './translation';
+import { getCurrencyIsoFromCountryCode, getCountryCodeForCurrencyIso, fetchLiveRatesByBaseCurrency, buildCHFBasedRatesFromLive } from '../../../src/utils/exchange';
 
 const client = generateClient();
 
@@ -49,19 +52,24 @@ const countryNamesByCode: Record<string, string> = {
 };
 
 // Individual editable row component
-const ExRateRow = ({ rate, onUpdate, isUpdating }) => {
+const ExRateRow = ({ rate, onUpdate, onLiveUpdate, isUpdating, isLiveUpdating }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [buyingPrice, setBuyingPrice] = useState(String(rate.buyingPrice || ''));
   const [sellingPrice, setSellingPrice] = useState(String(rate.sellingPrice || ''));
+  // Show symbol and country in the first column
+  const currencySymbol = rate.symbol || '';
   const countryName = countryNamesByCode[rate.cur] || rate.cur;
 
-  const handleChange = () => {
+  const handleStartEdit = () => {
     setIsEditing(true);
   };
 
+  const { i18n } = useTranslation();
+  const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+  const t = translations[lang] || translations.en;
   const handleUpdate = async () => {
     if (!buyingPrice || !sellingPrice) {
-      Alert.alert('Error', 'Please enter both rates');
+      Alert.alert(t.error, t.errorEnterBothRates);
       return;
     }
     await onUpdate(rate.cur, buyingPrice, sellingPrice);
@@ -71,7 +79,9 @@ const ExRateRow = ({ rate, onUpdate, isUpdating }) => {
   return (
     <View style={localStyles.row}>
       <View style={localStyles.cellCountry}>
-        <Text style={localStyles.textLabel}>{countryName}</Text>
+        <Text style={localStyles.textLabel}>
+          {currencySymbol} {countryName ? `(${countryName})` : ''}
+        </Text>
         <Text style={localStyles.textCode}>{rate.cur}</Text>
       </View>
 
@@ -79,18 +89,31 @@ const ExRateRow = ({ rate, onUpdate, isUpdating }) => {
         <>
           <TextInput
             style={localStyles.cellInput}
-            placeholder="Buy"
+            placeholder={t.buy}
             value={buyingPrice}
             onChangeText={setBuyingPrice}
             keyboardType="decimal-pad"
           />
           <TextInput
             style={localStyles.cellInput}
-            placeholder="Sell"
+            placeholder={t.sell}
             value={sellingPrice}
             onChangeText={setSellingPrice}
             keyboardType="decimal-pad"
           />
+          <View style={localStyles.actionCell}>
+            <TouchableOpacity
+              style={[localStyles.smallButton, localStyles.buttonUpdate]}
+              onPress={handleUpdate}
+              disabled={isUpdating}
+            >
+              {isUpdating ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <Text style={localStyles.smallButtonText}>{t.update || 'Update'}</Text>
+              )}
+            </TouchableOpacity>
+          </View>
         </>
       ) : (
         <>
@@ -100,20 +123,26 @@ const ExRateRow = ({ rate, onUpdate, isUpdating }) => {
           <View style={localStyles.cell}>
             <Text style={localStyles.priceText}>{sellingPrice}</Text>
           </View>
+          <View style={localStyles.actionCell}>
+            <TouchableOpacity
+              style={localStyles.smallButton}
+              onPress={handleStartEdit}
+              disabled={isUpdating || isLiveUpdating}
+            >
+              <Text style={localStyles.smallButtonText}>{t.edit || 'Edit'}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[localStyles.smallButton, localStyles.buttonUpdate, localStyles.liveButton]}
+              onPress={() => onLiveUpdate(rate.cur)}
+              disabled={isUpdating || isLiveUpdating}
+            >
+              <Text style={localStyles.smallButtonText}>
+                {isLiveUpdating ? t.updating : t.liveUpdate}
+              </Text>
+            </TouchableOpacity>
+          </View>
         </>
       )}
-
-      <TouchableOpacity
-        style={[localStyles.button, isEditing && localStyles.buttonUpdate]}
-        onPress={isEditing ? handleUpdate : handleChange}
-        disabled={isUpdating}
-      >
-        {isUpdating && isEditing ? (
-          <ActivityIndicator size="small" color="#fff" />
-        ) : (
-          <Text style={localStyles.buttonText}>{isEditing ? 'Update' : 'Change'}</Text>
-        )}
-      </TouchableOpacity>
     </View>
   );
 };
@@ -123,7 +152,19 @@ const UpdateExRates = () => {
   const [filterText, setFilterText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [updatingCur, setUpdatingCur] = useState<string | null>(null);
+  const [liveUpdatingCur, setLiveUpdatingCur] = useState<string | null>(null);
+  const [isUpdatingAll, setIsUpdatingAll] = useState(false);
+  const [liveBaseCurrency, setLiveBaseCurrency] = useState('CHF');
+  const [updateStatus, setUpdateStatus] = useState<string | null>(null);
+  const [failedCurrencies, setFailedCurrencies] = useState<string[]>([]);
   const [ownerId, setOwnerId] = useState<string | null>(null);
+
+  const ratesMap = useMemo(() => {
+    return rates.reduce((acc: Record<string, any>, rate) => {
+      if (rate?.cur) acc[rate.cur] = rate;
+      return acc;
+    }, {} as Record<string, any>);
+  }, [rates]);
 
   useEffect(() => {
     const init = async () => {
@@ -167,16 +208,27 @@ const UpdateExRates = () => {
     }
   };
 
+  const { i18n } = useTranslation();
+  const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+  const t = { ...translations.en, ...(translations[lang] || {}) };
+
+  const verifyOwner = async () => {
+    const compDtls: any = await client.graphql({
+      query: getCompany,
+      variables: { AdminId: "BaruchHabaB'ShemAdonai2" }
+    });
+    const ownersss = compDtls?.data?.getCompany?.owner;
+    if (ownersss !== ownerId) {
+      Alert.alert(t.accessDenied);
+      return false;
+    }
+    return true;
+  };
+
   const handleUpdate = async (cur: string, buyingPrice: string, sellingPrice: string) => {
     setUpdatingCur(cur);
     try {
-      const compDtls: any = await client.graphql({
-        query: getCompany,
-        variables: { AdminId: "BaruchHabaB'ShemAdonai2" }
-      });
-      const ownersss = compDtls?.data?.getCompany?.owner;
-      if (ownersss !== ownerId) {
-        Alert.alert('Access Denied');
+      if (!(await verifyOwner())) {
         setUpdatingCur(null);
         return;
       }
@@ -190,18 +242,117 @@ const UpdateExRates = () => {
           }
         }
       });
-      // Update local state
       setRates(prev =>
         prev.map(r =>
           r.cur === cur ? { ...r, buyingPrice, sellingPrice } : r
         )
       );
-      Alert.alert('Success', `Rates updated for ${cur}`);
+      Alert.alert(t.success, `${t.successRatesUpdated} ${cur}`);
     } catch (e) {
       console.error('Update error:', e);
-      Alert.alert('Error', 'Failed to update rates');
+      Alert.alert(t.error, t.errorUpdateRates);
     } finally {
       setUpdatingCur(null);
+    }
+  };
+
+  const handleLiveUpdateRow = async (cur: string) => {
+    setLiveUpdatingCur(cur);
+    setUpdateStatus(t.updatingCurrency.replace('{cur}', cur));
+    setFailedCurrencies([]);
+    try {
+      if (!(await verifyOwner())) return;
+      const liveRates = await fetchLiveRatesByBaseCurrency(liveBaseCurrency);
+      if (!liveRates) {
+        setUpdateStatus(t.errorLiveRatesFetch);
+        Alert.alert(t.error, t.errorLiveRatesFetch);
+        return;
+      }
+      const newRates = buildCHFBasedRatesFromLive(liveRates, ratesMap);
+      const row = newRates[cur];
+      if (!row) {
+        setUpdateStatus(t.errorUnsupportedCurrency);
+        Alert.alert(t.error, t.errorUnsupportedCurrency);
+        return;
+      }
+      await client.graphql({
+        query: updateExRates,
+        variables: {
+          input: {
+            cur,
+            buyingPrice: String(row.buyingPrice),
+            sellingPrice: String(row.sellingPrice)
+          }
+        }
+      });
+      await fetchRates();
+      setUpdateStatus(`${t.successRatesUpdated} ${cur}`);
+      Alert.alert(t.success, `${t.successRatesUpdated} ${cur}`);
+    } catch (e) {
+      console.error('Live row update error:', e);
+      setUpdateStatus(t.errorUpdateRates);
+      Alert.alert(t.error, t.errorUpdateRates);
+    } finally {
+      setLiveUpdatingCur(null);
+    }
+  };
+
+  const handleUpdateAllFromLive = async () => {
+    setIsUpdatingAll(true);
+    setUpdateStatus(t.updatingAllFromLive.replace('{base}', liveBaseCurrency));
+    setFailedCurrencies([]);
+    try {
+      if (!(await verifyOwner())) return;
+      const liveRates = await fetchLiveRatesByBaseCurrency(liveBaseCurrency);
+      if (!liveRates) {
+        setUpdateStatus(t.errorLiveRatesFetch);
+        Alert.alert(t.error, t.errorLiveRatesFetch);
+        return;
+      }
+      const newRates = buildCHFBasedRatesFromLive(liveRates, ratesMap);
+      const entries = Object.entries(newRates);
+      if (!entries.length) {
+        setUpdateStatus(t.errorNoLiveRateUpdates);
+        Alert.alert(t.error, t.errorNoLiveRateUpdates);
+        return;
+      }
+      const failed: string[] = [];
+      for (const [cur, row] of entries) {
+        setUpdateStatus(t.updatingCurrency.replace('{cur}', cur));
+        try {
+          await client.graphql({
+            query: updateExRates,
+            variables: {
+              input: {
+                cur,
+                buyingPrice: String(row.buyingPrice),
+                sellingPrice: String(row.sellingPrice)
+              }
+            }
+          });
+        } catch (e) {
+          console.error(`Bulk update failed for ${cur}:`, e);
+          failed.push(cur);
+        }
+      }
+      await fetchRates();
+      if (failed.length) {
+        setFailedCurrencies(failed);
+        setUpdateStatus(t.partialLiveUpdate);
+        Alert.alert(
+          t.partialLiveUpdate,
+          t.partialUpdateFailed.replace('{currencies}', failed.join(', '))
+        );
+      } else {
+        setUpdateStatus(t.successLiveRatesUpdated);
+        Alert.alert(t.success, t.successLiveRatesUpdated);
+      }
+    } catch (e) {
+      console.error('Live all update error:', e);
+      setUpdateStatus(t.errorUpdateRates);
+      Alert.alert(t.error, t.errorUpdateRates);
+    } finally {
+      setIsUpdatingAll(false);
     }
   };
 
@@ -217,24 +368,77 @@ const UpdateExRates = () => {
 
   return (
     <View style={localStyles.container}>
-      <Text style={localStyles.title}>Update Exchange Rates</Text>
+      {/* <Text style={localStyles.title}>{t.title}</Text> */}
+
+      {/*
+      <View style={localStyles.livePanel}>
+        <TouchableOpacity
+          style={[localStyles.primaryButton, isUpdatingAll && localStyles.primaryButtonDisabled]}
+          onPress={handleUpdateAllFromLive}
+          disabled={isUpdatingAll}
+        >
+          {isUpdatingAll ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <Text style={localStyles.primaryButtonText}>{t.updateAllFromLive.replace('{base}', liveBaseCurrency)}</Text>
+          )}
+        </TouchableOpacity>
+      </View>
+      */}
 
       {/* Filter Panel */}
       <View style={localStyles.filterPanel}>
         <TextInput
           style={localStyles.filterInput}
-          placeholder="Filter countries (e.g., Kenya, KE, India...)"
+          placeholder={t.filterPlaceholder}
           value={filterText}
           onChangeText={setFilterText}
         />
+        <TouchableOpacity
+          style={[localStyles.refreshButton, isLoading && localStyles.refreshButtonDisabled]}
+          onPress={fetchRates}
+          disabled={isLoading}
+          activeOpacity={0.7}
+        >
+          {isLoading ? (
+            <ActivityIndicator color="#fff" size="small" />
+          ) : (
+            <Ionicons name="refresh" size={18} color="#fff" />
+          )}
+        </TouchableOpacity>
       </View>
+
+      {updateStatus ? (
+        <View style={localStyles.statusPanel}>
+          <Text style={localStyles.statusText}>{updateStatus}</Text>
+          {failedCurrencies.length > 0 && (
+            <Text style={localStyles.errorText}>
+              {t.partialUpdateFailed.replace('{currencies}', failedCurrencies.join(', '))}
+            </Text>
+          )}
+        </View>
+      ) : null}
 
       {/* Header Row */}
       <View style={[localStyles.row, localStyles.headerRow]}>
-        <Text style={[localStyles.cellCountry, localStyles.headerText]}>Country</Text>
-        <Text style={[localStyles.cell, localStyles.headerText]}>Buying</Text>
-        <Text style={[localStyles.cell, localStyles.headerText]}>Selling</Text>
-        <Text style={[localStyles.cell, localStyles.headerText]}>Action</Text>
+        <Text style={[localStyles.cellCountry, localStyles.headerText]}>{t.headerSymbol}</Text>
+        <Text style={[localStyles.cell, localStyles.headerText]}>{t.headerBuying}</Text>
+        <Text style={[localStyles.cell, localStyles.headerText]}>{t.headerSelling}</Text>
+        <View style={[localStyles.cell, localStyles.headerLiveCell]}>
+          <Text style={[localStyles.headerText, localStyles.headerLiveText]}>{t.headerLive}</Text>
+          <TouchableOpacity
+            style={[localStyles.iconButton, isUpdatingAll && localStyles.iconButtonDisabled]}
+            onPress={handleUpdateAllFromLive}
+            disabled={isUpdatingAll}
+            activeOpacity={0.7}
+          >
+            {isUpdatingAll ? (
+              <ActivityIndicator color="#fff" size="small" />
+            ) : (
+              <Ionicons name="refresh" size={18} color="#fff" />
+            )}
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Rates List */}
@@ -246,14 +450,16 @@ const UpdateExRates = () => {
             <ExRateRow
               rate={item}
               onUpdate={handleUpdate}
+              onLiveUpdate={handleLiveUpdateRow}
               isUpdating={updatingCur === item.cur}
+              isLiveUpdating={liveUpdatingCur === item.cur}
             />
           )}
           scrollEnabled={true}
         />
       ) : (
         <Text style={localStyles.emptyText}>
-          {rates.length === 0 ? 'Loading rates...' : 'No countries match filter'}
+          {rates.length === 0 ? t.loadingRates : t.noCountriesMatch}
         </Text>
       )}
     </View>
@@ -281,8 +487,11 @@ const localStyles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowOffset: { width: 0, height: 2 },
     shadowRadius: 4,
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   filterInput: {
+    flex: 1,
     borderWidth: 1,
     borderColor: '#ddd',
     borderRadius: 6,
@@ -290,6 +499,18 @@ const localStyles = StyleSheet.create({
     paddingVertical: 10,
     fontSize: 14,
     color: '#333',
+  },
+  refreshButton: {
+    marginLeft: 8,
+    width: 40,
+    height: 40,
+    borderRadius: 8,
+    backgroundColor: '#2c5364',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  refreshButtonDisabled: {
+    opacity: 0.6,
   },
   headerRow: {
     backgroundColor: '#e58d29',
@@ -334,7 +555,7 @@ const localStyles = StyleSheet.create({
     alignItems: 'center',
   },
   cellInput: {
-    flex: 1,
+    width: 72,
     borderWidth: 1,
     borderColor: '#ddd',
     borderRadius: 4,
@@ -343,6 +564,11 @@ const localStyles = StyleSheet.create({
     fontSize: 12,
     marginHorizontal: 4,
     backgroundColor: '#f9f9f9',
+  },
+  actionCell: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   priceText: {
     fontSize: 13,
@@ -359,13 +585,102 @@ const localStyles = StyleSheet.create({
     alignItems: 'center',
     marginLeft: 8,
   },
-  buttonUpdate: {
-    backgroundColor: '#ADD8E6',
-  },
   buttonText: {
     color: '#fff',
     fontSize: 12,
     fontWeight: '600',
+  },
+  primaryButton: {
+    marginTop: 12,
+    backgroundColor: '#2c5364',
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  primaryButtonDisabled: {
+    opacity: 0.6,
+  },
+  headerLiveCell: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+  },
+  headerLiveText: {
+    marginRight: 8,
+  },
+  iconButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#2c5364',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  iconButtonDisabled: {
+    opacity: 0.6,
+  },
+  baseCurrencyRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  statusPanel: {
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    padding: 10,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+  },
+  statusText: {
+    color: '#333',
+    fontSize: 13,
+    marginBottom: 4,
+  },
+  errorText: {
+    color: '#b02a37',
+    fontSize: 12,
+  },
+  baseCurrencyLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#333',
+  },
+  baseCurrencyInput: {
+    width: 80,
+    height: 40,
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    backgroundColor: '#fff',
+    color: '#333',
+  },
+  livePanel: {
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 4,
+  },
+  smallButton: {
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 6,
+    backgroundColor: '#2c5364',
+  },
+  smallButtonText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  buttonUpdate: {
+    backgroundColor: '#ADD8E6',
   },
   emptyText: {
     textAlign: 'center',

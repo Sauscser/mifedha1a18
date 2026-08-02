@@ -1943,6 +1943,8 @@ export const onCreateAgent = /* GraphQL */ `
       ttlEarnings
       pw
       email
+      groupFloatStatus
+      groupFloatAmount
       TtlFltIn
       TtlFltOut
       floatBal
@@ -1974,6 +1976,8 @@ export const onUpdateAgent = /* GraphQL */ `
       ttlEarnings
       pw
       email
+      groupFloatStatus
+      groupFloatAmount
       TtlFltIn
       TtlFltOut
       floatBal
@@ -2005,6 +2009,8 @@ export const onDeleteAgent = /* GraphQL */ `
       ttlEarnings
       pw
       email
+      groupFloatStatus
+      groupFloatAmount
       TtlFltIn
       TtlFltOut
       floatBal
@@ -4419,6 +4425,7 @@ export const onCreateGroup = /* GraphQL */ `
     onCreateGroup(filter: $filter, owner: $owner) {
       grpContact
       transportShareRates
+      groupFloatLoan
       regNo
       signitoryContact
       SignitoryNatid
@@ -4516,6 +4523,7 @@ export const onUpdateGroup = /* GraphQL */ `
     onUpdateGroup(filter: $filter, owner: $owner) {
       grpContact
       transportShareRates
+      groupFloatLoan
       regNo
       signitoryContact
       SignitoryNatid
@@ -4613,6 +4621,7 @@ export const onDeleteGroup = /* GraphQL */ `
     onDeleteGroup(filter: $filter, owner: $owner) {
       grpContact
       transportShareRates
+      groupFloatLoan
       regNo
       signitoryContact
       SignitoryNatid

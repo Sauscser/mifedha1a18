@@ -1,10 +1,10 @@
 import React from 'react';
 import { Modal, View, Text, Pressable, StyleSheet } from 'react-native';
 
-const CustomAlert = ({ visible, message, onClose }) => {
+const CustomAlert = ({ visible, message, onClose, actions }) => {
   return (
     <Modal
-      animationType="fade"
+      animationType="none"
       transparent={true}
       visible={visible}
       onRequestClose={onClose}
@@ -12,9 +12,19 @@ const CustomAlert = ({ visible, message, onClose }) => {
       <View style={styles.modalOverlay}>
         <View style={styles.modalBox}>
           <Text style={styles.modalText}>{message}</Text>
-          <Pressable onPress={onClose} style={styles.modalButton}>
-            <Text style={styles.modalButtonText}>OK</Text>
-          </Pressable>
+          {actions?.length ? (
+            <View style={styles.actions}>
+              {actions.map((action) => (
+                <Pressable key={action.label} onPress={action.onPress} style={[styles.modalButton, action.secondary && styles.secondaryButton]}>
+                  <Text style={[styles.modalButtonText, action.secondary && styles.secondaryButtonText]}>{action.label}</Text>
+                </Pressable>
+              ))}
+            </View>
+          ) : (
+            <Pressable onPress={onClose} style={styles.modalButton}>
+              <Text style={styles.modalButtonText}>OK</Text>
+            </Pressable>
+          )}
         </View>
       </View>
     </Modal>
@@ -46,9 +56,19 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 5,
   },
+  actions: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  secondaryButton: {
+    backgroundColor: '#e5e7eb',
+  },
   modalButtonText: {
     color: '#fff',
     fontWeight: 'bold',
+  },
+  secondaryButtonText: {
+    color: '#374151',
   },
 });
 

@@ -52,7 +52,8 @@ const CreateBiz = () => {
     unitQuantity: '',
     bizPassword: '',
     ItemCode: '',
-    itemSpecifications: ''
+    itemSpecifications: '',
+    purchaseType: 'PayFull'
   });
   const [isLoading, setIsLoading] = useState(false);
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
@@ -306,7 +307,8 @@ const CreateBiz = () => {
             itemUnit: itemUnit,
             unitQuantity: parseFloat(unitQuantity),
             owner: user.userId,
-            Nationality: businessOwnerNationality
+            Nationality: businessOwnerNationality,
+            purchaseType: formData.purchaseType
           }
         }
       });
@@ -351,7 +353,7 @@ const CreateBiz = () => {
 
         console.log(itemPrice);
       
-      Alert.alert(t.success, `${t.itemAdvertised}\n\nPrice: ${priceInOwnerCurrency}\n\n(Stored in backend as: Ksh ${priceInKsh.toFixed(2)})`);
+      Alert.alert(t.success, `${t.itemAdvertised}\n\nPrice: ${priceInOwnerCurrency}`);
       clearForm();
     } catch (err) {
       console.error(err);
@@ -382,6 +384,26 @@ const CreateBiz = () => {
         <InputField label={t.unitLabel} value={formData.itemUnit} onChange={v => updateForm('itemUnit', v)} />
         <InputField label={t.quantityLabel} value={formData.unitQuantity} onChange={v => updateForm('unitQuantity', v)} keyboardType="numeric" />
         <InputField label={t.serialLabel} value={formData.ItemCode} onChange={v => updateForm('ItemCode', v)} />
+        <View style={styles.purchaseTypeContainer}>
+          <Text style={styles.label}>{t.purchaseTypeLabel}</Text>
+          <View style={styles.purchaseTypeRow}>
+            {['PayFull', 'PartialPay'].map(type => (
+              <TouchableOpacity
+                key={type}
+                style={[
+                  styles.purchaseTypeOption,
+                  formData.purchaseType === type && styles.purchaseTypeOptionActive
+                ]}
+                onPress={() => updateForm('purchaseType', type)}
+              >
+                <Text style={[
+                  styles.purchaseTypeText,
+                  formData.purchaseType === type && styles.purchaseTypeTextActive
+                ]}>{type}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
         <InputField label={t.specificationsLabel} value={formData.itemSpecifications} onChange={v => updateForm('itemSpecifications', v)} multiline height={80} />
         {/* URL with pulsing valid icon */}
         <View style={styles.inputContainer}>
@@ -504,6 +526,34 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     height: 50,
     paddingHorizontal: 10
+  },
+  purchaseTypeContainer: {
+    marginBottom: 15
+  },
+  purchaseTypeRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between'
+  },
+  purchaseTypeOption: {
+    flex: 1,
+    paddingVertical: 12,
+    marginRight: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#ccc',
+    backgroundColor: '#fff',
+    alignItems: 'center'
+  },
+  purchaseTypeOptionActive: {
+    borderColor: '#2c5364',
+    backgroundColor: '#2c5364'
+  },
+  purchaseTypeText: {
+    color: '#333',
+    fontWeight: '600'
+  },
+  purchaseTypeTextActive: {
+    color: '#fff'
   },
   passwordInput: {
     flex: 1,

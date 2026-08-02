@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { View, Text, ImageBackground, Pressable, FlatList, Alert } from 'react-native';
 import RecNonLns from "../../../components/VwCredSales/Vw2VwCashSales";
 import styles from './styles';
-import { getBizna, getCompany, getSMAccount, listNonLoans, listSMAccounts, vwMyRecMny } from '../../../src/graphql/queries';
+import { getBizna, getCompany, getSMAccount, listNonLoans, listSMAccounts,  } from '../../../src/graphql/queries';
 import { updateBizna, updateCompany, updateSMAccount } from '../../../src/graphql/mutations';
 import { useRoute } from '@react-navigation/native';
 import { getCurrentUser, fetchUserAttributes } from "aws-amplify/auth";

@@ -6,6 +6,7 @@ export const translations = {
     brandLabel: "Brand/Model/Type (Optional)",
     itemPriceLabel: "Item Price",
     itemPriceLoading: "Item Price (Loading...)",
+    purchaseTypeLabel: "Purchase Type",
     unitLabel: "Unit of Measure (Optional)",
     quantityLabel: "Quantity per Unit (Optional)",
     serialLabel: "Serial Number (Optional)",

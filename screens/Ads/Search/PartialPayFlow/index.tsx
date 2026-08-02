@@ -926,6 +926,24 @@ function PartialPayFlowInner({ navigation, route }: { navigation: any; route: an
         }
       });
 
+        await client.graphql({
+                              query: createBizSls,
+                              variables: {
+                                input: {
+                                  saleId: selectedEntry.id,
+                                  recPhn: sellerAccount,
+                                  senderPhn: selectedEntry.buyerAccount || attrs.email,
+                                  amount: itemCost.toFixed(0),
+                                  description: selectedEntry.itemDesc || selectedEntry.itemName || 'Cascade payment checkout',
+                                  RecName: seller.busName || selectedEntry.sellerName ,
+                                  SenderName: selectedEntry.buyerName || attrs.email,
+                                  status: "cashSales",
+                                  owner: attrs.email,
+                                  attendingAdmin: attrs.email,
+                                }
+                              }
+                            });
+
       if (modeParam === 'quick') {
         let buyerAccountDetails: any = null;
         if (selectedEntry.buyerType === 'Biz') {
@@ -1855,7 +1873,7 @@ function PartialPayFlowInner({ navigation, route }: { navigation: any; route: an
 
                     <View style={{ flex: 1, paddingRight: 10 }}>
                       <Text style={styles.text}>
-                        [{qty}×{item.unitQuantity || 1}] {item.itemUnit || ''} {item.itemBrand || ''} {item.sokoname} @ {formatAmountSync(Number(item.sokoprice || 0), natCode, ratesMap)}{item.sellerNationality ? ` (${formatAmountSync(Number(item.sokoprice || 0), nationalityToCode(item.sellerNationality), ratesMap)})` : ''} at {item.bizName} ({item.bizType || item.businessType || ''}) = {formatAmountSync(Number(total || 0), natCode, ratesMap)}
+                        [{qty}×{item.unitQuantity || 1}] {item.itemUnit || ''} {item.itemBrand || ''} {item.sokoname} @ {formatAmountSync(Number(item.sokoprice || 0), natCode, ratesMap)} at {item.bizName} ({item.bizType || item.businessType || ''}) = {formatAmountSync(Number(total || 0), natCode, ratesMap)}
                         {'\n'}{item.bizContact || item.sokokntct} | {t.longPressToAdd}
                       </Text>
 

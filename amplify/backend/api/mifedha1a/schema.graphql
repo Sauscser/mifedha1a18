@@ -1299,6 +1299,9 @@ type Agent
   ttlEarnings: Float!
   pw: String!
   email: String!
+
+  groupFloatStatus: String
+  groupFloatAmount: Float
  
   TtlFltIn: Float!
   TtlFltOut: Float!
@@ -2704,6 +2707,7 @@ type Group
   {
   grpContact: String! @primaryKey
   transportShareRates: Float
+  groupFloatLoan: Float
 
   regNo:String!
   signitoryContact: String!

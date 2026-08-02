@@ -1,8 +1,8 @@
 // @ts-nocheck
 import React, { useEffect, useState } from 'react';
-import { createFloatAdd, updateAgent, updateCompany, updateSAgent, updateSMAccount } from '../../../../src/graphql/mutations';
+import { createFloatAdd, updateAgent, updateCompany, updateGroup, updateSAgent, updateSMAccount } from '../../../../src/graphql/mutations';
 import { useRoute } from '@react-navigation/native';
-import { getAgent, getCompany, getSAgent, getSMAccount, listCovCreditSellers, listCvrdGroupLoans, listGroupNonLoans, listSMLoansCovereds } from '../../../../src/graphql/queries';
+import { getAgent, getCompany, getGroup, getSAgent, getSMAccount, listCovCreditSellers, listCvrdGroupLoans, listGroupNonLoans, listSMLoansCovereds } from '../../../../src/graphql/queries';
 import { View, Text, StyleSheet, TextInput, ScrollView, ActivityIndicator, TouchableOpacity, Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -10,6 +10,7 @@ import MyAccount from '../../../Transport';
 import { getCurrentUser, fetchUserAttributes } from "aws-amplify/auth";
 import { useExchange } from '../../../../src/contexts/ExchangeContext';
 import { getUserNationalityByEmail, formatAmountForUser, formatAmountSync, convertKshToUserCurrency, convertForeignToKsh } from '../../../../src/utils/exchange';
+import { nationalityToCode } from '../../../../src/utils/nationalityToCode';
 import { generateClient } from "aws-amplify/api";
 const client = generateClient();
 const SMADepositForm = props => {
@@ -19,12 +20,20 @@ const SMADepositForm = props => {
   const [isLoading, setIsLoading] = useState(false);
   const [ConfirmPWd, setConfirmPWd] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const getCurrencySymbolForNationality = (nationalityValue?: string) => {
+    const resolvedCode = nationalityToCode(nationalityValue || '') || nationalityValue || '';
+    return resolvedCode && ratesMap?.[resolvedCode]?.symbol ? String(ratesMap[resolvedCode].symbol) : '';
+  };
+  const [userCurrencySymbol, setUserCurrencySymbol] = useState(() => getCurrencySymbolForNationality(nationality));
   const navigation = useNavigation();
   const SndChmMmbrMny = () => {
     navigation.navigate("AutomaticRepayAllTyps");
   };
   const route = useRoute();
   const { nationality, ratesMap, formatAmount } = useExchange();
+  const safeNationality = typeof nationality === 'string' ? nationality : (nationality && typeof nationality === 'object' && 'nationality' in nationality ? (nationality as any).nationality : null);
+  const userCurrencyKey = nationalityToCode(safeNationality || '') || safeNationality || undefined;
   const fetchAcDtls = async () => {
     if (isLoading) {
       return;
@@ -41,6 +50,12 @@ const SMADepositForm = props => {
       });
       const userDtlsxz = accountDtl.data.getSMAccount;
       const usrBala = accountDtl.data.getSMAccount.balance;
+      const senderNat = await getUserNationalityByEmail(attributes.email);
+      const resolvedCurrencyKey = nationalityToCode(senderNat || '') || senderNat || '';
+      const nextCurrencySymbol = resolvedCurrencyKey && ratesMap?.[resolvedCurrencyKey]?.symbol
+        ? String(ratesMap[resolvedCurrencyKey].symbol)
+        : '';
+      setUserCurrencySymbol(nextCurrencySymbol);
       const TtlWthdrwnSMs = accountDtl.data.getSMAccount.TtlWthdrwnSM;
       const usrStts = accountDtl.data.getSMAccount.acStatus;
       const withdrawalLimits = accountDtl.data.getSMAccount.withdrawalLimit;
@@ -184,7 +199,18 @@ const SMADepositForm = props => {
                                 setIsLoading(false);
                                 return;
                               }
-                              const amountKes = await convertForeignToKsh(amountForeign, senderNat);
+                              const resolvedCurrencyKey = userCurrencyKey || nationalityToCode(senderNat || '') || senderNat || undefined;
+                              let amountKes = amountForeign;
+                              if (resolvedCurrencyKey) {
+                                const rateForCurrency = ratesMap?.[resolvedCurrencyKey];
+                                if (rateForCurrency?.sellingPrice && Number(rateForCurrency.sellingPrice) > 0) {
+                                  amountKes = amountForeign / parseFloat(String(rateForCurrency.sellingPrice));
+                                } else {
+                                  amountKes = await convertForeignToKsh(amountForeign, resolvedCurrencyKey);
+                                }
+                              } else {
+                                amountKes = await convertForeignToKsh(amountForeign, senderNat || undefined);
+                              }
                               if (!Number.isFinite(amountKes) || amountKes <= 0) {
                                 Alert.alert("Unable to convert amount. Please try again.");
                                 setIsLoading(false);
@@ -277,6 +303,41 @@ const SMADepositForm = props => {
                                     }
                                     setIsLoading(true);
                                     try {
+                                      let repaymentAmount = 0;
+                                      let nextGroupBalance = null;
+                                      let nextGroupFloatLoan = null;
+                                      let nextAgentGroupFloatAmount = parseFloat(AgentBal.data.getAgent.groupFloatAmount || '0');
+                                      let nextAgentGroupFloatStatus = String(AgentBal.data.getAgent.groupFloatStatus || '').toUpperCase();
+                                      const agentFloatAvailable = parseFloat(floatBals || '0');
+                                      const shortfall = Math.max(0, amountKes - agentFloatAvailable);
+                                      if (nextAgentGroupFloatStatus === 'YES' && nextAgentGroupFloatAmount > 0) {
+                                        repaymentAmount = Math.min(nextAgentGroupFloatAmount, shortfall);
+                                        if (repaymentAmount > 0 && compDtls.data.getSAgent?.bkAcNo) {
+                                          const linkedGroupRes: any = await client.graphql({
+                                            query: getGroup,
+                                            variables: {
+                                              grpContact: compDtls.data.getSAgent.bkAcNo
+                                            }
+                                          });
+                                          const linkedGroup = linkedGroupRes?.data?.getGroup;
+                                          if (linkedGroup) {
+                                            nextGroupBalance = parseFloat(linkedGroup.grpBal || '0') + repaymentAmount;
+                                            nextGroupFloatLoan = parseFloat(linkedGroup.groupFloatLoan || '0') - repaymentAmount;
+                                            await client.graphql({
+                                              query: updateGroup,
+                                              variables: {
+                                                input: {
+                                                  grpContact: linkedGroup.grpContact,
+                                                  grpBal: nextGroupBalance,
+                                                  groupFloatLoan: nextGroupFloatLoan
+                                                }
+                                              }
+                                            });
+                                          }
+                                        }
+                                      }
+                                      nextAgentGroupFloatAmount = Math.max(0, nextAgentGroupFloatAmount - repaymentAmount);
+                                      nextAgentGroupFloatStatus = nextAgentGroupFloatAmount > 0 ? 'YES' : 'NO';
                                       await client.graphql({
                                         query: updateAgent,
                                         variables: {
@@ -285,7 +346,9 @@ const SMADepositForm = props => {
                                             ttlEarnings: (parseFloat(ttlEarningssss) + AgentCommission).toFixed(0),
                                             agentEarningBal: (parseFloat(agentEarningBalsss) + AgentCommission).toFixed(0),
                                             floatBal: (parseFloat(floatBals) + amountKes).toFixed(0),
-                                            TtlFltIn: (parseFloat(TtlFltInsss) + amountKes).toFixed(0)
+                                            TtlFltIn: (parseFloat(TtlFltInsss) + amountKes).toFixed(0),
+                                            groupFloatAmount: nextAgentGroupFloatAmount,
+                                            groupFloatStatus: nextAgentGroupFloatStatus
                                           }
                                         }
                                       });
@@ -499,6 +562,13 @@ const SMADepositForm = props => {
     setAgentPhn("");
   };
   useEffect(() => {
+    const nextSymbol = getCurrencySymbolForNationality(nationality);
+    if (nextSymbol && !userCurrencySymbol) {
+      setUserCurrencySymbol(nextSymbol);
+    }
+  }, [nationality, ratesMap]);
+
+  useEffect(() => {
     const amt = amount;
     if (!amt && amt !== "") {
       setAmount("");
@@ -538,12 +608,26 @@ const SMADepositForm = props => {
 
         <View style={styles.inputGroup}>
           <Text style={styles.label}>Amount</Text>
-          <TextInput keyboardType="decimal-pad" value={amount} onChangeText={setAmount} style={styles.input} />
+          <View style={styles.amountInputContainer}>
+            {userCurrencySymbol ? <Text style={styles.amountPrefix}>{userCurrencySymbol}</Text> : null}
+            <TextInput
+              keyboardType="decimal-pad"
+              value={amount}
+              onChangeText={setAmount}
+              style={styles.inputWithPrefix}
+              placeholder={userCurrencySymbol ? '0.00' : '0.00'}
+            />
+          </View>
         </View>
 
         <View style={styles.inputGroup}>
           <Text style={styles.label}>Enter Main Account Password</Text>
-          <TextInput value={UsrPWd} onChangeText={setUsrPWd} secureTextEntry style={styles.input} />
+          <View style={styles.amountInputContainer}>
+            <TextInput value={UsrPWd} onChangeText={setUsrPWd} secureTextEntry={!showPassword} style={styles.inputWithPrefix} />
+            <TouchableOpacity onPress={() => setShowPassword(prev => !prev)} style={styles.eyeButton}>
+              <Text style={styles.eyeIcon}>{showPassword ? '🙈' : '👁️'}</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
 
@@ -578,12 +662,32 @@ const styles = StyleSheet.create({
     color: 'white',
     fontWeight: '600'
   },
-  input: {
+  amountInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: 'rgba(255,255,255,0.9)',
-    padding: 12,
     borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 4
+  },
+  amountPrefix: {
+    color: '#1f2937',
+    fontSize: 16,
+    fontWeight: '700',
+    marginRight: 8
+  },
+  inputWithPrefix: {
+    flex: 1,
+    paddingVertical: 8,
     fontSize: 16,
     color: 'black'
+  },
+  eyeButton: {
+    paddingHorizontal: 4,
+    paddingVertical: 4
+  },
+  eyeIcon: {
+    fontSize: 18
   },
   button: {
     backgroundColor: 'skyblue',

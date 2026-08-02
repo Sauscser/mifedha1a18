@@ -299,6 +299,7 @@ const CreateChama = (props: UserReg) => {
           input: {
             grpContact: ChamaAcNu,
             transportShareRates: 0,
+            groupFloatLoan: 0,
             regNo: safeChmRegNo,
             signitoryContact: attributes.phone_number,
             SignatoryEmail: attributes.email,
