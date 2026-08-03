@@ -658,6 +658,7 @@ type CvrdGroupLoans
   advEmail:String
   amountExpectedBack: Float!
   amountExpectedBackWthClrnc: Float!
+  groupRedeemedLoan: Float
 
    clearanceAmt: Float!
   clearanceAmt2: Float!
@@ -2708,6 +2709,8 @@ type Group
   grpContact: String! @primaryKey
   transportShareRates: Float
   groupFloatLoan: Float
+  groupRedeemedLoan: Float
+
 
   regNo:String!
   signitoryContact: String!
@@ -2843,6 +2846,8 @@ type ChamaMembers
   MembaId:String! @index(name: "byChmNMmbr", sortKeyFields: ["createdAt"], queryField: "ViaChmNMmbr")
   groupContact: String! @index(name: "byChmCntcts", sortKeyFields: ["createdAt"], queryField: "VwChamaMembers")
   regNo:String!
+  groupRedeemedLoan: Float
+
   ChamaNMember:String!  @primaryKey
   groupName: String!
   memberContact: String!   @index(name: "byMemberCntcts", sortKeyFields: ["createdAt"], queryField: "VwMyChamas")

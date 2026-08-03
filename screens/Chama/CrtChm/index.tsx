@@ -300,6 +300,7 @@ const CreateChama = (props: UserReg) => {
             grpContact: ChamaAcNu,
             transportShareRates: 0,
             groupFloatLoan: 0,
+            groupRedeemedLoan:0,
             regNo: safeChmRegNo,
             signitoryContact: attributes.phone_number,
             SignatoryEmail: attributes.email,
@@ -415,7 +416,8 @@ const CreateChama = (props: UserReg) => {
             subscriptionFrequency: SubFreq,
             subscriptionAmt: subAmtInKES.toFixed(0),
             lateSubscriptionPenalty: lateSubInKES.toFixed(0),
-            transportApproved: 'ChamaTransportApprovedNo'
+            transportApproved: 'ChamaTransportApprovedNo',
+            groupRedeemedLoan: 0
           }
         }
       });

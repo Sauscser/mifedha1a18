@@ -4451,6 +4451,7 @@ export const createGroup = /* GraphQL */ `
       grpContact
       transportShareRates
       groupFloatLoan
+      groupRedeemedLoan
       regNo
       signitoryContact
       SignitoryNatid
@@ -4549,6 +4550,7 @@ export const updateGroup = /* GraphQL */ `
       grpContact
       transportShareRates
       groupFloatLoan
+      groupRedeemedLoan
       regNo
       signitoryContact
       SignitoryNatid
@@ -4647,6 +4649,7 @@ export const deleteGroup = /* GraphQL */ `
       grpContact
       transportShareRates
       groupFloatLoan
+      groupRedeemedLoan
       regNo
       signitoryContact
       SignitoryNatid
@@ -4745,6 +4748,7 @@ export const createChamaMembers = /* GraphQL */ `
       MembaId
       groupContact
       regNo
+      groupRedeemedLoan
       ChamaNMember
       groupName
       memberContact
@@ -4784,6 +4788,7 @@ export const updateChamaMembers = /* GraphQL */ `
       MembaId
       groupContact
       regNo
+      groupRedeemedLoan
       ChamaNMember
       groupName
       memberContact
@@ -4823,6 +4828,7 @@ export const deleteChamaMembers = /* GraphQL */ `
       MembaId
       groupContact
       regNo
+      groupRedeemedLoan
       ChamaNMember
       groupName
       memberContact
@@ -7441,6 +7447,7 @@ export const createCvrdGroupLoans = /* GraphQL */ `
       advEmail
       amountExpectedBack
       amountExpectedBackWthClrnc
+      groupRedeemedLoan
       clearanceAmt
       clearanceAmt2
       amountRepaid
@@ -7486,6 +7493,7 @@ export const updateCvrdGroupLoans = /* GraphQL */ `
       advEmail
       amountExpectedBack
       amountExpectedBackWthClrnc
+      groupRedeemedLoan
       clearanceAmt
       clearanceAmt2
       amountRepaid
@@ -7531,6 +7539,7 @@ export const deleteCvrdGroupLoans = /* GraphQL */ `
       advEmail
       amountExpectedBack
       amountExpectedBackWthClrnc
+      groupRedeemedLoan
       clearanceAmt
       clearanceAmt2
       amountRepaid

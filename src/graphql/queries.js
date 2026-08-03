@@ -3203,6 +3203,7 @@ export const getGroup = /* GraphQL */ `
       grpContact
       transportShareRates
       groupFloatLoan
+      groupRedeemedLoan
       regNo
       signitoryContact
       SignitoryNatid
@@ -3311,6 +3312,7 @@ export const listGroups = /* GraphQL */ `
         grpContact
         transportShareRates
         groupFloatLoan
+        groupRedeemedLoan
         regNo
         signitoryContact
         SignitoryNatid
@@ -3409,6 +3411,7 @@ export const getChamaMembers = /* GraphQL */ `
       MembaId
       groupContact
       regNo
+      groupRedeemedLoan
       ChamaNMember
       groupName
       memberContact
@@ -3458,6 +3461,7 @@ export const listChamaMembers = /* GraphQL */ `
         MembaId
         groupContact
         regNo
+        groupRedeemedLoan
         ChamaNMember
         groupName
         memberContact
@@ -7239,6 +7243,7 @@ export const VwNatIdentitysz = /* GraphQL */ `
         grpContact
         transportShareRates
         groupFloatLoan
+        groupRedeemedLoan
         regNo
         signitoryContact
         SignitoryNatid
@@ -7352,6 +7357,7 @@ export const ViaChmArea = /* GraphQL */ `
         grpContact
         transportShareRates
         groupFloatLoan
+        groupRedeemedLoan
         regNo
         signitoryContact
         SignitoryNatid
@@ -7465,6 +7471,7 @@ export const ViaChmVenture = /* GraphQL */ `
         grpContact
         transportShareRates
         groupFloatLoan
+        groupRedeemedLoan
         regNo
         signitoryContact
         SignitoryNatid
@@ -7578,6 +7585,7 @@ export const ViaChmNMmbr = /* GraphQL */ `
         MembaId
         groupContact
         regNo
+        groupRedeemedLoan
         ChamaNMember
         groupName
         memberContact
@@ -7632,6 +7640,7 @@ export const VwChamaMembers = /* GraphQL */ `
         MembaId
         groupContact
         regNo
+        groupRedeemedLoan
         ChamaNMember
         groupName
         memberContact
@@ -7686,6 +7695,7 @@ export const VwMyChamas = /* GraphQL */ `
         MembaId
         groupContact
         regNo
+        groupRedeemedLoan
         ChamaNMember
         groupName
         memberContact
@@ -9952,6 +9962,7 @@ export const getCvrdGroupLoans = /* GraphQL */ `
       advEmail
       amountExpectedBack
       amountExpectedBackWthClrnc
+      groupRedeemedLoan
       clearanceAmt
       clearanceAmt2
       amountRepaid
@@ -10007,6 +10018,7 @@ export const listCvrdGroupLoans = /* GraphQL */ `
         advEmail
         amountExpectedBack
         amountExpectedBackWthClrnc
+        groupRedeemedLoan
         clearanceAmt
         clearanceAmt2
         amountRepaid
@@ -10067,6 +10079,7 @@ export const VwChamaMemberss7 = /* GraphQL */ `
         advEmail
         amountExpectedBack
         amountExpectedBackWthClrnc
+        groupRedeemedLoan
         clearanceAmt
         clearanceAmt2
         amountRepaid
@@ -10127,6 +10140,7 @@ export const VwMyChamass7 = /* GraphQL */ `
         advEmail
         amountExpectedBack
         amountExpectedBackWthClrnc
+        groupRedeemedLoan
         clearanceAmt
         clearanceAmt2
         amountRepaid
@@ -10187,6 +10201,7 @@ export const VwLnrNLnee7 = /* GraphQL */ `
         advEmail
         amountExpectedBack
         amountExpectedBackWthClrnc
+        groupRedeemedLoan
         clearanceAmt
         clearanceAmt2
         amountRepaid

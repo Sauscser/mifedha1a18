@@ -644,6 +644,7 @@ import VwFloatedLoans from "../../screens/Chama/ReqLoan/VwFloatedLoans";
 import MembersApproveLoans from "../../screens/Chama/ReqLoan/MembersApproveLoans";
 import Vw2SignLoanRequests from "../../screens/Chama/ReqLoan/Vw2SignLoanRequests";
 import ClearGroupMemberLoan from "../../screens/MFBankAdmin/ClearGroupMemberLoan";
+import RecoverMemberLoan from "../../screens/MFBankAdmin/RecoverMemberLoan";
 import Auditor from "../../screens/COMB/Auditor";
 import AddCOMBAuditor from "../../screens/COMB/AddCOMBAuditor";
 import CreateChamaMinutes from "../../screens/Chama/ChamaMinutes/CreateChamaMinutes";
@@ -692,6 +693,7 @@ const HomeNavigator = ({ navigation }: any) => {
       <Stack.Screen name={'FunderClearBill'} component={FunderClearBill} /> 
       <Stack.Screen name={'Vw2SignLoanRequests'} component={Vw2SignLoanRequests} /> 
       <Stack.Screen name={'ClearGroupMemberLoan'} component={ClearGroupMemberLoan} /> 
+      <Stack.Screen name={'RecoverMemberLoan'} component={RecoverMemberLoan} /> 
 
       <Stack.Screen name={'VwFloatedLoans'} component={VwFloatedLoans} /> 
       <Stack.Screen name={'FloatLnReq'} component={FloatLnReq} /> 

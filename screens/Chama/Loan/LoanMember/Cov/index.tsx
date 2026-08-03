@@ -204,6 +204,7 @@ const ChmCovLns = () => {
               amountExpectedBack: loanAmount.toFixed(0),
               amountExpectedBackWthClrnc: loanAmount.toFixed(0),
               amountRepaid: 0,
+              groupRedeemedLoan: 0,
               DefaultPenaltyChm: defaultPenalty,
               DefaultPenaltyChm2: 0,
               timeExpBack: parseFloat(repaymentPeriod),

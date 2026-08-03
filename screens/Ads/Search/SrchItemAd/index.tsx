@@ -678,7 +678,7 @@ function SalesItemMapScreenInner({ navigation }: { navigation: any }) {
         // Convert itemCost (KES) to user's currency and attach symbol
         const userCurrencyKey = natCode;
         const itemCostDisplay = formatAmountSync(itemCost, userCurrencyKey, ratesMap);
-        const description = `${qty} ${item.itemUnit} of ${item.sokoname} @ $ ${itemCostDisplay} bought at ${item.bizName} ${item.businessType}`;
+        const description = `${qty} ${item.itemUnit} of ${item.sokoname} @ ${itemCostDisplay} bought at ${item.bizName} ${item.businessType}`;
         if (!sellerTotals[item.sokokntct]) {
           sellerTotals[item.sokokntct] = {
             totalItemCost: 0,

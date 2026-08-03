@@ -323,6 +323,7 @@ const AddChmMmbrs = () => {
         subscriptionAmt: subscriptionAmtKES.toFixed(2),
         lateSubscriptionPenalty: latePenaltyKES.toFixed(2),
         ttlLateSubs: 0,
+        groupRedeemedLoan: 0,
         transportApproved: 'ChamaTransportApprovedNo'
       };
 

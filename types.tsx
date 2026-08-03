@@ -112,6 +112,7 @@ ViewMinutes: {
   };      CreateChamaMinutes:undefined;
       Auditor:undefined;
       ClearGroupMemberLoan:undefined;
+      RecoverMemberLoan:undefined;
       AddCOMBAuditor:undefined;
       
       Vw2SignLoanRequests:undefined;

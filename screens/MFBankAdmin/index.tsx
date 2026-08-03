@@ -94,6 +94,9 @@ const RegKFKubwa = props => {
   const ViewMFBankAdmin = () => {
     navigation.navigate('ViewMFBankAdmin');
   };
+  const RecoverMemberLoan = () => {
+    navigation.navigate('RecoverMemberLoan');
+  };
   return <SafeAreaView>
       <ScrollView>
       <LinearGradient colors={['#FF8C00', 'skyblue', 'white']} // Linear gradient for orange hues
@@ -133,6 +136,10 @@ const RegKFKubwa = props => {
         }, {
           label: 'View Account',
           onPress: ViewMFBankAdmin,
+          style: styles.ClientsPressables
+        }, {
+          label: 'Recover Member Loan',
+          onPress: RecoverMemberLoan,
           style: styles.ClientsPressables
         }]} />
 
