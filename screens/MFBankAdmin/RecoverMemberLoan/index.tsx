@@ -146,12 +146,13 @@ const RecoverMemberLoan = () => {
   };
 
   const getLoanDueInfo = (loan: any) => {
-    const crtn = loan.crtnDate ? parseDate(loan.crtnDate) : null;
-    const freq = Number(loan.paymentFrequency || loan.repaymentFrequency || 0);
+    const crtn = loan.crtnDate ? parseDate(loan.crtnDate) : (loan.createdAt ? parseDate(loan.createdAt) : null);
+    const freq = Number(loan.paymentFrequency || loan.repaymentFrequency || loan.repaymentPeriod || 0);
     const repaymentPeriod = Number(loan.repaymentPeriod || 0);
     const installment = Number(loan.installmentAmount || 0);
     const outstanding = Number(calculateLoanBalance(loan) || loan.loanBalance || loan.amountExpectedBackWthClrnc || loan.amountExpectedBack || loan.lonBala || 0);
     const amountRepaid = Number(loan.amountRepaid || loan.amountRepaidClr || 0);
+
     if (!crtn || !freq || outstanding <= 0) {
       return {
         nextDue: null,
@@ -164,20 +165,27 @@ const RecoverMemberLoan = () => {
 
     const now = new Date();
     const days = Math.floor((now.getTime() - crtn.getTime()) / (24 * 3600 * 1000));
-    const expectedInstallments = days >= freq ? Math.floor(days / freq) : 0;
+    const expectedInstallments = Math.floor(days / freq);
     const paidInstallments = installment > 0 ? Math.floor(amountRepaid / installment) : 0;
+
+    // missedInstallments represents how many installment cycles the borrower has missed
     let missedInstallments = Math.max(0, expectedInstallments - paidInstallments);
+
+    // If repaymentPeriod elapsed, treat as having missed multiple installments (force full recovery behavior)
     const isPastRepaymentPeriod = repaymentPeriod > 0 && days > repaymentPeriod;
     if (isPastRepaymentPeriod && outstanding > 0) {
       missedInstallments = Math.max(missedInstallments, 2);
     }
+
+    // Next due should be the earliest unpaid installment date: date of (paidInstallments + 1)th installment
     const nextDue = new Date(crtn.getTime() + (paidInstallments + 1) * freq * 24 * 3600 * 1000);
+
     return {
-      nextDue,
+      nextDue: outstanding > 0 ? nextDue : null,
       paidInstallments,
       expectedInstallments,
       missedInstallments,
-      isDue: missedInstallments > 0 || nextDue.getTime() <= now.getTime() || isPastRepaymentPeriod
+      isDue: (missedInstallments > 0) || (nextDue.getTime() <= now.getTime()) || isPastRepaymentPeriod
     };
   };
 
@@ -188,6 +196,9 @@ const RecoverMemberLoan = () => {
     const dueInfo = getLoanDueInfo(loan);
     const currentBalance = Number(calculateLoanBalance(loan) || loan.loanBalance || loan.amountExpectedBackWthClrnc || loan.lonBala || 0);
     const repaymentPeriod = Number(loan.repaymentPeriod || 0);
+    const loaneeName = loan.loaneeName || 'Unknown';
+        const loaneeId = loan.memberId || 'Unknown';
+
     const crtn = loan.crtnDate ? parseDate(loan.crtnDate) : null;
     const daysSinceLoan = crtn ? Math.floor((Date.now() - crtn.getTime()) / (24 * 3600 * 1000)) : 0;
     const shouldRecoverFullBalance = repaymentPeriod > 0 && daysSinceLoan > repaymentPeriod;
@@ -440,9 +451,14 @@ const RecoverMemberLoan = () => {
               .map((ln: any) => (
                 <View key={ln.loanID} style={styles.loanRow}>
                   <Text style={styles.loanTitle}>{t.loanLabel}: {ln.loanID}</Text>
+                <Text style={styles.small}>{t.membername}: {ln.loaneeName}</Text>
+                <Text style={styles.small}>{t.memberIdentity}: {ln.memberId}</Text>
+
                   <Text style={styles.small}>{t.crtnDateLabel}: {ln.crtnDate ? new Intl.DateTimeFormat(i18n.language || 'en-US').format(parseDate(ln.crtnDate)) : t.na}</Text>
                   <Text style={styles.small}>{t.repaymentFrequencyLabel}: {ln.paymentFrequency ? `${ln.paymentFrequency} ${t.daysLabel || 'days'}` : t.na}</Text>
-                  <Text style={styles.small}>{t.nextDueLabel}: {computeNextDue(ln) ? new Intl.DateTimeFormat(i18n.language || 'en-US').format(computeNextDue(ln)) : t.na}</Text>
+                  {ln.loanBalance > 0 && computeNextDue(ln) ? (
+                    <Text style={styles.small}>{t.nextDueLabel}: {new Intl.DateTimeFormat(i18n.language || 'en-US').format(computeNextDue(ln))}</Text>
+                  ) : null}
                   <Text style={styles.small}>{t.missedInstallmentsLabel}: {getLoanDueInfo(ln).missedInstallments}</Text>
                   <Text style={styles.small}>{t.loanBalanceLabel}: {formatCurrency(ln.loanBalance)}</Text>
                   <Text style={styles.small}>{t.installmentLabel}: {formatCurrency(ln.installmentDue)}</Text>
