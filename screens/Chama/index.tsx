@@ -290,7 +290,6 @@ const MyLoanAccount = () => {
           input: {
             phonecontact: selectedAgent.phonecontact,
             groupFloatStatus: groupFloatStatusInput.toUpperCase(),
-            groupFloatAmount: backendAmount
           }
         }
       });
@@ -300,8 +299,6 @@ const MyLoanAccount = () => {
         variables: {
           input: {
             grpContact: selectedGroup.grpContact,
-            groupFloatLoan: nextGroupFloatLoan,
-            grpBal: nextGroupBalance
           }
         }
       });

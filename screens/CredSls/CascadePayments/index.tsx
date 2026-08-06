@@ -346,114 +346,116 @@ const CascadePaymentsScreen = () => {
     }
   };
 
-  const renderCascadeFlowCard = (flow: any) => {
+  const renderCascadeFlowCard = (flow: any, depth = 0) => {
     const isExpanded = expandedSubunitIds[flow.id];
     const childSubunits = subunitFlowsByFlowId[flow.id] || [];
     const transactionNodes = transactionNodesByFlowId[flow.id] || [];
 
     return (
-      <View key={flow.id} style={[styles.optionButton, styles.cascadeCard]}> 
-        <View style={[styles.row, styles.cardHeader]}>
-          <View style={styles.row}>
-            <TouchableOpacity
-              style={styles.iconButton}
-              onPress={() => setExpandedSubunitIds((current) => ({ ...current, [flow.id]: !current[flow.id] }))}
-            >
-              <Ionicons
-                name={isExpanded ? 'chevron-down' : 'chevron-forward'}
-                size={18}
-                color="#ff8c00"
-              />
-            </TouchableOpacity>
-            <Text style={[styles.optionButtonText, { marginLeft: 10 }]}>{flow.senderAccountName || flow.title || flow.id}</Text>
-          </View>
-          <View style={styles.row}>
-            <TouchableOpacity style={styles.iconButton} onPress={() => loadSubunitFlowsForFlow(flow.id)}>
-              <Ionicons name="eye" size={18} color="#ff8c00" />
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.iconButton} onPress={() => loadTransactionsForFlow(flow.id)}>
-              <Ionicons name="eye" size={18} color="#ff8c00" />
-            </TouchableOpacity>
-          </View>
-        </View>
-        {isExpanded ? (
-          <>
-            <Text style={styles.helperText}>{`${t.payerLabel}: ${flow.senderAccountName || '—'}`}</Text>
+      <View key={flow.id} style={styles.cascadeTreeNode}>
+        <View style={[styles.optionButton, styles.cascadeCard]}> 
+          <View style={[styles.row, styles.cardHeader]}>
             <View style={styles.row}>
-              <Text style={styles.helperText}>{`${t.totalDisbursedLabel}: ${formatMoneyForUser(flow.totalDisbursed)}`}</Text>
-              <Text style={styles.helperText}>{`${t.totalAllocatedLabel}: ${formatMoneyForUser(flow.totalAllocated)}`}</Text>
+              <TouchableOpacity
+                style={styles.iconButton}
+                onPress={() => setExpandedSubunitIds((current) => ({ ...current, [flow.id]: !current[flow.id] }))}
+              >
+                <Ionicons
+                  name={isExpanded ? 'chevron-down' : 'chevron-forward'}
+                  size={18}
+                  color="#ff8c00"
+                />
+              </TouchableOpacity>
+              <Text style={[styles.optionButtonText, { marginLeft: 10 }]}>{flow.senderAccountName || flow.title || flow.id}</Text>
             </View>
-            <TextInput
-              style={styles.input}
-              placeholder={t.enterNewAdminEmailPlaceholder}
-              value={ownerEditValues[flow.id] ?? flow.owner ?? ''}
-              onChangeText={(text) => setOwnerEditValues((current) => ({ ...current, [flow.id]: text }))}
-              autoCapitalize="none"
-              keyboardType="email-address"
-            />
-            <TouchableOpacity style={styles.secondaryButton} onPress={() => handleUpdateFlowOwner(flow.id)} disabled={savingOwnerFlowIds[flow.id]}>
-              {savingOwnerFlowIds[flow.id] ? (
-                <View style={styles.loadingRow}>
-                  <ActivityIndicator size="small" color="#ff8c00" />
-                  <Text style={styles.secondaryButtonText}>{t.savingOwnerButton}</Text>
+            <View style={styles.row}>
+              <TouchableOpacity style={styles.iconButton} onPress={() => loadSubunitFlowsForFlow(flow.id)}>
+                <Ionicons name="eye" size={18} color="#ff8c00" />
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.iconButton} onPress={() => loadTransactionsForFlow(flow.id)}>
+                <Ionicons name="eye" size={18} color="#ff8c00" />
+              </TouchableOpacity>
+            </View>
+          </View>
+          {isExpanded ? (
+            <>
+              <Text style={styles.helperText}>{`${t.payerLabel}: ${flow.senderAccountName || '—'}`}</Text>
+              <View style={styles.row}>
+                <Text style={styles.helperText}>{`${t.totalDisbursedLabel}: ${formatMoneyForUser(flow.totalDisbursed)}`}</Text>
+                <Text style={styles.helperText}>{`${t.totalAllocatedLabel}: ${formatMoneyForUser(flow.totalAllocated)}`}</Text>
+              </View>
+              <TextInput
+                style={styles.input}
+                placeholder={t.enterNewAdminEmailPlaceholder}
+                value={ownerEditValues[flow.id] ?? flow.owner ?? ''}
+                onChangeText={(text) => setOwnerEditValues((current) => ({ ...current, [flow.id]: text }))}
+                autoCapitalize="none"
+                keyboardType="email-address"
+              />
+              <TouchableOpacity style={styles.secondaryButton} onPress={() => handleUpdateFlowOwner(flow.id)} disabled={savingOwnerFlowIds[flow.id]}>
+                {savingOwnerFlowIds[flow.id] ? (
+                  <View style={styles.loadingRow}>
+                    <ActivityIndicator size="small" color="#ff8c00" />
+                    <Text style={styles.secondaryButtonText}>{t.savingOwnerButton}</Text>
+                  </View>
+                ) : (
+                  <Text style={styles.secondaryButtonText}>{t.updateOwnerButton}</Text>
+                )}
+              </TouchableOpacity>
+              {viewSectionByFlowId[flow.id] === 'transactions' ? (
+                <View style={styles.nestedSubunitList}>
+                  {loadingTransactionsByFlowId[flow.id] ? (
+                    <View style={styles.loadingRow}>
+                      <ActivityIndicator size="small" color="#ff8c00" />
+                      <Text style={styles.helperText}>{t.loadingTransactions}</Text>
+                    </View>
+                  ) : null}
+                  {!loadingTransactionsByFlowId[flow.id] && transactionNodes.length > 0 ? (
+                    transactionNodes.map((node: any) => {
+                      const subtotalValue = Number(node?.subtotal ?? node?.subTotal ?? 0);
+                      const amountValue = Number(node?.amount ?? 0);
+                      const totalAmountValue = subtotalValue;
+                      const subTotalValue = amountValue;
+                      const feesValue = Math.max(0, totalAmountValue - subTotalValue);
+                      const receiverName = node?.recipientAccountName || node?.recipientName || node?.recipientAccountRef || '—';
+                      const receiverRef = node?.recipientAccountRef || '—';
+                      return (
+                        <View key={node.id} style={styles.optionButton}>
+                          <Text style={styles.optionButtonText}>{node.description || t.cascadeTransactionLabel}</Text>
+                          <Text style={styles.helperText}>{`${t.payerLabel}: ${node.senderAccountName || '—'}`}</Text>
+                          <Text style={styles.helperText}>{`Receiver Name: ${receiverName}`}</Text>
+                          <Text style={styles.helperText}>{`Receiver Account: ${receiverRef}`}</Text>
+                          <Text style={styles.helperText}>{`${t.recipientTypeLabel}: ${node.recipientType || '—'}`}</Text>
+                          <Text style={styles.helperText}>{`${t.totalAmountLabel}: ${formatMoneyForUser(totalAmountValue)}`}</Text>
+                          <Text style={styles.helperText}>{`${t.subTotalLabel}: ${formatMoneyForUser(subTotalValue)}`}</Text>
+                          <Text style={styles.helperText}>{`${t.feesLabel}: ${formatMoneyForUser(feesValue)}`}</Text>
+                        </View>
+                      );
+                    })
+                  ) : null}
+                  {!loadingTransactionsByFlowId[flow.id] && transactionNodes.length === 0 ? (
+                    <Text style={styles.helperText}>{t.noTransactionsFound}</Text>
+                  ) : null}
                 </View>
-              ) : (
-                <Text style={styles.secondaryButtonText}>{t.updateOwnerButton}</Text>
-              )}
-            </TouchableOpacity>
-            {viewSectionByFlowId[flow.id] === 'subunits' ? (
-              <View style={styles.nestedSubunitList}>
-                {loadingSubunitsByFlowId[flow.id] ? (
-                  <View style={styles.loadingRow}>
-                    <ActivityIndicator size="small" color="#ff8c00" />
-                    <Text style={styles.helperText}>{t.loadingSubUnits}</Text>
-                  </View>
-                ) : null}
-                {!loadingSubunitsByFlowId[flow.id] && childSubunits.length > 0 ? (
-                  childSubunits.map((childSubunit: any) => renderCascadeFlowCard(childSubunit))
-                ) : null}
-                {!loadingSubunitsByFlowId[flow.id] && childSubunits.length === 0 ? (
-                  <Text style={styles.helperText}>{t.noSubUnitsFound}</Text>
-                ) : null}
+              ) : null}
+            </>
+          ) : null}
+        </View>
+        {isExpanded && viewSectionByFlowId[flow.id] === 'subunits' ? (
+          <View style={styles.nestedSubunitList}>
+            {loadingSubunitsByFlowId[flow.id] ? (
+              <View style={styles.loadingRow}>
+                <ActivityIndicator size="small" color="#ff8c00" />
+                <Text style={styles.helperText}>{t.loadingSubUnits}</Text>
               </View>
             ) : null}
-            {viewSectionByFlowId[flow.id] === 'transactions' ? (
-              <View style={styles.nestedSubunitList}>
-                {loadingTransactionsByFlowId[flow.id] ? (
-                  <View style={styles.loadingRow}>
-                    <ActivityIndicator size="small" color="#ff8c00" />
-                    <Text style={styles.helperText}>{t.loadingTransactions}</Text>
-                  </View>
-                ) : null}
-                {!loadingTransactionsByFlowId[flow.id] && transactionNodes.length > 0 ? (
-                  transactionNodes.map((node: any) => {
-                    const subtotalValue = Number(node?.subtotal ?? node?.subTotal ?? 0);
-                    const amountValue = Number(node?.amount ?? 0);
-                    const totalAmountValue = subtotalValue;
-                    const subTotalValue = amountValue;
-                    const feesValue = Math.max(0, totalAmountValue - subTotalValue);
-                    const receiverName = node?.recipientAccountName || node?.recipientName || node?.recipientAccountRef || '—';
-                    const receiverRef = node?.recipientAccountRef || '—';
-                    return (
-                      <View key={node.id} style={styles.optionButton}>
-                        <Text style={styles.optionButtonText}>{node.description || t.cascadeTransactionLabel}</Text>
-                        <Text style={styles.helperText}>{`${t.payerLabel}: ${node.senderAccountName || '—'}`}</Text>
-                        <Text style={styles.helperText}>{`Receiver Name: ${receiverName}`}</Text>
-                        <Text style={styles.helperText}>{`Receiver Account: ${receiverRef}`}</Text>
-                        <Text style={styles.helperText}>{`${t.recipientTypeLabel}: ${node.recipientType || '—'}`}</Text>
-                        <Text style={styles.helperText}>{`${t.totalAmountLabel}: ${formatMoneyForUser(totalAmountValue)}`}</Text>
-                        <Text style={styles.helperText}>{`${t.subTotalLabel}: ${formatMoneyForUser(subTotalValue)}`}</Text>
-                        <Text style={styles.helperText}>{`${t.feesLabel}: ${formatMoneyForUser(feesValue)}`}</Text>
-                      </View>
-                    );
-                  })
-                ) : null}
-                {!loadingTransactionsByFlowId[flow.id] && transactionNodes.length === 0 ? (
-                  <Text style={styles.helperText}>{t.noTransactionsFound}</Text>
-                ) : null}
-              </View>
+            {!loadingSubunitsByFlowId[flow.id] && childSubunits.length > 0 ? (
+              childSubunits.map((childSubunit: any) => renderCascadeFlowCard(childSubunit, depth + 1))
             ) : null}
-          </>
+            {!loadingSubunitsByFlowId[flow.id] && childSubunits.length === 0 ? (
+              <Text style={styles.helperText}>{t.noSubUnitsFound}</Text>
+            ) : null}
+          </View>
         ) : null}
       </View>
     );
@@ -2390,9 +2392,13 @@ const styles = StyleSheet.create({
     borderLeftWidth: 0,
     borderLeftColor: 'transparent',
   },
-  cascadeCard: {
+  cascadeTreeNode: {
     width: '100%',
-    minWidth: '100%',
+    alignSelf: 'stretch',
+  },
+  cascadeCard: {
+    width: 'auto',
+    minWidth: 0,
     alignSelf: 'stretch',
   },
   childList: {

@@ -1,5 +1,51 @@
+const recoveryFlowTranslations = {
+  yesLabel: 'Yes',
+  cancelLabel: 'Cancel',
+  recoverLabel: 'Recover',
+  closeLabel: 'Close',
+  useNskubwaLabel: 'Use NSKubwa',
+  errorTitle: 'Error',
+  invalidTitle: 'Invalid',
+  insufficientTitle: 'Insufficient',
+  errorLoadGroupsAndLoans: 'Failed to load groups and loans',
+  invalidInstallmentZero: 'Installment amount is zero',
+  invalidNoRecoverableAmount: 'No recoverable amount available',
+  attemptAgentRecoveryTitle: 'Attempt agent recovery',
+  attemptAgentRecoveryMessage: 'E-wallet is not enough or partially used. Remaining amount: {remaining}. Recover from associated Agents?',
+  recoverFromEwalletMessage: 'Recover {deduct} from loanee e-wallet (balance {balance})?',
+  recoverFromAgentMessage: 'Use agent {agent} (phone {phone}) with total balance {available} to deduct {deduct}?',
+  useNskubwaTitle: 'Use NSKubwa account',
+  attemptNskubwaRecoveryMessage: 'Remaining amount: {remaining}. Select NSKubwa account to continue recovery?',
+  useNskubwaMessage: 'Use NSKubwa account {name} (balance {balance}) to deduct {deduct}?',
+  errorQueryAgents: 'Failed to query agents',
+  errorQueryNskubwa: 'Failed to query associated NSKubwa account',
+  recoverFromGroupRemainingMessage: 'Remaining amount is {remaining}. Recover {deduct} from group {group}?',
+  insufficientNoRecoverySources: 'No funds were recovered from e-wallet, agent, NSKubwa account, or group.',
+  insufficientSelectedAgent: 'Selected Agent has insufficient funds.',
+  insufficientSelectedNskubwa: 'Selected NSKubwa account has insufficient funds.',
+  errorRecoverPayment: 'Failed to recover payment',
+  selectAgentTitle: 'Select Agent to recover from',
+  selectNskubwaTitle: 'Select NSKubwa account to recover from',
+  agentPhonecontactLabel: 'phonecontact',
+  sAgentPhonecontactLabel: 'saPhoneContact',
+  agentTtlEarningsLabel: 'ttlEarnings',
+  agentFloatBalLabel: 'floatBal',
+  agentTotalAvailableLabel: 'totalAvailable',
+  agentSagentRegNoLabel: 'sagentregno',
+  selectAgentButton: 'Select Agent',
+  selectNskubwaButton: 'Select NSKubwa',
+  breakdownSMAccount: 'SMAccount: {amount}',
+  breakdownAgent: 'Agent: {amount}',
+  breakdownNskubwa: 'NSKubwa: {amount}',
+  breakdownGroup: 'Group: {amount}',
+  breakdownPrincipalRecovered: 'Principal recovered: {amount}',
+  breakdownFeeRecovered: 'Fee recovered: {amount}',
+  remainingNotRecovered: 'Remaining not recovered: {amount}'
+};
+
 export const translations = {
   en: {
+    ...recoveryFlowTranslations,
     screenTitle: 'Recover Member Loans',
     showDueOnly: 'Show: Due only',
     showAll: 'Show: All',
@@ -27,6 +73,7 @@ export const translations = {
     na: 'N/A'
   },
   sw: {
+    ...recoveryFlowTranslations,
     screenTitle: 'Rejesha Mikopo ya Mwanachama',
     showDueOnly: 'Onyesha: Zinazostahili tu',
     showAll: 'Onyesha: Zote',
@@ -53,6 +100,7 @@ export const translations = {
     na: 'HAIPATIKANI'
   }
   ,fr: {
+    ...recoveryFlowTranslations,
     screenTitle: 'Récupérer les prêts des membres',
     showDueOnly: 'Afficher : Échéances seulement',
     showAll: 'Afficher : Tous',
@@ -79,6 +127,7 @@ export const translations = {
     na: 'N/A'
   },
   ar: {
+    ...recoveryFlowTranslations,
     screenTitle: 'استرداد قروض الأعضاء',
     showDueOnly: 'عرض: المستحقة فقط',
     showAll: 'عرض: الكل',
@@ -105,6 +154,7 @@ export const translations = {
     na: 'N/A'
   },
   zh: {
+    ...recoveryFlowTranslations,
     screenTitle: '恢复会员贷款',
     showDueOnly: '显示：仅到期',
     showAll: '显示：全部',
@@ -131,6 +181,7 @@ export const translations = {
     na: 'N/A'
   },
   ru: {
+    ...recoveryFlowTranslations,
     screenTitle: 'Восстановить кредиты участников',
     showDueOnly: 'Показать: только просроченные',
     showAll: 'Показать: все',
@@ -157,6 +208,7 @@ export const translations = {
     na: 'N/A'
   },
   es: {
+    ...recoveryFlowTranslations,
     screenTitle: 'Recuperar préstamos de miembros',
     showDueOnly: 'Mostrar: Solo vencidos',
     showAll: 'Mostrar: Todos',
@@ -183,6 +235,7 @@ export const translations = {
     na: 'N/A'
   },
   de: {
+    ...recoveryFlowTranslations,
     screenTitle: 'Mitgliedskredite einziehen',
     showDueOnly: 'Anzeigen: Nur fällig',
     showAll: 'Anzeigen: Alle',
@@ -209,6 +262,7 @@ export const translations = {
     na: 'N/A'
   },
   pt: {
+    ...recoveryFlowTranslations,
     screenTitle: 'Recuperar Empréstimos de Membros',
     showDueOnly: 'Mostrar: Apenas vencidos',
     showAll: 'Mostrar: Todos',
@@ -235,6 +289,7 @@ export const translations = {
     na: 'N/A'
   },
   it: {
+    ...recoveryFlowTranslations,
     screenTitle: 'Recupera prestiti membri',
     showDueOnly: 'Mostra: Solo scaduti',
     showAll: 'Mostra: Tutti',
@@ -261,6 +316,7 @@ export const translations = {
     na: 'N/A'
   },
   he: {
+    ...recoveryFlowTranslations,
     screenTitle: 'שחזור הלוואות חברים',
     showDueOnly: 'הצג: רק מועד',
     showAll: 'הצג: הכל',
@@ -287,6 +343,7 @@ export const translations = {
     na: 'N/A'
   },
   hi: {
+    ...recoveryFlowTranslations,
     screenTitle: 'सदस्य ऋण वसूल करें',
     showDueOnly: 'दिखाएँ: केवल देय',
     showAll: 'दिखाएँ: सभी',
@@ -313,6 +370,7 @@ export const translations = {
     na: 'N/A'
   },
   am: {
+    ...recoveryFlowTranslations,
     screenTitle: 'አባላት ብድር መመለስ',
     showDueOnly: 'አሳይ: የተወሰኑ ብቻ',
     showAll: 'አሳይ: ሁሉም',

@@ -1,11 +1,11 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { translations } from './translation';
 import { View, Text, FlatList, TouchableOpacity, Alert, ActivityIndicator, StyleSheet } from 'react-native';
 import { generateClient } from 'aws-amplify/api';
 import { getCurrentUser, fetchUserAttributes } from 'aws-amplify/auth';
-import { listGroups, listCvrdGroupLoans, getCompany, getChamaMembers, getGroup, getSMAccount, listAgents } from '../../../src/graphql/queries';
-import { updateGroup, updateCvrdGroupLoans, updateChamaMembers, updateCompany, updateSMAccount, updateAgent } from '../../../src/graphql/mutations';
+import { listGroups, listCvrdGroupLoans, getCompany, getChamaMembers, getGroup, getSMAccount, listAgents, getSAgent, listSAgents } from '../../../src/graphql/queries';
+import { updateGroup, updateCvrdGroupLoans, updateChamaMembers, updateCompany, updateSMAccount, updateAgent, updateSAgent } from '../../../src/graphql/mutations';
 import { useExchange } from '../../../src/contexts/ExchangeContext';
 import { formatAmountSync } from '../../../src/utils/exchange';
 import { nationalityToCode } from '../../../src/utils/nationalityToCode';
@@ -41,14 +41,66 @@ const RecoverMemberLoan = () => {
     return formatAmountSync(n, userCurrencyKey, ratesMap);
   };
 
+  const tr = (template: string, vars: Record<string, string>) => {
+    return Object.keys(vars).reduce((acc, key) => acc.split(`{${key}}`).join(vars[key]), template);
+  };
+
+  const tk = (key: string) => (t as any)[key] || (translations.en as any)[key] || key;
+
   const [loading, setLoading] = useState(true);
   const [groups, setGroups] = useState<any[]>([]);
   const [loansMap, setLoansMap] = useState<Record<string, any[]>>({});
   const [showDueOnly, setShowDueOnly] = useState<boolean>(true);
   const [agentModalVisible, setAgentModalVisible] = useState(false);
   const [agentCandidates, setAgentCandidates] = useState<any[]>([]);
-  const [pendingRecoverContext, setPendingRecoverContext] = useState<{ group: any; loan: any; recoverAmount: number; amountToRecover: number; feeAmount: number } | null>(null);
+  const [sAgentModalVisible, setSAgentModalVisible] = useState(false);
+  const [sAgentCandidates, setSAgentCandidates] = useState<any[]>([]);
   const [recoveringLoanId, setRecoveringLoanId] = useState<string | null>(null);
+  const agentSelectionResolverRef = useRef<((agent: any | null) => void) | null>(null);
+  const sAgentSelectionResolverRef = useRef<((sAgent: any | null) => void) | null>(null);
+
+  const promptConfirm = (title: string, message: string, confirmText = tk('yesLabel')) => {
+    return new Promise<boolean>((resolve) => {
+      Alert.alert(title, message, [
+        { text: tk('cancelLabel'), style: 'cancel', onPress: () => resolve(false) },
+        { text: confirmText, onPress: () => resolve(true) }
+      ]);
+    });
+  };
+
+  const openAgentSelection = (agents: any[]) => {
+    return new Promise<any | null>((resolve) => {
+      agentSelectionResolverRef.current = resolve;
+      setAgentCandidates(agents);
+      setAgentModalVisible(true);
+    });
+  };
+
+  const resolveAgentSelection = (agent: any | null) => {
+    if (agentSelectionResolverRef.current) {
+      agentSelectionResolverRef.current(agent);
+      agentSelectionResolverRef.current = null;
+    }
+    setAgentModalVisible(false);
+    setAgentCandidates([]);
+  };
+
+  const openSAgentSelection = (sAgents: any[]) => {
+    return new Promise<any | null>((resolve) => {
+      sAgentSelectionResolverRef.current = resolve;
+      setSAgentCandidates(sAgents);
+      setSAgentModalVisible(true);
+    });
+  };
+
+  const resolveSAgentSelection = (sAgent: any | null) => {
+    if (sAgentSelectionResolverRef.current) {
+      sAgentSelectionResolverRef.current(sAgent);
+      sAgentSelectionResolverRef.current = null;
+    }
+    setSAgentModalVisible(false);
+    setSAgentCandidates([]);
+  };
 
   const stopRecovery = () => setRecoveringLoanId(null);
 
@@ -114,7 +166,7 @@ const RecoverMemberLoan = () => {
         setLoansMap(lmMap);
       } catch (err) {
         console.error(err);
-        Alert.alert('Error', 'Failed to load groups and loans');
+        Alert.alert(tk('errorTitle'), tk('errorLoadGroupsAndLoans'));
       } finally {
         setLoading(false);
       }
@@ -219,7 +271,7 @@ const RecoverMemberLoan = () => {
     try {
       const installment = Number(loan.installmentAmount || 0);
       if (installment <= 0) {
-        Alert.alert('Invalid', 'Installment amount is zero');
+        Alert.alert(tk('invalidTitle'), tk('invalidInstallmentZero'));
         stopRecovery();
         return;
       }
@@ -227,201 +279,239 @@ const RecoverMemberLoan = () => {
       const companyRes: any = await client.graphql({ query: getCompany, variables: { AdminId: "BaruchHabaB'ShemAdonai2" } });
       const company = companyRes?.data?.getCompany;
       const clearanceFee = Number(company?.userClearanceFee || 0);
-      const { amountToRecover, feeAmount, recoverAmount } = getRecoveryAmounts(loan, clearanceFee);
+      const { amountToRecover, recoverAmount } = getRecoveryAmounts(loan, clearanceFee);
       if (amountToRecover <= 0) {
-        Alert.alert('Invalid', 'No recoverable amount available');
+        Alert.alert(tk('invalidTitle'), tk('invalidNoRecoverableAmount'));
         stopRecovery();
         return;
       }
 
-      // First: try loanee e-wallet (SMAccount) by using loan.loaneePhn as awsemail
+      const feeRate = clearanceFee > 0 ? clearanceFee : 0;
+      const principalFromGross = (gross: number) => {
+        if (feeRate <= 0) return Number(gross.toFixed(2));
+        return Number((gross / (1 + feeRate)).toFixed(2));
+      };
+
+      let remainingGross = Number(recoverAmount.toFixed(2));
+      let smCollected = 0;
+      let agentCollected = 0;
+      let sAgentCollected = 0;
+      let groupCollected = 0;
+      let selectedAgent: any | null = null;
+
+      // Step 1: try loanee e-wallet (SMAccount) using loan.loaneePhn as awsemail.
       try {
         const smRes: any = await client.graphql({ query: getSMAccount, variables: { awsemail: loan.loaneePhn } });
         const sm = smRes?.data?.getSMAccount;
-        if (sm && Number(sm.balance || 0) >= recoverAmount) {
-          Alert.alert(
+        const smBal = Number(sm?.balance || 0);
+        if (sm && smBal > 0 && remainingGross > 0) {
+          const smDeduct = Number(Math.min(smBal, remainingGross).toFixed(2));
+          const useSm = await promptConfirm(
             t.confirmTitle,
-            `Recover ${formatCurrency(recoverAmount)} from loanee e-wallet (balance ${formatCurrency(sm.balance)})?`,
-            [
-              { text: 'Cancel', style: 'cancel', onPress: stopRecovery },
-              {
-                text: 'Recover',
-                onPress: async () => {
-                  try {
-                    const newSmBal = Number(sm.balance || 0) - recoverAmount;
-                    await client.graphql({ query: updateSMAccount, variables: { input: { awsemail: sm.awsemail, balance: String(newSmBal) } } });
-
-                    const oldBalance = Number(calculateLoanBalance(loan) || loan.amountExpectedBackWthClrnc || loan.lonBala || 0);
-                    const newAmountRepaid = Number(loan.amountRepaid || 0) + amountToRecover;
-                    const newAmountExpected = Math.max(0, oldBalance - amountToRecover);
-                    const isCleared = newAmountExpected === 0;
-                    await client.graphql({ query: updateCvrdGroupLoans, variables: { input: { loanID: loan.loanID, amountRepaid: newAmountRepaid, lonBala: isCleared ? 0 : newAmountExpected, amountExpectedBackWthClrnc: isCleared ? 0 : newAmountExpected, DefaultPenaltyChm2: 0, clearanceAmt: 0, status: isCleared ? 'LoanCleared' : 'Active', groupRedeemedLoan: String(Number(loan.groupRedeemedLoan || 0) + amountToRecover) } } });
-
-                    const chamaMemberRes: any = await client.graphql({ query: getChamaMembers, variables: { ChamaNMember: loan.memberId } });
-                    const chamaMember = chamaMemberRes?.data?.getChamaMembers;
-                    if (chamaMember) {
-                      await client.graphql({ query: updateChamaMembers, variables: { input: { ChamaNMember: chamaMember.ChamaNMember, groupRedeemedLoan: String(Number(chamaMember.groupRedeemedLoan || 0) + amountToRecover) } } });
-                    }
-
-                    await client.graphql({ query: updateCompany, variables: { input: { AdminId: "BaruchHabaB'ShemAdonai2", companyEarning: String(Number(company?.companyEarning || 0) + feeAmount) } } });
-
-                    Alert.alert(t.successTitle, t.successMessage.replace('{amount}', formatCurrency(recoverAmount)));
-                    stopRecovery();
-                    await reloadGroupLoans(group);
-                    return;
-                  } catch (err) {
-                    console.error(err);
-                    Alert.alert('Error', 'Failed to recover payment from e-wallet');
-                    return;
-                  }
-                }
-              }
-            ]
+            tr(tk('recoverFromEwalletMessage'), {
+              deduct: formatCurrency(smDeduct),
+              balance: formatCurrency(smBal)
+            }),
+            tk('recoverLabel')
           );
-          return;
+          if (useSm) {
+            const newSmBal = Number((smBal - smDeduct).toFixed(2));
+            await client.graphql({ query: updateSMAccount, variables: { input: { awsemail: sm.awsemail, balance: String(newSmBal) } } });
+            smCollected = smDeduct;
+            remainingGross = Number((remainingGross - smDeduct).toFixed(2));
+          }
         }
       } catch (e) {
         console.warn('SMAccount lookup failed', e);
       }
 
-      // If e-wallet insufficient, ask admin if they want to attempt recovery from Agents
-      const askAgents = async () => {
-        try {
-          const agentsRes: any = await client.graphql({ query: listAgents, variables: { filter: { email: { eq: loan.loaneePhn } } } });
-          const agents = agentsRes?.data?.listAgents?.items || [];
-          const ttlCandidates = agents.filter((a: any) => Number(a.ttlEarnings || 0) >= recoverAmount);
-          const floatCandidates = agents.filter((a: any) => Number(a.floatBal || 0) >= recoverAmount);
+      // Step 2: ask to recover from Agent and allow selecting one agent by phonecontact.
+      if (remainingGross > 0) {
+        const askAgent = await promptConfirm(
+          tk('attemptAgentRecoveryTitle'),
+          tr(tk('attemptAgentRecoveryMessage'), {
+            remaining: formatCurrency(remainingGross)
+          })
+        );
+        if (askAgent) {
+          try {
+            const agentsRes: any = await client.graphql({ query: listAgents, variables: { filter: { email: { eq: loan.loaneePhn } } } });
+            const agents = (agentsRes?.data?.listAgents?.items || []).filter((a: any) => !!a?.phonecontact);
 
-          if (ttlCandidates.length === 0 && floatCandidates.length === 0) {
-            // fall back to group recovery flow (existing logic)
-            const grpBal = Number(group.grpBal || 0);
-            if (grpBal < recoverAmount) {
-              Alert.alert('Insufficient', 'Group balance is insufficient to cover amount plus fee');
-              return;
-            }
-            Alert.alert(
-              t.confirmTitle,
-              t.confirmMessage.replace('{amount}', formatCurrency(recoverAmount)).replace('{group}', group.grpName || group.grpContact).replace('{loan}', loan.loanID),
-              [
-                { text: 'Cancel', style: 'cancel' },
-                {
-                  text: 'Recover',
-                  onPress: async () => {
-                    try {
-                      const newGrpBal = grpBal - recoverAmount;
-                      await client.graphql({ query: updateGroup, variables: { input: { grpContact: group.grpContact, grpBal: String(newGrpBal), groupRedeemedLoan: String(Number(group.groupRedeemedLoan || 0) + amountToRecover) } } });
+            if (agents.length > 0) {
+              selectedAgent = await openAgentSelection(agents);
+              if (selectedAgent) {
+                const ttlBal = Number(selectedAgent.ttlEarnings || 0);
+                const floatBal = Number(selectedAgent.floatBal || 0);
+                const available = Number((ttlBal + floatBal).toFixed(2));
+                if (available > 0 && remainingGross > 0) {
+                  const deductAgent = Number(Math.min(available, remainingGross).toFixed(2));
+                  const useAgent = await promptConfirm(
+                    t.confirmTitle,
+                    tr(tk('recoverFromAgentMessage'), {
+                      agent: selectedAgent.name || selectedAgent.phonecontact,
+                      phone: selectedAgent.phonecontact,
+                      available: formatCurrency(available),
+                      deduct: formatCurrency(deductAgent)
+                    }),
+                    tk('recoverLabel')
+                  );
+                  if (useAgent) {
+                    let rem = deductAgent;
+                    const deductTtl = Number(Math.min(ttlBal, rem).toFixed(2));
+                    rem = Number((rem - deductTtl).toFixed(2));
+                    const deductFloat = Number(Math.min(floatBal, rem).toFixed(2));
 
-                      const oldBalance = Number(calculateLoanBalance(loan) || loan.amountExpectedBackWthClrnc || loan.lonBala || 0);
-                      const newAmountRepaid = Number(loan.amountRepaid || 0) + amountToRecover;
-                      const newAmountExpected = Math.max(0, oldBalance - amountToRecover);
-                      const isCleared = newAmountExpected === 0;
-                      await client.graphql({ query: updateCvrdGroupLoans, variables: { input: { loanID: loan.loanID, amountRepaid: newAmountRepaid, lonBala: isCleared ? 0 : newAmountExpected, amountExpectedBackWthClrnc: isCleared ? 0 : newAmountExpected, DefaultPenaltyChm2: 0, clearanceAmt: 0, status: isCleared ? 'LoanCleared' : 'Active', groupRedeemedLoan: String(Number(loan.groupRedeemedLoan || 0) + amountToRecover) } } });
+                    const agentInput: any = {
+                      phonecontact: selectedAgent.phonecontact,
+                      ttlEarnings: String(Number((ttlBal - deductTtl).toFixed(2))),
+                      floatBal: String(Number((floatBal - deductFloat).toFixed(2)))
+                    };
+                    await client.graphql({ query: updateAgent, variables: { input: agentInput } });
 
-                      const chamaMemberRes: any = await client.graphql({ query: getChamaMembers, variables: { ChamaNMember: loan.memberId } });
-                      const chamaMember = chamaMemberRes?.data?.getChamaMembers;
-                      if (chamaMember) {
-                        await client.graphql({ query: updateChamaMembers, variables: { input: { ChamaNMember: chamaMember.ChamaNMember, groupRedeemedLoan: String(Number(chamaMember.groupRedeemedLoan || 0) + amountToRecover) } } });
-                      }
-
-                      await client.graphql({ query: updateCompany, variables: { input: { AdminId: "BaruchHabaB'ShemAdonai2", companyEarning: String(Number(company?.companyEarning || 0) + feeAmount) } } });
-
-                      Alert.alert(t.successTitle, t.successMessage.replace('{amount}', formatCurrency(recoverAmount)));
-                      stopRecovery();
-                      await reloadGroupLoans(group);
-                      setGroups(prev => prev.map(g => g.grpContact === group.grpContact ? { ...g, grpBal: String(newGrpBal), groupRedeemedLoan: String(Number(g.groupRedeemedLoan || 0) + amountToRecover) } : g));
-                    } catch (err) {
-                      console.error(err);
-                      Alert.alert('Error', 'Failed to recover payment');
-                    }
+                    agentCollected = deductAgent;
+                    remainingGross = Number((remainingGross - deductAgent).toFixed(2));
                   }
                 }
-              ]
-            );
-            return;
+              }
+            }
+          } catch (err) {
+            console.error(err);
+            Alert.alert(tk('errorTitle'), tk('errorQueryAgents'));
           }
-
-          // present modal to choose an agent (prefer ttlCandidates)
-          const candidatesToShow = ttlCandidates.length ? ttlCandidates : floatCandidates;
-          setAgentCandidates(candidatesToShow);
-          setPendingRecoverContext({ group, loan, recoverAmount, amountToRecover, feeAmount });
-          setAgentModalVisible(true);
-        } catch (err) {
-          console.error(err);
-          Alert.alert('Error', 'Failed to query agents');
         }
-      };
-
-      Alert.alert(
-        'Attempt agent recovery',
-        'E-wallet insufficient. Attempt recovery from associated Agents?',
-        [
-          { text: 'Cancel', style: 'cancel', onPress: stopRecovery },
-          { text: 'Yes', onPress: askAgents }
-        ]
-      );
-    } catch (err) {
-      console.error(err);      stopRecovery();      Alert.alert('Error', 'Failed to recover payment');
-    }
-  };
-
-  const recoverFromAgent = async (agent: any, useField: 'ttlEarnings' | 'floatBal') => {
-    if (!pendingRecoverContext) return;
-    const { group, loan, recoverAmount, amountToRecover, feeAmount } = pendingRecoverContext;
-    try {
-      const available = Number(agent[useField] || 0);
-      if (available < recoverAmount) {
-        Alert.alert('Insufficient', `Agent ${agent.name || agent.phonecontact} does not have enough in ${useField}. Available: ${formatCurrency(available)}, required: ${formatCurrency(recoverAmount)}`);
-        return;
       }
 
-      Alert.alert(
-        t.confirmTitle,
-        `Recover ${formatCurrency(recoverAmount)} from agent ${agent.name || agent.phonecontact} (${useField}: ${formatCurrency(available)})?`,
-        [
-          { text: 'Cancel', style: 'cancel', onPress: stopRecovery },
-          {
-            text: 'Recover',
-            onPress: async () => {
-              try {
-                const newAgentBal = available - recoverAmount;
-                const agentInput: any = { phonecontact: agent.phonecontact };
-                agentInput[useField] = String(newAgentBal);
-                await client.graphql({ query: updateAgent, variables: { input: agentInput } });
+      // Step 3: if still remaining, ask admin to try associated NSKubwa (SAgent) accounts.
+      if (remainingGross > 0) {
+        try {
+          const askSAgent = await promptConfirm(
+            tk('useNskubwaTitle'),
+            tr(tk('attemptNskubwaRecoveryMessage'), { remaining: formatCurrency(remainingGross) }),
+            tk('useNskubwaLabel')
+          );
 
-                const oldBalance = Number(calculateLoanBalance(loan) || loan.amountExpectedBackWthClrnc || loan.lonBala || 0);
-                const newAmountRepaid = Number(loan.amountRepaid || 0) + amountToRecover;
-                const newAmountExpected = Math.max(0, oldBalance - amountToRecover);
-                const isCleared = newAmountExpected === 0;
-                await client.graphql({ query: updateCvrdGroupLoans, variables: { input: { loanID: loan.loanID, amountRepaid: newAmountRepaid, lonBala: isCleared ? 0 : newAmountExpected, amountExpectedBackWthClrnc: isCleared ? 0 : newAmountExpected, DefaultPenaltyChm2: 0, clearanceAmt: 0, status: isCleared ? 'LoanCleared' : 'Active', groupRedeemedLoan: String(Number(loan.groupRedeemedLoan || 0) + amountToRecover) } } });
+          if (askSAgent) {
+            const sAgentMap: Record<string, any> = {};
 
-                const chamaMemberRes: any = await client.graphql({ query: getChamaMembers, variables: { ChamaNMember: loan.memberId } });
-                const chamaMember = chamaMemberRes?.data?.getChamaMembers;
-                if (chamaMember) {
-                  await client.graphql({ query: updateChamaMembers, variables: { input: { ChamaNMember: chamaMember.ChamaNMember, groupRedeemedLoan: String(Number(chamaMember.groupRedeemedLoan || 0) + amountToRecover) } } });
+            const sAgentsByEmailRes: any = await client.graphql({ query: listSAgents, variables: { filter: { email: { eq: loan.loaneePhn } } } });
+            const sAgentsByEmail = sAgentsByEmailRes?.data?.listSAgents?.items || [];
+            sAgentsByEmail.forEach((sa: any) => {
+              if (sa?.saPhoneContact) sAgentMap[sa.saPhoneContact] = sa;
+            });
+
+            if (selectedAgent?.sagentregno) {
+              const linkedRes: any = await client.graphql({ query: getSAgent, variables: { saPhoneContact: selectedAgent.sagentregno } });
+              const linked = linkedRes?.data?.getSAgent;
+              if (linked?.saPhoneContact) sAgentMap[linked.saPhoneContact] = linked;
+            }
+
+            const sAgentList = Object.values(sAgentMap);
+            if (sAgentList.length > 0) {
+              const selectedSAgent = await openSAgentSelection(sAgentList);
+              if (selectedSAgent) {
+                const latestRes: any = await client.graphql({ query: getSAgent, variables: { saPhoneContact: selectedSAgent.saPhoneContact } });
+                const latestSAgent = latestRes?.data?.getSAgent;
+                const saBal = Number(latestSAgent?.saBalance || 0);
+                if (latestSAgent && saBal > 0) {
+                  const deductSAgent = Number(Math.min(saBal, remainingGross).toFixed(2));
+                  const sAgentName = latestSAgent?.name || latestSAgent?.saPhoneContact;
+                  const useSAgent = await promptConfirm(
+                    tk('useNskubwaTitle'),
+                    tr(tk('useNskubwaMessage'), {
+                      name: String(sAgentName),
+                      balance: formatCurrency(saBal),
+                      deduct: formatCurrency(deductSAgent)
+                    }),
+                    tk('useNskubwaLabel')
+                  );
+                  if (useSAgent) {
+                    const newSaBalance = Number((saBal - deductSAgent).toFixed(2));
+                    await client.graphql({ query: updateSAgent, variables: { input: { saPhoneContact: latestSAgent.saPhoneContact, saBalance: String(newSaBalance) } } });
+                    sAgentCollected = deductSAgent;
+                    remainingGross = Number((remainingGross - deductSAgent).toFixed(2));
+                  }
+                } else {
+                  Alert.alert(tk('insufficientTitle'), tk('insufficientSelectedNskubwa'));
                 }
-
-                const companyRes: any = await client.graphql({ query: getCompany, variables: { AdminId: "BaruchHabaB'ShemAdonai2" } });
-                const company = companyRes?.data?.getCompany;
-                await client.graphql({ query: updateCompany, variables: { input: { AdminId: "BaruchHabaB'ShemAdonai2", companyEarning: String(Number(company?.companyEarning || 0) + feeAmount) } } });
-
-                Alert.alert(t.successTitle, t.successMessage.replace('{amount}', formatCurrency(recoverAmount)));
-                setAgentModalVisible(false);
-                setPendingRecoverContext(null);
-                setAgentCandidates([]);
-                stopRecovery();
-                await reloadGroupLoans(group);
-              } catch (err) {
-                console.error(err);
-                stopRecovery();
-                Alert.alert('Error', 'Failed to recover from agent');
               }
             }
           }
-        ]
+        } catch (err) {
+          console.error(err);
+          Alert.alert(tk('errorTitle'), tk('errorQueryNskubwa'));
+        }
+      }
+
+      // Step 4 (last resort): recover remaining from group account.
+      if (remainingGross > 0) {
+        const grpBal = Number(group.grpBal || 0);
+        if (grpBal > 0) {
+          const deductGroup = Number(Math.min(grpBal, remainingGross).toFixed(2));
+          const useGroup = await promptConfirm(
+            t.confirmTitle,
+            tr(tk('recoverFromGroupRemainingMessage'), {
+              remaining: formatCurrency(remainingGross),
+              deduct: formatCurrency(deductGroup),
+              group: group.grpName || group.grpContact
+            }),
+            tk('recoverLabel')
+          );
+          if (useGroup) {
+            const groupPrincipalPart = principalFromGross(deductGroup);
+            const newGrpBal = Number((grpBal - deductGroup).toFixed(2));
+            await client.graphql({ query: updateGroup, variables: { input: { grpContact: group.grpContact, grpBal: String(newGrpBal), groupRedeemedLoan: String(Number(group.groupRedeemedLoan || 0) + groupPrincipalPart) } } });
+            groupCollected = deductGroup;
+            remainingGross = Number((remainingGross - deductGroup).toFixed(2));
+            setGroups(prev => prev.map(g => g.grpContact === group.grpContact ? { ...g, grpBal: String(newGrpBal), groupRedeemedLoan: String(Number(g.groupRedeemedLoan || 0) + groupPrincipalPart) } : g));
+          }
+        }
+      }
+
+      const totalCollected = Number((smCollected + agentCollected + sAgentCollected + groupCollected).toFixed(2));
+      if (totalCollected <= 0) {
+        stopRecovery();
+        Alert.alert(tk('insufficientTitle'), tk('insufficientNoRecoverySources'));
+        return;
+      }
+
+      const oldBalance = Number(calculateLoanBalance(loan) || loan.amountExpectedBackWthClrnc || loan.lonBala || 0);
+      const principalRecoveredRaw = principalFromGross(totalCollected);
+      const principalRecovered = Number(Math.min(oldBalance, principalRecoveredRaw).toFixed(2));
+      const feeRecovered = Number(Math.max(0, totalCollected - principalRecovered).toFixed(2));
+
+      const newAmountRepaid = Number(loan.amountRepaid || 0) + principalRecovered;
+      const newAmountExpected = Math.max(0, Number((oldBalance - principalRecovered).toFixed(2)));
+      const isCleared = newAmountExpected === 0;
+      await client.graphql({ query: updateCvrdGroupLoans, variables: { input: { loanID: loan.loanID, amountRepaid: newAmountRepaid, lonBala: isCleared ? 0 : newAmountExpected, amountExpectedBackWthClrnc: isCleared ? 0 : newAmountExpected, DefaultPenaltyChm2: 0, clearanceAmt: 0, status: isCleared ? 'LoanCleared' : 'Active', groupRedeemedLoan: String(Number(loan.groupRedeemedLoan || 0) + principalRecovered) } } });
+
+      const chamaMemberRes: any = await client.graphql({ query: getChamaMembers, variables: { ChamaNMember: loan.memberId } });
+      const chamaMember = chamaMemberRes?.data?.getChamaMembers;
+      if (chamaMember) {
+        await client.graphql({ query: updateChamaMembers, variables: { input: { ChamaNMember: chamaMember.ChamaNMember, groupRedeemedLoan: String(Number(chamaMember.groupRedeemedLoan || 0) + principalRecovered) } } });
+      }
+
+      if (feeRecovered > 0) {
+        await client.graphql({ query: updateCompany, variables: { input: { AdminId: "BaruchHabaB'ShemAdonai2", companyEarning: String(Number(company?.companyEarning || 0) + feeRecovered) } } });
+      }
+
+      const unrecovered = Math.max(0, Number((recoverAmount - totalCollected).toFixed(2)));
+      const breakdownLines = [
+        tr(tk('breakdownSMAccount'), { amount: formatCurrency(smCollected) }),
+        tr(tk('breakdownAgent'), { amount: formatCurrency(agentCollected) }),
+        tr(tk('breakdownNskubwa'), { amount: formatCurrency(sAgentCollected) }),
+        tr(tk('breakdownGroup'), { amount: formatCurrency(groupCollected) }),
+        tr(tk('breakdownPrincipalRecovered'), { amount: formatCurrency(principalRecovered) }),
+        tr(tk('breakdownFeeRecovered'), { amount: formatCurrency(feeRecovered) }),
+      ];
+      Alert.alert(
+        t.successTitle,
+        `${t.successMessage.replace('{amount}', formatCurrency(totalCollected))}\n\n${breakdownLines.join('\n')}${unrecovered > 0 ? `\n${tr(tk('remainingNotRecovered'), { amount: formatCurrency(unrecovered) })}` : ''}`
       );
-    } catch (err) {
-      console.error(err);
       stopRecovery();
+      await reloadGroupLoans(group);
+    } catch (err) {
+      console.error(err);      stopRecovery();      Alert.alert(tk('errorTitle'), tk('errorRecoverPayment'));
     }
   };
 
@@ -486,32 +576,59 @@ const RecoverMemberLoan = () => {
         visible={agentModalVisible}
         transparent
         animationType="slide"
-        onRequestClose={() => { setAgentModalVisible(false); setPendingRecoverContext(null); setAgentCandidates([]); stopRecovery(); }}
+        onRequestClose={() => resolveAgentSelection(null)}
       >
         <View style={{flex:1,backgroundColor:'rgba(0,0,0,0.5)',justifyContent:'center',padding:16}}>
           <View style={{backgroundColor:'#fff',borderRadius:8,maxHeight:'80%',padding:12}}>
-            <Text style={{fontWeight:'700',marginBottom:8}}>Select Agent to recover from</Text>
+            <Text style={{fontWeight:'700',marginBottom:8}}>{tk('selectAgentTitle')}</Text>
             <FlatList
               data={agentCandidates}
               keyExtractor={(a:any) => a.phonecontact || a.email || String(a.sagentregno)}
               renderItem={({item: a}) => (
                 <View style={{padding:8,borderBottomWidth:1,borderBottomColor:'#eee'}}>
                   <Text style={{fontWeight:'600'}}>{a.name || a.phonecontact}</Text>
-                  <Text style={{color:'#666'}}>ttlEarnings: {formatCurrency(a.ttlEarnings)}</Text>
-                  <Text style={{color:'#666'}}>floatBal: {formatCurrency(a.floatBal)}</Text>
+                  <Text style={{color:'#666'}}>{tk('agentPhonecontactLabel')}: {a.phonecontact || t.na}</Text>
+                  <Text style={{color:'#666'}}>{tk('agentSagentRegNoLabel')}: {a.sagentregno || t.na}</Text>
                   <View style={{flexDirection:'row',marginTop:8}}>
-                    <Pressable onPress={() => recoverFromAgent(a,'ttlEarnings')} style={{backgroundColor:'#28a745',padding:8,borderRadius:6,marginRight:8}}>
-                      <Text style={{color:'#fff'}}>Use ttlEarnings</Text>
-                    </Pressable>
-                    <Pressable onPress={() => recoverFromAgent(a,'floatBal')} style={{backgroundColor:'#007bff',padding:8,borderRadius:6}}>
-                      <Text style={{color:'#fff'}}>Use floatBal</Text>
+                    <Pressable onPress={() => resolveAgentSelection(a)} style={{backgroundColor:'#007bff',padding:8,borderRadius:6}}>
+                      <Text style={{color:'#fff'}}>{tk('selectAgentButton')}</Text>
                     </Pressable>
                   </View>
                 </View>
               )}
             />
-            <TouchableOpacity onPress={() => { setAgentModalVisible(false); setPendingRecoverContext(null); setAgentCandidates([]); }} style={{marginTop:12,alignSelf:'flex-end'}}>
-              <Text style={{color:'#007bff'}}>Close</Text>
+            <TouchableOpacity onPress={() => resolveAgentSelection(null)} style={{marginTop:12,alignSelf:'flex-end'}}>
+              <Text style={{color:'#007bff'}}>{tk('closeLabel')}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+      <Modal
+        visible={sAgentModalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => resolveSAgentSelection(null)}
+      >
+        <View style={{flex:1,backgroundColor:'rgba(0,0,0,0.5)',justifyContent:'center',padding:16}}>
+          <View style={{backgroundColor:'#fff',borderRadius:8,maxHeight:'80%',padding:12}}>
+            <Text style={{fontWeight:'700',marginBottom:8}}>{tk('selectNskubwaTitle')}</Text>
+            <FlatList
+              data={sAgentCandidates}
+              keyExtractor={(a:any) => a.saPhoneContact || String(a.email || Math.random())}
+              renderItem={({item: a}) => (
+                <View style={{padding:8,borderBottomWidth:1,borderBottomColor:'#eee'}}>
+                  <Text style={{fontWeight:'600'}}>{a.name || a.saPhoneContact}</Text>
+                  <Text style={{color:'#666'}}>{tk('sAgentPhonecontactLabel')}: {a.saPhoneContact || t.na}</Text>
+                  <View style={{flexDirection:'row',marginTop:8}}>
+                    <Pressable onPress={() => resolveSAgentSelection(a)} style={{backgroundColor:'#007bff',padding:8,borderRadius:6}}>
+                      <Text style={{color:'#fff'}}>{tk('selectNskubwaButton')}</Text>
+                    </Pressable>
+                  </View>
+                </View>
+              )}
+            />
+            <TouchableOpacity onPress={() => resolveSAgentSelection(null)} style={{marginTop:12,alignSelf:'flex-end'}}>
+              <Text style={{color:'#007bff'}}>{tk('closeLabel')}</Text>
             </TouchableOpacity>
           </View>
         </View>

@@ -3,6 +3,12 @@ import { useExchange } from '../../../src/contexts/ExchangeContext';
 import { formatAmountSync } from '../../../src/utils/exchange';
 import { useTranslation } from 'react-i18next';
 import translations from './translation';
+import * as DocumentPicker from 'expo-document-picker';
+import { uploadData, getUrl } from 'aws-amplify/storage';
+import { updateSMAccount } from '../../../src/graphql/mutations';
+import { generateClient } from 'aws-amplify/api';
+import { fetchUserAttributes } from 'aws-amplify/auth';
+import { Ionicons } from '@expo/vector-icons';
 
 // Static mapping from CreateAllExRates (should be kept in sync)
 const countryNamesByCode: Record<string, string> = {
@@ -53,8 +59,9 @@ function nationalityToCode(nationality: string | undefined | null): string | und
   if (found) return found[0];
   return undefined;
 }
-import { View, Text, ScrollView, Image, ActivityIndicator, StyleSheet } from 'react-native';
-import { getUrl } from 'aws-amplify/storage';
+import { View, Text, ScrollView, Image, ActivityIndicator, StyleSheet, Alert, Pressable } from 'react-native';
+
+const client = generateClient();
 
 export interface SMAccount {
   SMAc: {
@@ -75,37 +82,119 @@ const SMCvLnStts = (props: SMAccount) => {
     const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
     const t = translations[lang] || translations.en;
   const {
-    SMAc: { name, balance, ttlDpstSM, TtlWthdrwnSM, benefitsAmount, MaxTymsBL, photoPassport, idFront, idBack },
+    SMAc: { name, balance, ttlDpstSM, TtlWthdrwnSM, benefitsAmount, MaxTymsBL, photoPassport, idFront, idBack, awsemail },
   } = props;
 
   const [photoUrls, setPhotoUrls] = useState<{ passport?: string; idFront?: string; idBack?: string }>({});
   const [loadingPhotos, setLoadingPhotos] = useState(true);
+  const [updatingPhoto, setUpdatingPhoto] = useState(false);
+
+  const validKey = (k?: string | null) => !!k && k !== 'None';
 
   useEffect(() => {
     const fetchPhotos = async () => {
       try {
         const urls: any = {};
-        if (photoPassport) {
+        if (validKey(photoPassport)) {
           const passportUrl = await getUrl({ key: photoPassport });
           urls.passport = passportUrl.url.toString();
         }
-        if (idFront) {
+        if (validKey(idFront)) {
           const idFrontUrl = await getUrl({ key: idFront });
           urls.idFront = idFrontUrl.url.toString();
         }
-        if (idBack) {
+        if (validKey(idBack)) {
           const idBackUrl = await getUrl({ key: idBack });
           urls.idBack = idBackUrl.url.toString();
         }
         setPhotoUrls(urls);
       } catch (err) {
         console.log('Error fetching photos:', err);
+        setPhotoUrls({});
       } finally {
         setLoadingPhotos(false);
       }
     };
     fetchPhotos();
   }, [photoPassport, idFront, idBack]);
+
+  const pickAndUploadProfilePhoto = async () => {
+    if (updatingPhoto) return;
+    setUpdatingPhoto(true);
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: 'image/*',
+        copyToCacheDirectory: true,
+        multiple: false,
+      });
+
+      if (result.canceled || !result.assets?.length) {
+        setUpdatingPhoto(false);
+        return;
+      }
+
+      const asset = result.assets[0];
+      const localUri = asset.uri;
+      if (!localUri) {
+        Alert.alert(t.errorTitle, t.imageSelectionFailed);
+        setUpdatingPhoto(false);
+        return;
+      }
+
+      // Optimistic local preview before upload completes.
+      setPhotoUrls((prev) => ({ ...prev, passport: localUri }));
+
+      const response = await fetch(localUri);
+      const blob = await response.blob();
+      const ext = (asset.name?.split('.').pop() || 'jpg').toLowerCase();
+      const key = `face_${Date.now()}.${ext}`;
+      const contentType = asset.mimeType || blob.type || 'image/jpeg';
+
+      await uploadData({
+        key,
+        data: blob,
+        options: { contentType },
+      }).result;
+
+      const attrs = await fetchUserAttributes();
+      const accountEmail = awsemail || attrs?.email;
+      if (!accountEmail) {
+        Alert.alert(t.errorTitle, t.profileEmailMissing);
+        setUpdatingPhoto(false);
+        return;
+      }
+
+      await client.graphql({
+        query: updateSMAccount,
+        variables: {
+          input: {
+            awsemail: accountEmail,
+            photoPassport: key,
+          },
+        },
+      });
+
+      const signed = await getUrl({ key });
+      setPhotoUrls((prev) => ({ ...prev, passport: signed.url.toString() }));
+      Alert.alert(t.successTitle, t.profilePhotoUpdated);
+    } catch (err) {
+      console.log('Profile photo update error:', err);
+      Alert.alert(t.errorTitle, t.imageUploadFailed);
+    } finally {
+      setUpdatingPhoto(false);
+    }
+  };
+
+  const confirmProfilePhotoUpdate = () => {
+    Alert.alert(
+      t.changeProfilePhotoTitle,
+      t.changeProfilePhotoBody,
+      [
+        { text: t.cancelLabel, style: 'cancel' },
+        { text: t.changeNowLabel, onPress: pickAndUploadProfilePhoto },
+      ]
+    );
+  };
 
   const { nationality, ratesMap } = useExchange();
   // Map nationality (country name or code) to code for ratesMap
@@ -115,13 +204,26 @@ const SMCvLnStts = (props: SMAccount) => {
     <ScrollView style={styles.pageContainer} contentContainerStyle={{ paddingBottom: 20 }}>
       {/* Profile Header */}
       <View style={styles.profileHeader}>
-        {loadingPhotos ? (
-          <ActivityIndicator size="large" color="#e58d29" />
-        ) : photoUrls.passport ? (
-          <Image source={{ uri: photoUrls.passport }} style={styles.passportImage} />
-        ) : (
-          <View style={[styles.passportImage, { backgroundColor: '#eee' }]} />
-        )}
+        <View style={styles.photoContainer}>
+          {loadingPhotos ? (
+            <ActivityIndicator size="large" color="#e58d29" />
+          ) : photoUrls.passport ? (
+            <Image source={{ uri: photoUrls.passport }} style={styles.passportImage} />
+          ) : (
+            <View style={[styles.passportImage, { backgroundColor: '#eee' }]} />
+          )}
+          <Pressable
+            style={styles.photoRefreshButton}
+            onPress={confirmProfilePhotoUpdate}
+            disabled={updatingPhoto}
+          >
+            {updatingPhoto ? (
+              <ActivityIndicator color="#fff" size="small" />
+            ) : (
+              <Ionicons name="refresh" size={22} color="#fff" />
+            )}
+          </Pressable>
+        </View>
         <Text style={styles.userName}>{name}</Text>
       </View>
 
@@ -208,6 +310,24 @@ const styles = StyleSheet.create({
     borderColor: '#e58d29',
     marginBottom: 12,
     resizeMode: 'cover',
+  },
+  photoContainer: {
+    width: 140,
+    height: 140,
+    marginBottom: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  photoRefreshButton: {
+    position: 'absolute',
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    borderWidth: 1,
+    borderColor: '#fff',
   },
   idSection: {
     flexDirection: 'row',
