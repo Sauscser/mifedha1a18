@@ -2,14 +2,15 @@ import { generateClient } from 'aws-amplify/api';
 import { getCurrentUser, fetchUserAttributes } from 'aws-amplify/auth';
 import { uploadData, getUrl } from '@aws-amplify/storage';
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTranslation } from 'react-i18next';
 import { DrawerActions } from '@react-navigation/native';
 import { useSessionTimeout } from '../contexts/SessionTimeoutProvider';
 import { useMainAccountGuard } from '../contexts/MainAccountGuardContext';
-import { Ionicons } from '@expo/vector-icons';
+import { useChatBot } from '../contexts/ChatBotContext';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 
 type GlobalHeaderProps = {
   user: { username?: string } | null;
@@ -22,6 +23,7 @@ export default function GlobalHeader({ user, signOut, navigation }: GlobalHeader
   const { t } = useTranslation();
   const { restrictNavigation } = useMainAccountGuard();
   const { countdown, showCountdown, remainingTime, resetTimer } = useSessionTimeout();
+  const { openChat } = useChatBot();
 
   const greetingText = showCountdown
     ? `${t('appShell.globalHeader.welcome', { username: user?.username || '' })} (${Math.ceil(remainingTime / 1000)})`
@@ -49,6 +51,17 @@ export default function GlobalHeader({ user, signOut, navigation }: GlobalHeader
     }
   };
 
+  const handleChatPress = () => {
+    if (restrictNavigation) {
+      Alert.alert(
+        t('appShell.guard.completeMainAccountTitle'),
+        t('appShell.guard.completeMainAccountSetup')
+      );
+      return;
+    }
+    openChat();
+  };
+
   return (
     <LinearGradient
       colors={['#e29d58', 'skyblue']}
@@ -65,6 +78,15 @@ export default function GlobalHeader({ user, signOut, navigation }: GlobalHeader
           hitSlop={{ top: 14, bottom: 14, left: 14, right: 14 }}
         >
           <Ionicons name="menu" size={28} color="#fff" />
+        </TouchableOpacity>
+        
+        <TouchableOpacity
+          onPress={handleChatPress}
+          activeOpacity={0.7}
+          style={[styles.chatButton, restrictNavigation && styles.disabledButton]}
+          hitSlop={{ top: 14, bottom: 14, left: 14, right: 14 }}
+        >
+          <MaterialCommunityIcons name="chat-outline" size={32} color="#fff" />
         </TouchableOpacity>
       </View>
       <View style={styles.actionRow}>
@@ -105,6 +127,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
   },
+  chatButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
   disabledButton: {
     opacity: 0.45,
   },
@@ -117,7 +143,7 @@ const styles = StyleSheet.create({
   menuRow: {
     width: '100%',
     flexDirection: 'row',
-    justifyContent: 'flex-start',
+    justifyContent: 'space-between',
     alignItems: 'center',
   },
   actionRow: {
@@ -126,11 +152,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginTop: 12,
-  },
-  greeting: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#fff',
   },
   titleContainer: {
     flex: 1,

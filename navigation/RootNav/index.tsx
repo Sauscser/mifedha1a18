@@ -17,6 +17,7 @@ import { useTranslation } from 'react-i18next';
 import GlobalHeader from '../../src/componentx/GlobalHeader';
 import { useMainAccountGuard } from '../../src/contexts/MainAccountGuardContext';
 import { drawerTranslations } from '../../src/i18n/drawerTranslations';
+import { ChatBotModal } from '../../src/components/ChatBotModal';
 
 const Drawer = createDrawerNavigator();
 
@@ -25,7 +26,6 @@ export type RootNavProps = {
   user: { username?: string } | null;
   signOut: () => void;
 };
-
 const Stack = createNativeStackNavigator();
 
 const RedirectToHome = ({ navigation, route }: any) => {
@@ -89,6 +89,10 @@ const DrawerScreens = ({ user, signOut }: any) => {
 };
 
 const RootNavigator: React.FC<RootNavProps> = ({ colorScheme, user, signOut }) => {
+  const handleNavigateToProduct = (screenName: string) => {
+    // Placeholder for bot navigation. Actual navigation handled by the app's normal routing.
+  };
+
   return (
     <NavigationContainer>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
@@ -101,6 +105,9 @@ const RootNavigator: React.FC<RootNavProps> = ({ colorScheme, user, signOut }) =
           {() => <DrawerScreens user={user} signOut={signOut} />}
         </Stack.Screen>
       </Stack.Navigator>
+      
+      {/* Chat Bot Modal - Persists across all screens */}
+      <ChatBotModal onNavigate={handleNavigateToProduct} />
     </NavigationContainer>
   );
 };

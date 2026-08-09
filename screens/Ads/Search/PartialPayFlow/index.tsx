@@ -906,7 +906,7 @@ function PartialPayFlowInner({ navigation, route }: { navigation: any; route: an
       });
 
       const nonLoanStatus = modeParam === 'quick'
-        ? 'DeliveryPayment'
+        ? 'cashSales'
         : (selectedEntry.buyerType === 'Biz' ? 'Biz2Biz' : 'Biz2Pal');
 
       await client.graphql({

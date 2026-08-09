@@ -4,7 +4,7 @@
     "slug": "NiSenti",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/branding/nisenti_launcher.svg",
+    "icon": "./assets/branding/nisenti_playstore_512.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
@@ -17,7 +17,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/branding/nisenti_launcher.svg",
+        "foregroundImage": "./assets/branding/nisenti_foreground.png",
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,

@@ -1078,7 +1078,7 @@ function SalesItemMapScreenInner({ navigation }: { navigation: any }) {
               description: totals.description.join('\n'),
               RecName: biz ? biz.busName : '',
               SenderName: mode === 'B2B' && selectedBizna && selectedBizna.busName ? selectedBizna.busName : usrDts.name,
-              status: 'DeliveryPayment',
+              status: 'cashSales',
               owner: allItemsID, 
               fees: feeForSeller2.toFixed(0)
             }

@@ -466,7 +466,7 @@ const TransportOrdersScreen = () => {
         variables: {
           input: {
             id: nonLoanDtlz.id,
-            status: "DeliveryPayment",
+            status: "cashSales",
           },
         },
       });

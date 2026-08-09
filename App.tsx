@@ -16,6 +16,7 @@ import i18n from './src/i18n';
 import { SessionTimeoutProvider } from './src/contexts/SessionTimeoutProvider';
 import { AuthProvider } from './src/contexts/AuthContext';
 import { MainAccountGuardProvider } from './src/contexts/MainAccountGuardContext';
+import { ChatBotProvider } from './src/contexts/ChatBotContext';
 type SupportedLanguage = typeof SUPPORTED_LANGUAGES[number];
 
 const getDynamicBottomMargin = () => {
@@ -239,7 +240,9 @@ export default function App() {
         <I18nextProvider i18n={i18n}>
           <Authenticator.Provider>
             <MainAccountGuardProvider>
-              <AppLayout language={language} setLanguage={setLanguage} />
+              <ChatBotProvider>
+                <AppLayout language={language} setLanguage={setLanguage} />
+              </ChatBotProvider>
             </MainAccountGuardProvider>
           </Authenticator.Provider>
         </I18nextProvider>

@@ -646,7 +646,7 @@ const CascadePaymentsScreen = () => {
               description: nodeDescription || 'Cascade payment checkout',
               RecName: biz?.busName || sellerContact,
               SenderName: senderName || 'Sender account',
-              status: 'DeliveryPayment',
+              status: 'cashSales',
               owner: ownerEmail,
               fees: String(Math.max(0, totalFees)),
             },
@@ -919,7 +919,7 @@ const CascadePaymentsScreen = () => {
           description: 'funds transfer',
           RecName: currentFlow.senderAccountName || currentFlow.title || 'Cascade flow',
           SenderName: selectedAddFundsBizna.busName || selectedAddFundsBizna.BusKntct,
-          status: 'DeliveryPayment',
+          status: 'cashSales',
           owner: userEmail || (await hydrateUserContext()).email || '',
           fees: String(transactionFee),
         } } });
