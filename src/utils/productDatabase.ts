@@ -248,6 +248,43 @@ export const PRODUCTS: ProductInfo[] = [
           am: '📍 **ብድር እንዴት ያስተዋውቁ ወይም ይፈልጉ:**\n\n1️⃣ **መነሻ** ላይ **"Friend Products"** ይጫኑ\n2️⃣ **"ሌሎች ስራዎች"** ድረስ ይሸብልሉ\n3️⃣ ይምረጡ:\n   • **"ማስታወቂያ"** — የብድር ቅናሽ ያሳትሙ\n   • **"የብድር ማስታወቂያ ፈልጉ"** — ያሉ ቅናሾች ይፈልጉ\n   • **"ማስታወቂያዎች ሰርዙ"** — የራስዎን ማስታወቂያዎች ያስወግዱ'
         }
       }
+      ,
+      {
+        keywords: ['register group', 'register chama', 'register self help group', 'self help group', 'self-help group', 'create self help group'],
+        response: {
+          en: '📍 **Register / Create a Self-Help Chama Group:**\n\n1️⃣ From the Home screen tap "Groups products"\n2️⃣ Under Group Account tap **Create** (or Register Group)\n3️⃣ Provide group name, contact, signatories and initial settings\n4️⃣ Submit to register the group.\n\nWhat this entails: registering a group creates a group record, assigns signatories (who can approve withdrawals and float loans), and creates a group balance account for remittances and float management.'
+        }
+      },
+      {
+        keywords: ['confirm withdrawals', 'confirm group withdrawals', 'confirm withdrawal', 'signatory confirm withdrawals', 'confirm group withdraw'],
+        response: {
+          en: '✍️ **Confirm Group Withdrawals (Signatory actions):**\n\n1️⃣ Open Groups products → Signatory Works\n2️⃣ Choose the appropriate Signatory confirmation screen (Signatory 2 or Signatory 3)\n3️⃣ Review pending withdrawal requests and confirm or reject\n\nWhat this entails: signatories verify the withdrawal details, ensure group balances cover the payout, and approve the transfer. Approvals are recorded and funds released according to group rules.'
+        }
+      },
+      {
+        keywords: ['update chama', 'update chama account', 'update group account', 'edit group', 'edit chama'],
+        response: {
+          en: '🔧 **Update Chama / Group Account:**\n\n1️⃣ From Home tap "Groups products" → Group Account\n2️⃣ Tap **Update** to edit group details (contact, signatories, settings)\n3️⃣ Save changes — the group account will reflect updated information\n\nWhat this entails: updating contact details or signatories changes who can manage funds and approve requests; use this when signatories change or group contact info is outdated.'
+        }
+      },
+      {
+        keywords: ['float group loans', 'float loans', 'float group', 'float group loan'],
+        response: {
+          en: '💰 **Float Group Loans:**\n\nGroup signatories can float group loans to members by opening Groups products → Group Advance → Float Group Loans.\n\nWhat this entails: the group allocates funds as a pool from which members can take advances; signatories manage float amounts and commitments.'
+        }
+      },
+      {
+        keywords: ['give member advance', 'give advance to member', 'member advance', 'give member loan'],
+        response: {
+          en: '🤝 **Give Member Advance (Group Signatory):**\n\n1️⃣ Open Groups products → Group Advance → Give Member Advance\n2️⃣ Select member, enter advance amount and confirm\n\nWhat this entails: advances are short-term group-funded loans to members; signatories record and monitor advances against group balances.'
+        }
+      },
+      {
+        keywords: ['link nsndogo', 'link nsndogo agent', 'link agent', 'link agent to group', 'link agent nsndogo'],
+        response: {
+          en: '🔗 **Link NSNdogo Agent to Group:**\n\nUse Groups products → Link NSNdogo to attach an NSNdogo branch/agent for group float and remittances.\n\nWhat this entails: linking allows the group to route deposits, disbursements and float operations through a trusted local agent for cash handling and reconciliation.'
+        }
+      }
     ]
   },
   {
@@ -834,13 +871,15 @@ export const PRODUCTS: ProductInfo[] = [
 4️⃣ Tap any product to view details and add it to your cart
 5️⃣ Proceed to checkout when you are ready to buy
 
-GoShopping offers two shopping modes:
-• **Quick checkout** — choose items yourself, add them to your cart, and pay directly.
-• **Transport-assisted shopping** — choose items and request NiSenti Transport support for pickup and delivery.
+Shopping modes:
+• **B2C** — Business to Customer shopping for individual buyers
+• **B2B** — Business to Business shopping. Select your business account before shopping.
 
-Payment options:
-• **Full payment** — pay the total amount at checkout.
-• **Partial payment** — pay part now and settle the remainder later when available.`,
+Purchase options:
+• **Pay Full Amount** — pay the total cost at checkout. Then choose either to collect the item yourself or engage Transport.
+• **Partially Pay For Item** — pay in installments until the item is fully paid. After the balance clears, you can choose to collect the item or ask Transport to deliver it.
+
+If you want the map-based partial payment experience, choose **Partially Pay For Item**.`,
       ar: `📍 كيفية الوصول إلى Go Shopping:
 
 1️⃣ اضغط على علامة التبويب **GoShopping** في أسفل الشاشة
@@ -1072,7 +1111,7 @@ Payment options:
   {
     id: 'transport',
     screen: 'Transport',
-    keywords: ['transport', 'delivery', 'shipping', 'logistics', 'send', 'deliver', 'goods', 'package', 'courier', 'rider', 'driver', 'freight'],
+    keywords: ['transport', 'delivery', 'shipping', 'logistics', 'send', 'deliver', 'goods', 'package', 'courier', 'rider', 'driver', 'freight', 'buyer', 'seller', 'transporter', 'ride', 'passenger', 'customer', 'owner', 'company account', 'transport company', 'receive delivery', 'cancel delivery request', 'change delivery location', 'dispatch delivery', 'accept transport request', 'register transport', 'track', 'tracking', 'where is my', "where's my", 'parcel', 'ship', 'dispatch', 'cab', 'taxi'],
     description: {
       en: 'Transport Services enable you to send goods and packages safely and reliably. Connect with drivers and couriers for fast deliveries.',
       ar: 'تتيح خدمات النقل لك إرسال البضائع والطرود بأمان وموثوقية. التواصل مع السائقين والرسل للتسليمات السريعة.',
@@ -1334,7 +1373,7 @@ Payment options:
       {
         keywords: ['deposit money', 'deposit cash', 'add money to wallet', 'cash in', 'top up wallet', 'deposit into ewallet', 'put money in wallet', 'deposit at agent'],
         response: {
-          en: '📍 **How to deposit money into your e-wallet:**\n\n**Step 1 — Find an NSNdogo agent near you:**\n1️⃣ Tap the **"NSNdogo"** tab at the bottom of the screen\n2️⃣ A live map opens — find an agent close to you (adjust radius if needed)\n3️⃣ Note the agent\'s phone number from their profile card\n\n**Step 2 — Go to the deposit screen:**\n1️⃣ Tap the ☰ menu → **"NiSenti Ndogos"**\n2️⃣ Under **"Float"**, tap **"User Deposit"**\n3️⃣ Enter:\n   • **Agent Phone** — the agent\'s contact number\n   • **Amount** — how much you want to deposit\n4️⃣ Tap **Submit**\n\n⚠️ **Important:** You must be **within 300 metres** of the agent. The app uses your GPS to verify this — if you are too far, the deposit will be rejected.\n\n💡 The agent physically receives your cash and credits your e-wallet.',
+          en: '📍 **How to deposit money into your e-wallet:**\n\n1️⃣ Visit an NSNdogo agent in person and give the agent your cash plus your identity card so they can credit your account.\n2️⃣ Ask the agent to complete the deposit on their NSNdogo terminal.\n3️⃣ After the deposit is confirmed, open **Friend Products** from the Home screen.\n4️⃣ Under **Account**, tap **View Deposits** to confirm the deposit record.\n\n💡 The agent will credit your e-wallet after verifying your identity and receiving your cash.',
           sw: '📍 **Jinsi ya kuweka pesa kwenye pochi yako ya kielektroniki:**\n\n**Hatua ya 1 — Tafuta wakala wa NSNdogo karibu nawe:**\n1️⃣ Bonyeza kichupo **"NSNdogo"** chini ya skrini\n2️⃣ Ramani ya moja kwa moja inafunguka — tafuta wakala karibu nawe\n3️⃣ Kumbuka nambari ya simu ya wakala kutoka kwenye kadi yake\n\n**Hatua ya 2 — Nenda kwenye skrini ya amana:**\n1️⃣ Bonyeza ☰ menyu → **"NiSenti Ndogos"**\n2️⃣ Chini ya **"Float"**, bonyeza **"User Deposit"**\n3️⃣ Ingiza:\n   • **Simu ya Wakala** — nambari ya mawasiliano ya wakala\n   • **Kiasi** — kiasi unachotaka kuweka\n4️⃣ Bonyeza **Wasilisha**\n\n⚠️ **Muhimu:** Lazima uwe **ndani ya mita 300** ya wakala. Programu inatumia GPS yako kuthibitisha hili.',
           fr: '📍 **Comment déposer de l\'argent dans votre e-wallet:**\n\n**Étape 1 — Trouver un agent NSNdogo près de vous:**\n1️⃣ Appuyez sur l\'onglet **"NSNdogo"** en bas de l\'écran\n2️⃣ Une carte en direct s\'ouvre — trouvez un agent proche\n3️⃣ Notez le numéro de téléphone de l\'agent\n\n**Étape 2 — Aller à l\'écran de dépôt:**\n1️⃣ Menu ☰ → **"NiSenti Ndogos"**\n2️⃣ Sous **"Float"**, appuyez sur **"User Deposit"**\n3️⃣ Remplissez le téléphone de l\'agent et le montant\n4️⃣ Soumettez\n\n⚠️ Vous devez être à **moins de 300 mètres** de l\'agent. Le GPS est vérifié automatiquement.',
           es: '📍 **Cómo depositar dinero en tu billetera electrónica:**\n\n**Paso 1 — Encontrar un agente NSNdogo:**\n1️⃣ Toca la pestaña **"NSNdogo"** en la parte inferior\n2️⃣ Se abre un mapa en vivo — encuentra un agente cercano\n3️⃣ Anota el número de teléfono del agente\n\n**Paso 2 — Ir a la pantalla de depósito:**\n1️⃣ Menú ☰ → **"NiSenti Ndogos"**\n2️⃣ En **"Float"**, toca **"User Deposit"**\n3️⃣ Ingresa el teléfono del agente y el monto\n4️⃣ Envía\n\n⚠️ Debes estar a **menos de 300 metros** del agente. El GPS lo verifica.',
@@ -1409,9 +1448,37 @@ export const getProductByScreen = (screenName: string): ProductInfo | undefined 
 
 export const getProductsByKeyword = (keyword: string): ProductInfo[] => {
   const lowerKeyword = keyword.toLowerCase();
-  return PRODUCTS.filter(p => 
-    p.keywords.some(k => k.includes(lowerKeyword) || lowerKeyword.includes(k))
-  );
+  const keywordTokens = lowerKeyword.match(/\w+/g) || [];
+
+  const scoredProducts = PRODUCTS.map((product) => {
+    let score = 0;
+
+    product.keywords.forEach((kw) => {
+      const lowerKw = kw.toLowerCase();
+      const kwTokens = lowerKw.match(/\w+/g) || [];
+      const isExact = lowerKeyword === lowerKw;
+      const isPhraseMatch = kwTokens.length > 1 && lowerKeyword.includes(lowerKw);
+      const allTokensMatch = kwTokens.length > 0 && kwTokens.every((token) => keywordTokens.includes(token));
+      const anyTokenMatch = kwTokens.some((token) => keywordTokens.includes(token));
+
+      if (isExact) {
+        score += 120 + kwTokens.length * 10;
+      } else if (isPhraseMatch) {
+        score += 80 + kwTokens.length * 8;
+      } else if (allTokensMatch) {
+        score += 60 + kwTokens.length * 6;
+      } else if (anyTokenMatch && kwTokens.length === 1) {
+        score += 8;
+      }
+    });
+
+    return { product, score };
+  });
+
+  return scoredProducts
+    .filter(({ score }) => score > 0)
+    .sort((a, b) => b.score - a.score)
+    .map(({ product }) => product);
 };
 
 export const isGreeting = (text: string): boolean => {

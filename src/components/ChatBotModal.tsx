@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
+  Animated,
   View,
   Text,
   StyleSheet,
@@ -189,10 +190,15 @@ interface ChatBotModalProps {
 
 export const ChatBotModal: React.FC<ChatBotModalProps> = ({ onNavigate }) => {
   const { isOpen, messages, isLoading, closeChat, addMessage, setLoading, clearMessages } = useChatBot();
+  const [navigationHint, setNavigationHint] = useState<string | null>(null);
+  const [showNavButton, setShowNavButton] = useState(false);
+  const [navigateTarget, setNavigateTarget] = useState<string | null>(null);
+  const [lastNavigationTarget, setLastNavigationTarget] = useState<string | null>(null);
   const { i18n } = useTranslation();
   const [inputText, setInputText] = useState('');
   const scrollViewRef = useRef<ScrollView>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const navPulse = useRef(new Animated.Value(1)).current;
 
   const lang = i18n.language?.split('-')[0] || 'en';
   const t = chatTranslations[lang] || chatTranslations.en;
@@ -203,6 +209,33 @@ export const ChatBotModal: React.FC<ChatBotModalProps> = ({ onNavigate }) => {
       scrollViewRef.current?.scrollToEnd({ animated: true });
     }, 100);
   }, [messages]);
+
+  useEffect(() => {
+    if (!showNavButton) {
+      navPulse.setValue(1);
+      return;
+    }
+
+    const pulse = Animated.loop(
+      Animated.sequence([
+        Animated.timing(navPulse, { toValue: 1.05, duration: 600, useNativeDriver: true }),
+        Animated.timing(navPulse, { toValue: 1, duration: 600, useNativeDriver: true }),
+      ]),
+    );
+
+    pulse.start();
+    return () => pulse.stop();
+  }, [showNavButton, navPulse]);
+
+  const handleNavButtonPress = () => {
+    if (!navigateTarget || !onNavigate) return;
+    onNavigate(navigateTarget);
+    setShowNavButton(false);
+    setNavigationHint(null);
+    setNavigateTarget(null);
+    clearMessages();
+    closeChat();
+  };
 
   const processUserQuery = async (query: string) => {
     if (!query.trim() || isProcessing) return;
@@ -219,6 +252,40 @@ export const ChatBotModal: React.FC<ChatBotModalProps> = ({ onNavigate }) => {
       const lowerQuery = query.toLowerCase();
       let botResponse = '';
       let navigateProduct: string | null = null;
+      const getFriendlyScreenLabel = (screenName: string | null) => {
+        if (!screenName) return null;
+
+        const friendlyMap: Record<string, string> = {
+          NSNdogo: 'Ndogo',
+          ElimDpstss: 'View Deposits',
+          ChamaScreen: 'Groups products',
+          Vw2SelectChm2Req: 'Request Loan',
+          ChamaVw2DelLnReqs: 'Delete Loan Request',
+          VwGrp2LnCov: 'Give Member Advance',
+          Vw2FloatGrpLoans: 'Float Group Loans',
+          Vw2SignLoanRequests: 'Approve Member Loan',
+          CreateChamaMinutes: 'Group Minutes',
+          ChmSignInss: 'Group Debts Status',
+          ChmLnsRec: 'Member Debts Status',
+          AddChmMembrsss: 'Register Member',
+          SgnIn2RemoveMmbrs: 'Deregister Member',
+          ViewGrp2ConfirmDividends: 'View Group Remittances',
+          ChamaMmbrRemts: 'View My Remittances',
+          ViewGrp2ShareDividends: 'View Members',
+          ChmMmbrMmbrss: 'View My Groups',
+          ViewGrpApplications: 'Create Group Account',
+          DissolveChms: 'Dissolve Group',
+          UpdateChmAc: 'Update Group Account',
+          ChamSignIn3s: 'View Group Account',
+          Sgn2CnfrmWthdrwlsss: 'Signatory 2 Confirm Withdrawals',
+          SignitoryWthdrwFndss3: 'Signatory 3 Confirm Withdrawals',
+          SignitoryWthdrwFndsss: 'Signatory 3 Confirm Withdrawals',
+          SgnIn2VwChmDpstss: 'View Group Deposits',
+          SgnIn2VwChmWthdrwlss: 'View Group Withdrawals',
+        };
+
+        return friendlyMap[screenName] || screenName;
+      };
 
       // Check for greetings first
       if (isGreeting(lowerQuery)) {
@@ -236,13 +303,40 @@ export const ChatBotModal: React.FC<ChatBotModalProps> = ({ onNavigate }) => {
           `7. **NSNdogo Agents** 🏪 - Deposit & withdraw cash (e-wallet)\n\n` +
           `Ask me: "How do I access GoShopping?" or "What payment options are available for GoShopping?"` ;
       }
-      // Check if asking HOW TO ACCESS / NAVIGATE to a product
-      else if (lowerQuery.match(/how (do i|to|can i)|access|navigate|guide|where (is|do i|can i)|get to|find|open|show|go to|take me|steps to/)) {
-        const matchedProducts = getProductsByKeyword(lowerQuery);
-        if (matchedProducts.length > 0) {
-          const product = matchedProducts[0];
-          const directNavigation = !!lowerQuery.match(/\b(take me to|go to|open|show( me)?|navigate to|take me|open the|take me there)\b/);
+      // Check if user is asking about depositing money into their account
+      else if (lowerQuery.match(/\b(deposit|deposit money|deposit cash|add money|top up|cash in|cash-in|add funds|put money in wallet|deposit into|fund my account|add money to my wallet)\b/)) {
+        const agentProduct = PRODUCTS.find((p) => p.id === 'nsndogo-agent');
+        const quickAction = (agentProduct as any)?.quickActions?.find((qa: any) =>
+          qa.keywords.some((kw: string) => lowerQuery.includes(kw))
+        );
 
+        if (quickAction) {
+          botResponse = quickAction.response[lang] || quickAction.response.en;
+          navigateProduct = 'ElimDpstss';
+        } else if (agentProduct) {
+          navigateProduct = 'ElimDpstss';
+          botResponse = `✅ To deposit money, visit any NSNdogo agent in person with your cash and identity card so they can credit your account. After the deposit is completed, open **Friend Products** and go to **Account** → **View Deposits** to confirm the deposit record.`;
+        } else {
+          botResponse = `📍 **How to deposit money:**\n\n` +
+            `Visit an NSNdogo agent in person with your cash and identity card. Once the agent confirms the deposit, open **Friend Products** and use **View Deposits** under the Account section to confirm the transaction.`;
+        }
+      }
+
+      // Check if user is asking about withdrawing or accessing cash
+      else if (lowerQuery.match(/\b(withdraw|withdrawal|cash out|cash-out|take out money|access my money|access money|how can i withdraw|how can i access my money|how do i withdraw|how do i access my money)\b/)) {
+        const matchedProducts = getProductsByKeyword(lowerQuery);
+        const directNavigation = !!lowerQuery.match(/\b(take me to|go to|open|show( me)?|navigate to|take me|open the|take me there|i want to|i would like to|could you|can you|kindly|will you|would you)\b/);
+        const wantsNdogo = !!lowerQuery.match(/\b(ndogo|nsndogo|bottom tab|bottom navigation|bottom nav|tab flow|tab)\b/);
+
+        let product = matchedProducts.length > 0 ? matchedProducts[0] : null;
+        if (wantsNdogo) {
+          const nsndogoProduct = PRODUCTS.find((p) => p.id === 'nsndogo-agent');
+          if (nsndogoProduct) {
+            product = nsndogoProduct;
+          }
+        }
+
+        if (product) {
           // First check if this matches a specific quick action
           const quickAction = (product as any).quickActions?.find((qa: any) =>
             qa.keywords.some((kw: string) => lowerQuery.includes(kw))
@@ -255,9 +349,11 @@ export const ChatBotModal: React.FC<ChatBotModalProps> = ({ onNavigate }) => {
             botResponse = guide || (`${product.description[lang] || product.description.en}`);
           }
 
-          if (directNavigation) {
-            navigateProduct = product.screen;
-          }
+          // Always offer the withdraw navigation target when a product is identified.
+          navigateProduct = product.screen;
+        } else if (directNavigation && lastNavigationTarget) {
+          navigateProduct = lastNavigationTarget;
+          botResponse = `Sure — I can take you there. Tap the button below to open ${navigateProduct === 'NSNdogo' ? 'Ndogo' : navigateProduct} now.`;
         } else {
           botResponse = `Which product would you like to navigate to?\n\n` +
             `• **Chama** - Group savings & loans\n` +
@@ -269,24 +365,287 @@ export const ChatBotModal: React.FC<ChatBotModalProps> = ({ onNavigate }) => {
         }
       }
       // Check if asking specifically about shopping / GoShopping
-      else if (lowerQuery.match(/\b(shopping|go shopping|marketplace|browse items|search items|cart|buy now|shop now|online shopping)\b/)) {
+      else if (lowerQuery.match(/\b(shopping|go shopping|marketplace|browse items|search items|cart|buy now|shop now|online shopping|go shopping tab|shopping tab)\b/)) {
         const product = getProductsByKeyword('go-shopping')[0] || PRODUCTS.find((p) => p.id === 'go-shopping');
-        if (product) {
-          const guide = (product as any).howToAccess?.[lang] || (product as any).howToAccess?.en;
-          botResponse = guide || (`🛍️ **GoShopping Marketplace**\n\n` +
-            `${product.description[lang] || product.description.en}`);
+        const containsPartial = /\b(partial payment|partial pay|partially pay|part payment|payment plan|pay later|partial plan)\b/.test(lowerQuery);
+        const containsFull = /\b(full payment|pay full|full amount|complete payment|pay total|pay total amount)\b/.test(lowerQuery);
+        const containsTransport = /\b(transport|delivery|shipping|ship|courier|driver|logistics|deliver|transporter)\b/.test(lowerQuery);
+        const containsMap = /\b(map|location|nearby|route|map view|map-based|map based)\b/.test(lowerQuery);
+        const containsB2B = /\b(b2b|business to business|business-to-business|business to business shopping)\b/.test(lowerQuery);
+        const containsB2C = /\b(b2c|business to customer|business-to-customer|business to customer shopping)\b/.test(lowerQuery);
+        const containsAccess = /\b(access|open|go to|show|navigate|take me|take me to|open the|show me|i want to|i would like to|could you|can you|kindly|will you|would you)\b/.test(lowerQuery);
+
+        if (containsPartial && containsMap) {
+          botResponse = `🗺️ **GoShopping Partial Payment Map**\n\n` +
+            `Open the **GoShopping** tab and tap **Partially Pay For Item**. This flow shows sellers on a map so you can choose items and pay bit by bit until the balance is cleared. After the payment clears, you can choose to collect the item or engage Transport.`;
+          navigateProduct = 'PartialPayFlow';
+        } else if (containsPartial) {
+          botResponse = `🛍️ **GoShopping Partial Payment**\n\n` +
+            `Use the **GoShopping** tab and choose **Partially Pay For Item**. You pay in installments until the item is fully paid. Once payment clears, the app will then give you the same checkout options: either collect the item yourself or ask Transport to deliver it.`;
+          if (containsAccess) {
+            navigateProduct = 'PartialPayFlow';
+          }
+        } else if (containsFull && containsTransport) {
+          botResponse = `🚚 **Full Payment with Transport**\n\n` +
+            `In **GoShopping**, choose **Pay Full Amount** at checkout. Then select **Purchase (Ask for Transport)** to engage a transporter. NiSenti holds the buyer funds and only forwards payment to the seller once the transporter delivers the order as specified.`;
+          if (containsAccess) {
+            navigateProduct = 'GoShopping';
+          }
+        } else if (containsFull) {
+          botResponse = `✅ **GoShopping Full Payment**\n\n` +
+            `Open the **GoShopping** tab and choose **Pay Full Amount**. At checkout you can either collect the item yourself or engage Transport to deliver it for you.`;
+          if (containsAccess) {
+            navigateProduct = 'GoShopping';
+          }
+        } else if (containsB2B || containsB2C) {
+          botResponse = `🏷️ **GoShopping Buyer Mode**\n\n` +
+            `In **GoShopping**, select your shopping mode before you start. Choose **B2C** for Business-to-Customer shopping, or **B2B** for Business-to-Business shopping. B2B requires selecting your business account first.`;
+          if (containsAccess) {
+            navigateProduct = 'GoShopping';
+          }
+        } else if (containsTransport) {
+          botResponse = `🚗 **Transport-assisted GoShopping**\n\n` +
+            `Use the **GoShopping** tab and choose **Purchase (Ask for Transport)** to have NiSenti engage a transporter. The app holds your funds and only releases payment when delivery is complete.`;
+          if (containsAccess) {
+            navigateProduct = 'GoShopping';
+          }
         } else {
-          botResponse = `I can help you with GoShopping. Open the GoShopping tab, search for products, and add them to your cart.`;
+          if (product) {
+            const guide = (product as any).howToAccess?.[lang] || (product as any).howToAccess?.en;
+            botResponse = guide || (`🛍️ **GoShopping Marketplace**\n\n` +
+              `${product.description[lang] || product.description.en}`);
+          } else {
+            botResponse = `I can help you with GoShopping. Open the GoShopping tab, search for products, and add them to your cart.`;
+          }
+          if (containsAccess) {
+            navigateProduct = 'GoShopping';
+          }
         }
       }
-      // Check if asking about transport/delivery
-      else if (lowerQuery.match(/transport|delivery|shipping|send|courier|driver|freight/)) {
-        const product = getProductsByKeyword('transport')[0] || PRODUCTS[4];
-        const guide = (product as any).howToAccess?.[lang] || (product as any).howToAccess?.en;
-        botResponse = guide || (`🚗 **Transport Services**\n\n` +
-          `${product.description[lang] || product.description.en}\n\n` +
-          `✨ **Key Features:**\n• ${(product.benefits[lang] || product.benefits.en).slice(0, 3).join('\n• ')}`);
-        navigateProduct = product.screen;
+      // Check if asking about transport/delivery (robust matching)
+      else if (lowerQuery.match(/\b(transport|delivery|shipping|send|courier|driver|freight|ride|passenger|rider|ship|parcel|package|track|tracking|where is my|where's my|dispatch|dispatching|dispatch delivery)\b/)) {
+        const product = getProductsByKeyword('transport')[0] || PRODUCTS.find((p) => p.id === 'transport');
+
+        // Helper matcher to check many synonyms
+        const has = (words: string | string[]) => {
+          const list = Array.isArray(words) ? words : [words];
+          return list.some(w => lowerQuery.includes(w));
+        };
+
+        const wantsTrack = has(['track', 'tracking', "where is my", "where's my", 'track delivery', 'track parcel', 'tracking number']);
+        const wantsRide = has(['ride', 'passenger', 'book a ride', 'need a ride', 'taxi', 'cab', 'uber', 'bolt']);
+        const wantsSend = has(['send', 'send parcel', 'send package', 'ship', 'parcel', 'package', 'deliver goods', 'deliver package', 'send goods']);
+        const isBuyer = has(['buyer', 'i bought', 'i purchased', 'receive delivery', 'receive order', 'order delivered', 'ask for transport', 'request transport']);
+        const isSeller = has(['seller', 'dispatch', 'dispatch delivery', 'ship out', 'send out my order', 'send order']);
+        const isTransporter = has(['transporter', 'driver', 'courier', 'rider', 'delivery person', 'deliveries', 'logistics', 'register transport', 'register as transporter', 'company account', 'transport company']);
+
+        // Tracking / status requests
+        if (wantsTrack) {
+          botResponse = `🔎 **Track Delivery / Ride**\n\n` +
+            `To track a delivery or ride, open the Transport tab and select Ride Tracking or the specific transport job. If you have a tracking number or order reference, paste it in the Transport screen to get location and status updates.`;
+          navigateProduct = 'RideTrackingScreen';
+        }
+        // Ride / passenger requests
+        else if (wantsRide) {
+          if (isTransporter) {
+            botResponse = `🛵 **Rider / Driver Mode**\n\n` +
+              `You can accept passenger ride requests as a Rider. Open the Transport tab and tap the Rider button to view ride requests.`;
+            navigateProduct = 'AcceptRideRequest';
+          } else if (isSeller) {
+            // unlikely but handle
+            botResponse = `If you're a seller asking about rides, do you mean passenger rides or delivery rides?`;
+            navigateProduct = 'Transport';
+          } else {
+            botResponse = `🧑‍🤝‍🧑 **Ride / Passenger**\n\n` +
+              `If you need a passenger ride, open the Transport tab and use the Customer/Passenger button to request a ride. If you're a driver, open Rider to accept requests.`;
+            navigateProduct = 'PassengerRequestRide';
+          }
+        }
+        // Sending goods / delivery
+        else if (wantsSend || isBuyer || isSeller) {
+          if (isSeller) {
+            botResponse = `📤 **Seller: Dispatch Delivery**\n\n` +
+              `As a seller, open the Transport tab and tap **${(product as any)?.howToAccess?.[lang] ? 'View Transport Requests to: Dispatch Delivery - Seller' : 'View Transport Requests (Dispatch)'}** to dispatch orders.`;
+            navigateProduct = 'VwBiz2DispatchDelivery';
+          } else if (isBuyer) {
+            botResponse = `📦 **Buyer: Request / Manage Delivery**\n\n` +
+              `If you've purchased and want goods delivered, open the Transport tab and tap **${(product as any)?.howToAccess?.[lang] ? 'Ask for Transport - Buyer' : 'Ask for Transport'}**. To manage incoming deliveries (receive, cancel, change location), use the View Transport Requests (Buyer) screen.`;
+            navigateProduct = 'VwSalesDtls4Transport';
+          } else if (isTransporter) {
+            botResponse = `✔️ **Transporter: Accept / Offload Deliveries**\n\n` +
+              `Open the Transport tab and tap **View Transport Requests to: Accept, Offload Delivery - Transporter** to see available delivery jobs and manage them.`;
+            navigateProduct = 'AcceptTransportRequest';
+          } else {
+            // generic send/delivery question without clear role
+            botResponse = `🚗 **Transport & Delivery**\n\n` +
+              `Do you want to: \n• Request a delivery for goods (Buyer)\n• Dispatch an order (Seller)\n• Register as a transporter / accept jobs (Transporter)\n• Book a passenger ride (Passenger)\n\nReply with one of: "delivery", "dispatch", "transporter", or "ride" and I'll take you to the right button.`;
+            // Keep navigateProduct pointing to Transport so user can be shown the Transport tab
+            navigateProduct = 'Transport';
+          }
+        }
+        // Transporter/account related queries
+        else if (isTransporter) {
+          if (has(['register', 'become transporter', 'sign up'])) {
+            botResponse = `🚚 **Register as Transporter**\n\n` +
+              `Open the Transport tab and tap **Register Transport - Transporter** to create your transporter profile and start accepting deliveries.`;
+            navigateProduct = 'RegisterTransport';
+          } else if (has(['company account', 'transport company'])) {
+            botResponse = `🏢 **Transport Company Account**\n\n` +
+              `Open the Transport tab and choose View Transport Company Account to manage your company profile and earnings.`;
+            navigateProduct = 'ViewTransportBiznaAccount';
+          } else if (has(['account', 'view account', 'my account'])) {
+            botResponse = `📊 **Transporter Account**\n\n` +
+              `Open the Transport tab and use View Account to reset location, delete account, share revenue, and view your transport earnings.`;
+            navigateProduct = 'VwTransportAccount';
+          } else {
+            botResponse = `🚚 **Transporter Options**\n\n` +
+              `As a transporter you can register, view account, accept/offload deliveries, or manage company accounts. Open the Transport tab to choose.`;
+            navigateProduct = 'Transport';
+          }
+        }
+        // fallback: general transport info
+        else {
+          const guide = (product as any).howToAccess?.[lang] || (product as any).howToAccess?.en;
+          botResponse = guide || (`🚗 **Transport Services**\n\n` +
+            `${product.description[lang] || product.description.en}\n\n` +
+            `✨ **Key Features:**\n• ${(product.benefits[lang] || product.benefits.en).slice(0, 3).join('\n• ')}`);
+          navigateProduct = product.screen;
+        }
+      }
+      // Check if asking about Chama / Group products (include self-help and apply/apply-for synonyms)
+      else if (lowerQuery.match(/\b(chama|group products|groups products|group|groups|membership|members|chama groups|group account|group advance|group loan|request loan|apply loan|apply for loan|apply for advance|apply for group loan|apply for group|apply to group|self help|self-help|selfhelp|create chama|create group|register member|deregister member|dissolve group|group remittance|dividends|signatory|signatory works|link nsndogo)\b/)) {
+        const product = getProductsByKeyword('chama-groups')[0] || PRODUCTS.find((p) => p.id === 'chama-groups');
+        const has = (words: string | string[]) => {
+          const list = Array.isArray(words) ? words : [words];
+          return list.some(w => lowerQuery.includes(w));
+        };
+
+        const wantsDeleteLoanRequest = has(['delete loan', 'delete loan request', 'delete request', 'remove loan request', 'cancel loan request', 'delete loan request']);
+        const wantsGiveMemberAdvance = has(['give member advance', 'give advance', 'member advance', 'give advance to member']);
+        const wantsFloatGroupLoans = has(['float group', 'float group loans', 'float loans']);
+        const wantsCreateMinutes = has(['group minutes', 'minutes', 'create minutes', 'group meeting minutes']);
+        const wantsViewGroupDebts = has(['group debts', 'view group debts', 'group debt status', 'view debts status']);
+        const wantsViewMemberDebts = has(['member debts', 'view member debts', 'member debt status']);
+        const wantsCreate = has(['create chama', 'create group', 'create a group', 'start a group', 'open chama', 'open a group', 'create chama group']);
+        const wantsRequestLoan = has([
+          'request loan', 'request a loan', 'request a loan from', 'apply for loan', 'apply loan', 'apply for a loan', 'apply for group loan', 'apply for advance', 'apply for group advance',
+          'borrow from group', 'borrow from my group', 'borrow from chama', 'loan from chama', 'group loan', 'request advance', 'group advance', 'ask for loan', 'i want a loan', 'i want to apply for a loan',
+          'can i get a loan', 'apply to group', 'apply to chama', 'request a loan from my chama', 'request a loan from group', 'self help loan', 'self-help loan', 'selfhelp loan'
+        ]);
+        const wantsApproveLoan = has(['approve loan', 'approve member loan', 'approve group loan', 'signatory approve', 'approve request']);
+        const wantsDissolve = has(['dissolve', 'dissolve group', 'close group', 'delete group']);
+        const wantsRegisterMember = has(['register member', 'register chama member', 'add member', 'signup member']);
+        const wantsDeregister = has(['deregister', 'remove member', 'remove chama member', 'unregister member']);
+        const wantsViewMembers = has(['view members', 'members', 'membership', 'view membership']);
+        const wantsViewMyGroups = has(['my groups', 'view my groups', 'my chama', 'my groups list']);
+        const wantsViewAccount = has(['group account', 'account', 'create group account', 'view group account', 'update group']);
+        const wantsRemittance = has(['remittance', 'remittances', 'share dividends', 'dividends', 'share dividend', 'group remittance', 'remittances']);
+        const wantsViewMyRemittances = has(['my remittances', 'view my remittances', 'my remittances']);
+        const wantsSignatory = has(['signatory', 'signatory work', 'confirm withdrawal', 'confirm withdrawals', 'signatory confirm']);
+        const wantsSignatory3 = has(['signatory3', 'signatory 3', 'signatory3 confirm', 'signatory3 confirm withdrawals']);
+        const wantsViewGroupDeposits = has(['view group deposits', 'group deposits', 'view deposits']);
+        const wantsViewGroupWithdrawals = has(['view group withdrawals', 'group withdrawals', 'view withdrawals']);
+        const wantsLinkNsndogo = has(['link nsndogo', 'link agent', 'link nsndogo agent', 'link agent to group']);
+
+        if (wantsDeleteLoanRequest) {
+          botResponse = `🗑️ **Delete a Loan Request (Member)**\n\n` +
+            `Open Groups products → Group Advance → Delete a loan request. Select the loan request you submitted and confirm deletion.`;
+          navigateProduct = 'ChamaVw2DelLnReqs';
+        } else if (wantsGiveMemberAdvance) {
+          botResponse = `🤝 **Give Member Advance (Signatory)**\n\n` +
+            `Open Groups products → Group Advance → Give Member Advance. Select the member and amount, then confirm.`;
+          navigateProduct = 'VwGrp2LnCov';
+        } else if (wantsFloatGroupLoans) {
+          botResponse = `💰 **Float Group Loans (Signatory)**\n\n` +
+            `Open Groups products → Group Advance → Float Group Loans to allocate pooled funds for member advances.`;
+          navigateProduct = 'Vw2FloatGrpLoans';
+        } else if (wantsCreateMinutes) {
+          botResponse = `📝 **Create Group Minutes**\n\n` +
+            `Open Groups products → Group Advance → Group Minutes to record meeting minutes and decisions for governance.`;
+          navigateProduct = 'CreateChamaMinutes';
+        } else if (wantsViewGroupDebts) {
+          botResponse = `📊 **View Group Debts Status**\n\n` +
+            `Open Groups products → View Group Status to see overall group debts, blacklist entries, and repayments.`;
+          navigateProduct = 'ChmSignInss';
+        } else if (wantsViewMemberDebts) {
+          botResponse = `🔎 **View Member Debts Status**\n\n` +
+            `Open Groups products → View Member Status to inspect individual member debts and repayment history.`;
+          navigateProduct = 'ChmLnsRec';
+        } else if (wantsCreate) {
+          botResponse = `🆕 **Create a Chama Group**\n\n` +
+            `Open Groups products and go to the Group Account section, then tap Create to start a new Chama. You'll fill group name, signatories, and initial settings.`;
+          navigateProduct = 'ViewGrpApplications';
+        } else if (wantsViewMyRemittances) {
+          botResponse = `📥 **View My Remittances**\n\n` +
+            `Open Groups products → Group Remittance → View My Remittances to see funds sent to you by groups or members.`;
+          navigateProduct = 'ChamaMmbrRemts';
+        } else if (wantsViewMyGroups) {
+          botResponse = `👥 **View My Groups**\n\n` +
+            `Open Groups products → Membership → View My Groups to see subscriptions and groups you belong to.`;
+          navigateProduct = 'ChmMmbrMmbrss';
+        } else if (wantsRequestLoan) {
+          botResponse = `💸 **Request a Loan from your Chama**\n\n` +
+            `To request a group loan, open Groups products → Group Advance → Request loan from group. Select your group, enter amount and submit. A Group Signatory must approve.`;
+          navigateProduct = 'Vw2SelectChm2Req';
+        } else if (wantsApproveLoan) {
+          botResponse = `✅ **Approve Group Loan Requests (Signatory)**\n\n` +
+            `If you're a signatory, open Groups products → Group Advance → Approve member loan (Signatory) to view and approve pending member loan requests.`;
+          navigateProduct = 'Vw2SignLoanRequests';
+        } else if (wantsDissolve) {
+          botResponse = `⚠️ **Dissolve a Chama Group**\n\n` +
+            `This will permanently close the group. Open Groups products → Group Account → Dissolve to remove the group after confirming outstanding balances.`;
+          navigateProduct = 'DissolveChms';
+        } else if (wantsRegisterMember) {
+          botResponse = `👥 **Register a Member**\n\n` +
+            `Open Groups products → Registration → Register Member to add a new member to your Chama. You'll provide member details and confirm membership.`;
+          navigateProduct = 'AddChmMembrsss';
+        } else if (wantsDeregister) {
+          botResponse = `🧾 **Deregister / Remove a Member**\n\n` +
+            `Open Groups products → Registration → Deregister Member to remove a member from the Chama.`;
+          navigateProduct = 'SgnIn2RemoveMmbrs';
+        } else if (wantsViewMembers) {
+          botResponse = `👀 **View Members & Share Dividends**\n\n` +
+            `Open Groups products → Membership → View Members to see the member list, manage dividends and subscriptions.`;
+          navigateProduct = 'ViewGrp2ShareDividends';
+        } else if (wantsViewGroupDeposits) {
+          botResponse = `🏦 **View Group Deposits (Signatory)**\n\n` +
+            `Open Groups products → Signatory Works → View Group Deposits to inspect deposit records and reconcile balances.`;
+          navigateProduct = 'SgnIn2VwChmDpstss';
+        } else if (wantsViewGroupWithdrawals) {
+          botResponse = `🏧 **View Group Withdrawals (Signatory)**\n\n` +
+            `Open Groups products → Signatory Works → View Group Withdrawals to review withdrawal transactions and pending approvals.`;
+          navigateProduct = 'SgnIn2VwChmWthdrwlss';
+        } else if (wantsViewAccount) {
+          botResponse = `🏦 **Group Account: Create, Update, View or Dissolve**\n\n` +
+            `Open Groups products → Group Account to create, update, view or dissolve a group account.`;
+          navigateProduct = 'ChamSignIn3s';
+        } else if (has(['update chama account', 'update group account', 'update chama'])) {
+          botResponse = `🔧 **Update Chama Account**\n\n` +
+            `Open Groups products → Group Account → Update to edit contact, signatories or account settings.`;
+          navigateProduct = 'UpdateChmAc';
+        } else if (wantsSignatory3) {
+          botResponse = `✍️ **Signatory 3: Confirm Withdrawals**\n\n` +
+            `Open Groups products → Signatory Works → Signatory 3 Confirm Withdrawals to approve or reject withdrawal requests.`;
+          navigateProduct = 'SignitoryWthdrwFndss3';
+        } else if (wantsRemittance) {
+          botResponse = `💳 **Group Remittances & Member Remittances**\n\n` +
+            `Open Groups products → Group Remittance to view group remittances, or view your personal remittances under the My Remittances button.`;
+          navigateProduct = 'ViewGrp2ConfirmDividends';
+        } else if (wantsSignatory) {
+          botResponse = `✍️ **Signatory Tasks: Confirm Withdrawals**\n\n` +
+            `If you are a group signatory, open Groups products → Signatory Works to confirm withdrawals and other signatory actions.`;
+          navigateProduct = 'Sgn2CnfrmWthdrwlsss';
+        } else if (wantsLinkNsndogo) {
+          botResponse = `🔗 **Link NSNdogo Agent to Group**\n\n` +
+            `Open Groups products → Link NSNdogo to link a local agent for group float and remittances.`;
+          navigateProduct = 'ChamaScreen';
+        } else {
+          const guide = (product as any).howToAccess?.[lang] || (product as any).howToAccess?.en;
+          botResponse = guide || (`📚 **Chama Groups (Group products)**\n\n` +
+            `${product.description[lang] || product.description.en}\n\n` +
+            `I can help you create groups, request group loans, register members, view members, share dividends, manage group accounts, or confirm signatory withdrawals. Which of these would you like to do?`);
+          navigateProduct = product.screen || 'ChamaScreen';
+        }
       }
       // Check for benefits/features questions
       else if (lowerQuery.match(/benefit|feature|advantage|why|reason|profit/)) {
@@ -322,6 +681,39 @@ export const ChatBotModal: React.FC<ChatBotModalProps> = ({ onNavigate }) => {
 
           if (quickAction) {
             botResponse = quickAction.response[lang] || quickAction.response.en;
+            // If this quick action belongs to Chama, map it to the exact Chama screen
+            try {
+              const prodId = (product as any).id;
+              if (prodId === 'chama-groups') {
+                const kws: string[] = quickAction.keywords.map((s: string) => s.toLowerCase());
+                const hasKw = (term: string) => kws.some(k => k.includes(term));
+
+                if (hasKw('request loan') || hasKw('request a loan') || hasKw('borrow from group') || hasKw('group loan') || hasKw('request advance') || hasKw('apply for loan')) {
+                  navigateProduct = 'Vw2SelectChm2Req';
+                } else if (hasKw('register group') || hasKw('create chama') || hasKw('create group')) {
+                  navigateProduct = 'ViewGrpApplications';
+                } else if (hasKw('register member') || hasKw('add member') || hasKw('join group')) {
+                  navigateProduct = 'AddChmMembrsss';
+                } else if (hasKw('dissolve') || hasKw('dissolve group') || hasKw('close group')) {
+                  navigateProduct = 'DissolveChms';
+                } else if (hasKw('confirm withdrawals') || hasKw('confirm withdrawal') || hasKw('signatory confirm')) {
+                  navigateProduct = 'Sgn2CnfrmWthdrwlsss';
+                } else if (hasKw('update chama') || hasKw('update group')) {
+                  navigateProduct = 'UpdateChmAc';
+                } else if (hasKw('float group') || hasKw('float loans')) {
+                  navigateProduct = 'Vw2FloatGrpLoans';
+                } else if (hasKw('give member advance') || hasKw('give advance')) {
+                  navigateProduct = 'VwGrp2LnCov';
+                } else if (hasKw('link nsndogo') || hasKw('link agent')) {
+                  navigateProduct = 'ChamaScreen';
+                } else {
+                  // default to opening the Chama screen
+                  navigateProduct = (product as any).screen || 'ChamaScreen';
+                }
+              }
+            } catch (e) {
+              // ignore mapping errors and fall back to product.screen
+            }
           } else if (lowerQuery.match(/describe|full info|explain|details|complete/)) {
             botResponse = `📖 **${product.id.replace(/-/g, ' ').toUpperCase()}**\n\n` +
               `${product.description[lang] || product.description.en}\n\n` +
@@ -346,12 +738,66 @@ export const ChatBotModal: React.FC<ChatBotModalProps> = ({ onNavigate }) => {
         }
       }
 
+      if (navigateProduct) {
+        setLastNavigationTarget(navigateProduct);
+      }
+
       addMessage(botResponse, 'bot');
 
-      // Trigger navigation if user asked to go there
-      if (navigateProduct && lowerQuery.match(/take me|go to|open|show|navigate|access|guide me to|how to access/)) {
-        if (onNavigate) {
-          setTimeout(() => onNavigate(navigateProduct!), 500);
+      // Proactively offer navigation button and quick prompts for Chama flows
+      const chamaScreens = [
+        'ViewGrpApplications', 'Vw2SelectChm2Req', 'ChamaVw2DelLnReqs', 'VwGrp2LnCov', 'Vw2FloatGrpLoans', 'Vw2SignLoanRequests',
+        'CreateChamaMinutes', 'ChmSignInss', 'ChmLnsRec', 'AddChmMembrsss', 'SgnIn2RemoveMmbrs', 'ViewGrp2ConfirmDividends',
+        'ViewGrp2ShareDividends', 'ChamaMmbrRemts', 'ChmMmbrMmbrss', 'DissolveChms', 'UpdateChmAc', 'ChamSignIn3s',
+        'Sgn2CnfrmWthdrwlsss', 'SignitoryWthdrwFndss3', 'SignitoryWthdrwFndsss', 'SgnIn2VwChmDpstss', 'SgnIn2VwChmWthdrwlss', 'ChamaScreen'
+      ];
+
+      const isChamaScreen = navigateProduct && chamaScreens.includes(navigateProduct);
+      if (isChamaScreen) {
+        const friendly = getFriendlyScreenLabel(navigateProduct) || navigateProduct;
+        setNavigationHint(`Open ${friendly}`);
+        setNavigateTarget(navigateProduct);
+        setShowNavButton(true);
+
+        // Add a short follow-up suggesting specific Chama quick actions
+        const quickList = `Quick actions:\n• register group\n• register member\n• request loan\n• approve member loan (signatory)\n• float group loans\n• link nsndogo\n\nReply with one of the actions above and I'll take you directly to that button.`;
+        addMessage(quickList, 'bot');
+      }
+
+      // Special handling for deposit intent: first explain step-by-step, then
+      // present the "View Deposits" button so the user knows what to do before
+      // being taken to the deposits screen.
+      if (navigateProduct === 'ElimDpstss') {
+        const depositSteps = `Steps to deposit money:\n\n1) Visit any NSNdogo agent in person.\n2) Give your identity card and the cash to the operating officer.\n3) Wait for the agent to process and confirm the deposit.\n4) After confirmation, open Friend Products → Account → View Deposits to confirm the transaction.`;
+        // Add the step-by-step guidance as a follow-up bot message
+        addMessage(depositSteps, 'bot');
+
+        // Show the navigation button after a short delay so the user sees the
+        // guidance first.
+        setTimeout(() => {
+          if (onNavigate) {
+            setNavigationHint('Open View Deposits to confirm your deposit');
+            setNavigateTarget('ElimDpstss');
+            setShowNavButton(true);
+          }
+        }, 900);
+      } else if (!isChamaScreen) {
+        const wantsNavigation = !!lowerQuery.match(/\b(take me to|go to|open|show|navigate|access|guide me to|how to access|i want to|i would like to|could you|can you|kindly|will you|would you)\b/);
+        const wantsWithdraw = !!lowerQuery.match(/\b(withdraw|withdrawal|cash out|cash-out|take out money|access my money|access money|how can i withdraw|how can i access my money|how do i withdraw|how do i access my money)\b/);
+        const wantsDeposit = !!lowerQuery.match(/\b(deposit|deposit money|deposit cash|add money|top up|cash in|cash-in|add funds|put money in wallet|deposit into|fund my account|add money to my wallet)\b/);
+        const resolvedTarget = navigateProduct || ((wantsNavigation || wantsWithdraw || wantsDeposit) && lastNavigationTarget ? lastNavigationTarget : null);
+
+        if (resolvedTarget && (wantsNavigation || wantsWithdraw || wantsDeposit)) {
+          if (onNavigate) {
+            const friendlyLabel = getFriendlyScreenLabel(resolvedTarget) || resolvedTarget;
+            setNavigationHint(`Click here to open ${friendlyLabel}`);
+            setNavigateTarget(resolvedTarget);
+            setShowNavButton(true);
+          }
+        } else {
+          setNavigationHint(null);
+          setNavigateTarget(null);
+          setShowNavButton(false);
         }
       }
     } catch (error) {
@@ -409,6 +855,15 @@ export const ChatBotModal: React.FC<ChatBotModalProps> = ({ onNavigate }) => {
               </View>
             )}
           </ScrollView>
+
+          {showNavButton && navigationHint ? (
+            <Animated.View style={[styles.navHintContainer, { transform: [{ scale: navPulse }] }]}> 
+              <Text style={styles.navHintText}>{navigationHint}</Text>
+              <TouchableOpacity onPress={handleNavButtonPress} style={styles.navButton}>
+                <Text style={styles.navButtonText}>{t.navigate} {navigateTarget === 'NSNdogo' ? 'Ndogo' : navigateTarget}</Text>
+              </TouchableOpacity>
+            </Animated.View>
+          ) : null}
 
           {/* Floating Close Button */}
           <TouchableOpacity 
@@ -581,6 +1036,37 @@ const styles = StyleSheet.create({
   },
   sendButtonDisabled: {
     opacity: 0.5,
+  },
+  navHintContainer: {
+    backgroundColor: '#fff6e8',
+    borderColor: '#e29d58',
+    borderWidth: 1,
+    borderRadius: 16,
+    padding: 14,
+    marginHorizontal: 12,
+    marginBottom: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  navHintText: {
+    color: '#333',
+    fontSize: 14,
+    marginBottom: 10,
+  },
+  navButton: {
+    backgroundColor: '#e29d58',
+    borderRadius: 20,
+    paddingVertical: 12,
+    paddingHorizontal: 18,
+    alignItems: 'center',
+  },
+  navButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '700',
   },
   clearButton: {
     paddingVertical: 6,

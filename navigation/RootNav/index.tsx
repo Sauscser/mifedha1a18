@@ -1,5 +1,5 @@
-import React, { useEffect } from 'react';
-import { NavigationContainer } from '@react-navigation/native';
+import React from 'react';
+import { NavigationContainer, createNavigationContainerRef } from '@react-navigation/native';
 import { createDrawerNavigator } from '@react-navigation/drawer';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import BotTab from '../BotTab';
@@ -19,29 +19,26 @@ import { useMainAccountGuard } from '../../src/contexts/MainAccountGuardContext'
 import { drawerTranslations } from '../../src/i18n/drawerTranslations';
 import { ChatBotModal } from '../../src/components/ChatBotModal';
 
-const Drawer = createDrawerNavigator();
+export const navigationRef = createNavigationContainerRef<any>();
+const Drawer = createDrawerNavigator<any>();
 
 export type RootNavProps = {
   colorScheme: 'light' | 'dark';
   user: { username?: string } | null;
   signOut: () => void;
 };
-const Stack = createNativeStackNavigator();
+const Stack = createNativeStackNavigator<any>();
 
-const RedirectToHome = ({ navigation, route }: any) => {
-  useEffect(() => {
-    // forward to nested Home stack: Stack 'DrawerRoot' -> Drawer 'Homes' -> BottomTab 'Home' -> target screen
-    // use replace so the redirect placeholder is not left on the stack
-    navigation.replace('DrawerRoot', { screen: 'Homes', params: { screen: 'Home', params: { screen: route.name, params: route.params } } });
-  }, [navigation, route]);
-  return null;
-};
-
-const DrawerScreens = ({ user, signOut }: any) => {
+const DrawerScreens = ({ user, signOut, route }: any) => {
   const { restrictNavigation } = useMainAccountGuard();
-  const { i18n } = useTranslation();
+  const { t, i18n } = useTranslation();
   const lang = i18n.language.split('-')[0];
   const drawer = drawerTranslations[lang] || drawerTranslations.en;
+  const deepParams = route?.params;
+  const drawerScreenNames = ['Homes', 'NiSenti Ndogos', 'NiSenti Kubwa', 'NiSenti Advocate', 'NiSenti Admin 2', 'Bank Admin', 'NiSenti Admin 1', 'Reference'];
+  const initialDrawerScreen = drawerScreenNames.includes(deepParams?.screen) ? deepParams?.screen : 'Homes';
+  const homesInitialParams = initialDrawerScreen === 'Homes' ? deepParams?.params : undefined;
+  
   // Helper for MiFedha brand translation (character-by-character)
   // Helper for MiFedha brand translation (character-by-character)
   const mifedhaBrand = () => {
@@ -61,13 +58,14 @@ const DrawerScreens = ({ user, signOut }: any) => {
   };
 
   return <Drawer.Navigator
+    id="RootDrawer"
+    initialRouteName={initialDrawerScreen}
     screenOptions={{
       headerShown: true,
       header: ({ navigation }) => <GlobalHeader navigation={navigation} user={user} signOut={signOut} />,
       drawerType: 'back',
       swipeEnabled: !restrictNavigation,
-      gestureEnabled: !restrictNavigation,
-      edgeWidth: restrictNavigation ? 0 : 40,
+      swipeEdgeWidth: restrictNavigation ? 0 : 40,
       drawerStyle: {
         width: 260, // restore normal drawer width
         shadowColor: 'transparent',
@@ -77,7 +75,12 @@ const DrawerScreens = ({ user, signOut }: any) => {
       },
     }}
   >
-    <Drawer.Screen name="Homes" component={BotTab} options={{ drawerLabel: drawer.homes, title: drawer.homes }} />
+    <Drawer.Screen
+      name="Homes"
+      component={BotTab}
+      initialParams={homesInitialParams}
+      options={{ drawerLabel: drawer.homes, title: drawer.homes }}
+    />
     <Drawer.Screen name="NiSenti Ndogos" component={KFNdogoScreen} options={{ drawerLabel: drawer.ndogo, title: drawer.ndogo }} />
     <Drawer.Screen name="NiSenti Kubwa" component={MFKw} options={{ drawerLabel: drawer.kubwa, title: drawer.kubwa }} />
     <Drawer.Screen name="NiSenti Advocate" component={AdvSgnIn} options={{ drawerLabel: drawer.advocate, title: drawer.advocate }} />
@@ -90,19 +93,29 @@ const DrawerScreens = ({ user, signOut }: any) => {
 
 const RootNavigator: React.FC<RootNavProps> = ({ colorScheme, user, signOut }) => {
   const handleNavigateToProduct = (screenName: string) => {
-    // Placeholder for bot navigation. Actual navigation handled by the app's normal routing.
+    if (!navigationRef.isReady()) {
+      console.warn('Navigation not ready yet for bot navigation');
+      return;
+    }
+
+    const isHomeStackScreen = HomeStackScreenNames.includes(screenName);
+    const bottomTabScreens = ['Home', 'NSNdogo', 'HowTo', 'Transport', 'GoShopping', 'Search Pal'];
+    const isBottomTabScreen = bottomTabScreens.includes(screenName);
+    const targetParams = isHomeStackScreen
+      ? { screen: 'Homes', params: { screen: 'Home', params: { screen: screenName } } }
+      : isBottomTabScreen
+      ? { screen: 'Homes', params: { screen: screenName } }
+      : { screen: 'Homes', params: { screen: screenName } };
+
+    navigationRef.navigate('DrawerRoot', targetParams);
   };
 
   return (
-    <NavigationContainer>
-      <Stack.Navigator screenOptions={{ headerShown: false }}>
-        {HomeStackScreenNames.map((name) => (
-          <Stack.Screen key={name} name={name} component={RedirectToHome} />
-        ))}
-
-        {/* Drawer is kept as one screen so user still sees Drawer UI */}
+    <NavigationContainer ref={navigationRef}>
+      <Stack.Navigator id="RootStack" screenOptions={{ headerShown: false }}>
+        {/* Drawer is kept as one screen so users still see the drawer UI */}
         <Stack.Screen name="DrawerRoot" options={{ headerShown: false }}>
-          {() => <DrawerScreens user={user} signOut={signOut} />}
+          {({ route }) => <DrawerScreens user={user} signOut={signOut} route={route} />}
         </Stack.Screen>
       </Stack.Navigator>
       

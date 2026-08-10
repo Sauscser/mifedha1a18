@@ -8,7 +8,11 @@ export const resources = {
       appShell: {
         globalHeader: {
           welcome: 'Welcome, {{username}}',
-          signOut: 'Sign Out'
+          signOut: 'Sign Out',
+          chatHi: 'Hi!',
+          chatHelp: 'How can I help you?',
+          chatAskRole: 'Are you withdrawing as an owner or as an agent?',
+          chatAgentGuide: 'If you want agents, go to the bottom tab labeled Ndogo, open the map, long press an agent card and follow the prompt.'
         },
         guard: {
           completeMainAccountTitle: 'Main account setup required',
@@ -106,7 +110,9 @@ export const resources = {
       appShell: {
         globalHeader: {
           welcome: 'مرحبًا، {{username}}',
-          signOut: 'تسجيل الخروج'
+          signOut: 'تسجيل الخروج',
+          chatHi: 'مرحبًا!',
+          chatHelp: 'كيف يمكنني مساعدتك؟'
         },
         guard: {
           completeMainAccountTitle: 'يتطلب إعداد الحساب الرئيسي',
@@ -147,7 +153,9 @@ export const resources = {
       appShell: {
         globalHeader: {
           welcome: '欢迎，{{username}}',
-          signOut: '退出登录'
+          signOut: '退出登录',
+          chatHi: '嗨！',
+          chatHelp: '我能帮你做些什么？'
         },
         guard: {
           completeMainAccountTitle: '需要完成主账户设置',
@@ -188,7 +196,9 @@ export const resources = {
       appShell: {
         globalHeader: {
           welcome: 'Добро пожаловать, {{username}}',
-          signOut: 'Выйти'
+          signOut: 'Выйти',
+          chatHi: 'Привет!',
+          chatHelp: 'Чем я могу вам помочь?'
         },
         guard: {
           completeMainAccountTitle: 'Требуется настройка основного аккаунта',
@@ -229,7 +239,9 @@ export const resources = {
       appShell: {
         globalHeader: {
           welcome: 'Karibu, {{username}}',
-          signOut: 'Toka'
+          signOut: 'Toka',
+          chatHi: 'Hujambo!',
+          chatHelp: 'Ninawezaje kukusaidia?'
         },
         guard: {
           completeMainAccountTitle: 'Inahitajika usanidi wa Akaunti Kuu',
@@ -289,7 +301,9 @@ export const resources = {
       appShell: {
         globalHeader: {
           welcome: 'Bienvenue, {{username}}',
-          signOut: 'Déconnexion'
+          signOut: 'Déconnexion',
+          chatHi: 'Salut !',
+          chatHelp: 'Comment puis-je vous aider ?'
         },
         guard: {
           completeMainAccountTitle: 'Configuration du compte principal requise',
@@ -326,7 +340,9 @@ export const resources = {
       appShell: {
         globalHeader: {
           welcome: 'Bienvenido, {{username}}',
-          signOut: 'Cerrar sesión'
+          signOut: 'Cerrar sesión',
+          chatHi: '¡Hola!',
+          chatHelp: '¿Cómo puedo ayudarte?'
         },
         guard: {
           completeMainAccountTitle: 'Se requiere configuración de la Cuenta Principal',
@@ -363,7 +379,9 @@ export const resources = {
       appShell: {
         globalHeader: {
           welcome: 'Willkommen, {{username}}',
-          signOut: 'Abmelden'
+          signOut: 'Abmelden',
+          chatHi: 'Hallo!',
+          chatHelp: 'Wie kann ich Ihnen helfen?'
         },
         guard: {
           completeMainAccountTitle: 'Hauptkonto-Einrichtung erforderlich',
@@ -400,7 +418,9 @@ export const resources = {
       appShell: {
         globalHeader: {
           welcome: 'Bem-vindo, {{username}}',
-          signOut: 'Sair'
+          signOut: 'Sair',
+          chatHi: 'Oi!',
+          chatHelp: 'Como posso ajudar você?'
         },
         guard: {
           completeMainAccountTitle: 'Configuração da Conta Principal necessária',
@@ -437,7 +457,9 @@ export const resources = {
       appShell: {
         globalHeader: {
           welcome: 'Benvenuto, {{username}}',
-          signOut: 'Disconnettersi'
+          signOut: 'Disconnettersi',
+          chatHi: 'Ciao!',
+          chatHelp: 'Come posso aiutarti?'
         },
         guard: {
           completeMainAccountTitle: 'Configurazione dell’account principale richiesta',
@@ -474,7 +496,9 @@ export const resources = {
       appShell: {
         globalHeader: {
           welcome: 'ברוך הבא, {{username}}',
-          signOut: 'התנתק'
+          signOut: 'התנתק',
+          chatHi: 'היי!',
+          chatHelp: 'איך אני יכול לעזור לך?'
         },
         guard: {
           completeMainAccountTitle: 'נדרשת הגדרת חשבון ראשי',
@@ -511,7 +535,9 @@ export const resources = {
       appShell: {
         globalHeader: {
           welcome: 'स्वागत है, {{username}}',
-          signOut: 'साइन आउट'
+          signOut: 'साइन आउट',
+          chatHi: 'हाय!',
+          chatHelp: 'मैं आपकी कैसे मदद कर सकता हूँ?'
         },
         guard: {
           completeMainAccountTitle: 'मुख्य खाता सेटअप आवश्यक है',
@@ -548,7 +574,9 @@ export const resources = {
       appShell: {
         globalHeader: {
           welcome: 'እንኳን ደህና መጡ, {{username}}',
-          signOut: 'ውጣ'
+          signOut: 'ውጣ',
+          chatHi: 'ሰላም!',
+          chatHelp: 'እንዴት ልርዳዎት?'
         },
         guard: {
           completeMainAccountTitle: 'ዋና አካውንት ማቀናበር ይወስዳል',

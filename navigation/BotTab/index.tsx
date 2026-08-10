@@ -13,13 +13,36 @@ import SearchPal from '../../screens/MyAcc/LoanRequest/VwMakeLnReq';
 import Transport from '../../screens/Transport';
 import GoShopping from '../../screens/Ads/Search/SrchItemAd';
 
+type HomeBottomTabParamList = {
+  Home: undefined;
+  NSNdogo: undefined;
+  HowTo: undefined;
+  Transport: undefined;
+  GoShopping: undefined;
+  'Search Pal': undefined;
+};
 
-const BottomTab = createBottomTabNavigator();
+const BottomTab = createBottomTabNavigator<HomeBottomTabParamList>();
 
 
-const HomeTabNavigator = () => {
+const HomeTabNavigator = ({ route, navigation }: any) => {
   const { t, i18n } = useTranslation();
   const { restrictNavigation } = useMainAccountGuard();
+
+  const homeInitialParams = route?.params;
+
+  const resolveTarget = (params: any) => {
+    let target = params;
+    while (target?.screen === 'Homes' || target?.screen === 'Home') {
+      target = target?.params;
+    }
+    return target;
+  };
+
+  const homeScreenInitialParams = React.useMemo(() => {
+    const target = resolveTarget(homeInitialParams);
+    return target?.screen ? target : undefined;
+  }, [homeInitialParams]);
 
   const handleBlockedNavigation = (e: any) => {
     if (restrictNavigation) {
@@ -40,12 +63,14 @@ const HomeTabNavigator = () => {
 
   return (
     <BottomTab.Navigator
+      id="HomeBottomTab"
       initialRouteName="Home"
       screenOptions={{ headerShown: false }}
     >
       <BottomTab.Screen
         name='Home'
         component={HomeTabNav}
+        initialParams={homeScreenInitialParams}
         options={{
           title: t('appShell.tabs.home'),
           tabBarLabel: t('appShell.tabs.home'),
@@ -53,18 +78,9 @@ const HomeTabNavigator = () => {
             <Fontisto name="home" size={25} color={'skyblue'} />
           ),
         }}
-        listeners={({ navigation }) => ({
+        listeners={() => ({
           tabPress: e => {
             handleBlockedNavigation(e);
-            if (!restrictNavigation) {
-              try {
-                navigation.navigate('Home', { screen: 'Homeie' });
-              } catch (err) {
-                try {
-                  navigation.jumpTo && navigation.jumpTo('Home');
-                } catch (e) {}
-              }
-            }
           },
         })}
       />
