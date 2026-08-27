@@ -8,6 +8,8 @@ import {useExchange} from '../../../../../src/contexts/ExchangeContext';
 import { getSMAccount } from '../../../../../src/graphql/queries';
 import {fetchUserAttributes} from 'aws-amplify/auth';
 import { generateClient } from 'aws-amplify/api';
+import { safeNavigateFrom } from '../../../../../src/utils/navigationHelper';
+
 
 
 
@@ -32,7 +34,7 @@ const ChmMbrShpInfo = (props:ChamaMmbrshpInfo) => {
    const navigation = useNavigation();
     
    const SndChmMmbrMny = () => {
-      navigation.navigate("RepyChmCovLns", {loanID})
+      safeNavigateFrom(navigation, 'RepyChmCovLns', {loanID})
    }
 
    const client = generateClient();

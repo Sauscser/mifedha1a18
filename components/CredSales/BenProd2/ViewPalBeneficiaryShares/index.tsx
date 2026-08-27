@@ -12,6 +12,8 @@ import { formatAmountSync } from '../../../../src/utils/exchange';
 import { getSMAccount } from '../../../../src/graphql/queries';
 import { useTranslation } from 'react-i18next';
 import translations from './translation';
+import { safeNavigateFrom } from '../../../../src/utils/navigationHelper';
+
 
 
 export interface SMAccount {
@@ -57,11 +59,9 @@ const SMCvLnStts = (props:SMAccount) => {
    const VwBenefactorContriDtls = () => {
 
     
-    navigation.navigate("VwBeneficiaryContriDtls", 
-      {beneficiaryAc, 
+    safeNavigateFrom(navigation, 'VwBeneficiaryContriDtls', {beneficiaryAc, 
         benefactorAc, 
-        prodName}
-    )
+        prodName})
 }
 
 

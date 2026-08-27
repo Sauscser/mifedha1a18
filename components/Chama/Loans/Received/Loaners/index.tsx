@@ -11,6 +11,8 @@ import { getSMAccount } from '../../../../../src/graphql/queries';
 import {fetchUserAttributes} from 'aws-amplify/auth';
 import { useTranslation } from 'react-i18next';
 import translations from './translation';
+import { safeNavigateFrom } from '../../../../../src/utils/navigationHelper';
+
 
 export interface ChmCvLnSttusRec {
   Loanee: {
@@ -64,15 +66,15 @@ const ChmCvLnSttsRec = (props: ChmCvLnSttusRec) => {
   const navigation = useNavigation();
 
   const SndChmMmbrMny = () => {
-    navigation.navigate('ChmLoanersDtls', { loanID });
+    safeNavigateFrom(navigation, 'ChmLoanersDtls', { loanID });
   };
 
   const VwRpayments = () => {
-    navigation.navigate('ViewNonLnsSntChm', { loanID });
+    safeNavigateFrom(navigation, 'ViewNonLnsSntChm', { loanID });
   };
 
   const Repay = () => {
-    navigation.navigate('RepyChmCovLns', { loanID });
+    safeNavigateFrom(navigation, 'RepyChmCovLns', { loanID });
   };
 
   const client = generateClient();

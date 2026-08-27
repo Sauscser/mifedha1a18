@@ -3,6 +3,8 @@ import React from 'react';
 import {View, Text, ImageBackground, Pressable, TextInput, ScrollView} from 'react-native';
 
 import styles from './styles';
+import { safeNavigateFrom } from '../../../../../src/utils/navigationHelper';
+
 
 
 export interface ChamaMmbrshpInfo {
@@ -25,7 +27,7 @@ const ChmMbrShpInfo = (props:ChamaMmbrshpInfo) => {
    const navigation = useNavigation();
     
    const SndChmMmbrMny = () => {
-      navigation.navigate("Contributionssss", {ChamaNMember})
+      safeNavigateFrom(navigation, 'Contributionssss', {ChamaNMember})
    }
    
     return (

@@ -4,6 +4,8 @@ import { View, Text, ImageBackground, Pressable, FlatList, SafeAreaView, ScrollV
 import styles from './styles';
 import { TouchableOpacity } from 'react-native-gesture-handler';
 import { LinearGradient } from 'expo-linear-gradient';
+import { safeNavigateFrom } from '../../src/utils/navigationHelper';
+
 const MyAccount = props => {
   const navigation = useNavigation();
   const Section = ({
@@ -33,49 +35,49 @@ const MyAccount = props => {
       </View>
     </View>;
   const SMDpsitsss = () => {
-    navigation.navigate('ElimDpstss');
+    safeNavigateFrom(navigation, 'ElimDpstss');
   };
   const ViewNonLnsRecs = () => {
-    navigation.navigate('ViewNonLnsRecs');
+    safeNavigateFrom(navigation, 'ViewNonLnsRecs');
   };
   const ViewNonLnsSents = () => {
-    navigation.navigate('ViewNonLnsSents');
+    safeNavigateFrom(navigation, 'ViewNonLnsSents');
   };
   const SearchUser = () => {
-    navigation.navigate('VwMakeLnReq');
+    safeNavigateFrom(navigation, 'VwMakeLnReq');
   };
   const SMWthdrwlsss = () => {
-    navigation.navigate('ElimWthdrwlss');
+    safeNavigateFrom(navigation, 'ElimWthdrwlss');
   };
   const goWithdrwMny = () => {
-    navigation.navigate('WithdrawalOptions');
+    safeNavigateFrom(navigation, 'WithdrawalOptions');
   };
   const goToSMASndnonln = () => {
-    navigation.navigate('Vw2SelectChmBeneficiary');
+    safeNavigateFrom(navigation, 'Vw2SelectChmBeneficiary');
   };
   const LoanAds = () => {
     navigation.navigate('LoanAds');
   };
   const UpdateMainAc = () => {
-    navigation.navigate('UpdateMainAc');
+    safeNavigateFrom(navigation, 'UpdateMainAc');
   };
   const SrchLoanAdz = () => {
-    navigation.navigate('SrchLoanAdz');
+    safeNavigateFrom(navigation, 'SrchLoanAdz');
   };
   const DepositOptions = () => {
-    navigation.navigate('DepositOptions');
+    safeNavigateFrom(navigation, 'DepositOptions');
   };
   const VwPlLn2Remove = () => {
-    navigation.navigate('VwPlLn2Remove');
+    safeNavigateFrom(navigation, 'VwPlLn2Remove');
   };
   const BoostPalBenefits = () => {
-    navigation.navigate('BoostPalBenefits');
+    safeNavigateFrom(navigation, 'BoostPalBenefits');
   };
   const UrLnks = () => {
     navigation.navigate('UrLnks');
   };
   const ViewBiznaShareRec = () => {
-    navigation.navigate('ViewBiznaShareRec');
+    safeNavigateFrom(navigation, 'ViewBiznaShareRec');
   };
   return <SafeAreaView>
       <ScrollView>

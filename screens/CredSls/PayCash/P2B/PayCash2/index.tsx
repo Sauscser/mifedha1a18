@@ -11,6 +11,8 @@ import { getCurrentUser, fetchUserAttributes } from "aws-amplify/auth";
 import { generateClient } from "aws-amplify/api";
 import { useTranslation } from 'react-i18next';
 import translations from './translation';
+import { safeNavigateFrom } from '../../../../../src/utils/navigationHelper';
+
 const client = generateClient();
 const SMASendNonLns = () => {
   const [SnderPW, setSnderPW] = useState("");
@@ -31,7 +33,7 @@ const SMASendNonLns = () => {
     itemUnit,
     totalCost
   } = route.params;
-  const navigateToChmRepay = () => navigation.navigate("AutomaticRepayAllTyps");
+  const navigateToChmRepay = () => safeNavigateFrom(navigation, 'AutomaticRepayAllTyps');
   const showError = msg => {
     Alert.alert(msg);
     setIsLoading(false);

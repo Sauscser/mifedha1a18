@@ -7,6 +7,8 @@ import translations from './translation';
 import { listGroups } from '../../../../src/graphql/queries';
 import { generateClient } from 'aws-amplify/api';
 import { getCurrentUser, fetchUserAttributes } from 'aws-amplify/auth';
+import { safeNavigateFrom } from '../../../../src/utils/navigationHelper';
+
 const client = generateClient();
 const ChmSignIn = () => {
   const navigation = useNavigation();
@@ -43,7 +45,7 @@ const ChmSignIn = () => {
     fetchAdminGroups();
   }, []);
   const openGroupLoans = (grpContact: string) => {
-    navigation.navigate('ChmLnsSent', {
+    safeNavigateFrom(navigation, 'ChmLnsSent', {
       grpContact
     });
   };

@@ -2,6 +2,8 @@ import { useNavigation } from '@react-navigation/core';
 import React from 'react';
 import {View, Text,  Pressable,  } from 'react-native';
 import styles from './styles';
+import { safeNavigateFrom } from '../../../src/utils/navigationHelper';
+
 
 
 export interface ChmCvLnSttusRec {
@@ -41,7 +43,7 @@ const CredSlrCvLnStts = (props:ChmCvLnSttusRec) => {
    const navigation = useNavigation();
 
    const SndChmMmbrMny = () => {
-      navigation.navigate("BListCredByrNonCovs", {id})
+      safeNavigateFrom(navigation, 'BListCredByrNonCovs', {id})
    }
     return (
       <Pressable 

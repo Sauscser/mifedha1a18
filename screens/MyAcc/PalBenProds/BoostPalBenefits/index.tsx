@@ -8,6 +8,8 @@ import styles from './styles';
 import { getCurrentUser, fetchUserAttributes } from "aws-amplify/auth";
 import { generateClient } from "aws-amplify/api";
 import { convertForeignToKsh, formatAmountForUser } from '../../../../src/utils/exchange';
+import { safeNavigateFrom } from '../../../../src/utils/navigationHelper';
+
 const client = generateClient();
 const SMASendNonLns = props => {
   const [SenderNatId, setSenderNatId] = useState('');
@@ -18,7 +20,7 @@ const SMASendNonLns = props => {
   const [isLoading, setIsLoading] = useState(false);
   const navigation = useNavigation();
   const SndChmMmbrMny = () => {
-    navigation.navigate("AutomaticRepayAllTyps");
+    safeNavigateFrom(navigation, 'AutomaticRepayAllTyps');
   };
   const fetchCvLnSM = async () => {
     setIsLoading(true);

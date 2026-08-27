@@ -5,6 +5,8 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import { View, Text, ImageBackground, Pressable, TextInput, ScrollView, ActivityIndicator, KeyboardAvoidingView, Platform, TouchableOpacity, Alert } from 'react-native';
 import styles from './styles';
 import { updateBankAdmin } from '../../../src/graphql/mutations';
+import { safeNavigateFrom } from '../../../src/utils/navigationHelper';
+
 const UpdtSMPW = props => {
   const navigation = useNavigation();
   const [isLoading, setIsLoading] = useState(false);
@@ -13,13 +15,13 @@ const UpdtSMPW = props => {
   const [email, setAWSEmail] = useState(null);
   const route = useRoute();
   const moveToAbt = () => {
-    navigation.navigate("VwCompAbts");
+    safeNavigateFrom(navigation, 'VwCompAbts');
   };
   const moveToPolicy = () => {
-    navigation.navigate("VwCompPolicys");
+    safeNavigateFrom(navigation, 'VwCompPolicys');
   };
   const moveToPrivacy = () => {
-    navigation.navigate("VwCompPrivacys");
+    safeNavigateFrom(navigation, 'VwCompPrivacys');
   };
   const GoHome = () => {
     navigation.navigate('Homes');

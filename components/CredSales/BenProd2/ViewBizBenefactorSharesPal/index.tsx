@@ -13,6 +13,8 @@ import {useExchange} from '../../../../src/contexts/ExchangeContext';
 import { formatAmountSync } from '../../../../src/utils/exchange';
 import { useTranslation } from 'react-i18next';
 import translations from './translation';
+import { safeNavigateFrom } from '../../../../src/utils/navigationHelper';
+
 
 export interface SMAccount {
   SMAc: {
@@ -60,7 +62,7 @@ const SMCvLnStts = (props: SMAccount) => {
    
 
   const VwBenefactorContriDtls = () => {
-    navigation.navigate("VwPalBenefactorContriDtls", {
+    safeNavigateFrom(navigation, 'VwPalBenefactorContriDtls', {
       benefactorAc,
       benefactorPhone,
       creatorName,

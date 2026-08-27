@@ -11,50 +11,52 @@ import {
 } from 'react-native';
 import styles from './styles';
 import { TouchableOpacity } from 'react-native-gesture-handler';
+import { safeNavigateFrom } from '../../../src/utils/navigationHelper';
+
 
 const MyAccount = (props: any) => {
   const navigation = useNavigation();
 
   const SMDpsitsss = () => {
-    navigation.navigate('ElimDpstss');
+    safeNavigateFrom(navigation, 'ElimDpstss');
   };
 
   const ViewNonLnsRecs = () => {
-    navigation.navigate('ViewNonLnsRecs');
+    safeNavigateFrom(navigation, 'ViewNonLnsRecs');
   };
 
   const ViewNonLnsSents = () => {
-    navigation.navigate('ViewNonLnsSents');
+    safeNavigateFrom(navigation, 'ViewNonLnsSents');
   };
 
   
 
   const SearchUser = () => {
-    navigation.navigate('VwMakeLnReq');
+    safeNavigateFrom(navigation, 'VwMakeLnReq');
   };
 
   const goToCreateSMAc = () => {
-    navigation.navigate('CreateSMAc');
+    safeNavigateFrom(navigation, 'CreateSMAc');
   };
 
   const SMWthdrwlsss = () => {
-    navigation.navigate('ElimWthdrwlss');
+    safeNavigateFrom(navigation, 'ElimWthdrwlss');
   };
 
   const goWithdrwMny = () => {
-    navigation.navigate('SMWthdFm');
+    safeNavigateFrom(navigation, 'SMWthdFm');
   };
 
   const goToSMASndnonln = () => {
-    navigation.navigate('SendNonLnss');
+    safeNavigateFrom(navigation, 'SendNonLnss');
   };
 
   const UpdateSMPWss = () => {
-    navigation.navigate('UpdateSMPWs');
+    safeNavigateFrom(navigation, 'UpdateSMPWs');
   };
 
   const CrdSlVw2DelLnReqs = () => {
-    navigation.navigate('CrdSlVw2DelLnReqs');
+    safeNavigateFrom(navigation, 'CrdSlVw2DelLnReqs');
   };
 
   const CrdSlPlaceLnReq = () => {
@@ -62,19 +64,19 @@ const MyAccount = (props: any) => {
   };
 
   const ChamaVw2DelLnReqs = () => {
-    navigation.navigate('ChamaVw2DelLnReqs');
+    safeNavigateFrom(navigation, 'ChamaVw2DelLnReqs');
   };
 
   const ChamaPlaceLnReq = () => {
-    navigation.navigate('ChamaPlaceLnReq');
+    safeNavigateFrom(navigation, 'ChamaPlaceLnReq');
   };
 
   const Vw2DelLnReqs = () => {
-    navigation.navigate('Vw2DelLnReqs');
+    safeNavigateFrom(navigation, 'Vw2DelLnReqs');
   };
 
   const VwMakeLnReq = () => {
-    navigation.navigate('PlaceLnReq');
+    safeNavigateFrom(navigation, 'PlaceLnReq');
   };
 
   

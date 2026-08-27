@@ -12,6 +12,8 @@ import {fetchUserAttributes} from 'aws-amplify/auth';
 import { formatAmountSync } from '../../../../src/utils/exchange';
 import { useTranslation } from 'react-i18next';
 import translations from './translation';
+import { safeNavigateFrom } from '../../../../src/utils/navigationHelper';
+
 
 export interface SMAccount {
     SMAc: {
@@ -45,15 +47,15 @@ const SMCvLnStts = (props:SMAccount) => {
    
 
    const BenefitPal = () => {
-    navigation.navigate("SharePalBenefits", {beneficiaryID});
+    safeNavigateFrom(navigation, 'SharePalBenefits', {beneficiaryID});
   }
 
   const BenefitBiz = () => {
-    navigation.navigate("ShareBizBenefits", {beneficiaryID});
+    safeNavigateFrom(navigation, 'ShareBizBenefits', {beneficiaryID});
   }
 
   const BenDtls = () => {
-    navigation.navigate("VwBenProdsDtls", {beneficiaryID});
+    safeNavigateFrom(navigation, 'VwBenProdsDtls', {beneficiaryID});
   }
 
   const client = generateClient();

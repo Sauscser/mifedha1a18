@@ -11,6 +11,8 @@ import {useExchange} from '../../../src/contexts/ExchangeContext';
 import { generateClient } from 'aws-amplify/api';  
 import { getSMAccount } from '../../../src/graphql/queries';
 import {fetchUserAttributes} from 'aws-amplify/auth';
+import { safeNavigateFrom } from '../../../src/utils/navigationHelper';
+
 
 
 export interface SMAccount {
@@ -58,7 +60,7 @@ const SMCvLnStts = (props: SMAccount & { onSyncComplete: () => void }) => {
   const [isSynced, setIsSynced] = useState(false);
 
   const MFBankAdmin = () => {
-    navigation.navigate('SyncGrpBenefits');
+    safeNavigateFrom(navigation, 'SyncGrpBenefits');
   };
 
   const gtUsrDtls4AdminDtls = async () => {

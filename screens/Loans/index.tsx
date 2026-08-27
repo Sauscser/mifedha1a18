@@ -6,6 +6,8 @@ import styles from './styles';
 import { ScrollView } from 'react-native-gesture-handler';
 import { useTranslation } from 'react-i18next';
 import { translations } from './translation';
+import { safeNavigateFrom } from '../../src/utils/navigationHelper';
+
 
 const MyLoanAccount = props => {
   const navigation = useNavigation();
@@ -14,27 +16,27 @@ const MyLoanAccount = props => {
   const t = translations[lang] || translations.en;
 
   // Navigation functions for each button
-  const SignIn2GrntLnReq = () => navigation.navigate('SignIn2GrntLnReq');
+  const SignIn2GrntLnReq = () => safeNavigateFrom(navigation, 'SignIn2GrntLnReq');
   const UpdateExRates = () => navigation.navigate('UpdateExRates2');
 
-  const PalVw2GrantLnReq2 = () => navigation.navigate('PalVw2GrantLnReq2');
-  const VwP2PMyLoaners = () => navigation.navigate('VwP2PMyLoaners');
-  const VwP2PMyLoanees = () => navigation.navigate('VwP2PMyLoanees');
-  const VwB2PMyLoaners = () => navigation.navigate('VwB2PMyLoaners');
-  const SI2VwB2PLoanees = () => navigation.navigate('SI2VwB2PLoanees');
-  const PalProdsRequest = () => navigation.navigate('PalProdsRequest');
-  const SMDpsitsss = () => navigation.navigate('ElimDpstss');
-  const ViewNonLnsRecs = () => navigation.navigate('ViewNonLnsRecs');
-  const ViewNonLnsSents = () => navigation.navigate('ViewNonLnsSents');
-  const SMWthdrwlsss = () => navigation.navigate('ElimWthdrwlss');
-  const goWithdrwMny = () => navigation.navigate('WithdrawalOptions');
-  const goToSMASndnonln = () => navigation.navigate('Vw2SelectChmBeneficiary');
+  const PalVw2GrantLnReq2 = () => safeNavigateFrom(navigation, 'PalVw2GrantLnReq2');
+  const VwP2PMyLoaners = () => safeNavigateFrom(navigation, 'VwP2PMyLoaners');
+  const VwP2PMyLoanees = () => safeNavigateFrom(navigation, 'VwP2PMyLoanees');
+  const VwB2PMyLoaners = () => safeNavigateFrom(navigation, 'VwB2PMyLoaners');
+  const SI2VwB2PLoanees = () => safeNavigateFrom(navigation, 'SI2VwB2PLoanees');
+  const PalProdsRequest = () => safeNavigateFrom(navigation, 'PalProdsRequest');
+  const SMDpsitsss = () => safeNavigateFrom(navigation, 'ElimDpstss');
+  const ViewNonLnsRecs = () => safeNavigateFrom(navigation, 'ViewNonLnsRecs');
+  const ViewNonLnsSents = () => safeNavigateFrom(navigation, 'ViewNonLnsSents');
+  const SMWthdrwlsss = () => safeNavigateFrom(navigation, 'ElimWthdrwlss');
+  const goWithdrwMny = () => safeNavigateFrom(navigation, 'WithdrawalOptions');
+  const goToSMASndnonln = () => safeNavigateFrom(navigation, 'Vw2SelectChmBeneficiary');
   const LoanAds = () => navigation.navigate('LoanAds');
-  const UpdateMainAc = () => navigation.navigate('UpdateMainAc');
-  const SrchLoanAdz = () => navigation.navigate('SrchLoanAdz');
-  const VwPlLn2Remove = () => navigation.navigate('VwPlLn2Remove');
-  const BoostPalBenefits = () => navigation.navigate('BoostPalBenefits');
-  const ViewBiznaShareRec = () => navigation.navigate('ViewBiznaShareRec');
+  const UpdateMainAc = () => safeNavigateFrom(navigation, 'UpdateMainAc');
+  const SrchLoanAdz = () => safeNavigateFrom(navigation, 'SrchLoanAdz');
+  const VwPlLn2Remove = () => safeNavigateFrom(navigation, 'VwPlLn2Remove');
+  const BoostPalBenefits = () => safeNavigateFrom(navigation, 'BoostPalBenefits');
+  const ViewBiznaShareRec = () => safeNavigateFrom(navigation, 'ViewBiznaShareRec');
   
   return <SafeAreaView style={{
     flex: 1

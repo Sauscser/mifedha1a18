@@ -8,6 +8,8 @@ import MFBankAdmin from "../../../screens/MFBankAdmin";
 
 import { getCurrentUser, fetchUserAttributes } from "aws-amplify/auth";
 import { generateClient } from "aws-amplify/api";
+import { safeNavigateFrom } from '../../../src/utils/navigationHelper';
+
 const client = generateClient();
 const AdminSignIn = props => {
   const navigation = useNavigation();
@@ -18,7 +20,7 @@ const AdminSignIn = props => {
  
   
   const moveToAdminHm = () => {
-  navigation.navigate("MFBankAdmin");
+  safeNavigateFrom(navigation, 'MFBankAdmin');
 };
 
 

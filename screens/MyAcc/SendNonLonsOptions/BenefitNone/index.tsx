@@ -8,6 +8,8 @@ import { getCurrentUser, fetchUserAttributes } from "aws-amplify/auth";
 import { getUserNationalityByEmail, formatAmountForUser, formatAmountSync, convertForeignToKsh } from '../../../../src/utils/exchange';
 import { generateClient } from "aws-amplify/api";
 import { useExchange } from '../../../../src/contexts/ExchangeContext';
+import { safeNavigateFrom } from '../../../../src/utils/navigationHelper';
+
 const client = generateClient();
 const SMASendNonLns = props => {
   const [SenderNatId, setSenderNatId] = useState('');
@@ -30,7 +32,7 @@ const SMASendNonLns = props => {
 
   const formatUserInputAmount = (value: number) => `${currencySymbol} ${value.toFixed(2)}`;
   const SndChmMmbrMny = () => {
-    navigation.navigate("AutomaticRepayAllTyps");
+    safeNavigateFrom(navigation, 'AutomaticRepayAllTyps');
   };
   const fetchCvLnSM = async () => {
     setIsLoading(true);

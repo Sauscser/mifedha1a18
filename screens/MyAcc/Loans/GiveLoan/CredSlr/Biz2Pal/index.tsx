@@ -10,6 +10,8 @@ import { generateClient } from "aws-amplify/api";
 import { useExchange } from '../../../../../../src/contexts/ExchangeContext';
 import { convertForeignToKsh, formatAmountSync } from '../../../../../../src/utils/exchange';
 import { nationalityToCode } from '../../../../../../src/utils/nationalityToCode';
+import { safeNavigateFrom } from '../../../../../../src/utils/navigationHelper';
+
 const client = generateClient();
 const CovCredSls = props => {
   const [SenderNatId, setSenderNatId] = useState('');
@@ -29,7 +31,7 @@ const CovCredSls = props => {
   const navigation = useNavigation();
   const { nationality, ratesMap } = useExchange();
   const SndChmMmbrMny = () => {
-    navigation.navigate("AutomaticRepayAllTyps");
+    safeNavigateFrom(navigation, 'AutomaticRepayAllTyps');
   };
   const fetchCredSlLnReq = async () => {
     if (isLoading) {

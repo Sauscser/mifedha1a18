@@ -11,6 +11,8 @@ import { formatAmountSync } from '../../../../../src/utils/exchange';
 import { nationalityToCode } from '../../../../../src/utils/nationalityToCode';
 import { useTranslation } from 'react-i18next';
 import translations from './translation';
+import { safeNavigateFrom } from '../../../../../src/utils/navigationHelper';
+
 const client = generateClient();
 const SMASendNonLns = props => {
   const [isLoading, setIsLoading] = useState(false);
@@ -23,7 +25,7 @@ const SMASendNonLns = props => {
   const fmt = (template: string, vars: Record<string, string | number>) =>
     template.replace(/\{(\w+)\}/g, (_, k) => String(vars[k] ?? ''));
   const SndChmMmbrMny = () => {
-    navigation.navigate("AutomaticRepayAllTyps");
+    safeNavigateFrom(navigation, 'AutomaticRepayAllTyps');
   };
   const fetchSaleReqDtls = async () => {
     if (isLoading) return;

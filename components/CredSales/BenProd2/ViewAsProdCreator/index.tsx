@@ -13,6 +13,8 @@ import { getSMAccount } from '../../../../src/graphql/queries';
 import {fetchUserAttributes} from 'aws-amplify/auth';
 import { useTranslation } from 'react-i18next';
 import translations from './translation';
+import { safeNavigateFrom } from '../../../../src/utils/navigationHelper';
+
 
 
 export interface SMAccount {
@@ -55,8 +57,7 @@ const SMCvLnStts = (props:SMAccount) => {
   const t = translations[lang] || translations.en;
    
    const VwBenefactorContriDtls = () => {
-    navigation.navigate("VwBenCreatorContriDtls", 
-      {benefactorAc, benefactorPhone, beneficiaryAc, prodName})
+    safeNavigateFrom(navigation, 'VwBenCreatorContriDtls', {benefactorAc, benefactorPhone, beneficiaryAc, prodName})
 }
 
    const client = generateClient();

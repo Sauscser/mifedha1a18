@@ -13,6 +13,8 @@ import { formatAmountSync } from '../../../../src/utils/exchange';
 import { getSMAccount } from '../../../../src/graphql/queries';
 import { useTranslation } from 'react-i18next';
 import translations from './translation';
+import { safeNavigateFrom } from '../../../../src/utils/navigationHelper';
+
 
 
 export interface SMAccount {
@@ -55,8 +57,7 @@ const SMCvLnStts = (props:SMAccount) => {
   const t = translations[lang] || translations.en;
    
    const VwBenefactorContriDtls = () => {
-    navigation.navigate("VwBenefactorContriDtls", 
-      {benefactorAc, benefactorPhone, creatorName, prodName})
+    safeNavigateFrom(navigation, 'VwBenefactorContriDtls', {benefactorAc, benefactorPhone, creatorName, prodName})
 };
 
    const client = generateClient();

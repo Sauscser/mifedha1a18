@@ -5,6 +5,8 @@ import { generateClient } from 'aws-amplify/api';
 import styles from './styles';
 import { updateReqLoan, updateReqLoanChama, updateReqLoanCredSl, updateSMAccount } from '../../../src/graphql/mutations';
 import Communications from 'react-native-communications';
+import { safeNavigateFrom } from '../../../src/utils/navigationHelper';
+
 
 export interface SMAccount {
   SMAc: {
@@ -46,7 +48,7 @@ const ViewSMDeposts = (props: SMAccount) => {
   const navigation = useNavigation();
 
   const SndChmMmbrMny3 = () => {
-    navigation.navigate("Vw2ApproveBizReq");
+    safeNavigateFrom(navigation, 'Vw2ApproveBizReq');
   };
 
   const SndChmMmbrMny = () => {

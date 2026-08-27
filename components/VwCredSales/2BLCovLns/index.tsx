@@ -10,6 +10,8 @@ import {fetchUserAttributes} from 'aws-amplify/auth';
 import { generateClient } from 'aws-amplify/api';
 import { useTranslation } from 'react-i18next';
 import translations from './translation';
+import { safeNavigateFrom } from '../../../src/utils/navigationHelper';
+
 
 
 export interface ChmCvLnSttusRec {
@@ -51,7 +53,7 @@ const CredSlrCvLnStts = (props:ChmCvLnSttusRec) => {
    const navigation = useNavigation();
 
    const SndChmMmbrMny = () => {
-      navigation.navigate("BListCredByrCovs", {id})
+      safeNavigateFrom(navigation, 'BListCredByrCovs', {id})
    }
 
        const client = generateClient();

@@ -11,6 +11,8 @@ import { useExchange } from '../../../src/contexts/ExchangeContext';
 import { nationalityToCode } from '../../../src/utils/nationalityToCode';
 import { useTranslation } from 'react-i18next';
 import translations from './translation';
+import { safeNavigateFrom } from '../../../src/utils/navigationHelper';
+
 
 const client = generateClient();
 
@@ -43,11 +45,11 @@ const SMASendNonLns = (props: any) => {
     template.replace(/\{(\w+)\}/g, (_, k) => String(vars[k] ?? ''));
 
   const SndChmMmbrMny = () => {
-    navigation.navigate('AutomaticRepayAllTyps');
+    safeNavigateFrom(navigation, 'AutomaticRepayAllTyps');
   };
 
   const NoBizBen = () => {
-    navigation.navigate('PayCash');
+    safeNavigateFrom(navigation, 'PayCash');
   };
 
   const fetchCvLnSM = async () => {

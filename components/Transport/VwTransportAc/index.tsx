@@ -15,6 +15,8 @@ import { getSMAccount } from '../../../src/graphql/queries';
 import { fetchUserAttributes } from 'aws-amplify/auth';
 import { useTranslation } from 'react-i18next';
 import { translations } from '../../../screens/Transport/VwTransportAccount/translation';
+import { safeNavigateFrom } from '../../../src/utils/navigationHelper';
+
 
 export interface SMAccount {
   SMAc: {
@@ -109,15 +111,15 @@ const ViewSMDeposts = ({ SMAc }: SMAccount) => {
   const t = translations[lang] || translations.en;
 
   const ShareRev = () => {
-    navigation.navigate("ShareTransportRevenue", { id });
+    safeNavigateFrom(navigation, 'ShareTransportRevenue', { id });
   };
 
   const ViewTransportPaymentRec = () => {
-    navigation.navigate("ViewTransportPaymentRec");
+    safeNavigateFrom(navigation, 'ViewTransportPaymentRec');
   };
 
   const ViewDeliveryPayments = () => {
-    navigation.navigate("ViewDeliveryPayments");
+    safeNavigateFrom(navigation, 'ViewDeliveryPayments');
   };
 
   const [Uzer, setUzer] = useState<string>(null);

@@ -10,6 +10,8 @@ import {fetchUserAttributes} from 'aws-amplify/auth';
 import { generateClient } from 'aws-amplify/api';
 import { useTranslation } from 'react-i18next';
 import translations from './translation';
+import { safeNavigateFrom } from '../../../../src/utils/navigationHelper';
+
 
 
 
@@ -72,11 +74,11 @@ const SMCvLnStts = (props:SMAccount) => {
    }, [Uzer]);
 
    const SndChmMmbrMny = () => {
-       navigation.navigate("GrantBiz2BizCrdSl", {id});
+       safeNavigateFrom(navigation, 'GrantBiz2BizCrdSl', {id});
    }
 
    const SndChmMmbrMny2 = () => {
-     navigation.navigate("DeclCredSls", {id});
+     safeNavigateFrom(navigation, 'DeclCredSls', {id});
    }
 
    return (

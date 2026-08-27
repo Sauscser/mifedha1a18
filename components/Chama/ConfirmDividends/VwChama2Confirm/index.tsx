@@ -5,6 +5,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import styles from './styles';
 import { translations } from './translation';
 import { useTranslation } from 'react-i18next';
+import { safeNavigateFrom } from '../../../../src/utils/navigationHelper';
+
 
 export interface ChamaMmbrshpInfo {
   ChamaMmbrshpDtls: {
@@ -35,7 +37,7 @@ const ChmMbrShpInfo = (props: ChamaMmbrshpInfo) => {
   const { i18n } = useTranslation();
   const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
   const t = translations[lang] || translations.en;
-  const Vw2Confirm = () => navigation.navigate('ChamaRemts', { groupContact });
+  const Vw2Confirm = () => safeNavigateFrom(navigation, 'ChamaRemts', { groupContact });
   return (
     <View style={styles.pageContainer}>
       <Pressable onPress={Vw2Confirm} style={styles.card}>

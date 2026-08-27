@@ -8,6 +8,8 @@ import { getSMAccount } from '../../../src/graphql/queries';
 import {fetchUserAttributes} from 'aws-amplify/auth';
 import { generateClient } from 'aws-amplify/api';
 import styles from './styles';
+import { safeNavigateFrom } from '../../../src/utils/navigationHelper';
+
 
 
 export interface ChamaMmbrshpInfo {
@@ -63,11 +65,11 @@ const ChmMbrShpInfo = (props:ChamaMmbrshpInfo) => {
    const navigation = useNavigation();
 
    const BenefitChama = () => {
-      navigation.navigate("SendNLBnftChm", {ChamaNMember})
+      safeNavigateFrom(navigation, 'SendNLBnftChm', {ChamaNMember})
    }
 
    const BenefitChmSenderOnly = () => {
-      navigation.navigate("BenefitChmSenderOnly")
+      safeNavigateFrom(navigation, 'BenefitChmSenderOnly')
    }
 
    useEffect(() => {

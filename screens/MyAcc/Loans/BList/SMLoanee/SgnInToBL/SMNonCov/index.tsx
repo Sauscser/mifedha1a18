@@ -5,6 +5,8 @@ import { View, Text, ImageBackground, Pressable, TextInput, ScrollView, Keyboard
 import styles from './styles';
 import { getCurrentUser, fetchUserAttributes } from "aws-amplify/auth";
 import { generateClient } from "aws-amplify/api";
+import { safeNavigateFrom } from '../../../../../../../src/utils/navigationHelper';
+
 const client = generateClient();
 const ChmSignIn = props => {
   const navigation = useNavigation();
@@ -26,7 +28,7 @@ const ChmSignIn = props => {
     const attributes = await fetchUserAttributes();
     const ChmNMmbrPhnss = attributes.email + memberPhn;
     const FetchGrpLonsSts = () => {
-      navigation.navigate("Vw2BLSMNonCovs", {
+      safeNavigateFrom(navigation, 'Vw2BLSMNonCovs', {
         ChmNMmbrPhnss
       });
     };

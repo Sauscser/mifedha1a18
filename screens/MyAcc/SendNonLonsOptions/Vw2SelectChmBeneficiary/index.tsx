@@ -6,13 +6,15 @@ import { updateCompany, updateSMAccount } from '../../../../src/graphql/mutation
 import { useNavigation } from '@react-navigation/native';
 import { getCurrentUser, fetchUserAttributes } from "aws-amplify/auth";
 import { generateClient } from "aws-amplify/api";
+import { safeNavigateFrom } from '../../../../src/utils/navigationHelper';
+
 const client = generateClient();
 const FetchSMCovLns = props => {
   const [loading, setLoading] = useState(false);
   const [Loanees, setLoanees] = useState([]);
   const navigation = useNavigation();
   const noBenefit = () => {
-    navigation.navigate("BenefitChmSenderOnly");
+    safeNavigateFrom(navigation, 'BenefitChmSenderOnly');
   };
   const fetchUsrDtls = async () => {
     const userInfo = await getCurrentUser();

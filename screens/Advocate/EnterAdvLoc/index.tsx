@@ -2,11 +2,13 @@ import React, { useEffect, useState } from 'react';
 import { useNavigation } from '@react-navigation/native';
 import { View, Text, TextInput, ScrollView, TouchableOpacity } from 'react-native';
 import styles from './styles';
+import { safeNavigateFrom } from '../../../src/utils/navigationHelper';
+
 const MFNSignIn = props => {
   const navigation = useNavigation();
   const [town, settown] = useState("");
   const VwMFNAc = () => {
-    navigation.navigate("ViewAdvs", {
+    safeNavigateFrom(navigation, 'ViewAdvs', {
       town
     });
   };

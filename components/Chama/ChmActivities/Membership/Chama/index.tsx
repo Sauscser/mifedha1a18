@@ -13,6 +13,8 @@ import { generateClient } from 'aws-amplify/api';
 import { updateChamaMembers } from '../../../../../src/graphql/mutations';
 import { getSMAccount } from '../../../../../src/graphql/queries';
 import styles from './styles';
+import { safeNavigateFrom } from '../../../../../src/utils/navigationHelper';
+
 
 export interface ChamaMmbrshpInfo {
   ChamaMmbrshpDtls: {
@@ -109,10 +111,10 @@ const ChmMbrShpInfo = (props: ChamaMmbrshpInfo) => {
   const navigation = useNavigation();
   const [isLoading, setIsLoading] = useState(false);
   const route = useRoute();
-  const Penalise = () => navigation.navigate('PenaliseMember', { ChamaNMember });
-  const ViewMmberDtls = () => navigation.navigate('ChamaDtls', { ChamaNMember });
-  const ViewSubs = () => navigation.navigate('VwMbrSubsDirectly', { ChamaNMember });
-  const SendNonLoans = () => navigation.navigate('SndMbrsMnys', { ChamaNMember });
+  const Penalise = () => safeNavigateFrom(navigation, 'PenaliseMember', { ChamaNMember });
+  const ViewMmberDtls = () => safeNavigateFrom(navigation, 'ChamaDtls', { ChamaNMember });
+  const ViewSubs = () => safeNavigateFrom(navigation, 'VwMbrSubsDirectly', { ChamaNMember });
+  const SendNonLoans = () => safeNavigateFrom(navigation, 'SndMbrsMnys', { ChamaNMember });
 
 
   const ApproveMembaTransport = async () => {

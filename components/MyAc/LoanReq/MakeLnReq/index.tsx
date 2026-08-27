@@ -4,6 +4,8 @@ import {View, Text,   ScrollView, Pressable} from 'react-native';
 
 
 import styles from './styles';
+import { safeNavigateFrom } from '../../../../src/utils/navigationHelper';
+
 
 
 export interface SMAccount {
@@ -31,7 +33,7 @@ const SMCvLnStts = (props:SMAccount) => {
    let LnrEml = awsemail;
 
    const SndChmMmbrMny = () => {
-       navigation.navigate("PlaceLnReq")
+       safeNavigateFrom(navigation, 'PlaceLnReq')
    }
     return (
         

@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { useNavigation } from '@react-navigation/native';
+import { safeNavigateFrom } from '../../src/utils/navigationHelper';
 import { View, Text, ImageBackground, Pressable, FlatList, SafeAreaView, ScrollView, Dimensions } from 'react-native';
 import styles from './styles';
 import { TouchableOpacity } from 'react-native-gesture-handler';
@@ -38,49 +39,49 @@ const MyAccount = (props: any) => {
       </View>
     </View>;
   const SMDpsitsss = () => {
-    navigation.navigate('ElimDpstss');
+    safeNavigateFrom(navigation, 'ElimDpstss');
   };
   const ViewNonLnsRecs = () => {
-    navigation.navigate('ViewNonLnsRecs');
+    safeNavigateFrom(navigation, 'ViewNonLnsRecs');
   };
   const ViewNonLnsSents = () => {
-    navigation.navigate('ViewNonLnsSents');
+    safeNavigateFrom(navigation, 'ViewNonLnsSents');
   };
   const SearchUser = () => {
-    navigation.navigate('VwMakeLnReq');
+    safeNavigateFrom(navigation, 'VwMakeLnReq');
   };
   const goToSMASndnonln = () => {
-    navigation.navigate('Vw2SelectChmBeneficiary');
+    safeNavigateFrom(navigation, 'Vw2SelectChmBeneficiary');
   };
   const AcceptRideRequest = () => {
-    navigation.navigate('AcceptRideRequest');
+    safeNavigateFrom(navigation, 'AcceptRideRequest');
   };
   const PassengerRequestRide = () => {
-    navigation.navigate('PassengerRequestRide');
+    safeNavigateFrom(navigation, 'PassengerRequestRide');
   };
   const VwTransportAccount = () => {
-    navigation.navigate('VwTransportAccount');
+    safeNavigateFrom(navigation, 'VwTransportAccount');
   };
   const VwBiz2DispatchDelivery = () => {
-    navigation.navigate('VwBiz2DispatchDelivery');
+    safeNavigateFrom(navigation, 'VwBiz2DispatchDelivery');
   };
   const ReceiveDelivery = () => {
-    navigation.navigate('ReceiveDelivery2');
+    safeNavigateFrom(navigation, 'ReceiveDelivery2');
   };
   const AcceptTransportRequest = () => {
-    navigation.navigate('AcceptTransportRequest');
+    safeNavigateFrom(navigation, 'AcceptTransportRequest');
   };
   const VwSalesDtls4Transport = () => {
-    navigation.navigate('VwSalesDtls4Transport');
+    safeNavigateFrom(navigation, 'VwSalesDtls4Transport');
   };
   const RegisterTransport = () => {
-    navigation.navigate('RegisterTransport');
+    safeNavigateFrom(navigation, 'RegisterTransport');
   };
   const RegisterTransportBizna = () => {
-    navigation.navigate('RegisterTransportBizna');
+    safeNavigateFrom(navigation, 'RegisterTransportBizna');
   };
   const ViewTransportBiznaAccount = () => {
-    navigation.navigate('ViewTransportBiznaAccount');
+    safeNavigateFrom(navigation, 'ViewTransportBiznaAccount');
   };
 
   const nav: any = navigation;

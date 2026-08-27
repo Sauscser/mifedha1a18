@@ -24,25 +24,56 @@ type HomeBottomTabParamList = {
 
 const BottomTab = createBottomTabNavigator<HomeBottomTabParamList>();
 
+const bottomTabScreens = ['Home', 'NSNdogo', 'HowTo', 'Transport', 'GoShopping', 'Search Pal'];
 
 const HomeTabNavigator = ({ route, navigation }: any) => {
   const { t, i18n } = useTranslation();
   const { restrictNavigation } = useMainAccountGuard();
 
-  const homeInitialParams = route?.params;
+  const routeParams = route?.params;
 
-  const resolveTarget = (params: any) => {
-    let target = params;
-    while (target?.screen === 'Homes' || target?.screen === 'Home') {
-      target = target?.params;
+  const deriveInitialTab = React.useMemo(() => {
+    const resolveTarget = (params: any): any => {
+      let target = params;
+      while (target?.screen === 'Homes' || target?.screen === 'Home') {
+        target = target?.params;
+      }
+      return target;
+    };
+
+    const target = resolveTarget(routeParams);
+    if (!target?.screen) {
+      return {
+        initialRouteName: 'Home' as const,
+        initialParams: undefined,
+      };
     }
-    return target;
-  };
 
-  const homeScreenInitialParams = React.useMemo(() => {
-    const target = resolveTarget(homeInitialParams);
-    return target?.screen ? target : undefined;
-  }, [homeInitialParams]);
+    const requestedScreen = target.screen;
+    const requestedParams = target.params;
+
+    if (requestedScreen === 'Home') {
+      return {
+        initialRouteName: 'Home' as const,
+        initialParams: requestedParams,
+      };
+    }
+
+    if (bottomTabScreens.includes(requestedScreen)) {
+      return {
+        initialRouteName: requestedScreen as any,
+        initialParams: undefined,
+      };
+    }
+
+    return {
+      initialRouteName: 'Home' as const,
+      initialParams: target,
+    };
+  }, [routeParams]);
+
+  const homeScreenInitialParams = deriveInitialTab.initialParams;
+  const bottomTabInitialRouteName = deriveInitialTab.initialRouteName;
 
   const handleBlockedNavigation = (e: any) => {
     if (restrictNavigation) {
@@ -64,8 +95,9 @@ const HomeTabNavigator = ({ route, navigation }: any) => {
   return (
     <BottomTab.Navigator
       id="HomeBottomTab"
-      initialRouteName="Home"
+      initialRouteName={bottomTabInitialRouteName}
       screenOptions={{ headerShown: false }}
+      lazy={false}
     >
       <BottomTab.Screen
         name='Home'

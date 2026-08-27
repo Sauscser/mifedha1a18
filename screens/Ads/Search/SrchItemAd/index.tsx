@@ -26,6 +26,8 @@ import { nationalityToCode } from '../../../../src/utils/nationalityToCode';
 import { buildOsrmRouteUrl } from '../../../../src/config/osrm';
 import { FontAwesome } from '@expo/vector-icons';
 import { Image } from 'react-native';
+import { safeNavigateFrom } from '../../../../src/utils/navigationHelper';
+
 const client = generateClient();
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const SCREEN_HEIGHT = Dimensions.get('window').height;
@@ -225,7 +227,7 @@ function SalesItemMapScreenInner({ navigation }: { navigation: any }) {
   };
 
   const VwSalesDtls4Transport = () => {
-    navigation.navigate('VwSalesDtls4Transport', { mode, selectedBizna });
+    safeNavigateFrom(navigation, 'VwSalesDtls4Transport', { mode, selectedBizna });
   };
   const [OverallTotalDebit, setOverallTotalDebit] = useState(0);
   const carouselPosition = useRef(new Animated.Value(SCREEN_HEIGHT * 0.4)).current;
@@ -535,7 +537,7 @@ function SalesItemMapScreenInner({ navigation }: { navigation: any }) {
       return;
     }
     try {
-      const navigateToChmRepay = () => navigation.navigate("AutomaticRepayAllTyps");
+      const navigateToChmRepay = () => safeNavigateFrom(navigation, 'AutomaticRepayAllTyps');
 
       // Loan checks
       const [loan1, loan2, loan3] = await Promise.all([client.graphql({
@@ -843,7 +845,7 @@ function SalesItemMapScreenInner({ navigation }: { navigation: any }) {
       return;
     }
     try {
-      const navigateToChmRepay = () => navigation.navigate("AutomaticRepayAllTyps");
+      const navigateToChmRepay = () => safeNavigateFrom(navigation, 'AutomaticRepayAllTyps');
 
       // Loan checks
       const [loan1, loan2, loan3] = await Promise.all([client.graphql({
@@ -1278,7 +1280,7 @@ function SalesItemMapScreenInner({ navigation }: { navigation: any }) {
               style={{ marginVertical: 8, padding: 12, backgroundColor: '#2a7be4', borderRadius: 8, width: 240, alignItems: 'center' }}
               onPress={() => {
                 setShowPurchaseFlowModal(false);
-                navigation.navigate('PartialPayFlow');
+                safeNavigateFrom(navigation, 'PartialPayFlow');
               }}
             >
               <Text style={{ color: 'white', fontWeight: 'bold' }}>Partially Pay For Item</Text>
@@ -1386,7 +1388,7 @@ function SalesItemMapScreenInner({ navigation }: { navigation: any }) {
           </Animated.View>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.purchaseTypeIcon} onPress={() => navigation.navigate('PartialPayFlow')}>
+        <TouchableOpacity style={styles.purchaseTypeIcon} onPress={() => safeNavigateFrom(navigation, 'PartialPayFlow')}>
           <FontAwesome name="arrows-h" size={20} color="#333" />
         </TouchableOpacity>
       </View>
@@ -1491,7 +1493,7 @@ function SalesItemMapScreenInner({ navigation }: { navigation: any }) {
                       <Text>−</Text>
                     </TouchableOpacity>
 
-                    <TouchableOpacity onPress={() => navigation.navigate("DtldSalesInfo", {
+                    <TouchableOpacity onPress={() => safeNavigateFrom(navigation, 'DtldSalesInfo', {
                 item: item.id
               })} style={[styles.btn, {
                 backgroundColor: '#e58d29'

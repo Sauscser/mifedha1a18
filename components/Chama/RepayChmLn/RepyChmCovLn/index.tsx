@@ -10,6 +10,8 @@ import {useExchange} from '../../../../src/contexts/ExchangeContext';
 import { generateClient } from 'aws-amplify/api';  
 import { getSMAccount } from '../../../../src/graphql/queries';
 import {fetchUserAttributes} from 'aws-amplify/auth';
+import { safeNavigateFrom } from '../../../../src/utils/navigationHelper';
+
 
 
 export interface ChamaMmbrshpInfo {
@@ -33,7 +35,7 @@ const ChmMbrShpInfo = (props:ChamaMmbrshpInfo) => {
    const navigation = useNavigation();
     
    const SndChmMmbrMny = () => {
-      navigation.navigate("RepyChmCovLns", {loanID})
+      safeNavigateFrom(navigation, 'RepyChmCovLns', {loanID})
    }
 
    const client = generateClient();

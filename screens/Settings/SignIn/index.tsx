@@ -6,6 +6,8 @@ import { View, Text, TextInput, ScrollView, TouchableOpacity, Alert } from 'reac
 import styles from './styles';
 import { getCurrentUser, fetchUserAttributes } from "aws-amplify/auth";
 import { generateClient } from "aws-amplify/api";
+import { safeNavigateFrom } from '../../../src/utils/navigationHelper';
+
 const client = generateClient();
 const AdminSignIn = props => {
   const navigation = useNavigation();
@@ -23,7 +25,7 @@ const AdminSignIn = props => {
     fetchUser();
   }, []);
   const moveToRegAdmin = () => {
-    navigation.navigate("SttinsHm");
+    safeNavigateFrom(navigation, 'SttinsHm');
   };
 
   /*

@@ -5,6 +5,8 @@ import {View, Text,   ScrollView, Pressable} from 'react-native';
 
 import styles from './styles';
 import { TouchableOpacity } from 'react-native-gesture-handler';
+import { safeNavigateFrom } from '../../../../src/utils/navigationHelper';
+
 
 
 export interface SMAccount {
@@ -29,7 +31,7 @@ const SMCvLnStts = (props:SMAccount) => {
    
 
    const SndChmMmbrMny = () => {
-       navigation.navigate("ChamaVw2GrantLnReqNonCov", {grpContact})
+       safeNavigateFrom(navigation, 'ChamaVw2GrantLnReqNonCov', {grpContact})
 
    }
 

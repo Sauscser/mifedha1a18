@@ -5,6 +5,8 @@ import { View, Text, TextInput, ScrollView, TouchableOpacity, Alert, ActivityInd
 import styles from './styles';
 import { generateClient } from 'aws-amplify/api';
 import { getCurrentUser } from 'aws-amplify/auth';
+import { safeNavigateFrom } from '../../../src/utils/navigationHelper';
+
 const client = generateClient();
 const ChmSignIn = props => {
   const navigation = useNavigation();
@@ -19,7 +21,7 @@ const ChmSignIn = props => {
   const [memberPhn, setmemberPhn] = useState('');
   const ChmNMmbrPhns = grpContact + memberPhn;
   const FetchGrpLonsSts = () => {
-    navigation.navigate("VwChmMbrs2NonCovLnss", {
+    safeNavigateFrom(navigation, 'VwChmMbrs2NonCovLnss', {
       ChmNMmbrPhns
     });
   };

@@ -8,6 +8,8 @@ import {useExchange} from '../../../src/contexts/ExchangeContext';
 import { getSMAccount } from '../../../src/graphql/queries';
 import {fetchUserAttributes} from 'aws-amplify/auth';
 import { generateClient } from 'aws-amplify/api';
+import { safeNavigateFrom } from '../../../src/utils/navigationHelper';
+
 
 
 export interface SMAccount {
@@ -43,7 +45,7 @@ const SMNonLnSnt = (props: SMAccount) => {
 
   const navigation = useNavigation();
   const SndChmMmbrMny = () => {
-    navigation.navigate('SendNonLonsRev', { id });
+    safeNavigateFrom(navigation, 'SendNonLonsRev', { id });
   };
 
   const code = nationalityToCode(nationality);

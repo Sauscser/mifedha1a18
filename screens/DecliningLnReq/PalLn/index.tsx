@@ -7,6 +7,8 @@ import { updateReqLoan } from '../../../src/graphql/mutations';
 import { getReqLoan, getSMAccount } from '../../../src/graphql/queries';
 import { getCurrentUser, fetchUserAttributes } from "aws-amplify/auth";
 import { generateClient } from "aws-amplify/api";
+import { safeNavigateFrom } from '../../../src/utils/navigationHelper';
+
 const client = generateClient();
 const CreateBiz = props => {
   const [ChmPhn, setChmPhn] = useState('');
@@ -26,7 +28,7 @@ const CreateBiz = props => {
   const route = useRoute();
   const navigation = useNavigation();
   const SndChmMmbrMny2 = () => {
-    navigation.navigate("Homeie");
+    safeNavigateFrom(navigation, 'Homeie');
   };
   const gtBizna = async () => {
     if (isLoading) {

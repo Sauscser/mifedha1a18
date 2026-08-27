@@ -6,6 +6,8 @@ import {View, Text,   ScrollView, Pressable} from 'react-native';
 import styles from './styles';
 import { useTranslation } from 'react-i18next';
 import translations from './translation';
+import { safeNavigateFrom } from '../../../src/utils/navigationHelper';
+
 
 
 export interface ChmaInfo {
@@ -40,7 +42,7 @@ const ChmInfo = (props:ChmaInfo) => {
    const navigation = useNavigation();
 
    const SndChmMmbrMny = () => {
-      navigation.navigate("TakeOverBizna", {BusKntct})
+      safeNavigateFrom(navigation, 'TakeOverBizna', {BusKntct})
    };
 
     return (

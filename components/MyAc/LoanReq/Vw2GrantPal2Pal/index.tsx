@@ -11,6 +11,8 @@ import { generateClient } from 'aws-amplify/api';
 
 import styles from './styles';
 import { TouchableOpacity } from 'react-native-gesture-handler';
+import { safeNavigateFrom } from '../../../../src/utils/navigationHelper';
+
 
 
 export interface SMAccount {
@@ -45,12 +47,12 @@ const SMCvLnStts = (props:SMAccount) => {
    
 
    const SndChmMmbrMny = () => {
-       navigation.navigate("PalPalLn", {id})
+       safeNavigateFrom(navigation, 'PalPalLn', {id})
 
    }
 
    const SndChmMmbrMny2 = () => {
-    navigation.navigate("DeclPalLn", {id})
+    safeNavigateFrom(navigation, 'DeclPalLn', {id})
 
 }
 

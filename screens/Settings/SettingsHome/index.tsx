@@ -2,6 +2,8 @@ import React from 'react';
 import { useNavigation } from '@react-navigation/native';
 import { View, Text, Pressable, ScrollView, SafeAreaView, Dimensions } from 'react-native';
 import styles from './styles';
+import { safeNavigateFrom } from '../../../src/utils/navigationHelper';
+
 
 const SettinsHm = props => {
   const navigation = useNavigation();
@@ -11,29 +13,29 @@ const SettinsHm = props => {
       title: '👤 Admin Management',
       color: '#0066CC',
       items: [
-        { label: 'Create Bank Admin', onPress: () => navigation.navigate('RegBankAdmin') },
-        { label: 'Create NiSenti Admin', onPress: () => navigation.navigate('CrtAdmin') },
-        { label: 'Deactivate Admin', onPress: () => navigation.navigate('DeactAdms') },
-        { label: 'Group Control', onPress: () => navigation.navigate('GroupControlTable') },
+        { label: 'Create Bank Admin', onPress: () => safeNavigateFrom(navigation, 'RegBankAdmin') },
+        { label: 'Create NiSenti Admin', onPress: () => safeNavigateFrom(navigation, 'CrtAdmin') },
+        { label: 'Deactivate Admin', onPress: () => safeNavigateFrom(navigation, 'DeactAdms') },
+        { label: 'Group Control', onPress: () => safeNavigateFrom(navigation, 'GroupControlTable') },
       ],
     },
     {
       title: '🔐 Security & Privacy',
       color: '#27AE60',
       items: [
-        { label: 'Update Password', onPress: () => navigation.navigate('Passwordsss') },
+        { label: 'Update Password', onPress: () => safeNavigateFrom(navigation, 'Passwordsss') },
         { label: 'Update Privacy', onPress: () => navigation.navigate('Privacyss') },
-        { label: 'Update Alerts', onPress: () => navigation.navigate('Alertss') },
-        { label: 'Update Terms & Conditions', onPress: () => navigation.navigate('TCss') },
+        { label: 'Update Alerts', onPress: () => safeNavigateFrom(navigation, 'Alertss') },
+        { label: 'Update Terms & Conditions', onPress: () => safeNavigateFrom(navigation, 'TCss') },
       ],
     },
     {
       title: '💼 Company Settings',
       color: '#E67E22',
       items: [
-        { label: 'View Company Details', onPress: () => navigation.navigate('VwCompDtlss') },
-        { label: 'Update Limits', onPress: () => navigation.navigate('Maximumss') },
-        { label: 'Withdraw VAT Commission', onPress: () => navigation.navigate('UpdtVatComss') },
+        { label: 'View Company Details', onPress: () => safeNavigateFrom(navigation, 'VwCompDtlss') },
+        { label: 'Update Limits', onPress: () => safeNavigateFrom(navigation, 'Maximumss') },
+        { label: 'Withdraw VAT Commission', onPress: () => safeNavigateFrom(navigation, 'UpdtVatComss') },
         { label: 'View Company Profile', onPress: () => navigation.navigate('CompAbt') },
       ],
     },
@@ -41,34 +43,34 @@ const SettinsHm = props => {
       title: '📋 Policies & Info',
       color: '#8E44AD',
       items: [
-        { label: 'Update Policy', onPress: () => navigation.navigate('Policyss') },
-        { label: 'About NiSenti', onPress: () => navigation.navigate('Aboutss') },
-        { label: 'Update Recommendations', onPress: () => navigation.navigate('Recommendationsss') },
-        { label: 'Update Contact Info', onPress: () => navigation.navigate('Contactsss') },
+        { label: 'Update Policy', onPress: () => safeNavigateFrom(navigation, 'Policyss') },
+        { label: 'About NiSenti', onPress: () => safeNavigateFrom(navigation, 'Aboutss') },
+        { label: 'Update Recommendations', onPress: () => safeNavigateFrom(navigation, 'Recommendationsss') },
+        { label: 'Update Contact Info', onPress: () => safeNavigateFrom(navigation, 'Contactsss') },
       ],
     },
     {
       title: '💱 Exchange Rates',
       color: '#C0392B',
       items: [
-        { label: 'Update Exchange Rates', onPress: () => navigation.navigate('UpdateExRates') },
-        { label: 'Create Exchange Rates', onPress: () => navigation.navigate('CreateExRates') },
-        { label: 'Create All Exchange Rates', onPress: () => navigation.navigate('CreateAllExRates') },
+        { label: 'Update Exchange Rates', onPress: () => safeNavigateFrom(navigation, 'UpdateExRates') },
+        { label: 'Create Exchange Rates', onPress: () => safeNavigateFrom(navigation, 'CreateExRates') },
+        { label: 'Create All Exchange Rates', onPress: () => safeNavigateFrom(navigation, 'CreateAllExRates') },
       ],
     },
     {
       title: '💰 Commissions & Fees',
       color: '#16A085',
       items: [
-        { label: 'Update Commission', onPress: () => navigation.navigate('Commissionss') },
-        { label: 'Update Transaction Fees', onPress: () => navigation.navigate('TransactionFeess') },
+        { label: 'Update Commission', onPress: () => safeNavigateFrom(navigation, 'Commissionss') },
+        { label: 'Update Transaction Fees', onPress: () => safeNavigateFrom(navigation, 'TransactionFeess') },
       ],
     },
     {
       title: '🔗 Configuration',
       color: '#2980B9',
       items: [
-        { label: 'Add URL Links', onPress: () => navigation.navigate('UrlLinks') },
+        { label: 'Add URL Links', onPress: () => safeNavigateFrom(navigation, 'UrlLinks') },
       ],
     },
   ];

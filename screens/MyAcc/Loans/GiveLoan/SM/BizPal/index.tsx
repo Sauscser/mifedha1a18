@@ -9,6 +9,8 @@ import { getCurrentUser, fetchUserAttributes } from "aws-amplify/auth";
 import { useExchange } from '../../../../../../src/contexts/ExchangeContext';
 import { convertForeignToKsh, formatAmountSync } from '../../../../../../src/utils/exchange';
 import { generateClient } from "aws-amplify/api";
+import { safeNavigateFrom } from '../../../../../../src/utils/navigationHelper';
+
 const client = generateClient();
 const SMASendLns = props => {
   const [SnderPW, setSnderPW] = useState("");
@@ -24,7 +26,7 @@ const SMASendLns = props => {
   const route = useRoute();
   const navigation = useNavigation();
   const SndChmMmbrMny = () => {
-    navigation.navigate("AutomaticRepayAllTyps");
+    safeNavigateFrom(navigation, 'AutomaticRepayAllTyps');
   };
   const fetchLnReq = async () => {
     if (isLoading) {

@@ -6,6 +6,8 @@ import { generateClient } from 'aws-amplify/api';
 import { getCurrentUser, fetchUserAttributes } from 'aws-amplify/auth';
 import translations from './translation';
 import { useTranslation } from 'react-i18next';
+import { safeNavigateFrom } from '../../../../src/utils/navigationHelper';
+
 const client = generateClient();
 const FetchSMCovLns = () => {
   const [loading, setLoading] = useState(false);
@@ -56,7 +58,7 @@ const FetchSMCovLns = () => {
   }, []);
   const renderMemberCard = ({
     item
-  }: any) => <Pressable style={styles.card} onPress={() => navigation.navigate('MembersApproveLoans', {
+  }: any) => <Pressable style={styles.card} onPress={() => safeNavigateFrom(navigation, 'MembersApproveLoans', {
     memberDetails: item
   })}>
       <Text style={styles.groupName}>{t.groupName} {item.groupName}</Text>

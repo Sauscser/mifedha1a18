@@ -10,6 +10,8 @@ import {fetchUserAttributes} from 'aws-amplify/auth';
 import { generateClient } from 'aws-amplify/api';
 import { useTranslation } from 'react-i18next';
 import translations from './translation';
+import { safeNavigateFrom } from '../../../src/utils/navigationHelper';
+
 
 
 
@@ -52,7 +54,7 @@ import translations from './translation';
         const navigation = useNavigation();
      
         const SndChmMmbrMny = () => {
-           navigation.navigate("RpayCredSlrCovs", {id})
+           safeNavigateFrom(navigation, 'RpayCredSlrCovs', {id})
         }
 
             const client = generateClient();

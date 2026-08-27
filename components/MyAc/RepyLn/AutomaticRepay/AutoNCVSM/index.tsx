@@ -2,6 +2,8 @@ import { useNavigation } from '@react-navigation/core';
 import React from 'react';
 import {View, Text,  Pressable,  } from 'react-native';
 import styles from './styles';
+import { safeNavigateFrom } from '../../../../../src/utils/navigationHelper';
+
 
 
 export interface SMCvLnSttus {
@@ -35,7 +37,7 @@ const SMCvLnStts = (props:SMCvLnSttus) => {
    const navigation = useNavigation();
 
    const SndChmMmbrMny = () => {
-       navigation.navigate("RepayNonCovLnss", {loanID})
+       safeNavigateFrom(navigation, 'RepayNonCovLnss', {loanID})
    }
     return (
         <Pressable 

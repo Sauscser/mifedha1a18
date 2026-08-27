@@ -11,6 +11,8 @@ import { useExchange } from '../../../src/contexts/ExchangeContext';
 import { formatAmountSync, convertForeignToKsh } from '../../../src/utils/exchange';
 import { nationalityToCode } from '../../../src/utils/nationalityToCode';
 import { translations } from './translation';
+import { safeNavigateFrom } from '../../../src/utils/navigationHelper';
+
 
 const client = generateClient();
 
@@ -1065,7 +1067,7 @@ const CascadePaymentsScreen = () => {
       }
       const senderAccountRef = selectedSenderAccount?.senderAccountRef || selectedSenderAccount?.recipientAccountRef || selectedSenderAccount?.accountNumber || '';
       const senderAccountName = selectedSenderAccount?.senderAccountName || selectedSenderAccount?.title || selectedSenderAccount?.name || '';
-      navigation.navigate('CascadePayShopping', {
+      safeNavigateFrom(navigation, 'CascadePayShopping', {
         fromCascadePayments: true,
         senderAccountRef,
         senderAccountName,

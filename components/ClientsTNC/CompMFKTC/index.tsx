@@ -9,6 +9,8 @@ import { StyleSheet, Dimensions } from 'react-native';
 import styles from './styles';
 import { TouchableOpacity } from 'react-native-gesture-handler';
 import { getCompany } from '../../../src/graphql/queries';
+import { safeNavigateFrom } from '../../../src/utils/navigationHelper';
+
 
 const client = generateClient();
 
@@ -25,7 +27,7 @@ const MFKTC = () => {
   const idz = route.params.id;
 
   const CreateSMAcs = () => {
-    navigation.navigate('RegMFKbw', { idz });
+    safeNavigateFrom(navigation, 'RegMFKbw', { idz });
   };
 
   const gtCompDtls = async () => {

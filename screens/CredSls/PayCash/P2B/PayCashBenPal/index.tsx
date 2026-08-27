@@ -10,6 +10,8 @@ import { convertForeignToKsh } from '../../../../../src/utils/exchange';
 import { nationalityToCode } from '../../../../../src/utils/nationalityToCode';
 import { useTranslation } from 'react-i18next';
 import translations from './translation';
+import { safeNavigateFrom } from '../../../../../src/utils/navigationHelper';
+
 const client = generateClient();
 const SMASendNonLns = () => {
   const [SenderNatId, setSenderNatId] = useState('');
@@ -24,7 +26,7 @@ const SMASendNonLns = () => {
   const fmt = (template: string, vars: Record<string, string | number>) =>
     template.replace(/\{(\w+)\}/g, (_, k) => String(vars[k] ?? ''));
   const navigation = useNavigation();
-  const SndChmMmbrMny = () => navigation.navigate('AutomaticRepayAllTyps');
+  const SndChmMmbrMny = () => safeNavigateFrom(navigation, 'AutomaticRepayAllTyps');
   const fetchCvLnSM = async () => {
     if (isLoading) return;
     setIsLoading(true);

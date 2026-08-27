@@ -3,6 +3,8 @@ import { useNavigation } from '@react-navigation/native';
 import { View, Text, Pressable, SafeAreaView, ScrollView } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import translations from './translation';
+import { safeNavigateFrom } from '../../../src/utils/navigationHelper';
+
 const MyLoanAccount = props => {
   const navigation = useNavigation();
   const { i18n } = useTranslation();
@@ -14,85 +16,85 @@ const MyLoanAccount = props => {
     navigation.navigate('ItemAds');
   };
   const VwPal2BizLners = () => {
-    navigation.navigate('VwPal2BizLners');
+    safeNavigateFrom(navigation, 'VwPal2BizLners');
   };
   const SI2VwBiz2PalLoanees = () => {
-    navigation.navigate('SI2VwBiz2PalLoanees');
+    safeNavigateFrom(navigation, 'SI2VwBiz2PalLoanees');
   };
   const SI2VwBiz2BizLoaners = () => {
-    navigation.navigate('SI2VwBiz2BizLoaners');
+    safeNavigateFrom(navigation, 'SI2VwBiz2BizLoaners');
   };
   const SI2VwBiz2BizLoanees = () => {
-    navigation.navigate('SI2VwBiz2BizLoanees');
+    safeNavigateFrom(navigation, 'SI2VwBiz2BizLoanees');
   };
   const SI2VwBiz2PalLoaners = () => {
-    navigation.navigate('SI2VwBiz2PalLoaners');
+    safeNavigateFrom(navigation, 'SI2VwBiz2PalLoaners');
   };
   const CrtBusinessss = () => {
-    navigation.navigate('CrtBusinesss');
+    safeNavigateFrom(navigation, 'CrtBusinesss');
   };
   const DissolveBizsss = () => {
-    navigation.navigate('DissolveBizss');
+    safeNavigateFrom(navigation, 'DissolveBizss');
   };
   const SgnIn2VwBiznasss = () => {
-    navigation.navigate('SgnIn2VwBiznass');
+    safeNavigateFrom(navigation, 'SgnIn2VwBiznass');
   };
   const ShareCredSlsRevsss = () => {
-    navigation.navigate('ShareCredSlsRevss');
+    safeNavigateFrom(navigation, 'ShareCredSlsRevss');
   };
   const AddPersonelss = () => {
-    navigation.navigate('AddPersonels');
+    safeNavigateFrom(navigation, 'AddPersonels');
   };
   const RmvPersonnelsss = () => {
-    navigation.navigate('RmvPersonnelss');
+    safeNavigateFrom(navigation, 'RmvPersonnelss');
   };
   const SgnIn2RemoveSlAd = () => {
-    navigation.navigate('SgnIn2RemoveSlAd');
+    safeNavigateFrom(navigation, 'SgnIn2RemoveSlAd');
   };
   const ViewBiznaShareRec = () => {
-    navigation.navigate('ViewBiznaShareRec');
+    safeNavigateFrom(navigation, 'ViewBiznaShareRec');
   };
   const SgnIn2VwRevenueShare = () => {
-    navigation.navigate('SgnIn2VwRevenueShare');
+    safeNavigateFrom(navigation, 'SgnIn2VwRevenueShare');
   };
   const PayCash = () => {
-    navigation.navigate('P2BPayCash');
+    safeNavigateFrom(navigation, 'P2BPayCash');
   };
   const VwPalLners = () => {
-    navigation.navigate('VwPalLners');
+    safeNavigateFrom(navigation, 'VwPalLners');
   };
   const VwCashPaySent = () => {
-    navigation.navigate('VwCashPaySent');
+    safeNavigateFrom(navigation, 'VwCashPaySent');
   };
   const SgnIn2VwCashSales = () => {
-    navigation.navigate('SgnIn2VwCashSales');
+    safeNavigateFrom(navigation, 'SgnIn2VwCashSales');
   };
   const VwPal2BizLnees = () => {
-    navigation.navigate('VwPal2BizLnees');
+    safeNavigateFrom(navigation, 'VwPal2BizLnees');
   };
   const VwPalLnees = () => {
-    navigation.navigate('VwPalLnees');
+    safeNavigateFrom(navigation, 'VwPalLnees');
   };
   const Vw2GrntPal2Biz = () => {
-    navigation.navigate("Vw2GrntPal2Biz");
+    safeNavigateFrom(navigation, 'Vw2GrntPal2Biz');
   };
   const BizUpdatePW = () => {
-    navigation.navigate('BizUpdatePW');
+    safeNavigateFrom(navigation, 'BizUpdatePW');
   };
   const PersonelVw2GrntB2P = () => {
-    navigation.navigate('PersonelVw2GrntB2P');
+    safeNavigateFrom(navigation, 'PersonelVw2GrntB2P');
   };
   const ChmCancelObjection = () => {
-    navigation.navigate('ChmCancelObjection');
+    safeNavigateFrom(navigation, 'ChmCancelObjection');
   };
   const ChmUpdate = () => {
-    navigation.navigate('ChmUpdate');
+    safeNavigateFrom(navigation, 'ChmUpdate');
   };
   const ChmObject = () => {
-    navigation.navigate('ChmObject');
+    safeNavigateFrom(navigation, 'ChmObject');
   };
   const ChmAddAdmin = () => {
-    navigation.navigate('ChmAddAdmin');
+    safeNavigateFrom(navigation, 'ChmAddAdmin');
   };
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: 'skyblue' }}>

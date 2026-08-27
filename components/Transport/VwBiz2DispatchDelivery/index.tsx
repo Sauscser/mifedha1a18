@@ -5,6 +5,8 @@ import {View, Text,   ScrollView, Pressable} from 'react-native';
 
 import styles from './styles';
 import { TouchableOpacity } from 'react-native-gesture-handler';
+import { safeNavigateFrom } from '../../../src/utils/navigationHelper';
+
 
 
 export interface SMAccount {
@@ -33,7 +35,7 @@ const SMCvLnStts = (props:SMAccount) => {
 
    
    const SndChmMmbrMny2 = () => {
-    navigation.navigate("DispatchDelivery", {BusinessRegNo})
+    safeNavigateFrom(navigation, 'DispatchDelivery', {BusinessRegNo})
 }
  
     return (

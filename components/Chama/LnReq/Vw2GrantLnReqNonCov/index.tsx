@@ -6,6 +6,8 @@ import {StyleSheet, Dimensions} from 'react-native';
 
 import styles from './styles';
 import { TouchableOpacity } from 'react-native-gesture-handler';
+import { safeNavigateFrom } from '../../../../src/utils/navigationHelper';
+
 
 
 export interface SMAccount {
@@ -36,12 +38,12 @@ const SMCvLnStts = (props:SMAccount) => {
    
 
    const SndChmMmbrMny = () => {
-       navigation.navigate("ChmNonCovLons", {id})
+       safeNavigateFrom(navigation, 'ChmNonCovLons', {id})
 
    }
 
    const SndChmMmbrMny2 = () => {
-    navigation.navigate("DeclChamaReq", {id})
+    safeNavigateFrom(navigation, 'DeclChamaReq', {id})
 
 }
     return (

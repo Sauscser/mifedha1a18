@@ -10,6 +10,8 @@ import {fetchUserAttributes} from 'aws-amplify/auth';
 import { getSMAccount } from '../../../../../src/graphql/queries';
 
 import { generateClient } from 'aws-amplify/api';
+import { safeNavigateFrom } from '../../../../../src/utils/navigationHelper';
+
 
 
 export interface MmbrContriInfo {
@@ -46,7 +48,7 @@ const MemberContriInfo = (props:MmbrContriInfo) => {
   const navigation = useNavigation();
 
   const TryChmLn = () => {
-    navigation.navigate("ChmLnsGvnOuts", {grpContact});
+    safeNavigateFrom(navigation, 'ChmLnsGvnOuts', {grpContact});
   }
 
   const client = generateClient();

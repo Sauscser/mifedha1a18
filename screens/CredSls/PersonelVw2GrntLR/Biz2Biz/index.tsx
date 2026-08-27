@@ -5,6 +5,8 @@ import { View, Text, TextInput, ScrollView, TouchableOpacity, Alert } from 'reac
 import styles from './styles';
 import { getCurrentUser, fetchUserAttributes } from 'aws-amplify/auth';
 import { generateClient } from 'aws-amplify/api';
+import { safeNavigateFrom } from '../../../../src/utils/navigationHelper';
+
 const client = generateClient();
 const MFNSignIn = () => {
   const navigation = useNavigation();
@@ -22,7 +24,7 @@ const MFNSignIn = () => {
   const [memberPhn, setmemberPhn] = useState('');
   const ChmNMmbrPhns = ChmDesc + memberPhn;
   const VwMFNAc = () => {
-    navigation.navigate('Vw2GrntBiz2Biz', {
+    safeNavigateFrom(navigation, 'Vw2GrntBiz2Biz', {
       MFNId
     });
   };

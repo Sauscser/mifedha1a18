@@ -11,6 +11,8 @@ import {useExchange} from '../../../../../src/contexts/ExchangeContext';
 import { generateClient } from 'aws-amplify/api';  
 import { getSMAccount } from '../../../../../src/graphql/queries';
 import {fetchUserAttributes} from 'aws-amplify/auth';
+import { safeNavigateFrom } from '../../../../../src/utils/navigationHelper';
+
 
 
 export interface ChmNonCvLnSttusSent {
@@ -71,19 +73,19 @@ const ChmNonCvLnSttsSent = (props: ChmNonCvLnSttusSent) => {
   const { ratesMap } = useExchange();
 
   const SndChmMmbrMny = () => {
-    navigation.navigate('ChmLoaneesDtls', { loanID });
+    safeNavigateFrom(navigation, 'ChmLoaneesDtls', { loanID });
   };
 
   const VwRpayments = () => {
-    navigation.navigate('ViewNonLnsRecChm', { loanID });
+    safeNavigateFrom(navigation, 'ViewNonLnsRecChm', { loanID });
   };
 
   const Blacklist = () => {
-    navigation.navigate('BLChmMmberCovs', { loanID });
+    safeNavigateFrom(navigation, 'BLChmMmberCovs', { loanID });
   };
 
   const WaiveChmCov = () => {
-    navigation.navigate('WaiveChmCov', { loanID });
+    safeNavigateFrom(navigation, 'WaiveChmCov', { loanID });
   };
 
   useEffect(() => {

@@ -5,6 +5,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
 import translations from './translation';
+import { safeNavigateFrom } from '../../../../../src/utils/navigationHelper';
+
 const Section = ({
   title,
   options
@@ -37,13 +39,13 @@ const MyLoanAccount = () => {
   const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
   const t = translations[lang] || translations.en;
   const UpdateBizAc = () => {
-    navigation.navigate('UpdateBizAc');
+    safeNavigateFrom(navigation, 'UpdateBizAc');
   };
   const ViewBizBenefactorShares = () => {
-    navigation.navigate('ViewBizBenefactorShares');
+    safeNavigateFrom(navigation, 'ViewBizBenefactorShares');
   };
   const ViewPalBenefactorShares = () => {
-    navigation.navigate('ViewPalBenefactorShares');
+    safeNavigateFrom(navigation, 'ViewPalBenefactorShares');
   };
   return <SafeAreaView>
       <ScrollView>

@@ -6,6 +6,8 @@ import { useNavigation } from '@react-navigation/native';
 import { View, Text, TextInput, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import styles from './styles';
 import { updateCompany, updateSMAccount } from '../../src/graphql/mutations';
+import { safeNavigateFrom } from '../../src/utils/navigationHelper';
+
 const client = generateClient();
 const AdvPayToVwChm = props => {
   const navigation = useNavigation();
@@ -13,7 +15,7 @@ const AdvPayToVwChm = props => {
   const [MFNPW, setMFNPW] = useState("");
   const [ownr, setownr] = useState(null);
   const VwMFNAc = () => {
-    navigation.navigate("VwAdvAcs", {
+    safeNavigateFrom(navigation, 'VwAdvAcs', {
       AdvReNo
     });
   };

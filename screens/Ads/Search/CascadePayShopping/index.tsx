@@ -25,6 +25,8 @@ import { nationalityToCode } from '../../../../src/utils/nationalityToCode';
 import { buildOsrmRouteUrl } from '../../../../src/config/osrm';
 import { FontAwesome } from '@expo/vector-icons';
 import { Image } from 'react-native';
+import { safeNavigateFrom } from '../../../../src/utils/navigationHelper';
+
 const client = generateClient();
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const SCREEN_HEIGHT = Dimensions.get('window').height;
@@ -169,7 +171,7 @@ function SalesItemMapScreenInner({ navigation }: { navigation: any }) {
 
   const handleCascadePaymentsReturn = useCallback((returnData?: { businessCheckoutPayload?: any }) => {
     if (fromCascadePayments) {
-      navigation.navigate('CascadePaymentsScreen', {
+      safeNavigateFrom(navigation, 'CascadePaymentsScreen', {
         fromCascadePaymentsReturn: true,
         businessCheckoutPayload: returnData?.businessCheckoutPayload,
         senderAccountRef: route.params?.senderAccountRef || cascadeSenderRef,
@@ -771,7 +773,7 @@ function SalesItemMapScreenInner({ navigation }: { navigation: any }) {
                       <Text>−</Text>
                     </TouchableOpacity>
 
-                    <TouchableOpacity onPress={() => navigation.navigate("DtldSalesInfo", {
+                    <TouchableOpacity onPress={() => safeNavigateFrom(navigation, 'DtldSalesInfo', {
                 item: item.id
               })} style={[styles.btn, {
                 backgroundColor: '#e58d29'

@@ -8,6 +8,8 @@ import {useExchange} from '../../../../src/contexts/ExchangeContext';
 import { getSMAccount } from '../../../../src/graphql/queries';
 import {fetchUserAttributes} from 'aws-amplify/auth';
 import { generateClient } from 'aws-amplify/api';
+import { safeNavigateFrom } from '../../../../src/utils/navigationHelper';
+
 
 
 export interface SMCvLnSttus {
@@ -37,7 +39,7 @@ const SMCvLnStts = (props:SMCvLnSttus) => {
 
    
    const SndChmMmbrMny = () => {
-      navigation.navigate("BListSMLneeCovs", {id})
+      safeNavigateFrom(navigation, 'BListSMLneeCovs', {id})
    }
 
    const client = generateClient();

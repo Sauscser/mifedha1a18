@@ -4,6 +4,8 @@ import {View, Text,  Pressable,  } from 'react-native';
 import styles from './styles';
 import { useTranslation } from 'react-i18next';
 import translations from './translation';
+import { safeNavigateFrom } from '../../../../src/utils/navigationHelper';
+
 
 
 export interface ChmCvLnSttusRec {
@@ -31,7 +33,7 @@ const CredSlrCvLnStts = (props:ChmCvLnSttusRec) => {
    const navigation = useNavigation();
 
    const SndChmMmbrMny = () => {
-      navigation.navigate("Vw2GrntBiz2Biz", {BusinessRegNo})
+      safeNavigateFrom(navigation, 'Vw2GrntBiz2Biz', {BusinessRegNo})
    }
     return (
       

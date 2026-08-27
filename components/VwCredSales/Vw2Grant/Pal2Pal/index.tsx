@@ -10,6 +10,8 @@ import {fetchUserAttributes} from 'aws-amplify/auth';
 import { generateClient } from 'aws-amplify/api';
 import { useTranslation } from 'react-i18next';
 import translations from './translation';
+import { safeNavigateFrom } from '../../../../src/utils/navigationHelper';
+
 
 export interface SMAccount {
     SMAc: {
@@ -52,11 +54,11 @@ const SMCvLnStts = (props:SMAccount) => {
    const {ratesMap} = useExchange();
 
    const SndChmMmbrMny = () => {
-      navigation.navigate("GrantPal2PalCrdSl", {id})
+      safeNavigateFrom(navigation, 'GrantPal2PalCrdSl', {id})
    }
 
    const SndChmMmbrMny2 = () => {
-    navigation.navigate("DeclCredSls", {id})
+    safeNavigateFrom(navigation, 'DeclCredSls', {id})
    }
 
    useEffect(() => {

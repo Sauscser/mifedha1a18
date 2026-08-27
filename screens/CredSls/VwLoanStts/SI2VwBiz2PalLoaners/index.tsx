@@ -7,6 +7,8 @@ import { getCurrentUser, fetchUserAttributes } from "aws-amplify/auth";
 import { generateClient } from "aws-amplify/api";
 import { useTranslation } from 'react-i18next';
 import translations from './translation';
+import { safeNavigateFrom } from '../../../../src/utils/navigationHelper';
+
 const client = generateClient();
 const ChmSignIn = props => {
   const navigation = useNavigation();
@@ -23,7 +25,7 @@ const ChmSignIn = props => {
   const [ChmDesc, setChmDesc] = useState('');
   const [memberPhn, setmemberPhn] = useState('');
   const FetchGrpLonsSts = () => {
-    navigation.navigate("VwBiz2PalLners", {
+    safeNavigateFrom(navigation, 'VwBiz2PalLners', {
       ChmDesc
     });
   };

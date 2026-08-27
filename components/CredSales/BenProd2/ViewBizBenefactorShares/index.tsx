@@ -12,6 +12,8 @@ import { getCurrentUser, fetchUserAttributes } from 'aws-amplify/auth';
 import React, {useState, useEffect} from 'react';
 import {useExchange} from '../../../../src/contexts/ExchangeContext';
 import { formatAmountSync } from '../../../../src/utils/exchange';
+import { safeNavigateFrom } from '../../../../src/utils/navigationHelper';
+
 
 export interface SMAccount {
   SMAc: {
@@ -60,7 +62,7 @@ const SMCvLnStts = ({ SMAc }: SMAccount) => {
    
 
   const VwBenefactorContriDtls = () => {
-    navigation.navigate("VwBenefactorContriDtls", {
+    safeNavigateFrom(navigation, 'VwBenefactorContriDtls', {
       benefactorAc,
       benefactorPhone,
       beneficiaryAc,

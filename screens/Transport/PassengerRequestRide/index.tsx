@@ -20,6 +20,8 @@ import { useTranslation } from 'react-i18next';
 import { translations } from './translation';
 import { generateClient } from "aws-amplify/api";
 import { getUrl } from 'aws-amplify/storage';
+import { safeNavigateFrom } from '../../../src/utils/navigationHelper';
+
 const client = generateClient();
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const DEFAULT_RADIUS_KM = 0.1;
@@ -761,7 +763,7 @@ export default function RideRequestMapScreen({
               text: t.goToPendingRides,
               onPress: () => {
                 setLoadingRiders(prev => ({ ...prev, [rider.id]: false }));
-                navigation.navigate('RideTrackingScreen', { pendingRides });
+                safeNavigateFrom(navigation, 'RideTrackingScreen', { pendingRides });
               }
             },
             {
@@ -893,7 +895,7 @@ export default function RideRequestMapScreen({
         }
         // Alert.alert('Debug', 'Navigation to RideTrackingScreen about to happen.');
         if (loadingCallback) loadingCallback();
-        navigation.navigate('RideTrackingScreen', { rideId: ride.id });
+        safeNavigateFrom(navigation, 'RideTrackingScreen', { rideId: ride.id });
       } else {
         if (loadingCallback) loadingCallback();
       }
@@ -1327,7 +1329,7 @@ export default function RideRequestMapScreen({
                     {/* New button for TransportDetails */}
                     <TouchableOpacity
                       style={[styles.requestBtn, { backgroundColor: '#4CAF50', marginTop: 6 }]}
-                      onPress={() => navigation.navigate('TransportDetails', { id: item.id })}
+                      onPress={() => safeNavigateFrom(navigation, 'TransportDetails', { id: item.id })}
                     >
                       <Text style={{ color: '#fff' }}>{t.viewDetails}</Text>
                     </TouchableOpacity>

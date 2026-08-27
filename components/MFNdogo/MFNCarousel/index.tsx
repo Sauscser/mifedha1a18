@@ -5,6 +5,8 @@ import { generateClient } from 'aws-amplify/api';
 import { getAgent, getCompany, getSAgent } from '../../../src/graphql/queries';
 import { RotateInUpLeft } from 'react-native-reanimated';
 import styles from './styles';
+import { safeNavigateFrom } from '../../../src/utils/navigationHelper';
+
 
 interface Agent {
   id: string;
@@ -41,7 +43,7 @@ const ViewSMDeposts = ({ Agent, isSelected = false, onPress, onLongPress }: Prop
   const navigation = useNavigation<NavigationProp<any>>();
 
   const navigateToWithdraw = () => {
-    navigation.navigate('WithdrawFundsFromMap', {
+    safeNavigateFrom(navigation, 'WithdrawFundsFromMap', {
       phonecontact: Agent.phonecontact,
     });
   };

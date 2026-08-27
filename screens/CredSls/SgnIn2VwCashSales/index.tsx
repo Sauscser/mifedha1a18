@@ -8,6 +8,8 @@ import { getCurrentUser, fetchUserAttributes } from "aws-amplify/auth";
 import { generateClient } from "aws-amplify/api";
 import { useTranslation } from 'react-i18next';
 import translations from './translation';
+import { safeNavigateFrom } from '../../../src/utils/navigationHelper';
+
 const client = generateClient();
 const MFNSignIn = props => {
   const navigation = useNavigation();
@@ -44,7 +46,7 @@ const MFNSignIn = props => {
       const signitoryPWs = compDtls.data.getSMAccount.pw;
       const owners = compDtls.data.getSMAccount.owner;
       const VwMFNAc = () => {
-        navigation.navigate("VwCashPayRec", {
+        safeNavigateFrom(navigation, 'VwCashPayRec', {
           MFNId
         });
       };

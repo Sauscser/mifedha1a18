@@ -11,6 +11,8 @@ import {useExchange} from '../../../../src/contexts/ExchangeContext';
 import { generateClient } from 'aws-amplify/api';  
 import { getSMAccount } from '../../../../src/graphql/queries';
 import {fetchUserAttributes} from 'aws-amplify/auth';
+import { safeNavigateFrom } from '../../../../src/utils/navigationHelper';
+
 
 
 export interface SMAccount {
@@ -43,7 +45,7 @@ const SMCvLnStts = (props:SMAccount) => {
    
 
    const SndChmMmbrMny = () => {
-       navigation.navigate("PlaceLnReq")
+       safeNavigateFrom(navigation, 'PlaceLnReq')
    }
 
    const client = generateClient();

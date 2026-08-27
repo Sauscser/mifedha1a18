@@ -6,6 +6,8 @@ import { View, Alert } from 'react-native';
 import styles from './styles';
 import { generateClient } from 'aws-amplify/api';
 import { getCurrentUser, fetchUserAttributes } from 'aws-amplify/auth';
+import { safeNavigateFrom } from '../../../src/utils/navigationHelper';
+
 const client = generateClient();
 const CreateAcForm = props => {
   const navigation = useNavigation();
@@ -15,7 +17,7 @@ const CreateAcForm = props => {
   const [isLoading, setIsLoading] = useState(false);
   const [pword, setPW] = useState('');
   const moveToWelcomPg = () => {
-    navigation.navigate("ChmMmbrMmbrss");
+    safeNavigateFrom(navigation, 'ChmMmbrMmbrss');
   };
   const fetchUser = async () => {
     const user = await getCurrentUser();

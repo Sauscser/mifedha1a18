@@ -9,6 +9,8 @@ import { TouchableOpacity } from 'react-native-gesture-handler';
 import { updateReqLoanCredSl } from '../../../src/graphql/mutations';
 import { useTranslation } from 'react-i18next';
 import translations from './translation';
+import { safeNavigateFrom } from '../../../src/utils/navigationHelper';
+
 
 
 export interface SMAccount {
@@ -46,12 +48,12 @@ const SMCvLnStts = (props:SMAccount) => {
    
 
    const SndChmMmbrMny = () => {
-       navigation.navigate("CovCredSls", {id})
+       safeNavigateFrom(navigation, 'CovCredSls', {id})
 
    }
 
    const SndChmMmbrMny2 = () => {
-    navigation.navigate("DeclCredSls", {id})
+    safeNavigateFrom(navigation, 'DeclCredSls', {id})
 
 }
 

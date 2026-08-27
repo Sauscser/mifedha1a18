@@ -10,6 +10,8 @@ import CustomMarker from '../../../components/MFNdogo/CustomMarkr';
 import Carousels from '../../../components/MFNdogo/MFNCarousel';
 import { buildOsrmRouteUrl } from '../../../src/config/osrm';
 import { generateClient } from "aws-amplify/api";
+import { safeNavigateFrom } from '../../../src/utils/navigationHelper';
+
 const client = generateClient();
 const dbg = (...args) => {
   console.log(...args);
@@ -452,7 +454,7 @@ const GenralShpMpViewThree = props => {
         const key = getPlaceKey(item.item);
         console.error(`SMFDBG card press -> ${String(key)}`);
         setSelectedPlaceId(key);
-      }} onLongPress={() => navigation.navigate('WithdrawFundsFromMap', {
+      }} onLongPress={() => safeNavigateFrom(navigation, 'WithdrawFundsFromMap', {
         phonecontact: item.item.phonecontact
       })} />} onViewableItemsChanged={onViewChanged.current} viewabilityConfig={viewConfig.current} getItemLayout={(_, index) => ({
         length: width,

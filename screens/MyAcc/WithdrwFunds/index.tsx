@@ -11,6 +11,8 @@ import uuid from 'react-native-uuid';
 import { useNavigation } from '@react-navigation/native';
 import { getCurrentUser, fetchUserAttributes } from "aws-amplify/auth";
 import { generateClient } from "aws-amplify/api";
+import { safeNavigateFrom } from '../../../src/utils/navigationHelper';
+
 const client = generateClient();
 const SMADepositForm = props => {
   const [UsrPWd, setUsrPWd] = useState("");
@@ -21,7 +23,7 @@ const SMADepositForm = props => {
   const navigation = useNavigation();
   const { nationality, ratesMap, formatAmount } = useExchange();
   const SndChmMmbrMny = () => {
-    navigation.navigate("AutomaticRepayAllTyps");
+    safeNavigateFrom(navigation, 'AutomaticRepayAllTyps');
   };
   const fetchAcDtls = async () => {
     if (isLoading) {

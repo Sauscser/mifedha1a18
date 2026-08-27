@@ -4,6 +4,8 @@ import {View, Text,   ScrollView, Pressable} from 'react-native';
 
 
 import styles from './styles';
+import { safeNavigateFrom } from '../../../src/utils/navigationHelper';
+
 
 
 
@@ -32,7 +34,7 @@ const ViewSMDeposts = (props:SMAccount) => {
  const navigation = useNavigation();
 
  const VwToReg = () =>{
-   navigation.navigate( "VwCompMFKTC", {id})
+   safeNavigateFrom(navigation, 'VwCompMFKTC', {id})
  }
     return (
         <View style = {styles.container}>              

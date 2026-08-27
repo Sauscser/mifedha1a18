@@ -4,6 +4,8 @@ import { View, Text, ImageBackground, Pressable, FlatList, SafeAreaView, ScrollV
 import styles from './styles';
 import { TouchableOpacity } from 'react-native-gesture-handler';
 import { LinearGradient } from 'expo-linear-gradient';
+import { safeNavigateFrom } from '../../../../src/utils/navigationHelper';
+
 const MyAccount = props => {
   const navigation = useNavigation();
   const Section = ({
@@ -33,13 +35,13 @@ const MyAccount = props => {
       </View>
     </View>;
   const PayPalDposit = () => {
-    navigation.navigate('PayPalDposit');
+    safeNavigateFrom(navigation, 'PayPalDposit');
   };
   const Mpesa = () => {
-    navigation.navigate('Mpesa');
+    safeNavigateFrom(navigation, 'Mpesa');
   };
   const PaystackTNC = () => {
-    navigation.navigate('PaystackTNC');
+    safeNavigateFrom(navigation, 'PaystackTNC');
   };
   return <SafeAreaView>
       <ScrollView>

@@ -8,6 +8,8 @@ import { parse } from 'expo-linking';
 import { getCurrentUser, fetchUserAttributes } from "aws-amplify/auth";
 import { convertForeignToKsh } from '../../../../../../src/utils/exchange';
 import { generateClient } from "aws-amplify/api";
+import { safeNavigateFrom } from '../../../../../../src/utils/navigationHelper';
+
 const client = generateClient();
 const CovCredSls = props => {
   const [SenderNatId, setSenderNatId] = useState('');
@@ -26,7 +28,7 @@ const CovCredSls = props => {
   const route = useRoute();
   const navigation = useNavigation();
   const SndChmMmbrMny = () => {
-    navigation.navigate("AutomaticRepayAllTyps");
+    safeNavigateFrom(navigation, 'AutomaticRepayAllTyps');
   };
   const fetchCredSlLnReq = async () => {
     if (isLoading) {

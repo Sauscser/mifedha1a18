@@ -14,6 +14,8 @@ import styles from './styles';
 import { TouchableOpacity } from 'react-native-gesture-handler';
 import { useTranslation } from 'react-i18next';
 import translations from './translation';
+import { safeNavigateFrom } from '../../../../../src/utils/navigationHelper';
+
 
 
 export interface SMAccount {
@@ -54,12 +56,12 @@ const SMCvLnStts = (props:SMAccount) => {
    
 
    const SndChmMmbrMny = () => {
-       navigation.navigate("BizPalLn", {id})
+       safeNavigateFrom(navigation, 'BizPalLn', {id})
 
    };
 
    const SndChmMmbrMny2 = () => {
-    navigation.navigate("DeclPalLn", {id})
+    safeNavigateFrom(navigation, 'DeclPalLn', {id})
 };
 
    const client = generateClient();

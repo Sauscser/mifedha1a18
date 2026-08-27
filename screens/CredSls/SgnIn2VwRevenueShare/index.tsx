@@ -8,6 +8,8 @@ import { getCurrentUser, fetchUserAttributes } from "aws-amplify/auth";
 import { generateClient } from "aws-amplify/api";
 import { useTranslation } from 'react-i18next';
 import translations from './translation';
+import { safeNavigateFrom } from '../../../src/utils/navigationHelper';
+
 const client = generateClient();
 const MFNSignIn = props => {
   const navigation = useNavigation();
@@ -29,7 +31,7 @@ const MFNSignIn = props => {
       const owners = MFNDtls.data.getBizna.owner;
       const BusinessRegNos = MFNDtls.data.getBizna.BusinessRegNo;
       const VwMFNAc = () => {
-        navigation.navigate("ViewBiznaShareSent", {
+        safeNavigateFrom(navigation, 'ViewBiznaShareSent', {
           MFNId
         });
       };

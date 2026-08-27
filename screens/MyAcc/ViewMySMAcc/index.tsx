@@ -8,6 +8,8 @@ import { getCurrentUser, fetchUserAttributes } from "aws-amplify/auth";
 import { generateClient } from "aws-amplify/api";
 import { useTranslation } from 'react-i18next';
 import translations from './translation';
+import { safeNavigateFrom } from '../../../src/utils/navigationHelper';
+
 const client = generateClient();
 const FetchSMNonCovLns = props => {
     const navigation = useNavigation();
@@ -58,7 +60,7 @@ const FetchSMNonCovLns = props => {
       };
       if (userInfo.userId !== owner) {
         Alert.alert(t.createMainAccount);
-        navigation.navigate('WelcomePgss');
+        safeNavigateFrom(navigation, 'WelcomePgss');
         return;
       } else {
         await fetchLoanees();
@@ -67,7 +69,7 @@ const FetchSMNonCovLns = props => {
       console.log(e);
       if (e) {
         Alert.alert(t.createMainAccountHome);
-        navigation.navigate('WelcomePgss');
+        safeNavigateFrom(navigation, 'WelcomePgss');
       }
       return;
     } finally {

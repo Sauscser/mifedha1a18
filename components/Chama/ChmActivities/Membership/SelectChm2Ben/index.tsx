@@ -9,6 +9,8 @@ import { fetchUserAttributes } from 'aws-amplify/auth';
 import { generateClient } from 'aws-amplify/api';
 import { getSMAccount } from '../../../../../src/graphql/queries';
 import { translations, useTranslation } from './translation';
+import { safeNavigateFrom } from '../../../../../src/utils/navigationHelper';
+
 
 export interface ChamaMmbrshpInfo {
   ChamaMmbrshpDtls: {
@@ -75,7 +77,7 @@ const ChmMbrShpInfo = (props: ChamaMmbrshpInfo) => {
 
   const navigation = useNavigation();
   const ViewMmberDtls = () => {
-    navigation.navigate('ChamaDtls', { ChamaNMember });
+    safeNavigateFrom(navigation, 'ChamaDtls', { ChamaNMember });
   };
 
   return (

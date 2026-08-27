@@ -3,6 +3,8 @@ import React from 'react';
 import { Text,  Pressable,  } from 'react-native';
 
 import styles from './styles';
+import { safeNavigateFrom } from '../../../../../src/utils/navigationHelper';
+
 
 
 export interface ChamaMmbrshpInfo {
@@ -26,7 +28,7 @@ const ChmMbrShpInfo = (props:ChamaMmbrshpInfo) => {
    const navigation = useNavigation();
     
    const SndChmMmbrMny = () => {
-      navigation.navigate("RepyChmNonCovLns", {loanID})
+      safeNavigateFrom(navigation, 'RepyChmNonCovLns', {loanID})
    }
    
     return (

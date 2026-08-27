@@ -30,6 +30,8 @@ import { FontAwesome, MaterialCommunityIcons } from '@expo/vector-icons';
 import { screenTranslations } from '../../src/i18n/screenTranslations';
 import i18n from '../../src/i18n';
 import { useTranslation } from 'react-i18next';
+import { safeNavigateFrom } from '../../src/utils/navigationHelper';
+
 
 const {
   height,
@@ -187,7 +189,7 @@ const HomeScreen = () => {
                 if (!mainAccExists) {
                     setPhotoLoading(false);
                     setOverlayMessage(screenT.proceedToCreateMainAccount);
-                    navigation.navigate('WelcomePgss');
+                    safeNavigateFrom(navigation, 'CreateSMAc');
                     return;
                 }
 
@@ -289,7 +291,7 @@ const HomeScreen = () => {
                         {/* Create Main Account Button - Left */}
                         <View style={styles.sideButtonWrapper}>
                             <LinearGradient colors={['#72ebd8', '#34a4a1']} style={styles.sideButton}>
-                                <TouchableOpacity style={styles.sideButton} onPress={() => navigateTo('WelcomePgss')}>
+                                <TouchableOpacity style={styles.sideButton} onPress={() => navigateTo('WelcomePgss' )}>
                                     <MaterialCommunityIcons name="plus-circle" size={24} color="#ffffff" style={styles.sideButtonIcon} />
                                     <Text style={styles.sideButtonText}>{screenT.createAccount}</Text>
                                 </TouchableOpacity>

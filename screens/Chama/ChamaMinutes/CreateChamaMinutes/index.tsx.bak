@@ -1,0 +1,461 @@
+import React, { useState, useEffect, useRef } from "react";
+import { View, Text, TextInput, Button, StyleSheet, Alert, ScrollView, TouchableOpacity, ActivityIndicator } from "react-native";
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import { Picker } from '@react-native-picker/picker';
+import { useNavigation } from "@react-navigation/native";
+import { generateClient } from "aws-amplify/api";
+import { getCurrentUser, fetchUserAttributes } from "aws-amplify/auth";
+import { getUrl } from "aws-amplify/storage";
+import { createChamaMinutes, createChamaMinutesItem, createChamaMeetingAttendance } from "../../../../src/graphql/mutations";
+import { listChamaMembers, getGroup } from "../../../../src/graphql/queries";
+import translations from './translation';
+import { useTranslation } from 'react-i18next';
+const client = generateClient();
+const MinutesCreationScreen = ({
+  userEmail
+}) => {
+  const [isSaving, setIsSaving] = useState(false);
+  const { i18n } = useTranslation();
+  const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+  const t = translations[lang] || translations.en;
+  const [groups, setGroups] = useState<any[]>([]);
+  const [selectedMemberGroup, setSelectedMemberGroup] = useState<any | null>(null);
+  const [groupDetails, setGroupDetails] = useState<any | null>(null);
+  const [meetingDate, setMeetingDate] = useState(new Date());
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [venue, setVenue] = useState("");
+  const [minutesEntries, setMinutesEntries] = useState([{
+    entryNumber: 1,
+    minuteNumber: "",
+    minuteContent: ""
+  }]);
+  // Removed draftMinutesEntries and modal state
+  const [attendanceList, setAttendanceList] = useState<any[]>([]);
+  const [chairSignUrl, setChairSignUrl] = useState<string | null>(null);
+  const [secSignUrl, setSecSignUrl] = useState<string | null>(null);
+  const [isGroupAdmin, setIsGroupAdmin] = useState(false);
+  const scrollRef = useRef<ScrollView | null>(null);
+  const navigation = useNavigation();
+  useEffect(() => {
+    async function fetchGroups() {
+      try {
+        const user = await getCurrentUser();
+        const attributes = await fetchUserAttributes();
+        const res: any = await client.graphql({
+          query: listChamaMembers,
+          variables: {
+            filter: {
+              memberContact: {
+                eq: attributes.email
+              }
+            }
+          }
+        });
+        setGroups(res.data.listChamaMembers.items || []);
+      } catch (err) {
+        console.log("Error fetching groups:", err);
+      }
+    }
+    fetchGroups();
+  }, []);
+  const fetchGroupDetails = async (grpContact: string, memberRecord: any) => {
+    try {
+      const user = await getCurrentUser();
+      const attributes = await fetchUserAttributes();
+      const res: any = await client.graphql({
+        query: getGroup,
+        variables: {
+          grpContact
+        }
+      });
+      const grp = res.data.getGroup;
+      if (!grp) return Alert.alert(t.error, t.groupDetailsNotFound);
+      const adminEmails = [grp.Admin1, grp.Admin2, grp.Admin3, grp.Admin4, grp.Admin5, grp.Admin6, grp.Admin7, grp.Admin8, grp.Admin9, grp.Admin10, grp.Admin11, grp.Admin12, grp.Admin13, grp.Admin14, grp.Admin15, grp.Admin16, grp.Admin17, grp.Admin18, grp.Admin19, grp.Admin20].filter(Boolean);
+      setIsGroupAdmin(adminEmails.includes(attributes.email));
+      setSelectedMemberGroup(memberRecord);
+      setGroupDetails(grp);
+
+      // Scroll to form smoothly
+      setTimeout(() => {
+        scrollRef.current?.scrollToEnd({
+          animated: true
+        });
+      }, 300);
+      if (grp.chairSign) {
+        const { url } = await getUrl({ key: grp.chairSign });
+        setChairSignUrl(url.toString());
+      } else setChairSignUrl(null);
+      if (grp.secSign) {
+        const { url } = await getUrl({ key: grp.secSign });
+        setSecSignUrl(url.toString());
+      } else setSecSignUrl(null);
+      const membersRes: any = await client.graphql({
+        query: listChamaMembers,
+        variables: {
+          filter: {
+            groupContact: {
+              eq: grpContact
+            }
+          }
+        }
+      });
+      const members = membersRes.data.listChamaMembers.items || [];
+      setAttendanceList(members.map((m: any) => ({
+        memberName: m.memberName,
+        memberEmail: m.memberContact,
+        attendanceStatus: 'ABSENT'
+      })));
+    } catch (err) {
+      console.log("Error fetching group details:", err);
+      Alert.alert(t.error, t.couldNotLoadGroup);
+    }
+  };
+  const getSittingNumber = () => attendanceList.filter(m => m.attendanceStatus === "PRESENT").length || 1;
+  const addMinuteEntry = () => setMinutesEntries([...minutesEntries, {
+    entryNumber: minutesEntries.length + 1,
+    minuteNumber: "",
+    minuteContent: ""
+  }]);
+  const removeMinuteEntry = (idx: number) => setMinutesEntries(minutesEntries.filter((_, i) => i !== idx));
+  const onChangeDate = (event: any, selectedDate?: Date) => {
+    if (event.type === "set" && selectedDate) setMeetingDate(selectedDate);
+    setShowDatePicker(false);
+  };
+  const resetForm = () => {
+    setSelectedMemberGroup(null);
+    setGroupDetails(null);
+    setMeetingDate(new Date());
+    setVenue("");
+    setMinutesEntries([{
+      entryNumber: 1,
+      minuteNumber: "",
+      minuteContent: ""
+    }]);
+    setAttendanceList([]);
+    setChairSignUrl(null);
+    setSecSignUrl(null);
+    setIsGroupAdmin(false);
+  };
+  const saveMinutes = async () => {
+    if (!selectedMemberGroup || !groupDetails) return Alert.alert(t.error, t.selectGroupFirst);
+    if (!venue.trim()) return Alert.alert(t.error, t.enterVenueFirst);
+    if (minutesEntries.some(e => !e.minuteContent.trim())) return Alert.alert(t.error, t.fillMinuteContents);
+    setIsSaving(true);
+    try {
+      const sittingNumber = getSittingNumber();
+      const minutesInput = {
+        grpContact: selectedMemberGroup.groupContact,
+        sittingNumber,
+        meetingDate: meetingDate.toISOString().split("T")[0],
+        venue,
+        status: "DRAFT",
+        chairpersonId: "N/A",
+        secretaryId: "N/A"
+      };
+      const minutesRes: any = await client.graphql({
+        query: createChamaMinutes,
+        variables: {
+          input: minutesInput
+        }
+      });
+      const minutesId = minutesRes.data.createChamaMinutes.id;
+      for (let entry of minutesEntries) {
+        await client.graphql({
+          query: createChamaMinutesItem,
+          variables: {
+            input: {
+              minutesId,
+              entryOrder: entry.entryNumber,
+              minuteRef: entry.minuteNumber,
+              title: `Entry ${entry.entryNumber}`,
+              content: entry.minuteContent
+            }
+          }
+        });
+      }
+      for (let member of attendanceList) {
+        await client.graphql({
+          query: createChamaMeetingAttendance,
+          variables: {
+            input: {
+              minutesId,
+              grpContact: selectedMemberGroup.groupContact,
+              memberName: member.memberName,
+              memberEmail: member.memberEmail,
+              attendanceStatus: member.attendanceStatus,
+              markedBy: userEmail,
+              markedAt: new Date().toISOString()
+            }
+          }
+        });
+      }
+      Alert.alert(t.success, t.minutesSaved);
+      resetForm();
+    } catch (err) {
+      console.log(err);
+      Alert.alert(t.error, t.errorSavingMinutes);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+  const presentCount = attendanceList.filter(m => m.attendanceStatus === "PRESENT").length;
+  const absentCount = attendanceList.filter(m => m.attendanceStatus === "ABSENT").length;
+  const apologyCount = attendanceList.filter(m => m.attendanceStatus === "APOLOGY").length;
+
+  // …render JSX here (unchanged)
+
+    return (
+      <KeyboardAwareScrollView
+        style={styles.container}
+        contentContainerStyle={{ paddingBottom: 160 }}
+        keyboardShouldPersistTaps="handled"
+        enableOnAndroid={true}
+        extraScrollHeight={80}
+      >
+      <Text style={styles.header}>{t.selectGroup}</Text>
+      {groups.map(memberGroup => {
+      const isSelected = selectedMemberGroup?.groupContact === memberGroup.groupContact;
+      return <View key={memberGroup.groupContact} style={styles.groupCard}>
+            <Text style={styles.groupName}>{memberGroup.groupName}</Text>
+
+            <View style={styles.groupActions}>
+              {/* VIEW MINUTES — everyone */}
+              <TouchableOpacity style={styles.viewBtn} onPress={() => navigation.navigate("ViewMinutes", {
+            grpContact: memberGroup.groupContact,
+            groupName: memberGroup.groupName
+          })}>
+                <Text style={styles.actionText}>📄 {t.viewMinutes}</Text>
+              </TouchableOpacity>
+
+              {/* CREATE MINUTES */}
+              {isSelected ? <TouchableOpacity style={[styles.createBtn, !isGroupAdmin && styles.disabledBtn]} disabled={!isGroupAdmin}>
+                  <Text style={styles.actionText}>
+                    {isGroupAdmin ? `➕ ${t.createMinutes}` : t.lockedCreateMinutes}
+                  </Text>
+                </TouchableOpacity> : <TouchableOpacity style={styles.createBtn} onPress={() => fetchGroupDetails(memberGroup.groupContact, memberGroup)}>
+                  <Text style={styles.actionText}>{t.selectGroup}</Text>
+                </TouchableOpacity>}
+            </View>
+          </View>;
+    })}
+
+      {selectedMemberGroup && groupDetails && isGroupAdmin && <>
+          <Text style={styles.header}>{t.meetingDate}</Text>
+          <Button title={`${t.selectDate}: ${meetingDate.toLocaleDateString()} ${meetingDate.toLocaleTimeString()}`} color="#e29d58" onPress={() => setShowDatePicker(true)} />
+          {showDatePicker && <DateTimePicker value={meetingDate} mode="date" display="default" onChange={onChangeDate} />}
+
+          <Text style={styles.header}>{t.venue}</Text>
+          <TextInput style={styles.input} value={venue} onChangeText={setVenue} placeholder={t.enterVenue} />
+
+         
+
+          <Text style={styles.header}>{t.minutesEntries}</Text>
+          {minutesEntries.map((entry, idx) => (
+            <View key={idx} style={styles.entryContainer}>
+              <Text style={styles.subHeader}>{t.entry} {entry.entryNumber}</Text>
+              <TextInput
+                style={styles.input}
+                placeholder={t.minuteNumberPlaceholder}
+                value={entry.minuteNumber}
+                onChangeText={text => {
+                  const updated = [...minutesEntries];
+                  updated[idx].minuteNumber = text;
+                  setMinutesEntries(updated);
+                }}
+              />
+              <TextInput
+                style={[styles.input, { height: 80 }]}
+                placeholder={t.minuteContentPlaceholder}
+                value={entry.minuteContent}
+                onChangeText={text => {
+                  const updated = [...minutesEntries];
+                  updated[idx].minuteContent = text;
+                  setMinutesEntries(updated);
+                }}
+                multiline
+              />
+              {minutesEntries.length > 1 && (
+                <Button title={t.removeMinute} color="#e29d58" onPress={() => removeMinuteEntry(idx)} />
+              )}
+            </View>
+          ))}
+          <Button title={t.addMinute} color="#e29d58" onPress={addMinuteEntry} />
+
+          <Text style={styles.header}>{t.attendance}</Text>
+          {attendanceList.map((member, idx) => <View key={idx} style={styles.attendanceRow}>
+              <Text style={{
+          flex: 1
+        }}>{member.memberName}</Text>
+              <Picker selectedValue={member.attendanceStatus} style={{
+          flex: 1
+        }} onValueChange={val => {
+          const updated = [...attendanceList];
+          updated[idx].attendanceStatus = val;
+          setAttendanceList(updated);
+        }}>
+                <Picker.Item label={t.present} value="PRESENT" />
+                <Picker.Item label={t.absent} value="ABSENT" />
+                <Picker.Item label={t.apology} value="APOLOGY" />
+              </Picker>
+            </View>)}
+
+          <Text style={styles.header}>{t.attendanceSummary}</Text>
+          <View style={styles.summaryRow}>
+            <Text style={styles.summaryText}>{t.present}: {presentCount}</Text>
+            <Text style={styles.summaryText}>{t.absent}: {absentCount}</Text>
+            <Text style={styles.summaryText}>{t.apology}: {apologyCount}</Text>
+          </View>
+
+          <View style={{ marginVertical: 20 }}>
+            <Button
+              title={isSaving ? t.savingMinutes || 'Saving...' : t.saveMinutes}
+              color="#e29d58"
+              onPress={saveMinutes}
+              disabled={isSaving}
+            />
+          </View>
+          {isSaving && (
+            <View style={styles.loadingOverlay} pointerEvents="auto">
+              <View style={styles.loadingBox}>
+                <ActivityIndicator size="large" color="#e29d58" />
+                <Text style={{ marginTop: 12, color: '#e29d58', fontWeight: 'bold' }}>{t.savingMinutes || 'Saving minutes...'}</Text>
+              </View>
+            </View>
+          )}
+        </>}
+      </KeyboardAwareScrollView>
+    );
+};
+export default MinutesCreationScreen;
+const styles = StyleSheet.create({
+    loadingOverlay: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: 'rgba(255,255,255,0.7)',
+      justifyContent: 'center',
+      alignItems: 'center',
+      zIndex: 1000,
+    },
+    loadingBox: {
+      backgroundColor: '#fff',
+      padding: 24,
+      borderRadius: 16,
+      alignItems: 'center',
+      elevation: 8,
+      shadowColor: '#000',
+      shadowOpacity: 0.15,
+      shadowRadius: 12,
+      shadowOffset: { width: 0, height: 4 },
+    },
+  // Modal and selectMinutesBtn styles removed
+    // minutesEntriesScrollContainer removed, handled by FlatList
+  container: {
+    flex: 1,
+    padding: 16,
+    backgroundColor: "#f8f9fa",
+  },
+  header: {
+    fontSize: 18,
+    fontWeight: "bold",
+    marginVertical: 8,
+    color: "#333"
+  },
+  subHeader: {
+    fontSize: 16,
+    fontWeight: "600",
+    marginBottom: 4,
+    color: "#444"
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: "#ccc",
+    padding: 8,
+    borderRadius: 6,
+    marginBottom: 8,
+    backgroundColor: "#fff",
+    fontSize: 14
+  },
+  entryContainer: {
+    padding: 8,
+    backgroundColor: "#e9ecef",
+    borderRadius: 6,
+    marginBottom: 12
+  },
+  attendanceRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 6,
+    justifyContent: "space-between",
+    paddingVertical: 4,
+    borderBottomWidth: 0.5,
+    borderBottomColor: "#ddd"
+  },
+  signature: {
+    width: 150,
+    height: 80,
+    resizeMode: "contain",
+    marginVertical: 4,
+    borderWidth: 1,
+    borderColor: "#ccc",
+    borderRadius: 4
+  },
+  summaryRow: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    marginVertical: 10,
+    padding: 10,
+    backgroundColor: "#f1f3f5",
+    borderRadius: 6
+  },
+  summaryText: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#333"
+  },
+  groupCard: {
+    backgroundColor: "#ffffff",
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    elevation: 3
+  },
+  groupName: {
+    fontSize: 18,
+    fontWeight: "700",
+    marginBottom: 12,
+    color: "#212529"
+  },
+  groupActions: {
+    flexDirection: "row",
+    justifyContent: "space-between"
+  },
+  createBtn: {
+    flex: 1,
+    backgroundColor: "#e29d58",
+    paddingVertical: 10,
+    borderRadius: 20,
+    marginRight: 8,
+    alignItems: "center"
+  },
+  viewBtn: {
+    flex: 1,
+    backgroundColor: "#495057",
+    paddingVertical: 10,
+    borderRadius: 20,
+    marginLeft: 8,
+    alignItems: "center",
+    padding: 10
+  },
+  disabledBtn: {
+    backgroundColor: "#adb5bd"
+  },
+  actionText: {
+    color: "#ffffff",
+    fontWeight: "600",
+    fontSize: 14
+  }
+});

@@ -5,6 +5,7 @@ import styles from './styles';
 import { LinearGradient } from 'expo-linear-gradient';
 import translations from './translation';
 import { useTranslation } from 'react-i18next';
+import { safeNavigateFrom } from '../../src/utils/navigationHelper';
 const MyAccount = props => {
   const navigation = useNavigation();
   const { i18n } = useTranslation();
@@ -37,43 +38,44 @@ const MyAccount = props => {
       </View>
     </View>;
   const SMDpsitsss = () => {
-    navigation.navigate('ElimDpstss');
+    safeNavigateFrom(navigation, 'ElimDpstss');
   };
   const ViewNonLnsRecs = () => {
-    navigation.navigate('ViewNonLnsRecs');
+    safeNavigateFrom(navigation, 'ViewNonLnsRecs');
   };
   const ViewNonLnsSents = () => {
-    navigation.navigate('ViewNonLnsSents');
+    safeNavigateFrom(navigation, 'ViewNonLnsSents');
   };
   const SearchUser = () => {
-    navigation.navigate('VwMakeLnReq');
+    safeNavigateFrom(navigation, 'VwMakeLnReq');
   };
   const goToSMASndnonln = () => {
-    navigation.navigate('Vw2SelectChmBeneficiary');
+    safeNavigateFrom(navigation, 'Vw2SelectChmBeneficiary');
   };
+
   const AcceptRideRequest = () => {
-    navigation.navigate('AcceptRideRequest');
+    safeNavigateFrom(navigation, 'AcceptRideRequest');
   };
   const Auditor = () => {
-    navigation.navigate('Auditor');
+    safeNavigateFrom(navigation, 'Auditor');
   };
   const FunderClearBill = () => {
-    navigation.navigate('FunderClearBill');
+    safeNavigateFrom(navigation, 'FunderClearBill');
   };
   const consumerApproveVoucher = () => {
-    navigation.navigate('consumerApproveVoucher');
+    safeNavigateFrom(navigation, 'consumerApproveVoucher');
   };
   const Vw2GenerateVoucher = () => {
-    navigation.navigate('Vw2GenerateVoucher');
+    safeNavigateFrom(navigation, 'Vw2GenerateVoucher');
   };
   const Vw2LinkSeller = () => {
-    navigation.navigate('Vw2LinkSeller');
+    safeNavigateFrom(navigation, 'Vw2LinkSeller');
   };
   const CreateCOMBContract = () => {
-    navigation.navigate('CreateCOMBContract');
+    safeNavigateFrom(navigation, 'CreateCOMBContract');
   };
   const AddCOMBPersonel = () => {
-    navigation.navigate('AddCOMBPersonel');
+    safeNavigateFrom(navigation, 'AddCOMBPersonel');
   };
   return <SafeAreaView>
       <ScrollView>

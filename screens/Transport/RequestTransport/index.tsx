@@ -26,6 +26,8 @@ import { buildOsrmRouteUrl } from '../../../src/config/osrm';
 import { generateClient } from "aws-amplify/api";
 import { formatAmountForUser, getUserNationalityByEmail, getExRatesForNationality, convertForeignToKsh } from '../../../src/utils/exchange';
 import { resolveTransportOwnership } from '../../../src/utils/transportRequest';
+import { safeNavigateFrom } from '../../../src/utils/navigationHelper';
+
 const client = generateClient();
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const SCREEN_HEIGHT = Dimensions.get('window').height;
@@ -1097,7 +1099,7 @@ try {
                   </Text>
                   <View style={styles.buttonRow}>
                     <TouchableOpacity
-                      onPress={() => navigation.navigate('TransportDetails', { id: item.id })}
+                      onPress={() => safeNavigateFrom(navigation, 'TransportDetails', { id: item.id })}
                       style={[styles.btn, { backgroundColor: '#e58d29' }]}
                     >
                       <Text style={{ color: 'white', fontSize: 12 }}>{t.viewDetails || 'Details'}</Text>

@@ -2,37 +2,39 @@ import React from 'react';
 import { useNavigation } from '@react-navigation/native';
 import { View, Text, TouchableOpacity, SafeAreaView, StyleSheet, ScrollView } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { safeNavigateFrom } from '../../src/utils/navigationHelper';
+
 const KFKubwaScreen = () => {
   const navigation = useNavigation();
   const GoHome = () => {
     navigation.navigate('Homes');
   };
   const ApplyMFKubwa = () => {
-    navigation.navigate('ApplyMFKubwa');
+    safeNavigateFrom(navigation, 'ApplyMFKubwa');
   };
   const UpdtMFKPWss = () => {
-    navigation.navigate('UpdtMFKPWs');
+    safeNavigateFrom(navigation, 'UpdtMFKPWs');
   };
   const RegMFKbwsz = () => {
-    navigation.navigate('VwCompMFKTC');
+    safeNavigateFrom(navigation, 'VwCompMFKTC');
   };
   const RegMFKbws = () => {
-    navigation.navigate('VwToRegMFK');
+    safeNavigateFrom(navigation, 'VwToRegMFK');
   };
   const MFKWthdrwss = () => {
-    navigation.navigate('MFKWthdrws');
+    safeNavigateFrom(navigation, 'MFKWthdrws');
   };
   const VwMFKAcSgnInss = () => {
-    navigation.navigate('VwMFKAcSgnIns');
+    safeNavigateFrom(navigation, 'VwMFKAcSgnIns');
   };
   const VwMFKWthdrwlsSgnInss = () => {
-    navigation.navigate('VwMFKWthdrwlsSgnIns');
+    safeNavigateFrom(navigation, 'VwMFKWthdrwlsSgnIns');
   };
   const MFKVwMFNSgnInsss = () => {
-    navigation.navigate('MFKVwMFNSgnInss');
+    safeNavigateFrom(navigation, 'MFKVwMFNSgnInss');
   };
   const UpdateMFKComss = () => {
-    navigation.navigate('UpdateMFKComs');
+    safeNavigateFrom(navigation, 'UpdateMFKComs');
   };
 
   // Reusable button component with TouchableOpacity

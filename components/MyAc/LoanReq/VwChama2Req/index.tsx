@@ -10,6 +10,8 @@ import { generateClient } from 'aws-amplify/api';
 import styles from './styles';
 import { useTranslation } from 'react-i18next';
 import translations from '../../../../screens/Chama/ReqLoan/Vw2SelectChm2Req/translation';
+import { safeNavigateFrom } from '../../../../src/utils/navigationHelper';
+
 
 export interface ChamaMmbrshpInfo {
     ChamaMmbrshpDtls: {
@@ -58,7 +60,7 @@ const ChmMbrShpInfo = (props:ChamaMmbrshpInfo) => {
    
  
    const VwFloatedLoans = () => {
-      navigation.navigate("VwFloatedLoans", {groupContact, MembaId})
+      safeNavigateFrom(navigation, 'VwFloatedLoans', {groupContact, MembaId})
    }
   
    const client = generateClient();

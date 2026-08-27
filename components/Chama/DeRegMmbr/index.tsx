@@ -4,6 +4,8 @@ import { Text,  Pressable,  View, ScrollView} from 'react-native';
 
 import { translations } from './translation';
 import styles from './styles';
+import { safeNavigateFrom } from '../../../src/utils/navigationHelper';
+
 
 
 export interface ChamaMmbrshpInfo {
@@ -28,7 +30,7 @@ const ChmMbrShpInfo = (props:ChamaMmbrshpInfo) => {
    const t = translations[lang] || translations.en;
    
    const SndChmMmbrMny = () => {
-      navigation.navigate("RemoveChmMbrs", {id})
+      safeNavigateFrom(navigation, 'RemoveChmMbrs', {id})
    }
    
     return (

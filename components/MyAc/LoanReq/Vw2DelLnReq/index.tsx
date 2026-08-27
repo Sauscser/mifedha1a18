@@ -11,6 +11,8 @@ import { getSMAccount } from '../../../../src/graphql/queries';
 import {fetchUserAttributes} from 'aws-amplify/auth';
 import styles from './styles';
 import { TouchableOpacity } from 'react-native-gesture-handler';
+import { safeNavigateFrom } from '../../../../src/utils/navigationHelper';
+
 // Translation pattern
 // t is passed as prop from parent
 
@@ -47,7 +49,7 @@ const SMCvLnStts = (props: SMAccount) => {
   const navigation = useNavigation();
 
   const SndChmMmbrMny = () => {
-    navigation.navigate("RepyChmNonCovLns", { id });
+    safeNavigateFrom(navigation, 'RepyChmNonCovLns', { id });
   };
 
    const client = generateClient();

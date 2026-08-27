@@ -23,6 +23,8 @@ import styles from './styles';
 import { getReqLoanChama } from '../../../../src/graphql/queries';
 import translations from './translation';
 import { useTranslation } from 'react-i18next';
+import { safeNavigateFrom } from '../../../../src/utils/navigationHelper';
+
 
 export interface SMAccount {
   SMAc: {
@@ -63,11 +65,11 @@ const SMCvLnStts = (props: SMAccount) => {
   const navigation = useNavigation();
 
   const SndChmMmbrMny = () => {
-    navigation.navigate('ChmCovLons', { id });
+    safeNavigateFrom(navigation, 'ChmCovLons', { id });
   };
 
   const SndChmMmbrMny2 = () => {
-    navigation.navigate('DeclChamaReq', { id });
+    safeNavigateFrom(navigation, 'DeclChamaReq', { id });
   };
   const [Uzer, setUzer] = useState<string>(null);
   const [userNationality, setUserNationality] = useState<string>(null);

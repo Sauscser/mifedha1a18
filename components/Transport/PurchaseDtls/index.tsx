@@ -12,6 +12,8 @@ import {fetchUserAttributes} from 'aws-amplify/auth';
 import { generateClient } from 'aws-amplify/api';
 import { useTranslation } from 'react-i18next';
 import { translations } from './translation';
+import { safeNavigateFrom } from '../../../src/utils/navigationHelper';
+
 
 export interface SMAccount {
   SMAc: {
@@ -62,7 +64,7 @@ const ViewSMDeposts =
       buyerContact = selectedBizna.BusKntct;
       customerEmail = selectedBizna.BusKntct;
     }
-    navigation.navigate("RequestTransport", {
+    safeNavigateFrom(navigation, 'RequestTransport', {
       id,
       // mode is only passed if the target screen expects it; remove if not needed by navigation type
       ...(mode ? { mode } : {}),

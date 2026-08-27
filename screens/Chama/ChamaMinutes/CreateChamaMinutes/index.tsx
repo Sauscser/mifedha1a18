@@ -11,6 +11,8 @@ import { createChamaMinutes, createChamaMinutesItem, createChamaMeetingAttendanc
 import { listChamaMembers, getGroup } from "../../../../src/graphql/queries";
 import translations from './translation';
 import { useTranslation } from 'react-i18next';
+import { safeNavigateFrom } from '../../../../src/utils/navigationHelper';
+
 const client = generateClient();
 const MinutesCreationScreen = ({
   userEmail
@@ -221,7 +223,7 @@ const MinutesCreationScreen = ({
 
             <View style={styles.groupActions}>
               {/* VIEW MINUTES — everyone */}
-              <TouchableOpacity style={styles.viewBtn} onPress={() => navigation.navigate("ViewMinutes", {
+              <TouchableOpacity style={styles.viewBtn} onPress={() => safeNavigateFrom(navigation, 'ViewMinutes', {
             grpContact: memberGroup.groupContact,
             groupName: memberGroup.groupName
           })}>

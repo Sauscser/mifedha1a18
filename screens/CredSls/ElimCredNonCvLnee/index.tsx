@@ -6,6 +6,8 @@ import { View, Text, TextInput, ScrollView, TouchableOpacity, Alert, ActivityInd
 import styles from './styles';
 import { getCurrentUser, fetchUserAttributes } from 'aws-amplify/auth';
 import { generateClient } from 'aws-amplify/api';
+import { safeNavigateFrom } from '../../../src/utils/navigationHelper';
+
 const client = generateClient();
 const CreateAcForm = props => {
   const navigation = useNavigation();
@@ -16,7 +18,7 @@ const CreateAcForm = props => {
   const [pword, setPW] = useState('');
   const [ownr, setownr] = useState<string | null>(null);
   const moveToWelcomPg = () => {
-    navigation.navigate("CredByrLneess");
+    safeNavigateFrom(navigation, 'CredByrLneess');
   };
   const fetchUser = async () => {
     if (isLoading) return;

@@ -3,6 +3,8 @@ import { useNavigation } from '@react-navigation/native';
 import { View, Text, ImageBackground, Pressable, FlatList, SafeAreaView, ScrollView } from 'react-native';
 import styles from './styles';
 import { LinearGradient } from 'expo-linear-gradient';
+import { safeNavigateFrom } from '../../src/utils/navigationHelper';
+
 const Section = ({
   title,
   options
@@ -32,70 +34,70 @@ const Section = ({
 const RegKFKubwa = props => {
   const navigation = useNavigation();
   const goToBuyFloat = () => {
-    navigation.navigate('BuyFloatBnkAdm');
+    safeNavigateFrom(navigation, 'BuyFloatBnkAdm');
   };
   const RegPwnBrkrss = () => {
-    navigation.navigate('RegPwnBrkrs');
+    safeNavigateFrom(navigation, 'RegPwnBrkrs');
   };
   const AdjustUsrLimitsss = () => {
-    navigation.navigate('AdjustUsrLimitss');
+    safeNavigateFrom(navigation, 'AdjustUsrLimitss');
   };
   const DActvteMFAds = () => {
-    navigation.navigate('DActvteMFAd');
+    safeNavigateFrom(navigation, 'DActvteMFAd');
   };
   const PwnBrkrRegss = () => {
-    navigation.navigate('PwnBrkrRegss');
+    safeNavigateFrom(navigation, 'PwnBrkrRegss');
   };
   const ChamaRegss = () => {
-    navigation.navigate('ChamaRegss');
+    safeNavigateFrom(navigation, 'ChamaRegss');
   };
   const DActivateMFN = () => {
-    navigation.navigate('DActvteMFN');
+    safeNavigateFrom(navigation, 'DActvteMFN');
   };
   const ClearGroupMemberLoan = () => {
-    navigation.navigate('ClearGroupMemberLoan');
+    safeNavigateFrom(navigation, 'ClearGroupMemberLoan');
   };
   const SyncGrpWithdrawals = () => {
-    navigation.navigate('SyncGrpWithdrawals');
+    safeNavigateFrom(navigation, 'SyncGrpWithdrawals');
   };
   const ApplyMFKubwa = () => {
-    navigation.navigate('AddMFKubwas');
+    safeNavigateFrom(navigation, 'AddMFKubwas');
   };
   const SyncGrpLoansOut = () => {
-    navigation.navigate('SyncGrpLoansOut');
+    safeNavigateFrom(navigation, 'SyncGrpLoansOut');
   };
   const SyncGrpdividends = () => {
-    navigation.navigate('SyncGrpdividends');
+    safeNavigateFrom(navigation, 'SyncGrpdividends');
   };
   const UpdateBankAdminAc = () => {
-    navigation.navigate('UpdateBankAdminAc');
+    safeNavigateFrom(navigation, 'UpdateBankAdminAc');
   };
   const RegGrp = () => {
-    navigation.navigate('RegGrp');
+    safeNavigateFrom(navigation, 'RegGrp');
   };
   const WithdrawBankAdmin = () => {
-    navigation.navigate('WithdrawBankAdmin');
+    safeNavigateFrom(navigation, 'WithdrawBankAdmin');
   };
   const SyncGrpBenefits = () => {
-    navigation.navigate('SyncGrpBenefits');
+    safeNavigateFrom(navigation, 'SyncGrpBenefits');
   };
   const ViewSyncedGrpdividends = () => {
-    navigation.navigate('ViewSyncedGrpdividends');
+    safeNavigateFrom(navigation, 'ViewSyncedGrpdividends');
   };
   const ViewSyncedGrpLoansOut = () => {
-    navigation.navigate('ViewSyncedGrpLoansOut');
+    safeNavigateFrom(navigation, 'ViewSyncedGrpLoansOut');
   };
   const ViewSyncedGrpWithdrawals = () => {
-    navigation.navigate('ViewSyncedGrpWithdrawals');
+    safeNavigateFrom(navigation, 'ViewSyncedGrpWithdrawals');
   };
   const ViewSyncedGrpBenefits = () => {
-    navigation.navigate('ViewSyncedGrpBenefits');
+    safeNavigateFrom(navigation, 'ViewSyncedGrpBenefits');
   };
   const ViewMFBankAdmin = () => {
-    navigation.navigate('ViewMFBankAdmin');
+    safeNavigateFrom(navigation, 'ViewMFBankAdmin');
   };
   const RecoverMemberLoan = () => {
-    navigation.navigate('RecoverMemberLoan');
+    safeNavigateFrom(navigation, 'RecoverMemberLoan');
   };
   return <SafeAreaView>
       <ScrollView>

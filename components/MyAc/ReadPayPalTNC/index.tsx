@@ -4,6 +4,8 @@ import {View, Text, ImageBackground, Pressable, FlatList, Alert} from 'react-nat
 import styles from './styles';
 import {  getSMAccount } from '../../../src/graphql/queries';
 import { useNavigation } from '@react-navigation/native';
+import { safeNavigateFrom } from '../../../src/utils/navigationHelper';
+
 
 
 export interface SMCvLnSttus {
@@ -34,11 +36,11 @@ const FetchSMNonCovLns = props => {
     const navigation = useNavigation();
 
     const PyPlDpst = () => {
-      navigation.navigate("Mpesa");
+      safeNavigateFrom(navigation, 'Mpesa');
     }
 
     const PyPlDpst2 = () => {
-      navigation.navigate("Homeie");
+      safeNavigateFrom(navigation, 'Homeie');
     }
     
 

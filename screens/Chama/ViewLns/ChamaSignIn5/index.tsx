@@ -5,6 +5,8 @@ import styles from './styles';
 import { useNavigation } from '@react-navigation/native';
 import { generateClient } from 'aws-amplify/api';
 import { getCurrentUser, fetchUserAttributes } from 'aws-amplify/auth';
+import { safeNavigateFrom } from '../../../../src/utils/navigationHelper';
+
 const client = generateClient();
 const ChmSignIn = () => {
   const navigation = useNavigation();
@@ -12,7 +14,7 @@ const ChmSignIn = () => {
   const [pword, setPW] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const FetchGrpLonsSts = () => {
-    navigation.navigate("ChmContris", {
+    safeNavigateFrom(navigation, 'ChmContris', {
       grpContact
     });
   };

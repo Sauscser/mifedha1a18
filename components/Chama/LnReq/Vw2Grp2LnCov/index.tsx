@@ -12,6 +12,8 @@ import { generateClient } from 'aws-amplify/api';
 import { getSMAccount } from '../../../../src/graphql/queries';
 import translations from './translation';
 import { useTranslation } from 'react-i18next';
+import { safeNavigateFrom } from '../../../../src/utils/navigationHelper';
+
 
 export interface SMAccount {
     SMAc: {
@@ -39,7 +41,7 @@ const SMCvLnStts = (props:SMAccount) => {
    const t = translations[lang] || translations.en;
 
    const SndChmMmbrMny = () => {
-       navigation.navigate("ChamaVw2GrantLnReqCov", {groupContact})
+       safeNavigateFrom(navigation, 'ChamaVw2GrantLnReqCov', {groupContact})
    }
 
    

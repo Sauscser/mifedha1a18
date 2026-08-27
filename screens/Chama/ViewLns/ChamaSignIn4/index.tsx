@@ -5,6 +5,8 @@ import { generateClient } from 'aws-amplify/api';
 import { useNavigation } from '@react-navigation/native';
 import { View, Text, ImageBackground, Pressable, TextInput, ScrollView, KeyboardAvoidingView, Platform, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
 import styles from './styles';
+import { safeNavigateFrom } from '../../../../src/utils/navigationHelper';
+
 const graphqlClient = generateClient();
 const ChmSignIn = props => {
   const navigation = useNavigation();
@@ -19,7 +21,7 @@ const ChmSignIn = props => {
   const [memberPhn, setmemberPhn] = useState('');
   const ChmNMmbrPhns = grpContact + memberPhn;
   const FetchGrpLonsSts = () => {
-    navigation.navigate("ChamaRemts", {
+    safeNavigateFrom(navigation, 'ChamaRemts', {
       grpContact
     });
   };

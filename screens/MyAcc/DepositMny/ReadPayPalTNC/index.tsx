@@ -6,6 +6,8 @@ import { getCompany, getExRates, getSMAccount, listCompanies, listExRates, listS
 import { useNavigation } from '@react-navigation/native';
 import { getCurrentUser, fetchUserAttributes } from "aws-amplify/auth";
 import { generateClient } from "aws-amplify/api";
+import { safeNavigateFrom } from '../../../../src/utils/navigationHelper';
+
 const client = generateClient();
 const FetchSMNonCovLns = props => {
   const [LneePhn, setLneePhn] = useState(null);
@@ -17,10 +19,10 @@ const FetchSMNonCovLns = props => {
   const [isLoading, setIsLoading] = useState(false);
   const navigation = useNavigation();
   const PyPlDpst = () => {
-    navigation.navigate("PayPalDposit");
+    safeNavigateFrom(navigation, 'PayPalDposit');
   };
   const PyPlDpst2 = () => {
-    navigation.navigate("Homeie");
+    safeNavigateFrom(navigation, 'Homeie');
   };
   const fetchLoanees = async () => {
     setLoading(true);

@@ -14,6 +14,8 @@ import { useNavigation } from '@react-navigation/native';
 import { listCompanies } from '../../src/graphql/queries';
 import { useTranslation } from 'react-i18next';
 import translations from './translation';
+import { safeNavigateFrom } from '../../src/utils/navigationHelper';
+
 
 const client = generateClient();
 
@@ -46,7 +48,7 @@ const FetchSMNonCovLns = () => {
 
   // Navigation actions
   const acceptTerms = () => {
-    navigation.navigate('CreateSMAc');
+    safeNavigateFrom(navigation, 'CreateSMAc');
   };
 
   const declineTerms = async () => {

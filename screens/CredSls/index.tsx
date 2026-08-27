@@ -5,6 +5,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
 import translations from './translation';
+import { safeNavigateFrom } from '../../src/utils/navigationHelper';
+
 
 const Section = ({
   title,
@@ -37,136 +39,136 @@ const MyLoanAccount = () => {
   const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
   const t = translations[lang] || translations.en;
   const VwPal2BizLners = () => {
-    navigation.navigate('VwPal2BizLners');
+    safeNavigateFrom(navigation, 'VwPal2BizLners');
   };
   const SI2VwBiz2PalLoanees = () => {
-    navigation.navigate('VwBiz2PalLnees');
+    safeNavigateFrom(navigation, 'VwBiz2PalLnees');
   };
   const SI2VwBiz2BizLoaners = () => {
-    navigation.navigate('VwBizLners');
+    safeNavigateFrom(navigation, 'VwBizLners');
   };
   const SI2VwBiz2BizLoanees = () => {
-    navigation.navigate('VwBizLnees');
+    safeNavigateFrom(navigation, 'VwBizLnees');
   };
   const SI2VwBiz2PalLoaners = () => {
-    navigation.navigate('VwBiz2PalLners');
+    safeNavigateFrom(navigation, 'VwBiz2PalLners');
   };
   const CrtBusinessss = () => {
-    navigation.navigate('CrtBusinesss');
+    safeNavigateFrom(navigation, 'CrtBusinesss');
   };
   const SgnIn2VwBiznasss = () => {
-    navigation.navigate('SgnIn2VwBiznass');
+    safeNavigateFrom(navigation, 'SgnIn2VwBiznass');
   };
   const ShareCredSlsRevsss = () => {
-    navigation.navigate('ShareCredSlsRevss');
+    safeNavigateFrom(navigation, 'ShareCredSlsRevss');
   };
   const AddPersonelss = () => {
-    navigation.navigate('AddPersonels');
+    safeNavigateFrom(navigation, 'AddPersonels');
   };
   const RmvPersonnelsss = () => {
-    navigation.navigate('RmvPersonnelss');
+    safeNavigateFrom(navigation, 'RmvPersonnelss');
   };
   const VwSlsAds2Remove = () => {
-    navigation.navigate('VwSlsAds2Remove');
+    safeNavigateFrom(navigation, 'VwSlsAds2Remove');
   };
   const SgnIn2VwRevenueShare = () => {
-    navigation.navigate('SgnIn2VwRevenueShare');
+    safeNavigateFrom(navigation, 'SgnIn2VwRevenueShare');
   };
   const PayCash = () => {
-    navigation.navigate('PayCash');
+    safeNavigateFrom(navigation, 'PayCash');
   };
   const VwPalLners = () => {
-    navigation.navigate('VwPalLners');
+    safeNavigateFrom(navigation, 'VwPalLners');
   };
   const VwCashPaySent = () => {
-    navigation.navigate('VwCashPaySent');
+    safeNavigateFrom(navigation, 'VwCashPaySent');
   };
   const MakeNVwPayPalDpsits = () => {
-    navigation.navigate('MakeBizDpsts');
+    safeNavigateFrom(navigation, 'MakeBizDpsts');
   };
   const VwPal2BizLnees = () => {
-    navigation.navigate('VwPal2BizLnees');
+    safeNavigateFrom(navigation, 'VwPal2BizLnees');
   };
   const VwPalLnees = () => {
-    navigation.navigate('VwPalLnees');
+    safeNavigateFrom(navigation, 'VwPalLnees');
   };
   const Vw2GrntPal2Biz = () => {
-    navigation.navigate("Vw2GrntPal2Biz");
+    safeNavigateFrom(navigation, 'Vw2GrntPal2Biz');
   };
   const VwBiz2AddItem = () => {
-    navigation.navigate('VwBiz2AddItem');
+    safeNavigateFrom(navigation, 'VwBiz2AddItem');
   };
   const Vw2GrntPal2Pal = () => {
-    navigation.navigate('Vw2GrntPal2Pal');
+    safeNavigateFrom(navigation, 'Vw2GrntPal2Pal');
   };
   const PersonelVw2GrntB2P = () => {
-    navigation.navigate('PersonelVw2GrntB2P');
+    safeNavigateFrom(navigation, 'PersonelVw2GrntB2P');
   };
   const PersonelVw2GrntB2B = () => {
-    navigation.navigate('PersonelVw2GrntB2B');
+    safeNavigateFrom(navigation, 'PersonelVw2GrntB2B');
   };
   const giveBizna = () => {
-    navigation.navigate('giveBizna');
+    safeNavigateFrom(navigation, 'giveBizna');
   };
   const TakeOverBizna = () => {
-    navigation.navigate('TakeOverBizna');
+    safeNavigateFrom(navigation, 'TakeOverBizna');
   };
   const AddBeneficiaryProduct = () => {
-    navigation.navigate('AddBeneficiaryProduct');
+    safeNavigateFrom(navigation, 'AddBeneficiaryProduct');
   };
   const UpdateBizAc = () => {
-    navigation.navigate('UpdateBizAc');
+    safeNavigateFrom(navigation, 'UpdateBizAc');
   };
   const ViewBenProds = () => {
-    navigation.navigate('ViewBenProds');
+    safeNavigateFrom(navigation, 'ViewBenProds');
   };
   const BoostPooledBen = () => {
-    navigation.navigate('BoostPooledBen');
+    safeNavigateFrom(navigation, 'BoostPooledBen');
   };
   const Benefits = () => {
-    navigation.navigate('Benefits');
+    safeNavigateFrom(navigation, 'Benefits');
   };
   const ShareCredSlsRevss = () => {
-    navigation.navigate('ShareCredSlsRevss');
+    safeNavigateFrom(navigation, 'ShareCredSlsRevss');
   };
   const ViewBiznaShareRec = () => {
-    navigation.navigate('ViewBiznaShareRec');
+    safeNavigateFrom(navigation, 'ViewBiznaShareRec');
   };
   const ViewBiznaShareSent = () => {
-    navigation.navigate('ViewBiznaShareSent');
+    safeNavigateFrom(navigation, 'ViewBiznaShareSent');
   };
   const ViewBiznaShareSent2Pal = () => {
-    navigation.navigate('ViewBiznaShareSent2Pal');
+    safeNavigateFrom(navigation, 'ViewBiznaShareSent2Pal');
   };
   const ShareCredSlsRev2Biz = () => {
-    navigation.navigate('ShareCredSlsRev2Biz');
+    safeNavigateFrom(navigation, 'ShareCredSlsRev2Biz');
   };
   const ViewBiznaShareRecBiz = () => {
-    navigation.navigate('ViewBiznaShareRecBiz');
+    safeNavigateFrom(navigation, 'ViewBiznaShareRecBiz');
   };
   const ShareCredSlsRev2Grp = () => {
     navigation.navigate('ShareCredSlsRev2Grp');
   };
   const ViewAsProdCreator = () => {
-    navigation.navigate('ViewAsProdCreator');
+    safeNavigateFrom(navigation, 'ViewAsProdCreator');
   };
   const VwBizDpsts = () => {
-    navigation.navigate('VwBizDpsts');
+    safeNavigateFrom(navigation, 'VwBizDpsts');
   };
   const BiznaReqstPage1 = () => {
-    navigation.navigate('BiznaReqstPage1');
+    safeNavigateFrom(navigation, 'BiznaReqstPage1');
   };
   const ViewBenShares = () => {
-    navigation.navigate('ViewBenShares');
+    safeNavigateFrom(navigation, 'ViewBenShares');
   };
   const VwBenToShare = () => {
-    navigation.navigate('VwBenToShare');
+    safeNavigateFrom(navigation, 'VwBenToShare');
   };
   const OpenSellerPartialPayRecords = () => {
-    navigation.navigate('SellerPartialPayRecords');
+    safeNavigateFrom(navigation, 'SellerPartialPayRecords');
   };
   const OpenCascadePayments = () => {
-    navigation.navigate('CascadePaymentsScreen');
+    safeNavigateFrom(navigation, 'CascadePaymentsScreen');
   };
   return <SafeAreaView>
       <ScrollView>

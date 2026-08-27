@@ -20,6 +20,8 @@ import { useTranslation } from 'react-i18next';
 import translations from './translation';
 import {generateClient} from 'aws-amplify/api';
 import { getUrl } from 'aws-amplify/storage';
+import { safeNavigateFrom } from '../../../../src/utils/navigationHelper';
+
 
 const client = generateClient();
 
@@ -139,7 +141,7 @@ const FloatedLoansList = () => {
 
   // Apply for loan
   const proceedToApply = (groupContact: string, MembaId: string, id: string) => {
-    navigation.navigate('MemberReqChm', { groupContact, MembaId, id });
+    safeNavigateFrom(navigation, 'MemberReqChm', { groupContact, MembaId, id });
   };
 
   useEffect(() => {

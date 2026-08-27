@@ -7,6 +7,8 @@ import { StyleSheet, Dimensions } from 'react-native';
 
 import styles from './styles';
 import { TouchableOpacity } from 'react-native-gesture-handler';
+import { safeNavigateFrom } from '../../../src/utils/navigationHelper';
+
 
 export interface SMAccount {
   SMAc: {
@@ -27,7 +29,7 @@ const SMCvLnStts = (props: SMAccount) => {
   };
 
   const CreateSMAcs = () => {
-    navigation.navigate('RegMFNdgScrn');
+    safeNavigateFrom(navigation, 'RegMFNdgScrn');
   };
 
   return (

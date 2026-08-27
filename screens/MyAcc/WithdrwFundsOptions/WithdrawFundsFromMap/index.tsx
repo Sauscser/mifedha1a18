@@ -12,6 +12,8 @@ import { useExchange } from '../../../../src/contexts/ExchangeContext';
 import { getUserNationalityByEmail, formatAmountForUser, formatAmountSync, convertKshToUserCurrency, convertForeignToKsh } from '../../../../src/utils/exchange';
 import { nationalityToCode } from '../../../../src/utils/nationalityToCode';
 import { generateClient } from "aws-amplify/api";
+import { safeNavigateFrom } from '../../../../src/utils/navigationHelper';
+
 const client = generateClient();
 const SMADepositForm = props => {
   const [UsrPWd, setUsrPWd] = useState("");
@@ -28,7 +30,7 @@ const SMADepositForm = props => {
   const [userCurrencySymbol, setUserCurrencySymbol] = useState(() => getCurrencySymbolForNationality(nationality));
   const navigation = useNavigation();
   const SndChmMmbrMny = () => {
-    navigation.navigate("AutomaticRepayAllTyps");
+    safeNavigateFrom(navigation, 'AutomaticRepayAllTyps');
   };
   const route = useRoute();
   const { nationality, ratesMap, formatAmount } = useExchange();

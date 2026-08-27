@@ -5,6 +5,8 @@ import styles from './styles';
 import { getSMAccount, listPersonels } from '../../../../../../src/graphql/queries';
 import { getCurrentUser, fetchUserAttributes } from "aws-amplify/auth";
 import { generateClient } from "aws-amplify/api";
+import { safeNavigateFrom } from '../../../../../../src/utils/navigationHelper';
+
 const client = generateClient();
 const ChmSignIn = props => {
   const navigation = useNavigation();
@@ -17,7 +19,7 @@ const ChmSignIn = props => {
   const [ChmDesc, setChmDesc] = useState('');
   const [memberPhn, setmemberPhn] = useState('');
   const FetchGrpLonsSts = () => {
-    navigation.navigate("Vw2RpyB2P", {
+    safeNavigateFrom(navigation, 'Vw2RpyB2P', {
       memberPhn
     });
   };

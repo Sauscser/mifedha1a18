@@ -12,6 +12,8 @@ import { generateClient } from 'aws-amplify/api';
 import { getSMAccount } from '../../../../../src/graphql/queries';
 import { useTranslation } from 'react-i18next';
 import { translations } from './translation';
+import { safeNavigateFrom } from '../../../../../src/utils/navigationHelper';
+
 
 
 export interface ChamaMmbrshpInfo {
@@ -124,7 +126,7 @@ const ChmMbrShpInfo = (props:ChamaMmbrshpInfo) => {
 
    const navigation = useNavigation();
    const SndChmMmbrMny = () => {
-      navigation.navigate("Contributionssss", {ChamaNMember})
+      safeNavigateFrom(navigation, 'Contributionssss', {ChamaNMember})
    }
 
    const ViewMmberDtls = () => {

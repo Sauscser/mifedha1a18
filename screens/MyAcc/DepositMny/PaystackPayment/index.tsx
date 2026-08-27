@@ -9,6 +9,8 @@ import { nationalityToCode } from '../../../../src/utils/nationalityToCode';
 import { getSMAccount } from '../../../../src/graphql/queries';
 import { getCurrentUser, fetchUserAttributes } from "aws-amplify/auth";
 import { generateClient } from "aws-amplify/api";
+import { safeNavigateFrom } from '../../../../src/utils/navigationHelper';
+
 const client = generateClient();
 const PaystackPayment = () => {
   const navigation = useNavigation();
@@ -94,16 +96,16 @@ const PaystackPayment = () => {
       console.log(result);
       if (result.data.status === 'success') {
         console.log(result);
-        navigation.navigate('UpdatePayStack', {
+        safeNavigateFrom(navigation, 'UpdatePayStack', {
           amounts
         });
       } else {
         Alert.alert('Payment Failed', 'Verification error occurred.');
-        navigation.navigate('DepositOptions');
+        safeNavigateFrom(navigation, 'DepositOptions');
       }
     } catch (error) {
       Alert.alert('Payment Failed', 'Verification error occurred.');
-      navigation.navigate('DepositOptions');
+      safeNavigateFrom(navigation, 'DepositOptions');
     }
   };
   return <View style={{

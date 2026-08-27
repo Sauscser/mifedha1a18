@@ -284,6 +284,96 @@ export const PRODUCTS: ProductInfo[] = [
         response: {
           en: '🔗 **Link NSNdogo Agent to Group:**\n\nUse Groups products → Link NSNdogo to attach an NSNdogo branch/agent for group float and remittances.\n\nWhat this entails: linking allows the group to route deposits, disbursements and float operations through a trusted local agent for cash handling and reconciliation.'
         }
+      },
+      {
+        keywords: ['request loan', 'request group loan', 'borrow from group', 'group loan request', 'apply for group loan', 'apply for loan'],
+        response: {
+          en: '💸 **Request a Loan from your Chama:**\n\nOpen Groups products → Group Advance → Request loan from group. Select your group, choose the amount, and submit the request for signatory approval.'
+        }
+      },
+      {
+        keywords: ['delete loan request', 'cancel loan request', 'remove loan request', 'delete request'],
+        response: {
+          en: '🗑️ **Delete a Loan Request:**\n\nOpen Groups products → Group Advance → Delete a loan request. Select the pending request and confirm removal.'
+        }
+      },
+      {
+        keywords: ['group minutes', 'create minutes', 'meeting minutes', 'record minutes'],
+        response: {
+          en: '📝 **Create Group Minutes:**\n\nOpen Groups products → Group Advance → Group Minutes to record meeting decisions, contributions, and loan approvals.'
+        }
+      },
+      {
+        keywords: ['group debts', 'view group debts', 'group status', 'group debt status'],
+        response: {
+          en: '📊 **View Group Debts Status:**\n\nOpen Groups products → Group Status to see overall group debts, balances, and repayment history.'
+        }
+      },
+      {
+        keywords: ['member debts', 'view member debts', 'member status', 'member loan status'],
+        response: {
+          en: '🔎 **View Member Debts Status:**\n\nOpen Groups products → Member Status to inspect individual member debts and repayment history.'
+        }
+      },
+      {
+        keywords: ['register member', 'add member', 'enroll member', 'signup member'],
+        response: {
+          en: '👥 **Register a Chama Member:**\n\nOpen Groups products → Registration → Register Member and enter the member details to add them to your group.'
+        }
+      },
+      {
+        keywords: ['deregister member', 'remove member', 'unregister member'],
+        response: {
+          en: '🧾 **Deregister a Chama Member:**\n\nOpen Groups products → Registration → Deregister Member to remove a member from your group.'
+        }
+      },
+      {
+        keywords: ['view group remittances', 'group remittance', 'confirm remittances', 'dividends'],
+        response: {
+          en: '💳 **View Group Remittances:**\n\nOpen Groups products → Group Remittance → View Group Remittances to confirm remittances and dividend transactions.'
+        }
+      },
+      {
+        keywords: ['view my remittances', 'my remittances', 'my dividends', 'my remittance'],
+        response: {
+          en: '📥 **View My Remittances:**\n\nOpen Groups products → Group Remittance → View My Remittances to see funds sent to you by groups or members.'
+        }
+      },
+      {
+        keywords: ['view members', 'group members', 'members list', 'share dividends', 'manage members'],
+        response: {
+          en: '👀 **View Group Members:**\n\nOpen Groups products → Membership → View Members to see member details and manage subscriptions.'
+        }
+      },
+      {
+        keywords: ['view my groups', 'my groups', 'my chama', 'view groups'],
+        response: {
+          en: '👥 **View My Groups:**\n\nOpen Groups products → Membership → View My Groups to see the groups you belong to.'
+        }
+      },
+      {
+        keywords: ['dissolve group', 'close group', 'delete group', 'end group'],
+        response: {
+          en: '⚠️ **Dissolve a Chama Group:**\n\nOpen Groups products → Group Account → Dissolve to close the group after confirming all balances and member obligations.'
+        }
+      },
+      {
+        keywords: ['view group account', 'group account details', 'view account'],
+        response: {
+          en: '🏦 **View Group Account:**\n\nOpen Groups products → Group Account → View Group Account to review the group account details and balance.'
+        }
+      },
+      {
+        keywords: ['view group deposits', 'group deposits', 'view deposits', 'deposits'],
+        response: {
+          en: '🏦 **View Group Deposits:**\n\nOpen Groups products → Signatory Works → View Group Deposits to inspect deposit records and reconcile the account.'
+        }
+      },
+      {
+        keywords: ['view group withdrawals', 'group withdrawals', 'view withdrawals', 'withdrawals'],
+        response: {
+          en: '🏧 **View Group Withdrawals:**\n\nOpen Groups products → Signatory Works → View Group Withdrawals to review withdrawal transactions and pending approvals.'
+        }
       }
     ]
   },

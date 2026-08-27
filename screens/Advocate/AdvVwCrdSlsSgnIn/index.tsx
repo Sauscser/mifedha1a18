@@ -5,6 +5,8 @@ import { getCurrentUser } from 'aws-amplify/auth';
 import { useNavigation } from '@react-navigation/native';
 import { View, Text, TextInput, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import styles from './styles';
+import { safeNavigateFrom } from '../../../src/utils/navigationHelper';
+
 const client = generateClient();
 const MFNSignIn = props => {
   const navigation = useNavigation();
@@ -15,7 +17,7 @@ const MFNSignIn = props => {
   const [ownr, setownr] = useState(null);
   const AdvChmMmbr = ChamPhn + MembrPhn + AdvReNo;
   const VwMFNAc = () => {
-    navigation.navigate("VwAdvCrdSlrCovLnss", {
+    safeNavigateFrom(navigation, 'VwAdvCrdSlrCovLnss', {
       AdvChmMmbr
     });
   };

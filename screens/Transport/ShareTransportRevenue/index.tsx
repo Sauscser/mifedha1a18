@@ -15,6 +15,8 @@ import { useExchange } from '../../../src/contexts/ExchangeContext';
 import { getTransportOrder, getTransportRegister } from '../../../src/graphql/queries';
 import { getCurrentUser, fetchUserAttributes } from "aws-amplify/auth";
 import { generateClient } from "aws-amplify/api";
+import { safeNavigateFrom } from '../../../src/utils/navigationHelper';
+
 const client = generateClient();
 const SMASendNonLns = props => {
     // Store userTransferFee in state for use in both UI and backend logic
@@ -54,10 +56,10 @@ const SMASendNonLns = props => {
   const navigation = useNavigation();
   const { nationality, ratesMap } = useExchange();
   const SndChmMmbrMny = () => {
-    navigation.navigate("AutomaticRepayAllTyps");
+    safeNavigateFrom(navigation, 'AutomaticRepayAllTyps');
   };
   const grpDsNtExst = () => {
-    navigation.navigate("SendNLBnftNone");
+    safeNavigateFrom(navigation, 'SendNLBnftNone');
   };
   const handleAcceptDelivery = async () => {
     setIsLoading(true);

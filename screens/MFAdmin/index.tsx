@@ -3,61 +3,63 @@ import { useNavigation } from '@react-navigation/native';
 import { View, Text, Pressable, SafeAreaView, ScrollView } from 'react-native';
 import { MaterialIcons, FontAwesome5, Ionicons } from '@expo/vector-icons';
 import styles from './styles';
+import { safeNavigateFrom } from '../../src/utils/navigationHelper';
+
 const RegKFKubwa = props => {
   const navigation = useNavigation();
   const goToBuyFloat = () => {
-    navigation.navigate('BuyFltFm');
+    safeNavigateFrom(navigation, 'BuyFltFm');
   };
   const RegPwnBrkrss = () => {
-    navigation.navigate('RegPwnBrkrs');
+    safeNavigateFrom(navigation, 'RegPwnBrkrs');
   };
   const AdjustUsrLimitsss = () => {
-    navigation.navigate('AdjustUsrLimitss');
+    safeNavigateFrom(navigation, 'AdjustUsrLimitss');
   };
   const DActvteMFAds = () => {
-    navigation.navigate('DActvteMFAd');
+    safeNavigateFrom(navigation, 'DActvteMFAd');
   };
   const AddCOMBAuditor = () => {
-    navigation.navigate('AddCOMBAuditor');
+    safeNavigateFrom(navigation, 'AddCOMBAuditor');
   };
   const ChamaRegss = () => {
-    navigation.navigate('ChamaRegss');
+    safeNavigateFrom(navigation, 'ChamaRegss');
   };
   const DActivateMFN = () => {
-    navigation.navigate('DActvteMFN');
+    safeNavigateFrom(navigation, 'DActvteMFN');
   };
   const DActivateMFK = () => {
-    navigation.navigate('DActvteMFK');
+    safeNavigateFrom(navigation, 'DActvteMFK');
   };
   const DActivateMFUsr = () => {
-    navigation.navigate('DActvteMFUsr');
+    safeNavigateFrom(navigation, 'DActvteMFUsr');
   };
   const UpdateMFAdminPWss = () => {
-    navigation.navigate('UpdateMFAdminPWs');
+    safeNavigateFrom(navigation, 'UpdateMFAdminPWs');
   };
   const UpdateExRatesBtn = () => {
     navigation.navigate('UpdateExRates2');
   };
   const BLUsrsss = () => {
-    navigation.navigate('BLUsrss');
+    safeNavigateFrom(navigation, 'BLUsrss');
   };
   const SendNonLonsRevSgnIns = () => {
-    navigation.navigate('SendNonLonsRevSgnIn');
+    safeNavigateFrom(navigation, 'SendNonLonsRevSgnIn');
   };
   const AddMFndogoss = () => {
-    navigation.navigate('AddMFNdogos');
+    safeNavigateFrom(navigation, 'AddMFNdogos');
   };
   const AddMFKubwass = () => {
-    navigation.navigate('AddMFKubwas');
+    safeNavigateFrom(navigation, 'AddMFKubwas');
   };
   const SyncGrpLnRpyment = () => {
-    navigation.navigate('SyncGrpLnRpyment');
+    safeNavigateFrom(navigation, 'SyncGrpLnRpyment');
   };
   const SyncGrpSubscription = () => {
-    navigation.navigate('SyncGrpSubscription');
+    safeNavigateFrom(navigation, 'SyncGrpSubscription');
   };
   const SyncGrpDeposits = () => {
-    navigation.navigate('SyncGrpDeposits');
+    safeNavigateFrom(navigation, 'SyncGrpDeposits');
   };
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#f5f6fa' }}>

@@ -21,6 +21,8 @@ import { formatAmountSync, convertForeignToKsh } from '../../../../src/utils/exc
 import { nationalityToCode } from '../../../../src/utils/nationalityToCode';
 import { buildOsrmRouteUrl } from '../../../../src/config/osrm';
 import { FontAwesome } from '@expo/vector-icons';
+import { safeNavigateFrom } from '../../../../src/utils/navigationHelper';
+
 
 const client = generateClient();
 const SCREEN_WIDTH = Dimensions.get('window').width;
@@ -837,7 +839,7 @@ function PartialPayFlowInner({ navigation, route }: { navigation: any; route: an
   };
 
   const VwSalesDtls4Transport = () => {
-    navigation.navigate('VwSalesDtls4Transport', { mode, selectedBizna });
+    safeNavigateFrom(navigation, 'VwSalesDtls4Transport', { mode, selectedBizna });
   };
 
   const createMarketConsumptionForPartialPayEntry = async (entry: any) => {
@@ -1035,7 +1037,7 @@ function PartialPayFlowInner({ navigation, route }: { navigation: any; route: an
           t.error,
           t.useFullPaymentOption || 'You entered an amount that covers the full item cost. Please use the full payment option in SrchItemAd.'
         );
-        navigation.navigate('SrchItemAds');
+        safeNavigateFrom(navigation, 'SrchItemAds');
         setLoading(false);
         return;
       }
@@ -1754,7 +1756,7 @@ function PartialPayFlowInner({ navigation, route }: { navigation: any; route: an
             </Animated.View>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.purchaseTypeIcon} onPress={() => navigation.navigate('SrchItemAds')}>
+          <TouchableOpacity style={styles.purchaseTypeIcon} onPress={() => safeNavigateFrom(navigation, 'SrchItemAds')}>
             <FontAwesome name="arrows-h" size={20} color="#333" />
           </TouchableOpacity>
 
@@ -1882,7 +1884,7 @@ function PartialPayFlowInner({ navigation, route }: { navigation: any; route: an
                           <Text>−</Text>
                         </TouchableOpacity>
 
-                        <TouchableOpacity onPress={() => navigation.navigate('DtldSalesInfo', { item: item.id })} style={[styles.btn, { backgroundColor: '#e58d29' }]}> 
+                        <TouchableOpacity onPress={() => safeNavigateFrom(navigation, 'DtldSalesInfo', { item: item.id })} style={[styles.btn, { backgroundColor: '#e58d29' }]}> 
                           <Text style={{ color: 'white', fontSize: 12 }}>{t.viewDetails}</Text>
                         </TouchableOpacity>
 

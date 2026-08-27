@@ -22,6 +22,8 @@ import { Linking } from 'react-native';
 import * as Location from 'expo-location';
 import { getDistance } from 'geolib';
 import {useRoute, useNavigation} from '@react-navigation/native';
+import { safeNavigateFrom } from '../../../src/utils/navigationHelper';
+
 
 
 
@@ -84,7 +86,7 @@ const [distanceMeters, setDistanceMeters] = useState<number>(0);
    
 
    const ChangeDeliveryLocation = () => {
-    navigation.navigate("ChangeDeliveryLocation", {id})
+    safeNavigateFrom(navigation, 'ChangeDeliveryLocation', {id})
 }
  
 

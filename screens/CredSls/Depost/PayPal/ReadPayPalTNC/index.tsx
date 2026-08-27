@@ -6,6 +6,8 @@ import { listBiznas } from '../../../../../src/graphql/queries';
 import { useNavigation } from '@react-navigation/native';
 import { ScrollView, TextInput, TouchableOpacity } from 'react-native-gesture-handler';
 import { generateClient } from "aws-amplify/api";
+import { safeNavigateFrom } from '../../../../../src/utils/navigationHelper';
+
 const client = generateClient();
 const FetchSMNonCovLns = props => {
   const [LneePhn, setLneePhn] = useState(null);
@@ -18,12 +20,12 @@ const FetchSMNonCovLns = props => {
   const [itemPrys, setitemPrys] = useState('');
   const navigation = useNavigation();
   const PyPlDpst = () => {
-    navigation.navigate("BizPayPalDposit", {
+    safeNavigateFrom(navigation, 'BizPayPalDposit', {
       itemPrys
     });
   };
   const PyPlDpst2 = () => {
-    navigation.navigate("Homeie");
+    safeNavigateFrom(navigation, 'Homeie');
   };
   const gtCompDtls = async () => {
     if (isLoading) {

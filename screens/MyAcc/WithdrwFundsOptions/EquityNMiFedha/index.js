@@ -3,52 +3,54 @@ import { useNavigation } from '@react-navigation/native';
 import { View, Text, ImageBackground, Pressable, FlatList, SafeAreaView, Dimensions } from 'react-native';
 import styles from '../WithdrawalOptions/styles';
 import { TouchableOpacity } from 'react-native-gesture-handler';
+import { safeNavigateFrom } from '../../../../src/utils/navigationHelper';
+
 const MyAccount = props => {
   const navigation = useNavigation();
   const SMDpsitsss = () => {
-    navigation.navigate('ElimDpstss');
+    safeNavigateFrom(navigation, 'ElimDpstss');
   };
   const ViewNonLnsRecs = () => {
-    navigation.navigate('ViewNonLnsRecs');
+    safeNavigateFrom(navigation, 'ViewNonLnsRecs');
   };
   const ViewNonLnsSents = () => {
-    navigation.navigate('ViewNonLnsSents');
+    safeNavigateFrom(navigation, 'ViewNonLnsSents');
   };
   const Vw2DelLnReqs = () => {
-    navigation.navigate('Vw2DelLnReqs');
+    safeNavigateFrom(navigation, 'Vw2DelLnReqs');
   };
   const SearchUser = () => {
-    navigation.navigate('VwMakeLnReq');
+    safeNavigateFrom(navigation, 'VwMakeLnReq');
   };
   const goToCreateSMAc = () => {
-    navigation.navigate('CreateSMAc');
+    safeNavigateFrom(navigation, 'CreateSMAc');
   };
   const SMWthdrwlsss = () => {
-    navigation.navigate('WithdrwFundsOptions');
+    safeNavigateFrom(navigation, 'WithdrwFundsOptions');
   };
   const goWithdrwMny = () => {
-    navigation.navigate('SMWthdFm');
+    safeNavigateFrom(navigation, 'SMWthdFm');
   };
   const goToSMASndnonln = () => {
-    navigation.navigate('Vw2SelectChmBeneficiary');
+    safeNavigateFrom(navigation, 'Vw2SelectChmBeneficiary');
   };
   const UpdateSMPWss = () => {
-    navigation.navigate('UpdateSMPWs');
+    safeNavigateFrom(navigation, 'UpdateSMPWs');
   };
   const ViewSmAcss = () => {
-    navigation.navigate('ElimAcs');
+    safeNavigateFrom(navigation, 'ElimAcs');
   };
   const LoanAds = () => {
     navigation.navigate('LoanAds');
   };
   const UpdateMainAc = () => {
-    navigation.navigate('UpdateMainAc');
+    safeNavigateFrom(navigation, 'UpdateMainAc');
   };
   const PayPalDposit = () => {
-    navigation.navigate('VwAcBfDpst');
+    safeNavigateFrom(navigation, 'VwAcBfDpst');
   };
   const VwPlLn2Remove = () => {
-    navigation.navigate('VwPlLn2Remove');
+    safeNavigateFrom(navigation, 'VwPlLn2Remove');
   };
   return <SafeAreaView>
       <View style={styles.image}>

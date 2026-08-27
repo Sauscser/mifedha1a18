@@ -17,6 +17,8 @@ import { useTranslation } from 'react-i18next';
 import { translations } from './translation';
 import { generateClient } from "aws-amplify/api";
 import axios from 'axios';
+import { safeNavigateFrom } from '../../../src/utils/navigationHelper';
+
 const client = generateClient();
 const screenWidth = Dimensions.get("window").width;
 const screenHeight = Dimensions.get("window").height;
@@ -395,7 +397,7 @@ const TransportMapScreen = () => {
         Alert.alert(t.sorry, t.cannotBeClientAndTransporter);
         return;
       } else if (orderCostUser > userBalance) {
-        navigation.navigate("ViewChama2CommitTransport", {
+        safeNavigateFrom(navigation, 'ViewChama2CommitTransport', {
           id: item.id
         });
         return;
@@ -791,7 +793,7 @@ return <View style={{
                   onPress={() => {
                     setLoadingItemId(item.id);
                     setLoadingType("view");
-                    navigation.navigate("VwTransprtReqDtls", { id: item.id });
+                    safeNavigateFrom(navigation, 'VwTransprtReqDtls', { id: item.id });
                     setLoadingItemId(null);
                     setLoadingType(null);
                   }}

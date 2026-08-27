@@ -10,6 +10,8 @@ import { convertForeignToKsh } from '../../../../../../src/utils/exchange';
 import { generateClient } from "aws-amplify/api";
 import { useTranslation } from 'react-i18next';
 import translations from './translation';
+import { safeNavigateFrom } from '../../../../../../src/utils/navigationHelper';
+
 const client = generateClient();
 const CovCredSls = props => {
   const [SenderNatId, setSenderNatId] = useState('');
@@ -31,7 +33,7 @@ const CovCredSls = props => {
   const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
   const t = translations[lang] || translations.en;
   const SndChmMmbrMny = () => {
-    navigation.navigate("AutomaticRepayAllTyps");
+    safeNavigateFrom(navigation, 'AutomaticRepayAllTyps');
   };
   const fetchCredSlLnReq = async () => {
     if (isLoading) {

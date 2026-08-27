@@ -17,6 +17,8 @@ import {
  
 } from 'react-native';
 import styles from './styles';
+import { safeNavigateFrom } from '../../../src/utils/navigationHelper';
+
 
 
 
@@ -30,7 +32,7 @@ const MFNSignIn = (props) => {
 
 
   const moveToMFNHm = () => {
-    navigation.navigate("SearchMFNsssss", {town});
+    safeNavigateFrom(navigation, 'SearchMFNsssss', {town});
   
             settown("");
             
@@ -302,7 +304,7 @@ const GenralShpMpViewThree = () => {
     }}>
         <FlatList ref={carouselRef} data={filteredAgents} keyExtractor={item => item.phonecontact} horizontal showsHorizontalScrollIndicator={false} snapToInterval={CARD_WIDTH} snapToAlignment="start" decelerationRate="fast" onViewableItemsChanged={onViewChanged.current} viewabilityConfig={viewabilityConfig.current} renderItem={({
         item
-      }) => <Carousels Agent={item} isSelected={item.phonecontact === selectedAgentPhone} onPress={() => setSelectedAgentPhone(item.phonecontact)} onLongPress={() => navigation.navigate('WithdrawFundsFromMap', {
+      }) => <Carousels Agent={item} isSelected={item.phonecontact === selectedAgentPhone} onPress={() => setSelectedAgentPhone(item.phonecontact)} onLongPress={() => safeNavigateFrom(navigation, 'WithdrawFundsFromMap', {
         phonecontact: item.phonecontact
       })} />} getItemLayout={(_, index) => ({
         length: CARD_WIDTH,

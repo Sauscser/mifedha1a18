@@ -6,6 +6,8 @@ import { getCurrentUser, fetchUserAttributes } from 'aws-amplify/auth';
 import { useNavigation } from '@react-navigation/native';
 import { View, Text, TextInput, ScrollView, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
 import styles from './styles';
+import { safeNavigateFrom } from '../../../../../src/utils/navigationHelper';
+
 const client = generateClient();
 const ChmSignIn = () => {
   const navigation = useNavigation();
@@ -20,7 +22,7 @@ const ChmSignIn = () => {
   const [memberPhn, setmemberPhn] = useState('');
   const [ownr, setownr] = useState<string | null>(null);
   const FetchGrpLonsSts = () => {
-    navigation.navigate('VwSlsAds2Remove', {
+    safeNavigateFrom(navigation, 'VwSlsAds2Remove', {
       BiznaContact
     });
   };

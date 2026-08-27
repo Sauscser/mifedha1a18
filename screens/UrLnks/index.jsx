@@ -5,6 +5,8 @@ import { getCompany, getCompanyUrls } from '../../src/graphql/queries';
 import { LinearGradient } from 'expo-linear-gradient';
 import { FontAwesome } from '@expo/vector-icons';
 import { generateClient } from "aws-amplify/api";
+import { safeNavigateFrom } from '../../src/utils/navigationHelper';
+
 const client = generateClient();
 const {
   height,
@@ -19,33 +21,33 @@ const HomeScreen = () => {
     navigation.navigate(screen, params);
   };
   const LnsScreen = () => {
-    navigation.navigate('LnsScreen');
+    safeNavigateFrom(navigation, 'LnsScreen');
   };
   const ChamaScreen = () => {
-    navigation.navigate('ChamaScreen');
+    safeNavigateFrom(navigation, 'ChamaScreen');
   };
   const CredSlsScreen = () => {
-    navigation.navigate('CredSlsScreen');
+    safeNavigateFrom(navigation, 'CredSlsScreen');
   };
   const CreateSMAcs = () => {
-    navigation.navigate('WelcomePgss');
+    safeNavigateFrom(navigation, 'WelcomePgss');
   };
   const ChmNonCovLonss = () => {
-    navigation.navigate('ChmNonCovLons', {
+    safeNavigateFrom(navigation, 'ChmNonCovLons', {
       id
     });
   };
   const VwMakeLnReq = () => {
-    navigation.navigate('PlaceLnReq');
+    safeNavigateFrom(navigation, 'PlaceLnReq');
   };
   const ViewMySMAcss = () => {
-    navigation.navigate('ViewSmAcs');
+    safeNavigateFrom(navigation, 'ViewSmAcs');
   };
   const ViewAlertDtls = () => {
-    navigation.navigate('ViewAlertDtls');
+    safeNavigateFrom(navigation, 'ViewAlertDtls');
   };
   const RequestLoansPage = () => {
-    navigation.navigate('RequestLoansPage');
+    safeNavigateFrom(navigation, 'RequestLoansPage');
   };
   const getCompanyDetails = async () => {
     try {

@@ -8,6 +8,8 @@ import { StyleSheet, Dimensions } from 'react-native';
 import styles from './styles';
 import { TouchableOpacity } from 'react-native-gesture-handler';
 import { deleteReqLoanCredSl } from '../../../src/graphql/mutations';
+import { safeNavigateFrom } from '../../../src/utils/navigationHelper';
+
 
 export interface SMAccount {
   SMAc: {
@@ -42,7 +44,7 @@ const SMCvLnStts = (props: SMAccount) => {
   const navigation = useNavigation();
 
   const SndChmMmbrMny = () => {
-    navigation.navigate("RepyChmNonCovLns", { id });
+    safeNavigateFrom(navigation, 'RepyChmNonCovLns', { id });
   };
 
   const updtRecAc2 = async () => {

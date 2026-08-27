@@ -4,6 +4,8 @@ import { View, Text, Pressable, SafeAreaView, ScrollView } from 'react-native';
 import styles from './styles';
 import { useTranslation } from 'react-i18next';
 import translations from './translation';
+import { safeNavigateFrom } from '../../../src/utils/navigationHelper';
+
 const MyLoanAccount = props => {
   const navigation = useNavigation();
   const { i18n } = useTranslation();
@@ -15,85 +17,85 @@ const MyLoanAccount = props => {
     navigation.navigate('ItemAds');
   };
   const VwPal2BizLners = () => {
-    navigation.navigate('VwPal2BizLners');
+    safeNavigateFrom(navigation, 'VwPal2BizLners');
   };
   const SI2VwBiz2PalLoanees = () => {
-    navigation.navigate('SI2VwBiz2PalLoanees');
+    safeNavigateFrom(navigation, 'SI2VwBiz2PalLoanees');
   };
   const SI2VwBiz2BizLoaners = () => {
-    navigation.navigate('SI2VwBiz2BizLoaners');
+    safeNavigateFrom(navigation, 'SI2VwBiz2BizLoaners');
   };
   const SI2VwBiz2BizLoanees = () => {
-    navigation.navigate('SI2VwBiz2BizLoanees');
+    safeNavigateFrom(navigation, 'SI2VwBiz2BizLoanees');
   };
   const SI2VwBiz2PalLoaners = () => {
-    navigation.navigate('SI2VwBiz2PalLoaners');
+    safeNavigateFrom(navigation, 'SI2VwBiz2PalLoaners');
   };
   const CrtBusinessss = () => {
-    navigation.navigate('CrtBusinesss');
+    safeNavigateFrom(navigation, 'CrtBusinesss');
   };
   const DissolveBizsss = () => {
-    navigation.navigate('DissolveBizss');
+    safeNavigateFrom(navigation, 'DissolveBizss');
   };
   const SgnIn2VwBiznasss = () => {
-    navigation.navigate('SgnIn2VwBiznass');
+    safeNavigateFrom(navigation, 'SgnIn2VwBiznass');
   };
   const ShareCredSlsRevsss = () => {
-    navigation.navigate('ShareCredSlsRevss');
+    safeNavigateFrom(navigation, 'ShareCredSlsRevss');
   };
   const AddPersonelss = () => {
-    navigation.navigate('AddPersonels');
+    safeNavigateFrom(navigation, 'AddPersonels');
   };
   const RmvPersonnelsss = () => {
-    navigation.navigate('RmvPersonnelss');
+    safeNavigateFrom(navigation, 'RmvPersonnelss');
   };
   const SgnIn2RemoveSlAd = () => {
-    navigation.navigate('SgnIn2RemoveSlAd');
+    safeNavigateFrom(navigation, 'SgnIn2RemoveSlAd');
   };
   const ViewBiznaShareRec = () => {
-    navigation.navigate('ViewBiznaShareRec');
+    safeNavigateFrom(navigation, 'ViewBiznaShareRec');
   };
   const SgnIn2VwRevenueShare = () => {
-    navigation.navigate('SgnIn2VwRevenueShare');
+    safeNavigateFrom(navigation, 'SgnIn2VwRevenueShare');
   };
   const PayCash = () => {
-    navigation.navigate('P2BPayCash');
+    safeNavigateFrom(navigation, 'P2BPayCash');
   };
   const ViewBiznaShareRecP2B = () => {
-    navigation.navigate('ViewBiznaShareRecP2B');
+    safeNavigateFrom(navigation, 'ViewBiznaShareRecP2B');
   };
   const ViewBiznaShareSentP2B = () => {
-    navigation.navigate('ViewBiznaShareSentP2B');
+    safeNavigateFrom(navigation, 'ViewBiznaShareSentP2B');
   };
   const ViewBiznaShareRecB2P = () => {
-    navigation.navigate('ViewBiznaShareRecB2P');
+    safeNavigateFrom(navigation, 'ViewBiznaShareRecB2P');
   };
   const ViewBiznaShareSentB2P = () => {
-    navigation.navigate('ViewBiznaShareSentB2P');
+    safeNavigateFrom(navigation, 'ViewBiznaShareSentB2P');
   };
   const ViewBiznaShareRecB2B = () => {
-    navigation.navigate('ViewBiznaShareRecB2B');
+    safeNavigateFrom(navigation, 'ViewBiznaShareRecB2B');
   };
   const ViewBiznaShareSentB2B = () => {
-    navigation.navigate("ViewBiznaShareSentB2B");
+    safeNavigateFrom(navigation, 'ViewBiznaShareSentB2B');
   };
   const P2BPayCash = () => {
-    navigation.navigate('PayCash3');
+    safeNavigateFrom(navigation, 'PayCash3');
   };
   const PersonelVw2GrntB2P = () => {
-    navigation.navigate('PersonelVw2GrntB2P');
+    safeNavigateFrom(navigation, 'PersonelVw2GrntB2P');
   };
   const B2PPayCashVw2Grant = () => {
-    navigation.navigate('B2PPayCashVw2Grant');
+    safeNavigateFrom(navigation, 'B2PPayCashVw2Grant');
   };
   const B2BPayCashVw2Grant = () => {
-    navigation.navigate('B2BPayCashVw2Grant');
+    safeNavigateFrom(navigation, 'B2BPayCashVw2Grant');
   };
   const B2PPayCashReq = () => {
-    navigation.navigate('B2PPayCashReq');
+    safeNavigateFrom(navigation, 'B2PPayCashReq');
   };
   const B2BPayCashReq = () => {
-    navigation.navigate('B2BPayCashReq');
+    safeNavigateFrom(navigation, 'B2BPayCashReq');
   };
   return <SafeAreaView style={{
     height: "100%"

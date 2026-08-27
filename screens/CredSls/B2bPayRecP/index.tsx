@@ -34,6 +34,8 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import styles from './styles';
+import { safeNavigateFrom } from '../../../src/utils/navigationHelper';
+
 
 const client = generateClient();
 
@@ -70,11 +72,11 @@ const SMASendNonLns = (props: any) => {
     });
 
   const SndChmMmbrMny = () => {
-    navigation.navigate('AutomaticRepayAllTyps' as never);
+    safeNavigateFrom(navigation, 'AutomaticRepayAllTyps', as never);
   };
 
   const NoBizBen = () => {
-    navigation.navigate('PayCash' as never);
+    safeNavigateFrom(navigation, 'PayCash', as never);
   };
 
   const fetchCvLnSM = async () => {

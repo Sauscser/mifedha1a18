@@ -4,6 +4,8 @@ import styles from './styles';
 import { useNavigation } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
 import translations from './translation';
+import { safeNavigateFrom } from '../../../../../src/utils/navigationHelper';
+
 
 export interface ChamaRemitInfo {
   ChamaRemitDtls: {
@@ -23,7 +25,7 @@ const ChmRemitInfo = (props: ChamaRemitInfo) => {
 
   const navigation = useNavigation();
   const FetchGrpLonsSts = () => {
-    navigation.navigate('VwChamaMembers', { groupContact });
+    safeNavigateFrom(navigation, 'VwChamaMembers', { groupContact });
   };
 
   return (

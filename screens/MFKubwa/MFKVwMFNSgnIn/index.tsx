@@ -6,6 +6,8 @@ import { View, Text, TextInput, ScrollView, TouchableOpacity, Alert } from 'reac
 import styles from './styles';
 import { getCurrentUser, fetchUserAttributes } from "aws-amplify/auth";
 import { generateClient } from "aws-amplify/api";
+import { safeNavigateFrom } from '../../../src/utils/navigationHelper';
+
 const client = generateClient();
 const MFNSignIn = props => {
   const navigation = useNavigation();
@@ -13,7 +15,7 @@ const MFNSignIn = props => {
   const [MFNPW, setMFNPW] = useState("");
   const [ownr, setownr] = useState(null);
   const moveToMFNHm = () => {
-    navigation.navigate("MFKVwMFNss", {
+    safeNavigateFrom(navigation, 'MFKVwMFNss', {
       MFKPhn
     });
   };

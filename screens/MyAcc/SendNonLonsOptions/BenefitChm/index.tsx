@@ -13,6 +13,8 @@ import { convertForeignToKsh } from '../../../../src/utils/exchange';
 import { nationalityToCode } from '../../../../src/utils/nationalityToCode';
 import { useTranslation } from 'react-i18next';
 import { translations } from './translation';
+import { safeNavigateFrom } from '../../../../src/utils/navigationHelper';
+
 
 const client = generateClient();
 type BenefitChmRouteParams = { ChamaNMember: string };
@@ -115,10 +117,10 @@ const SMASendNonLns = props => {
   }, []);
 
   const SndChmMmbrMny = () => {
-    navigation.navigate("AutomaticRepayAllTyps");
+    safeNavigateFrom(navigation, 'AutomaticRepayAllTyps');
   };
   const grpDsNtExst = () => {
-    navigation.navigate("SendNLBnftNone");
+    safeNavigateFrom(navigation, 'SendNLBnftNone');
   };
   const fetchCvLnSM = async () => {
     const userInfo = await getCurrentUser();

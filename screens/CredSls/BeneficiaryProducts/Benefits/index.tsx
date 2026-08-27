@@ -3,6 +3,8 @@ import { SafeAreaView, ScrollView, View, Text, Pressable } from 'react-native';
 import styles from './styles';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
+import { safeNavigateFrom } from '../../../../src/utils/navigationHelper';
+
 const Section = ({
   title,
   options
@@ -32,97 +34,97 @@ const Section = ({
 const MyLoanAccount = () => {
   const navigation = useNavigation();
   const VwPal2BizLners = () => {
-    navigation.navigate('VwPal2BizLners');
+    safeNavigateFrom(navigation, 'VwPal2BizLners');
   };
   const SI2VwBiz2PalLoanees = () => {
-    navigation.navigate('SI2VwBiz2PalLoanees');
+    safeNavigateFrom(navigation, 'SI2VwBiz2PalLoanees');
   };
   const SI2VwBiz2BizLoaners = () => {
-    navigation.navigate('SI2VwBiz2BizLoaners');
+    safeNavigateFrom(navigation, 'SI2VwBiz2BizLoaners');
   };
   const SI2VwBiz2BizLoanees = () => {
-    navigation.navigate('SI2VwBiz2BizLoanees');
+    safeNavigateFrom(navigation, 'SI2VwBiz2BizLoanees');
   };
   const SI2VwBiz2PalLoaners = () => {
-    navigation.navigate('VwBiz2PalLners');
+    safeNavigateFrom(navigation, 'VwBiz2PalLners');
   };
   const CrtBusinessss = () => {
-    navigation.navigate('CrtBusinesss');
+    safeNavigateFrom(navigation, 'CrtBusinesss');
   };
   const SgnIn2VwBiznasss = () => {
-    navigation.navigate('SgnIn2VwBiznass');
+    safeNavigateFrom(navigation, 'SgnIn2VwBiznass');
   };
   const ShareCredSlsRevsss = () => {
-    navigation.navigate('ShareCredSlsRevss');
+    safeNavigateFrom(navigation, 'ShareCredSlsRevss');
   };
   const AddPersonelss = () => {
-    navigation.navigate('AddPersonels');
+    safeNavigateFrom(navigation, 'AddPersonels');
   };
   const RmvPersonnelsss = () => {
-    navigation.navigate('RmvPersonnelss');
+    safeNavigateFrom(navigation, 'RmvPersonnelss');
   };
   const SgnIn2RemoveSlAd = () => {
-    navigation.navigate('SgnIn2RemoveSlAd');
+    safeNavigateFrom(navigation, 'SgnIn2RemoveSlAd');
   };
   const ViewBiznaShareRec = () => {
-    navigation.navigate('ViewBiznaShareRec');
+    safeNavigateFrom(navigation, 'ViewBiznaShareRec');
   };
   const SgnIn2VwRevenueShare = () => {
-    navigation.navigate('SgnIn2VwRevenueShare');
+    safeNavigateFrom(navigation, 'SgnIn2VwRevenueShare');
   };
   const PayCash = () => {
-    navigation.navigate('PayCash');
+    safeNavigateFrom(navigation, 'PayCash');
   };
   const VwPalLners = () => {
-    navigation.navigate('VwPalLners');
+    safeNavigateFrom(navigation, 'VwPalLners');
   };
   const VwCashPaySent = () => {
-    navigation.navigate('VwCashPaySent');
+    safeNavigateFrom(navigation, 'VwCashPaySent');
   };
   const MakeNVwPayPalDpsits = () => {
-    navigation.navigate('MakeNVwPayPalDpsits');
+    safeNavigateFrom(navigation, 'MakeNVwPayPalDpsits');
   };
   const VwPal2BizLnees = () => {
-    navigation.navigate('VwPal2BizLnees');
+    safeNavigateFrom(navigation, 'VwPal2BizLnees');
   };
   const VwPalLnees = () => {
-    navigation.navigate('VwPalLnees');
+    safeNavigateFrom(navigation, 'VwPalLnees');
   };
   const Vw2GrntPal2Biz = () => {
-    navigation.navigate("Vw2GrntPal2Biz");
+    safeNavigateFrom(navigation, 'Vw2GrntPal2Biz');
   };
   const ItemAds = () => {
     navigation.navigate('ItemAds');
   };
   const Vw2GrntPal2Pal = () => {
-    navigation.navigate('Vw2GrntPal2Pal');
+    safeNavigateFrom(navigation, 'Vw2GrntPal2Pal');
   };
   const PersonelVw2GrntB2P = () => {
-    navigation.navigate('PersonelVw2GrntB2P');
+    safeNavigateFrom(navigation, 'PersonelVw2GrntB2P');
   };
   const PersonelVw2GrntB2B = () => {
-    navigation.navigate('PersonelVw2GrntB2B');
+    safeNavigateFrom(navigation, 'PersonelVw2GrntB2B');
   };
   const giveBizna = () => {
-    navigation.navigate('giveBizna');
+    safeNavigateFrom(navigation, 'giveBizna');
   };
   const TakeOverBizna = () => {
-    navigation.navigate('TakeOverBizna');
+    safeNavigateFrom(navigation, 'TakeOverBizna');
   };
   const VwBizDpsts = () => {
-    navigation.navigate('VwBizDpsts');
+    safeNavigateFrom(navigation, 'VwBizDpsts');
   };
   const AddBeneficiaryProduct = () => {
-    navigation.navigate('AddBeneficiaryProduct');
+    safeNavigateFrom(navigation, 'AddBeneficiaryProduct');
   };
   const UpdateBizAc = () => {
-    navigation.navigate('UpdateBizAc');
+    safeNavigateFrom(navigation, 'UpdateBizAc');
   };
   const ViewBenShares = () => {
-    navigation.navigate('ViewBenShares');
+    safeNavigateFrom(navigation, 'ViewBenShares');
   };
   const VwBenToShare = () => {
-    navigation.navigate('VwBenToShare');
+    safeNavigateFrom(navigation, 'VwBenToShare');
   };
   return <SafeAreaView>
       <ScrollView>

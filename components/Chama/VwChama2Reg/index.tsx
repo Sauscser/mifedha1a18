@@ -5,6 +5,8 @@ import { View, Text, Pressable } from 'react-native';
 import styles from './styles';
 import translations from './translation';
 import { useTranslation } from 'react-i18next';
+import { safeNavigateFrom } from '../../../src/utils/navigationHelper';
+
 
 
 export interface SMAccount {
@@ -27,7 +29,7 @@ const SMCvLnStts = (props: SMAccount) => {
   const t = translations[lang] || translations.en;
 
   const VwChamaApplications = () => {
-    navigation.navigate("CreateChms", {
+    safeNavigateFrom(navigation, 'CreateChms', {
       id,
       bankAdminEmail,
       ChamaAcNu,

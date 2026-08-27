@@ -2,9 +2,17 @@ import React from 'react';
 import { useNavigation } from '@react-navigation/native';
 import { View, Text, Pressable, SafeAreaView, StyleSheet, ScrollView } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { safeNavigateFrom } from '../../src/utils/navigationHelper';
+import { HomeStackScreenNames } from '../../navigation/HomeTabNav';
 const KFNdogoScreen = () => {
   const navigation = useNavigation<any>();
-  const nav = (route: string) => () => navigation.navigate(route);
+  const nav = (route: string) => () => {
+    if (HomeStackScreenNames.includes(route)) {
+      safeNavigateFrom(navigation, route);
+    } else {
+      navigation.navigate(route);
+    }
+  };
   const Section = ({
     title,
     children,
