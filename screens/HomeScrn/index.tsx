@@ -189,7 +189,7 @@ const HomeScreen = () => {
                 if (!mainAccExists) {
                     setPhotoLoading(false);
                     setOverlayMessage(screenT.proceedToCreateMainAccount);
-                    safeNavigateFrom(navigation, 'CreateSMAc');
+                    safeNavigateFrom(navigation, 'WelcomePgss');
                     return;
                 }
 

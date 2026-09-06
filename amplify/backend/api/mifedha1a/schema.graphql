@@ -3713,7 +3713,22 @@ type Messages @model
   readStatus: String
 }
 
-
+type Inquiry @model
+@auth(
+  rules: [
+    { allow: public, operations: [create, read, update, delete] }
+    { allow: owner, operations: [create, read, update, delete] }
+      { allow: private, operations: [read, create, update, delete] }
+  ]
+){
+  id: ID!
+  senderEmail: ID! @index(name: "byInquiry", sortKeyFields: ["createdAt"], queryField: "fetchInquiry")
+  messageBody: String!
+  senderName: String!
+  senderPhone: String!
+  createdAt: String!
+  readStatus: String
+}
 
 
 type averagePrices @model 

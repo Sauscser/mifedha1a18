@@ -655,11 +655,10 @@ import ViewMinutes from "../../screens/Chama/ChamaMinutes/ViewMinutes";
 
 
 
-export const HomeStackScreenNames = [
-  'Homeie','RegisterTransport', 'VwTransportAccount', 'AcceptRideRequest', 
-  'PassengerRequestRide', 'VwTransportAccount', 'VwBiz2DispatchDelivery', 
-  'ReceiveDelivery2', 'AcceptTransportRequest', 'VwSalesDtls4Transport', 
-  'RegisterTransport',
+export const HomeStackScreenNames = Array.from(new Set([
+  'Homeie', 'VwTransportAccount', 'AcceptRideRequest', 
+  'PassengerRequestRide', 'VwBiz2DispatchDelivery', 
+  'ReceiveDelivery2', 'AcceptTransportRequest', 'VwSalesDtls4Transport',   
   'RegisterTransportBizna', 'ChamaScreen', 'ViewTransportBiznaAccount', 
   'PassengerRequestRide',  'Auditor','ViewMinutes','CreateChamaMinutes',
   'CascadePayShopping','SellerPartialPayRecords','AddCOMBAuditor','CreateCOMBContract',
@@ -791,7 +790,7 @@ export const HomeStackScreenNames = [
   "BuyFloatBnkAdm", "VwSalesDtls4Transport", "DispatchDelivery", "ReceiveDelivery2",
   "VwBiz2DispatchDelivery", "VwTransportAccount", "ChangeDeliveryLocation", 
   "ShareTransportRevenue",
-];
+]));
 
 const Stack = createNativeStackNavigator();
 const HomeNavigator = ({ navigation, route }: any) => {

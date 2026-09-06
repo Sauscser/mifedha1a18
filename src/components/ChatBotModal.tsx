@@ -15,9 +15,15 @@ import {
   Platform,
 } from 'react-native';
 import { MaterialCommunityIcons, Ionicons } from '@expo/vector-icons';
+import { generateClient } from 'aws-amplify/api';
+import { fetchUserAttributes } from 'aws-amplify/auth';
 import { useChatBot } from '../contexts/ChatBotContext';
 import { useTranslation } from 'react-i18next';
 import { PRODUCTS, getProductsByKeyword, isGreeting, getGreeting } from '../utils/productDatabase';
+import { getSMAccount } from '../graphql/queries';
+import { createInquiry } from '../graphql/mutations';
+
+const client = generateClient();
 
 const { height: screenHeight } = Dimensions.get('window');
 
@@ -61,7 +67,20 @@ const chatTranslations: Record<string, ChatTranslations> = {
     navigate: 'Go to',
     learnMore: 'Learn more',
     noMatch: 'I didn\'t quite understand that. Try asking about Transport, Pal-Pal Loans, Chama, Credit Sales, or COMB.',
-    error: 'Sorry, something went wrong. Please try again.'
+    error: 'Sorry, something went wrong. Please try again.',
+    officialLine1: 'Contact',
+    officialLine2: 'an',
+    officialLine3: 'officer',
+    officialTitle: 'Contact an officer',
+    officialPlaceholder: 'Type your message to an officer...',
+    officialCancel: 'Cancel',
+    officialSend: 'Send',
+    officialSending: 'Sending...',
+    officialEmpty: 'Please enter your message before sending.',
+    officialNoEmail: 'Your account email is not available right now.',
+    officialMissingProfile: 'Your profile is missing a name or phone number. Update your account details and try again.',
+    officialGenericError: 'We could not send your message right now. Please try again in a moment.',
+    officialSuccess: 'Your message has been sent to an officer.'
   },
   ar: {
     title: 'ملاح NiSenti',
@@ -73,7 +92,20 @@ const chatTranslations: Record<string, ChatTranslations> = {
     navigate: 'انتقل إلى',
     learnMore: 'اعرف أكثر',
     noMatch: 'لم أجد منتج مطابق. حاول السؤال عن قروض Pal-Pal أو مجموعات Chama أو Credit Sales أو COMB.',
-    error: 'عذراً، حدث خطأ ما. يرجى المحاولة مرة أخرى.'
+    error: 'عذراً، حدث خطأ ما. يرجى المحاولة مرة أخرى.',
+    officialLine1: 'تواصل',
+    officialLine2: 'مع',
+    officialLine3: 'ضابط',
+    officialTitle: 'تواصل مع ضابط',
+    officialPlaceholder: 'اكتب رسالتك إلى ضابط...',
+    officialCancel: 'إلغاء',
+    officialSend: 'إرسال',
+    officialSending: 'جارٍ الإرسال...',
+    officialEmpty: 'يرجى إدخال رسالتك قبل الإرسال.',
+    officialNoEmail: 'بريدك الإلكتروني غير متاح الآن.',
+    officialMissingProfile: 'ملفك الشخصي يفتقد الاسم أو رقم الهاتف. حدّث بياناتك وحاول مرة أخرى.',
+    officialGenericError: 'تعذر إرسال رسالتك الآن. يرجى المحاولة بعد قليل.',
+    officialSuccess: 'تم إرسال رسالتك إلى ضابط.'
   },
   zh: {
     title: 'NiSenti导航器',
@@ -85,7 +117,20 @@ const chatTranslations: Record<string, ChatTranslations> = {
     navigate: '转到',
     learnMore: '了解更多',
     noMatch: '我没有找到匹配的产品。尝试询问Pal-Pal贷款、Chama小组、Credit Sales或COMB。',
-    error: '抱歉，出了点问题。请重试。'
+    error: '抱歉，出了点问题。请重试。',
+    officialLine1: '联系',
+    officialLine2: '一位',
+    officialLine3: '官员',
+    officialTitle: '联系官员',
+    officialPlaceholder: '输入您要发送给官员的消息...',
+    officialCancel: '取消',
+    officialSend: '发送',
+    officialSending: '发送中...',
+    officialEmpty: '请先输入您的消息后再发送。',
+    officialNoEmail: '您的账户邮箱当前不可用。',
+    officialMissingProfile: '您的资料缺少姓名或电话号码。请更新账户信息后再试。',
+    officialGenericError: '目前无法发送您的消息，请稍后再试。',
+    officialSuccess: '您的消息已发送给官员。'
   },
   ru: {
     title: 'Навигатор NiSenti',
@@ -97,7 +142,20 @@ const chatTranslations: Record<string, ChatTranslations> = {
     navigate: 'Перейти на',
     learnMore: 'Узнать больше',
     noMatch: 'Я не нашел подходящего продукта. Попробуйте спросить о кредитах Pal-Pal, группах Chama, Credit Sales или COMB.',
-    error: 'Извините, что-то пошло не так. Пожалуйста, попробуйте еще раз.'
+    error: 'Извините, что-то пошло не так. Пожалуйста, попробуйте еще раз.',
+    officialLine1: 'Связаться',
+    officialLine2: 'с',
+    officialLine3: 'офицером',
+    officialTitle: 'Связаться с офицером',
+    officialPlaceholder: 'Напишите сообщение офицеру...',
+    officialCancel: 'Отмена',
+    officialSend: 'Отправить',
+    officialSending: 'Отправка...',
+    officialEmpty: 'Пожалуйста, введите сообщение перед отправкой.',
+    officialNoEmail: 'Адрес вашей учетной записи сейчас недоступен.',
+    officialMissingProfile: 'В вашем профиле отсутствуют имя или номер телефона. Обновите данные и попробуйте снова.',
+    officialGenericError: 'Не удалось отправить сообщение прямо сейчас. Пожалуйста, попробуйте позже.',
+    officialSuccess: 'Ваше сообщение отправлено офицеру.'
   },
   sw: {
     title: 'Mkurugenzi wa NiSenti',
@@ -109,7 +167,20 @@ const chatTranslations: Record<string, ChatTranslations> = {
     navigate: 'Nenda kwa',
     learnMore: 'Jifunze zaidi',
     noMatch: 'Sikupata bidhaa inayolingana. Jaribu kuuliza kuhusu mikopo ya Pal-Pal, vikundi vya Chama, Credit Sales, au COMB.',
-    error: 'Karibu, kitu kimekauka. Tafadhali jaribu tena.'
+    error: 'Karibu, kitu kimekauka. Tafadhali jaribu tena.',
+    officialLine1: 'Wasiliana',
+    officialLine2: 'na',
+    officialLine3: 'afisa',
+    officialTitle: 'Wasiliana na afisa',
+    officialPlaceholder: 'Andika ujumbe wako kwa afisa...',
+    officialCancel: 'Ghairi',
+    officialSend: 'Tuma',
+    officialSending: 'Inatuma...',
+    officialEmpty: 'Tafadhali weka ujumbe wako kabla ya kutuma.',
+    officialNoEmail: 'Barua pepe ya akaunti yako haipatikani sasa.',
+    officialMissingProfile: 'Profaili yako inakosa jina au nambari ya simu. Sasisha maelezo yako na ujaribu tena.',
+    officialGenericError: 'Sisi hatukuweza kutuma ujumbe wako sasa. Tafadhali jaribu tena kwa muda mfupi.',
+    officialSuccess: 'Ujumbe wako umetumwa kwa afisa.'
   },
   fr: {
     title: 'Navigateur NiSenti',
@@ -121,7 +192,20 @@ const chatTranslations: Record<string, ChatTranslations> = {
     navigate: 'Aller à',
     learnMore: 'En savoir plus',
     noMatch: 'Je n\'ai trouvé aucun produit correspondant. Essayez de demander des prêts Pal-Pal, des groupes Chama, Credit Sales ou COMB.',
-    error: 'Désolé, quelque chose s\'est mal passé. Veuillez réessayer.'
+    error: 'Désolé, quelque chose s\'est mal passé. Veuillez réessayer.',
+    officialLine1: 'Contacter',
+    officialLine2: 'un',
+    officialLine3: 'agent',
+    officialTitle: 'Contacter un agent',
+    officialPlaceholder: 'Tapez votre message à un agent...',
+    officialCancel: 'Annuler',
+    officialSend: 'Envoyer',
+    officialSending: 'Envoi...',
+    officialEmpty: 'Veuillez saisir votre message avant l\'envoi.',
+    officialNoEmail: 'L\'adresse e-mail de votre compte est actuellement indisponible.',
+    officialMissingProfile: 'Votre profil manque de nom ou de numéro de téléphone. Mettez à jour vos informations et réessayez.',
+    officialGenericError: 'Nous n\'avons pas pu envoyer votre message pour le moment. Veuillez réessayer dans un instant.',
+    officialSuccess: 'Votre message a été envoyé à un agent.'
   },
   es: {
     title: 'Navegador NiSenti',
@@ -133,7 +217,20 @@ const chatTranslations: Record<string, ChatTranslations> = {
     navigate: 'Ir a',
     learnMore: 'Aprende mas',
     noMatch: 'No encontré un producto coincidente. Intenta preguntar sobre préstamos Pal-Pal, grupos Chama, Credit Sales o COMB.',
-    error: 'Lo sentimos, algo salió mal. Por favor, inténtelo de nuevo.'
+    error: 'Lo sentimos, algo salió mal. Por favor, inténtelo de nuevo.',
+    officialLine1: 'Contactar',
+    officialLine2: 'a',
+    officialLine3: 'oficial',
+    officialTitle: 'Contactar a un oficial',
+    officialPlaceholder: 'Escribe tu mensaje a un oficial...',
+    officialCancel: 'Cancelar',
+    officialSend: 'Enviar',
+    officialSending: 'Enviando...',
+    officialEmpty: 'Por favor, introduce tu mensaje antes de enviarlo.',
+    officialNoEmail: 'Tu correo electrónico no está disponible ahora mismo.',
+    officialMissingProfile: 'Tu perfil falta nombre o número de teléfono. Actualiza tus datos e inténtalo de nuevo.',
+    officialGenericError: 'No pudimos enviar tu mensaje ahora mismo. Inténtalo de nuevo en un momento.',
+    officialSuccess: 'Tu mensaje ha sido enviado a un oficial.'
   },
   de: {
     title: 'NiSenti-Navigator',
@@ -145,7 +242,20 @@ const chatTranslations: Record<string, ChatTranslations> = {
     navigate: 'Gehen Sie zu',
     learnMore: 'Mehr erfahren',
     noMatch: 'Ich habe kein passendes Produkt gefunden. Versuchen Sie, nach Pal-Pal-Darlehen, Chama-Gruppen, Credit Sales oder COMB zu fragen.',
-    error: 'Entschuldigung, etwas ist schief gelaufen. Bitte versuchen Sie es erneut.'
+    error: 'Entschuldigung, etwas ist schief gelaufen. Bitte versuchen Sie es erneut.',
+    officialLine1: 'Sprich',
+    officialLine2: 'mit',
+    officialLine3: 'einem',
+    officialTitle: 'Mit einer Stelle sprechen',
+    officialPlaceholder: 'Geben Sie Ihre Nachricht an die Stelle ein...',
+    officialCancel: 'Abbrechen',
+    officialSend: 'Senden',
+    officialSending: 'Wird gesendet...',
+    officialEmpty: 'Bitte geben Sie Ihre Nachricht ein, bevor Sie senden.',
+    officialNoEmail: 'Ihre Kontoe-Mail ist derzeit nicht verfügbar.',
+    officialMissingProfile: 'In Ihrem Profil fehlt Ihr Name oder Ihre Telefonnummer. Aktualisieren Sie Ihre Daten und versuchen Sie es erneut.',
+    officialGenericError: 'Ihre Nachricht konnte gerade nicht gesendet werden. Bitte versuchen Sie es gleich erneut.',
+    officialSuccess: 'Ihre Nachricht wurde an eine Stelle gesendet.'
   },
   pt: {
     title: 'Navegador NiSenti',
@@ -157,7 +267,20 @@ const chatTranslations: Record<string, ChatTranslations> = {
     navigate: 'Ir para',
     learnMore: 'Saiba mais',
     noMatch: 'Não encontrei um produto correspondente. Tente perguntar sobre empréstimos Pal-Pal, grupos Chama, Credit Sales ou COMB.',
-    error: 'Desculpe, algo deu errado. Por favor, tente novamente.'
+    error: 'Desculpe, algo deu errado. Por favor, tente novamente.',
+    officialLine1: 'Falar',
+    officialLine2: 'com',
+    officialLine3: 'oficial',
+    officialTitle: 'Falar com um oficial',
+    officialPlaceholder: 'Digite sua mensagem para um oficial...',
+    officialCancel: 'Cancelar',
+    officialSend: 'Enviar',
+    officialSending: 'Enviando...',
+    officialEmpty: 'Digite sua mensagem antes de enviar.',
+    officialNoEmail: 'Seu e-mail da conta não está disponível no momento.',
+    officialMissingProfile: 'Seu perfil está sem nome ou número de telefone. Atualize seus dados e tente novamente.',
+    officialGenericError: 'Não foi possível enviar sua mensagem agora. Tente novamente em instantes.',
+    officialSuccess: 'Sua mensagem foi enviada a um oficial.'
   },
   it: {
     title: 'Navigatore NiSenti',
@@ -169,7 +292,20 @@ const chatTranslations: Record<string, ChatTranslations> = {
     navigate: 'Vai a',
     learnMore: 'Scopri di più',
     noMatch: 'Non ho trovato un prodotto corrispondente. Prova a chiedere informazioni su prestiti Pal-Pal, gruppi Chama, Credit Sales o COMB.',
-    error: 'Scusa, qualcosa è andato storto. Per favore riprova.'
+    error: 'Scusa, qualcosa è andato storto. Per favore riprova.',
+    officialLine1: 'Contatta',
+    officialLine2: 'un',
+    officialLine3: 'ufficiale',
+    officialTitle: 'Contatta un ufficiale',
+    officialPlaceholder: 'Scrivi il tuo messaggio a un ufficiale...',
+    officialCancel: 'Annulla',
+    officialSend: 'Invia',
+    officialSending: 'Invio...',
+    officialEmpty: 'Inserisci il tuo messaggio prima di inviarlo.',
+    officialNoEmail: 'L\'email del tuo account non è attualmente disponibile.',
+    officialMissingProfile: 'Nel tuo profilo manca il nome o il numero di telefono. Aggiorna i tuoi dati e riprova.',
+    officialGenericError: 'Non siamo riusciti a inviare il messaggio in questo momento. Riprova tra un attimo.',
+    officialSuccess: 'Il tuo messaggio è stato inviato a un ufficiale.'
   },
   he: {
     title: 'ניווט NiSenti',
@@ -181,7 +317,20 @@ const chatTranslations: Record<string, ChatTranslations> = {
     navigate: 'עבור ל',
     learnMore: 'גלה עוד',
     noMatch: 'לא מצאתי מוצר תואם. נסה לשאול על הלוואות Pal-Pal, קבוצות Chama, Credit Sales או COMB.',
-    error: 'סורי, משהו השתבש. בבקשה נסה שוב.'
+    error: 'סורי, משהו השתבש. בבקשה נסה שוב.',
+    officialLine1: 'צור',
+    officialLine2: 'קשר',
+    officialLine3: 'עם נציג',
+    officialTitle: 'צור קשר עם נציג',
+    officialPlaceholder: 'כתוב את ההודעה שלך לנציג...',
+    officialCancel: 'ביטול',
+    officialSend: 'שלח',
+    officialSending: 'שולח...',
+    officialEmpty: 'אנא הזן את ההודעה שלך לפני השליחה.',
+    officialNoEmail: 'כתובת המייל של החשבון שלך אינה זמינה כעת.',
+    officialMissingProfile: 'בפרופיל שלך חסרים שם או מספר טלפון. עדכן את הפרטים ונסה שוב.',
+    officialGenericError: 'לא הצלחנו לשלוח את ההודעה כרגע. בבקשה נסה שוב בעוד רגע.',
+    officialSuccess: 'ההודעה שלך נשלחה לנציג.'
   },
   hi: {
     title: 'NiSenti नेविगेटर',
@@ -193,7 +342,20 @@ const chatTranslations: Record<string, ChatTranslations> = {
     navigate: 'पर जाएं',
     learnMore: 'और जानें',
     noMatch: 'मुझे कोई मेल खाने वाला उत्पाद नहीं मिला। Pal-Pal ऋण, Chama समूह, क्रेडिट बिक्री, या COMB के बारे में पूछने का प्रयास करें।',
-    error: 'खेद है, कुछ गलत हुआ। कृपया दोबारा कोशिश करें।'
+    error: 'खेद है, कुछ गलत हुआ। कृपया दोबारा कोशिश करें।',
+    officialLine1: 'संपर्क',
+    officialLine2: 'करें',
+    officialLine3: 'अधिकारी',
+    officialTitle: 'अधिकारी से संपर्क करें',
+    officialPlaceholder: 'अधिकारी को अपना संदेश लिखें...',
+    officialCancel: 'रद्द करें',
+    officialSend: 'भेजें',
+    officialSending: 'भेजा जा रहा है...',
+    officialEmpty: 'कृपया भेजने से पहले अपना संदेश दर्ज करें।',
+    officialNoEmail: 'आपका खाता ईमेल अभी उपलब्ध नहीं है।',
+    officialMissingProfile: 'आपके प्रोफ़ाइल में नाम या फोन नंबर नहीं है। अपने विवरण अपडेट करें और फिर से कोशिश करें।',
+    officialGenericError: 'अभी आपका संदेश भेज नहीं जा सका। कृपया थोड़ी देर बाद प्रयास करें।',
+    officialSuccess: 'आपका संदेश अधिकारी को भेज दिया गया है।'
   },
   am: {
     title: 'NiSenti መሪ',
@@ -205,7 +367,20 @@ const chatTranslations: Record<string, ChatTranslations> = {
     navigate: 'ወደ',
     learnMore: 'ተጨማሪ ይወቁ',
     noMatch: 'አንድ ተዛማጅ ምርት ኖሮ አልገኘሁም። Pal-Pal ብድር፣ Chama ቡድን፣ ክሬዲት ሽያጩ ወይም COMB ስለ ጠይቅ።',
-    error: 'ይቅርታ፣ አንዳንድ ነገር ተመልሰዋል። ደግሞ ሞክር።'
+    error: 'ይቅርታ፣ አንዳንድ ነገር ተመልሰዋል። ደግሞ ሞክር።',
+    officialLine1: 'አግኙ',
+    officialLine2: 'አንድ',
+    officialLine3: 'ባለስልጣን',
+    officialTitle: 'አንድ ባለስልጣንን ያግኙ',
+    officialPlaceholder: 'ለባለስልጣን መልእክትዎን ይፃፉ...',
+    officialCancel: 'ይቅር',
+    officialSend: 'ላክ',
+    officialSending: 'በመላክ ላይ...',
+    officialEmpty: 'እባክዎ ልክ ከላክዎ በፊት መልእክትዎን ያስገቡ።',
+    officialNoEmail: 'የመለያዎ ኢሜይል አሁን አይገኝም።',
+    officialMissingProfile: 'የመለያዎ መረጃ ስም ወይም ስልክ ቁጥር አልተገኘም። ዝርዝሮችዎን ያዘምኑ እና እንደገና ይሞክሩ።',
+    officialGenericError: 'መልእክትዎን አሁን ማስተካከል አልተቻለም። እባክዎ አንድ ትንሽ በኋላ ይሞክሩ።',
+    officialSuccess: 'መልእክትዎ ወደ ባለስልጣን ተልኳል።'
   }
 };
 
@@ -221,6 +396,11 @@ export const ChatBotModal: React.FC<ChatBotModalProps> = ({ onNavigate }) => {
   const [lastNavigationTarget, setLastNavigationTarget] = useState<string | null>(null);
   const { i18n } = useTranslation();
   const [inputText, setInputText] = useState('');
+  const [showOfficialComposer, setShowOfficialComposer] = useState(false);
+  const [officialMessage, setOfficialMessage] = useState('');
+  const [officialError, setOfficialError] = useState<string | null>(null);
+  const [isSubmittingOfficial, setIsSubmittingOfficial] = useState(false);
+  const [currentAccount, setCurrentAccount] = useState<{ name: string; phone: string; email: string } | null>(null);
   const scrollViewRef = useRef<ScrollView>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const navPulse = useRef(new Animated.Value(1)).current;
@@ -251,6 +431,97 @@ export const ChatBotModal: React.FC<ChatBotModalProps> = ({ onNavigate }) => {
     pulse.start();
     return () => pulse.stop();
   }, [showNavButton, navPulse]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const loadCurrentAccount = async () => {
+      try {
+        const attrs = await fetchUserAttributes();
+        const email = attrs.email || '';
+        if (!email) return;
+
+        const profileRes: any = await client.graphql({
+          query: getSMAccount,
+          variables: { awsemail: email }
+        });
+
+        const smAccount = profileRes?.data?.getSMAccount;
+        if (smAccount) {
+          setCurrentAccount({
+            name: smAccount.name || '',
+            phone: smAccount.phonecontact || '',
+            email,
+          });
+        }
+      } catch (error) {
+        console.warn('Could not load signed-in SMAccount for official inquiry', error);
+      }
+    };
+
+    void loadCurrentAccount();
+  }, [isOpen]);
+
+  const handleOpenOfficialComposer = () => {
+    setOfficialError(null);
+    setOfficialMessage('');
+    setShowOfficialComposer(true);
+  };
+
+  const handleSubmitOfficialInquiry = async () => {
+    const trimmedMessage = officialMessage.trim();
+    if (!trimmedMessage) {
+      setOfficialError(t.officialEmpty);
+      return;
+    }
+
+    const userEmail = currentAccount?.email || (await fetchUserAttributes()).email || '';
+    if (!userEmail) {
+      setOfficialError(t.officialNoEmail);
+      return;
+    }
+
+    const profileRes: any = await client.graphql({
+      query: getSMAccount,
+      variables: { awsemail: userEmail }
+    });
+
+    const smAccount = profileRes?.data?.getSMAccount;
+    const senderName = smAccount?.name || currentAccount?.name || '';
+    const senderPhone = smAccount?.phonecontact || currentAccount?.phone || '';
+
+    if (!senderName || !senderPhone) {
+      setOfficialError(t.officialMissingProfile);
+      return;
+    }
+
+    setIsSubmittingOfficial(true);
+    setOfficialError(null);
+
+    try {
+      await client.graphql({
+        query: createInquiry,
+        variables: {
+          input: {
+            senderEmail: userEmail,
+            messageBody: trimmedMessage,
+            senderName,
+            senderPhone,
+            readStatus: 'unread',
+          },
+        },
+      });
+
+      addMessage(t.officialSuccess, 'bot');
+      setOfficialMessage('');
+      setShowOfficialComposer(false);
+    } catch (error) {
+      console.error('Inquiry submission failed', error);
+      setOfficialError(t.officialGenericError);
+    } finally {
+      setIsSubmittingOfficial(false);
+    }
+  };
 
   const handleNavButtonPress = () => {
     if (!navigateTarget || !onNavigate) return;
@@ -1390,6 +1661,36 @@ export const ChatBotModal: React.FC<ChatBotModalProps> = ({ onNavigate }) => {
             </Animated.View>
           ) : null}
 
+          {showOfficialComposer && (
+            <View style={styles.officialComposerContainer}>
+              <View style={styles.officialComposerCard}>
+                <Text style={styles.officialComposerTitle}>{t.officialTitle}</Text>
+                <TextInput
+                  style={styles.officialInput}
+                  placeholder={t.officialPlaceholder}
+                  placeholderTextColor="#666"
+                  multiline
+                  value={officialMessage}
+                  onChangeText={setOfficialMessage}
+                  editable={!isSubmittingOfficial}
+                />
+                {officialError ? <Text style={styles.officialError}>{officialError}</Text> : null}
+                <View style={styles.officialComposerActions}>
+                  <TouchableOpacity onPress={() => setShowOfficialComposer(false)} style={styles.cancelOfficialButton}>
+                    <Text style={styles.cancelOfficialText}>{t.officialCancel}</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={handleSubmitOfficialInquiry}
+                    disabled={isSubmittingOfficial || !officialMessage.trim()}
+                    style={[styles.sendOfficialButton, (isSubmittingOfficial || !officialMessage.trim()) && styles.sendOfficialButtonDisabled]}
+                  >
+                    <Text style={styles.sendOfficialText}>{isSubmittingOfficial ? t.officialSending : t.officialSend}</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
+          )}
+
           {/* Floating Close Button */}
           <TouchableOpacity 
             onPress={closeChat} 
@@ -1402,6 +1703,19 @@ export const ChatBotModal: React.FC<ChatBotModalProps> = ({ onNavigate }) => {
           {/* Input Area - Stays at bottom */}
           <View style={styles.inputContainer}>
             <View style={styles.inputRow}>
+              <TouchableOpacity
+                onPress={handleOpenOfficialComposer}
+                style={styles.officialInputButton}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <Text style={styles.officialInputButtonText}>
+                  {t.officialLine1}
+                  {'\n'}
+                  {t.officialLine2}
+                  {'\n'}
+                  {t.officialLine3}
+                </Text>
+              </TouchableOpacity>
               <TextInput
                 style={styles.input}
                 placeholder={t.placeholder}
@@ -1592,6 +1906,99 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 14,
     fontWeight: '700',
+  },
+  officialComposerContainer: {
+    position: 'absolute',
+    left: 12,
+    bottom: 118,
+    width: 260,
+    zIndex: 50,
+  },
+  officialComposerCard: {
+    backgroundColor: '#fff',
+    borderRadius: 18,
+    padding: 14,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.18,
+    shadowRadius: 10,
+    elevation: 6,
+    borderWidth: 1,
+    borderColor: '#f0d3a5',
+  },
+  officialComposerTitle: {
+    color: '#333',
+    fontSize: 16,
+    fontWeight: '700',
+    marginBottom: 10,
+  },
+  officialInput: {
+    minHeight: 90,
+    maxHeight: 180,
+    borderWidth: 1,
+    borderColor: '#e2d6c2',
+    backgroundColor: '#faf8f5',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 14,
+    color: '#222',
+    textAlignVertical: 'top',
+  },
+  officialError: {
+    marginTop: 8,
+    color: '#b42318',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  officialComposerActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    marginTop: 12,
+    gap: 8,
+  },
+  cancelOfficialButton: {
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 12,
+    backgroundColor: '#f2f2f2',
+  },
+  cancelOfficialText: {
+    color: '#333',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  sendOfficialButton: {
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    backgroundColor: '#e29d58',
+  },
+  sendOfficialButtonDisabled: {
+    opacity: 0.5,
+  },
+  sendOfficialText: {
+    color: '#fff',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  officialInputButton: {
+    backgroundColor: '#e29d58',
+    borderRadius: 18,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    marginRight: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: 66,
+    minHeight: 54,
+  },
+  officialInputButtonText: {
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: '700',
+    textAlign: 'center',
+    lineHeight: 12,
   },
   clearButton: {
     paddingVertical: 6,

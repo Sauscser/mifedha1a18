@@ -7619,3 +7619,60 @@ export const deleteMessages = /* GraphQL */ `
     }
   }
 `;
+export const createInquiry = /* GraphQL */ `
+  mutation CreateInquiry(
+    $input: CreateInquiryInput!
+    $condition: ModelInquiryConditionInput
+  ) {
+    createInquiry(input: $input, condition: $condition) {
+      id
+      senderEmail
+      messageBody
+      senderName
+      senderPhone
+      createdAt
+      readStatus
+      updatedAt
+      owner
+      __typename
+    }
+  }
+`;
+export const updateInquiry = /* GraphQL */ `
+  mutation UpdateInquiry(
+    $input: UpdateInquiryInput!
+    $condition: ModelInquiryConditionInput
+  ) {
+    updateInquiry(input: $input, condition: $condition) {
+      id
+      senderEmail
+      messageBody
+      senderName
+      senderPhone
+      createdAt
+      readStatus
+      updatedAt
+      owner
+      __typename
+    }
+  }
+`;
+export const deleteInquiry = /* GraphQL */ `
+  mutation DeleteInquiry(
+    $input: DeleteInquiryInput!
+    $condition: ModelInquiryConditionInput
+  ) {
+    deleteInquiry(input: $input, condition: $condition) {
+      id
+      senderEmail
+      messageBody
+      senderName
+      senderPhone
+      createdAt
+      readStatus
+      updatedAt
+      owner
+      __typename
+    }
+  }
+`;

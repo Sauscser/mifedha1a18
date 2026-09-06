@@ -10301,3 +10301,77 @@ export const fetchMessages = /* GraphQL */ `
     }
   }
 `;
+export const getInquiry = /* GraphQL */ `
+  query GetInquiry($id: ID!) {
+    getInquiry(id: $id) {
+      id
+      senderEmail
+      messageBody
+      senderName
+      senderPhone
+      createdAt
+      readStatus
+      updatedAt
+      owner
+      __typename
+    }
+  }
+`;
+export const listInquiries = /* GraphQL */ `
+  query ListInquiries(
+    $filter: ModelInquiryFilterInput
+    $limit: Int
+    $nextToken: String
+  ) {
+    listInquiries(filter: $filter, limit: $limit, nextToken: $nextToken) {
+      items {
+        id
+        senderEmail
+        messageBody
+        senderName
+        senderPhone
+        createdAt
+        readStatus
+        updatedAt
+        owner
+        __typename
+      }
+      nextToken
+      __typename
+    }
+  }
+`;
+export const fetchInquiry = /* GraphQL */ `
+  query FetchInquiry(
+    $senderEmail: ID!
+    $createdAt: ModelStringKeyConditionInput
+    $sortDirection: ModelSortDirection
+    $filter: ModelInquiryFilterInput
+    $limit: Int
+    $nextToken: String
+  ) {
+    fetchInquiry(
+      senderEmail: $senderEmail
+      createdAt: $createdAt
+      sortDirection: $sortDirection
+      filter: $filter
+      limit: $limit
+      nextToken: $nextToken
+    ) {
+      items {
+        id
+        senderEmail
+        messageBody
+        senderName
+        senderPhone
+        createdAt
+        readStatus
+        updatedAt
+        owner
+        __typename
+      }
+      nextToken
+      __typename
+    }
+  }
+`;

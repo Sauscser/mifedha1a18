@@ -7564,3 +7564,60 @@ export const onDeleteMessages = /* GraphQL */ `
     }
   }
 `;
+export const onCreateInquiry = /* GraphQL */ `
+  subscription OnCreateInquiry(
+    $filter: ModelSubscriptionInquiryFilterInput
+    $owner: String
+  ) {
+    onCreateInquiry(filter: $filter, owner: $owner) {
+      id
+      senderEmail
+      messageBody
+      senderName
+      senderPhone
+      createdAt
+      readStatus
+      updatedAt
+      owner
+      __typename
+    }
+  }
+`;
+export const onUpdateInquiry = /* GraphQL */ `
+  subscription OnUpdateInquiry(
+    $filter: ModelSubscriptionInquiryFilterInput
+    $owner: String
+  ) {
+    onUpdateInquiry(filter: $filter, owner: $owner) {
+      id
+      senderEmail
+      messageBody
+      senderName
+      senderPhone
+      createdAt
+      readStatus
+      updatedAt
+      owner
+      __typename
+    }
+  }
+`;
+export const onDeleteInquiry = /* GraphQL */ `
+  subscription OnDeleteInquiry(
+    $filter: ModelSubscriptionInquiryFilterInput
+    $owner: String
+  ) {
+    onDeleteInquiry(filter: $filter, owner: $owner) {
+      id
+      senderEmail
+      messageBody
+      senderName
+      senderPhone
+      createdAt
+      readStatus
+      updatedAt
+      owner
+      __typename
+    }
+  }
+`;

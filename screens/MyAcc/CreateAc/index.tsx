@@ -760,7 +760,7 @@ const validatePhoneBeforeAccountCreation = async (): Promise<boolean> => {
         query: getCompany,
         variables: { AdminId: "BaruchHabaB'ShemAdonai2" },
       });
-      const actvSMUsrs = compDtls.data.getCompany.ttlActiveUsers;
+     const actvSMUsrs = compDtls.data.getCompany.ttlActiveUsers;
 
       if (!photoPassportKey) {
   Alert.alert(t.facePhotoRequired);
@@ -947,7 +947,7 @@ if (pword.length < 8) {
           variables: {
             input: {
               AdminId: "BaruchHabaB'ShemAdonai2",
-              ttlActiveUsers: parseFloat(actvSMUsrs) + 1,
+            ttlActiveUsers: parseFloat(actvSMUsrs) + 1,
             },
           },
         });
