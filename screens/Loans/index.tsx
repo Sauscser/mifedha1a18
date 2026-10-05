@@ -17,7 +17,7 @@ const MyLoanAccount = props => {
 
   // Navigation functions for each button
   const SignIn2GrntLnReq = () => safeNavigateFrom(navigation, 'SignIn2GrntLnReq');
-  const UpdateExRates = () => navigation.navigate('UpdateExRates2');
+  const UpdateExRates = () => safeNavigateFrom(navigation, 'UpdateExRates2');
 
   const PalVw2GrantLnReq2 = () => safeNavigateFrom(navigation, 'PalVw2GrantLnReq2');
   const VwP2PMyLoaners = () => safeNavigateFrom(navigation, 'VwP2PMyLoaners');

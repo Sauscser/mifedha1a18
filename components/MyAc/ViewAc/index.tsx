@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useExchange } from '../../../src/contexts/ExchangeContext';
-import { formatAmountSync } from '../../../src/utils/exchange';
+import { countryToCurrency, formatAmountSync, getExRatesForNationality, BASE_EXCHANGE_SYMBOL } from '../../../src/utils/exchange';
+import { nationalityToCode } from '../../../src/utils/nationalityToCode';
 import { useTranslation } from 'react-i18next';
 import translations from './translation';
 import * as DocumentPicker from 'expo-document-picker';
@@ -9,57 +10,37 @@ import { updateSMAccount } from '../../../src/graphql/mutations';
 import { generateClient } from 'aws-amplify/api';
 import { fetchUserAttributes } from 'aws-amplify/auth';
 import { Ionicons } from '@expo/vector-icons';
-
-// Static mapping from CreateAllExRates (should be kept in sync)
-const countryNamesByCode: Record<string, string> = {
-  AF: "Afghanistan", AL: "Albania", DZ: "Algeria", AS: "American Samoa", AD: "Andorra", AO: "Angola", AI: "Anguilla",
-  AG: "Antigua and Barbuda", AR: "Argentina", AM: "Armenia", AW: "Aruba", AU: "Australia", AT: "Austria", AZ: "Azerbaijan",
-  BS: "Bahamas", BH: "Bahrain", BD: "Bangladesh", BB: "Barbados", BY: "Belarus", BE: "Belgium", BZ: "Belize",
-  BJ: "Benin", BM: "Bermuda", BT: "Bhutan", BO: "Bolivia", BA: "Bosnia and Herzegovina", BW: "Botswana", BR: "Brazil",
-  BN: "Brunei", BG: "Bulgaria", BF: "Burkina Faso", BI: "Burundi", KH: "Cambodia", CM: "Cameroon", CA: "Canada", CV: "Cabo Verde",
-  KY: "Cayman Islands", CF: "Central African Republic", TD: "Chad", CL: "Chile", CN: "China", CO: "Colombia",
-  CR: "Costa Rica", HR: "Croatia", CU: "Cuba", CY: "Cyprus", CZ: "Czech Republic", DK: "Denmark", DJ: "Djibouti",
-  DO: "Dominican Republic", EC: "Ecuador", EG: "Egypt", SV: "El Salvador", GQ: "Equatorial Guinea", ER: "Eritrea",
-  EE: "Estonia", ET: "Ethiopia", FJ: "Fiji", FI: "Finland", FR: "France", GA: "Gabon", GM: "Gambia", GE: "Georgia",
-  DE: "Germany", GH: "Ghana", GR: "Greece", GT: "Guatemala", HN: "Honduras", HK: "Hong Kong", HU: "Hungary",
-  IS: "Iceland", IN: "India", ID: "Indonesia", IR: "Iran", IQ: "Iraq", IE: "Ireland", IL: "Israel", IT: "Italy",
-  JM: "Jamaica", JP: "Japan", JO: "Jordan", KZ: "Kazakhstan", KE: "Kenya", KI: "Kiribati", KP: "North Korea",
-  KR: "South Korea", KW: "Kuwait", KG: "Kyrgyzstan", LA: "Laos", LV: "Latvia", LB: "Lebanon", LS: "Lesotho",
-  LR: "Liberia", LY: "Libya", LI: "Liechtenstein", LT: "Lithuania", LU: "Luxembourg", MO: "Macao", MW: "Malawi",
-  MY: "Malaysia", MV: "Maldives", ML: "Mali", MT: "Malta", MH: "Marshall Islands", MQ: "Martinique", MR: "Mauritania",
-  MU: "Mauritius", MX: "Mexico", FM: "Micronesia", MD: "Moldova", MC: "Monaco", MN: "Mongolia", ME: "Montenegro",
-  MA: "Morocco", MZ: "Mozambique", MM: "Myanmar", NA: "Namibia", NR: "Nauru", NP: "Nepal", NL: "Netherlands",
-  NZ: "New Zealand", NI: "Nicaragua", NE: "Niger", NG: "Nigeria", NO: "Norway", OM: "Oman", PK: "Pakistan", PA: "Panama",
-  PG: "Papua New Guinea", PY: "Paraguay", PE: "Peru", PH: "Philippines", PL: "Poland", PT: "Portugal", QA: "Qatar",
-  RO: "Romania", RU: "Russia", RW: "Rwanda", SA: "Saudi Arabia", SN: "Senegal", RS: "Serbia", SG: "Singapore",
-  SK: "Slovakia", SI: "Slovenia", ES: "Spain", LK: "Sri Lanka", SD: "Sudan", SR: "Suriname", SZ: "Eswatini",
-  SE: "Sweden", CH: "Switzerland", SY: "Syria", TW: "Taiwan", TJ: "Tajikistan", TZ: "Tanzania", TH: "Thailand",
-  TL: "Timor-Leste", TG: "Togo", TO: "Tonga", TT: "Trinidad and Tobago", TN: "Tunisia", TR: "Turkey", TM: "Turkmenistan",
-  UG: "Uganda", UA: "Ukraine", AE: "United Arab Emirates", GB: "United Kingdom", US: "United States", UY: "Uruguay",
-  UZ: "Uzbekistan", VU: "Vanuatu", VE: "Venezuela", VN: "Vietnam", YE: "Yemen", ZA: "South Africa", ZM: "Zambia", ZW: "Zimbabwe",
-  // Additional countries and territories
-  AX: "Åland Islands", BQ: "Bonaire", CW: "Curaçao", PS: "Palestine", SS: "South Sudan", XK: "Kosovo",
-  GG: "Guernsey", IM: "Isle of Man", JE: "Jersey", SJ: "Svalbard and Jan Mayen", BV: "Bouvet Island",
-  GS: "South Georgia and South Sandwich Islands", PN: "Pitcairn Islands", TK: "Tokelau", WF: "Wallis and Futuna",
-  EH: "Western Sahara", GI: "Gibraltar", PM: "Saint Pierre and Miquelon", RE: "Réunion", YT: "Mayotte",
-  GP: "Guadeloupe", BL: "Saint Barthélemy", MF: "Saint Martin", GF: "French Guiana", PF: "French Polynesia",
-  NC: "New Caledonia", SX: "Sint Maarten", TC: "Turks and Caicos Islands", VG: "British Virgin Islands",
-  VI: "U.S. Virgin Islands", GW: "Guinea-Bissau", KN: "Saint Kitts and Nevis", LC: "Saint Lucia",
-  VC: "Saint Vincent and the Grenadines", DM: "Dominica", GD: "Grenada", FK: "Falkland Islands",
-  GL: "Greenland", IO: "British Indian Ocean Territory", CC: "Cocos (Keeling) Islands", CX: "Christmas Island",
-};
-
-// Helper to map nationality (country name or code) to code for ratesMap
-function nationalityToCode(nationality: string | undefined | null): string | undefined {
-  if (!nationality) return undefined;
-  // If already a code
-  if (countryNamesByCode[nationality]) return nationality;
-  // Try to find code by name
-  const found = Object.entries(countryNamesByCode).find(([, name]) => name.toLowerCase() === nationality.toLowerCase());
-  if (found) return found[0];
-  return undefined;
-}
 import { View, Text, ScrollView, Image, ActivityIndicator, StyleSheet, Alert, Pressable } from 'react-native';
+
+const normalizeRateKey = (value: string) => value.trim().toUpperCase();
+
+const resolveRateKey = (
+  nationality: string | undefined | null,
+  ratesMap?: Record<string, any>
+): string | undefined => {
+  if (!nationality || !ratesMap) return undefined;
+
+  const trimmed = nationality.trim();
+  const countryCode = nationalityToCode(trimmed) || (trimmed.length === 2 ? trimmed.toUpperCase() : undefined);
+  const currencyIso = countryCode ? countryToCurrency[countryCode] : undefined;
+  const candidates = [trimmed, trimmed.toUpperCase(), countryCode, currencyIso].filter(Boolean) as string[];
+
+  for (const candidate of candidates) {
+    if (ratesMap[candidate]) return candidate;
+  }
+
+  const normalizedRates = Object.keys(ratesMap).reduce<Record<string, string>>((acc, key) => {
+    acc[normalizeRateKey(key)] = key;
+    return acc;
+  }, {});
+
+  for (const candidate of candidates) {
+    const resolved = normalizedRates[normalizeRateKey(candidate)];
+    if (resolved) return resolved;
+  }
+
+  return undefined;
+};
 
 const client = generateClient();
 
@@ -71,6 +52,8 @@ export interface SMAccount {
     TtlWthdrwnSM: number;
     benefitsAmount: number;
     MaxTymsBL: number;
+    nationality?: string;
+    awsemail?: string;
     photoPassport?: string; // Amplify Storage key
     idFront?: string;       // optional S3 key
     idBack?: string;        // optional S3 key
@@ -82,12 +65,13 @@ const SMCvLnStts = (props: SMAccount) => {
     const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
     const t = translations[lang] || translations.en;
   const {
-    SMAc: { name, balance, ttlDpstSM, TtlWthdrwnSM, benefitsAmount, MaxTymsBL, photoPassport, idFront, idBack, awsemail },
+    SMAc: { name, balance, ttlDpstSM, TtlWthdrwnSM, benefitsAmount, MaxTymsBL, nationality, photoPassport, idFront, idBack, awsemail },
   } = props;
 
   const [photoUrls, setPhotoUrls] = useState<{ passport?: string; idFront?: string; idBack?: string }>({});
   const [loadingPhotos, setLoadingPhotos] = useState(true);
   const [updatingPhoto, setUpdatingPhoto] = useState(false);
+  const [resolvedRate, setResolvedRate] = useState<{ buyingPrice: number; symbol?: string } | null>(null);
 
   const validKey = (k?: string | null) => !!k && k !== 'None';
 
@@ -196,10 +180,50 @@ const SMCvLnStts = (props: SMAccount) => {
     );
   };
 
-  const { nationality, ratesMap } = useExchange();
-  // Map nationality (country name or code) to code for ratesMap
-  const nationalityCode: string | undefined = nationalityToCode(nationality === null ? undefined : nationality);
+  const { nationality: viewerNationality, ratesMap } = useExchange();
   const ratesMapSafe: Record<string, any> | undefined = ratesMap === null ? undefined : ratesMap;
+  const displayNationality = nationality || (viewerNationality === null ? undefined : viewerNationality);
+  const rateKey = resolveRateKey(displayNationality, ratesMapSafe);
+
+  useEffect(() => {
+    let mounted = true;
+
+    const fetchFallbackRate = async () => {
+      if (!displayNationality || rateKey) {
+        if (mounted) setResolvedRate(null);
+        return;
+      }
+
+      try {
+        const rate = await getExRatesForNationality(displayNationality);
+        if (mounted && rate) {
+          setResolvedRate({ buyingPrice: Number(rate.buyingPrice || 1), symbol: rate.symbol });
+        }
+      } catch (error) {
+        if (mounted) setResolvedRate(null);
+      }
+    };
+
+    fetchFallbackRate();
+    return () => {
+      mounted = false;
+    };
+  }, [displayNationality, rateKey]);
+
+  const formatDisplayAmount = (amount: number) => {
+    if (rateKey && ratesMapSafe) {
+      return formatAmountSync(amount, rateKey, ratesMapSafe);
+    }
+
+    if (resolvedRate) {
+      const converted = amount * (Number(resolvedRate.buyingPrice) || 1);
+      const symbol = resolvedRate.symbol || BASE_EXCHANGE_SYMBOL;
+      return `${symbol} ${converted.toFixed(2)}`;
+    }
+
+    return `${BASE_EXCHANGE_SYMBOL} ${amount.toFixed(2)}`;
+  };
+
   return (
     <ScrollView style={styles.pageContainer} contentContainerStyle={{ paddingBottom: 20 }}>
       {/* Profile Header */}
@@ -231,13 +255,13 @@ const SMCvLnStts = (props: SMAccount) => {
       <View style={styles.card}>
         <Text style={styles.sectionTitle}>{t.accountOverview}</Text>
         <Text style={styles.infoRow}>
-          <Text style={styles.label}>{t.balance} </Text>{formatAmountSync(balance, nationalityCode, ratesMapSafe)}
+          <Text style={styles.label}>{t.balance} </Text>{formatDisplayAmount(balance)}
         </Text>
         <Text style={styles.infoRow}>
           <Text style={styles.label}>{t.timesBlacklisted} </Text>{MaxTymsBL}
         </Text>
         <Text style={styles.infoRow}>
-          <Text style={styles.label}>{t.securedBenefitsPooled} </Text>{formatAmountSync(benefitsAmount, nationalityCode, ratesMapSafe)}
+          <Text style={styles.label}>{t.securedBenefitsPooled} </Text>{formatDisplayAmount(benefitsAmount)}
         </Text>
       </View>
 
@@ -245,10 +269,10 @@ const SMCvLnStts = (props: SMAccount) => {
       <View style={styles.card}>
         <Text style={styles.sectionTitle}>{t.cashFlow}</Text>
         <Text style={styles.infoRow}>
-          <Text style={styles.label}>{t.totalDeposits} </Text>{formatAmountSync(ttlDpstSM, nationalityCode, ratesMapSafe)}
+          <Text style={styles.label}>{t.totalDeposits} </Text>{formatDisplayAmount(ttlDpstSM)}
         </Text>
         <Text style={styles.infoRow}>
-          <Text style={styles.label}>{t.totalWithdrawn} </Text>{formatAmountSync(TtlWthdrwnSM, nationalityCode, ratesMapSafe)}
+          <Text style={styles.label}>{t.totalWithdrawn} </Text>{formatDisplayAmount(TtlWthdrwnSM)}
         </Text>
       </View>
     </ScrollView>

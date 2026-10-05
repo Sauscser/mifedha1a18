@@ -803,7 +803,7 @@ const HomeNavigator = ({ navigation, route }: any) => {
     const key = `${pendingScreen}:${JSON.stringify(pendingParams || {})}`;
     if (handledPending.current === key) return;
     handledPending.current = key;
-    navigation.navigate(pendingScreen, pendingParams);
+    navigation.navigate('Home', { screen: pendingScreen, params: pendingParams });
   }, [navigation, pendingScreen, pendingParams]);
 
   return (

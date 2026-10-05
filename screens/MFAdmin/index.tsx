@@ -38,7 +38,7 @@ const RegKFKubwa = props => {
     safeNavigateFrom(navigation, 'UpdateMFAdminPWs');
   };
   const UpdateExRatesBtn = () => {
-    navigation.navigate('UpdateExRates2');
+    safeNavigateFrom(navigation, 'UpdateExRates2');
   };
   const BLUsrsss = () => {
     safeNavigateFrom(navigation, 'BLUsrss');

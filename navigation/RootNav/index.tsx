@@ -1,6 +1,9 @@
-import React from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
+import { Alert } from 'react-native';
 import { CommonActions, NavigationContainer } from '@react-navigation/native';
 import { createDrawerNavigator } from '@react-navigation/drawer';
+import { getCurrentUser } from 'aws-amplify/auth';
+import { generateClient } from 'aws-amplify/api';
 import BotTab from '../BotTab';
 import { HomeStackScreenNames } from '../HomeTabNav';
 import KFNdogoScreen from '../../screens/MFNdogo';
@@ -17,6 +20,9 @@ import GlobalHeader from '../../src/componentx/GlobalHeader';
 import { useMainAccountGuard } from '../../src/contexts/MainAccountGuardContext';
 import { drawerTranslations } from '../../src/i18n/drawerTranslations';
 import { ChatBotModal } from '../../src/components/ChatBotModal';
+import { listBankAdmins, listCompanies, listMiFedhaBankAdmins } from '../../src/graphql/queries';
+
+const client = generateClient();
 
 const Drawer = createDrawerNavigator<any>();
 
@@ -32,11 +38,111 @@ const RootNavigator: React.FC<RootNavProps> = ({ colorScheme, user, signOut }) =
   const { t, i18n } = useTranslation();
   const lang = i18n.language.split('-')[0];
   const drawer = drawerTranslations[lang] || drawerTranslations.en;
+  const [hasAdmin1Access, setHasAdmin1Access] = useState<boolean>(false);
+  const [hasAdmin2Access, setHasAdmin2Access] = useState<boolean>(false);
+  const [hasBankAdminAccess, setHasBankAdminAccess] = useState<boolean>(false);
 
-  const handleNavigateToProduct = (screenName: string, params?: any) => {
+  const verifyAdmin1Access = useCallback(async (): Promise<boolean> => {
+    if (!user) {
+      setHasAdmin1Access(false);
+      return false;
+    }
+
+    try {
+      const currentUser = await getCurrentUser();
+      const currentUserSub = currentUser.userId;
+      const response: any = await client.graphql({
+        query: listCompanies,
+        variables: {
+          filter: { owner: { eq: currentUserSub } },
+          limit: 1,
+        },
+      });
+
+      const isOwner = (response?.data?.listCompanies?.items ?? []).length > 0;
+      setHasAdmin1Access(isOwner);
+      return isOwner;
+    } catch (error) {
+      console.warn('NiSenti Admin 1 access check failed:', error);
+      setHasAdmin1Access(false);
+      return false;
+    }
+  }, [user]);
+
+  const verifyAdminRouteAccess = useCallback(async (screenName: string): Promise<boolean> => {
+    if (!user) return false;
+
+    try {
+      const currentUser = await getCurrentUser();
+      const currentUserSub = currentUser.userId;
+
+      if (screenName === 'NiSenti Admin 1') {
+        const response: any = await client.graphql({
+          query: listCompanies,
+          variables: {
+            filter: { owner: { eq: currentUserSub } },
+            limit: 1,
+          },
+        });
+        const isOwner = (response?.data?.listCompanies?.items ?? []).length > 0;
+        setHasAdmin1Access(isOwner);
+        return isOwner;
+      }
+
+      if (screenName === 'NiSenti Admin 2') {
+        const response: any = await client.graphql({
+          query: listBankAdmins,
+          variables: {
+            filter: { owner: { eq: currentUserSub } },
+            limit: 1,
+          },
+        });
+        const isOwner = (response?.data?.listBankAdmins?.items ?? []).length > 0;
+        setHasAdmin2Access(isOwner);
+        return isOwner;
+      }
+
+      if (screenName === 'Bank Admin') {
+        const response: any = await client.graphql({
+          query: listMiFedhaBankAdmins,
+          variables: {
+            filter: { owner: { eq: currentUserSub } },
+            limit: 1,
+          },
+        });
+        const isOwner = (response?.data?.listMiFedhaBankAdmins?.items ?? []).length > 0;
+        setHasBankAdminAccess(isOwner);
+        return isOwner;
+      }
+
+      return true;
+    } catch (error) {
+      console.warn(`Access check failed for ${screenName}:`, error);
+      if (screenName === 'NiSenti Admin 1') setHasAdmin1Access(false);
+      if (screenName === 'NiSenti Admin 2') setHasAdmin2Access(false);
+      if (screenName === 'Bank Admin') setHasBankAdminAccess(false);
+      return false;
+    }
+  }, [user]);
+
+  useEffect(() => {
+    void verifyAdminRouteAccess('NiSenti Admin 1');
+    void verifyAdminRouteAccess('NiSenti Admin 2');
+    void verifyAdminRouteAccess('Bank Admin');
+  }, [user, verifyAdminRouteAccess]);
+
+  const handleNavigateToProduct = async (screenName: string, params?: any) => {
     if (!navigationRef.isReady()) {
       console.warn('Navigation not ready yet for bot navigation');
       return;
+    }
+
+    if (screenName === 'NiSenti Admin 1' || screenName === 'NiSenti Admin 2' || screenName === 'Bank Admin') {
+      const isAllowed = await verifyAdminRouteAccess(screenName);
+      if (!isAllowed) {
+        Alert.alert(drawer.accessDenied, drawer.admin1AccessDeniedMessage);
+        return;
+      }
     }
 
     const isHomeStackScreen = HomeStackScreenNames.includes(screenName);
@@ -98,9 +204,15 @@ const RootNavigator: React.FC<RootNavProps> = ({ colorScheme, user, signOut }) =
         <Drawer.Screen name="NiSenti Ndogos" component={KFNdogoScreen} options={{ drawerLabel: drawer.ndogo, title: drawer.ndogo }} />
         <Drawer.Screen name="NiSenti Kubwa" component={MFKw} options={{ drawerLabel: drawer.kubwa, title: drawer.kubwa }} />
         <Drawer.Screen name="NiSenti Advocate" component={AdvSgnIn} options={{ drawerLabel: drawer.advocate, title: drawer.advocate }} />
-        <Drawer.Screen name="NiSenti Admin 2" component={MFAdmSgnIn} options={{ drawerLabel: drawer.admin2, title: drawer.admin2 }} />
-        <Drawer.Screen name="Bank Admin" component={SignInBankAdm} options={{ drawerLabel: drawer.bankAdmin, title: drawer.bankAdmin }} />
-        <Drawer.Screen name="NiSenti Admin 1" component={MFSetting} options={{ drawerLabel: drawer.admin1, title: drawer.admin1 }} />
+        {hasAdmin2Access && (
+          <Drawer.Screen name="NiSenti Admin 2" component={MFAdmSgnIn} options={{ drawerLabel: drawer.admin2, title: drawer.admin2 }} />
+        )}
+        {hasBankAdminAccess && (
+          <Drawer.Screen name="Bank Admin" component={SignInBankAdm} options={{ drawerLabel: drawer.bankAdmin, title: drawer.bankAdmin }} />
+        )}
+        {hasAdmin1Access && (
+          <Drawer.Screen name="NiSenti Admin 1" component={MFSetting} options={{ drawerLabel: drawer.admin1, title: drawer.admin1 }} />
+        )}
         <Drawer.Screen name="Reference" component={Ref} options={{ drawerLabel: drawer.reference, title: drawer.reference }} />
       </Drawer.Navigator>
       <ChatBotModal onNavigate={handleNavigateToProduct} />

@@ -1,20 +1,13 @@
-# Generates Android launcher icons from SVG sources using ImageMagick if available.
-# This script writes into android/app/src/main/res mipmap folders.
+# Generates all Android launcher densities from the shared NiSenti PNG artwork.
 
-$repoRoot = Split-Path -Parent $MyInvocation.MyCommand.Definition
-$sourceSVG = Join-Path $repoRoot 'assets/branding/nisenti_launcher.svg'
+$repoRoot = Split-Path -Parent $PSScriptRoot
 $androidRes = Join-Path $repoRoot 'android/app/src/main/res'
 $outDir = Join-Path $repoRoot 'assets/android'
+$generator = Join-Path $repoRoot 'scripts/generate_icons.ps1'
 
-if (-not (Test-Path $sourceSVG)) {
-    Write-Error "Source SVG not found: $sourceSVG"
-    exit 1
-}
-
-if (-not (Test-Path $androidRes)) {
-    Write-Error "Android res directory not found: $androidRes"
-    exit 1
-}
+if (-not (Test-Path $androidRes)) { throw "Android res directory not found: $androidRes" }
+& $generator
+if (-not $?) { throw 'Icon asset generation failed.' }
 
 $iconSizes = @{
     'mipmap-mdpi' = 48
@@ -24,23 +17,18 @@ $iconSizes = @{
     'mipmap-xxxhdpi' = 192
 }
 
-$magick = Get-Command magick -ErrorAction SilentlyContinue
-if (-not $magick) {
-    Write-Error 'ImageMagick (magick) is not installed or not found in PATH.'
-    exit 1
-}
-
 foreach ($folder in $iconSizes.Keys) {
     $dir = Join-Path $androidRes $folder
     if (-not (Test-Path $dir)) { New-Item -ItemType Directory -Force -Path $dir | Out-Null }
     $size = $iconSizes[$folder]
-    $out = Join-Path $dir 'ic_launcher.png'
-    magick convert $sourceSVG -resize ${size}x${size} $out
-    Write-Host "Wrote $out"
+    $source = Join-Path $outDir "icon-$size.png"
+    Copy-Item -Force $source (Join-Path $dir 'ic_launcher.png')
+    Copy-Item -Force $source (Join-Path $dir 'ic_launcher_round.png')
+    Write-Host "Deployed $source -> $dir"
 }
 
-# Create anydpi adaptive foreground icon
 $anydpi = Join-Path $androidRes 'mipmap-anydpi-v26'
 if (-not (Test-Path $anydpi)) { New-Item -ItemType Directory -Force -Path $anydpi | Out-Null }
-magick convert $sourceSVG -resize 512x512 (Join-Path $anydpi 'ic_launcher_foreground.png')
-Write-Host "Wrote adaptive icon foreground"
+$adaptiveForeground = Join-Path $repoRoot 'assets/branding/nisenti_foreground_adaptive.png'
+Copy-Item -Force $adaptiveForeground (Join-Path $anydpi 'ic_launcher_foreground.png')
+Write-Host "Deployed adaptive foreground -> $anydpi"

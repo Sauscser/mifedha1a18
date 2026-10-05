@@ -2,10 +2,41 @@ import React, { createContext, useContext, useEffect, useState, ReactNode } from
 import { generateClient } from 'aws-amplify/api';
 import { getSMAccount, listExRates } from '../graphql/queries';
 import { updateExRates, createExRates } from '../graphql/mutations';
-import { getCurrentUser, fetchUserAttributes } from 'aws-amplify/auth';
-import { fetchLiveRatesByBaseCurrency, buildCHFBasedRatesFromLive } from '../utils/exchange';
+import { fetchUserAttributes } from 'aws-amplify/auth';
+import { fetchLiveRatesByBaseCurrency, buildCHFBasedRatesFromLive, countryToCurrency } from '../utils/exchange';
+import { nationalityToCode } from '../utils/nationalityToCode';
 
 const client = generateClient();
+
+const normalizeRateKey = (value: string) => value.trim().toUpperCase();
+
+const resolveRateKey = (
+  nationality: string | null,
+  ratesMapLocal: Record<string, Rate> | null
+): string | undefined => {
+  if (!nationality || !ratesMapLocal) return undefined;
+
+  const trimmed = nationality.trim();
+  const countryCode = nationalityToCode(trimmed) || (trimmed.length === 2 ? trimmed.toUpperCase() : undefined);
+  const currencyIso = countryCode ? countryToCurrency[countryCode] : undefined;
+  const candidates = [trimmed, trimmed.toUpperCase(), countryCode, currencyIso].filter(Boolean) as string[];
+
+  for (const candidate of candidates) {
+    if (ratesMapLocal[candidate]) return candidate;
+  }
+
+  const normalizedRates = Object.keys(ratesMapLocal).reduce<Record<string, string>>((acc, key) => {
+    acc[normalizeRateKey(key)] = key;
+    return acc;
+  }, {});
+
+  for (const candidate of candidates) {
+    const resolved = normalizedRates[normalizeRateKey(candidate)];
+    if (resolved) return resolved;
+  }
+
+  return undefined;
+};
 
 type Rate = { cur: string; buyingPrice: number; sellingPrice: number; symbol?: string };
 
@@ -26,11 +57,18 @@ export const ExchangeProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     const init = async () => {
       try {
+        let nat: string | null = null;
         const attrs = await fetchUserAttributes();
         const email = attrs.email;
-        const userRes: any = await client.graphql({ query: getSMAccount, variables: { awsemail: email } });
-        const nat = userRes?.data?.getSMAccount?.nationality || null;
+        try {
+          const userRes: any = await client.graphql({ query: getSMAccount, variables: { awsemail: email } });
+          nat = userRes?.data?.getSMAccount?.nationality || null;
+        } catch (userErr) {
+          console.warn('ExchangeProvider user profile fetch failed', userErr);
+        }
         setNationality(nat);
+
+        // Always load rates even if fetching user nationality fails.
         const listRes: any = await client.graphql({ query: listExRates });
         const items = listRes?.data?.listExRates?.items || [];
         const map: Record<string, Rate> = {};
@@ -49,7 +87,8 @@ export const ExchangeProvider = ({ children }: { children: ReactNode }) => {
     try {
       const nat = nationality;
       if (!nat || !ratesMap) return `CHF ${amountKsh.toFixed(2)}`;
-      const r = ratesMap[nat];
+      const rateKey = resolveRateKey(nat, ratesMap);
+      const r = rateKey ? ratesMap[rateKey] : undefined;
       if (!r) return `CHF ${amountKsh.toFixed(2)}`;
       const converted = amountKsh * r.buyingPrice;
       const symbol = r.symbol || 'Ksh';
@@ -61,7 +100,8 @@ export const ExchangeProvider = ({ children }: { children: ReactNode }) => {
 
   const convert = async (amountKsh: number) => {
     if (!nationality || !ratesMap) return amountKsh;
-    const r = ratesMap[nationality];
+    const rateKey = resolveRateKey(nationality, ratesMap);
+    const r = rateKey ? ratesMap[rateKey] : undefined;
     if (!r) return amountKsh;
     return amountKsh * r.buyingPrice;
   };

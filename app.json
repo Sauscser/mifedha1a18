@@ -17,7 +17,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/branding/nisenti_foreground.png",
+        "foregroundImage": "./assets/branding/nisenti_foreground_adaptive.png",
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,

@@ -9,7 +9,9 @@ export const drawerTranslations = {
     admin2: 'Money Admin Two',
     bankAdmin: 'Money  Admin',
     nisentibankAdmin: 'Bank Admin',
-    admin1: 'Money Admin One'
+    admin1: 'Money Admin One',
+    accessDenied: 'Access denied',
+    admin1AccessDeniedMessage: 'Only the company owner can open NiSenti Admin 1.'
   },
   ar: {
     homes: 'الرئيسية',
@@ -19,7 +21,9 @@ export const drawerTranslations = {
     advocate: 'محامي المال',
     admin2: 'مسؤول المال اثنان',
     bankAdmin: 'مسؤول بنك المال',
-    admin1: 'مسؤول المال واحد'
+    admin1: 'مسؤول المال واحد',
+    accessDenied: 'تم الرفض',
+    admin1AccessDeniedMessage: 'يمكن فقط صاحب الشركة فتح NiSenti Admin 1.'
   },
   zh: {
     homes: '首页',
@@ -29,7 +33,9 @@ export const drawerTranslations = {
     advocate: '资金倡导者',
     admin2: '资金管理员 二',
     bankAdmin: '资金银行管理员',
-    admin1: '资金管理员 一'
+    admin1: '资金管理员 一',
+    accessDenied: '拒绝访问',
+    admin1AccessDeniedMessage: '只有公司所有者才能打开 NiSenti Admin 1。'
   },
   ru: {
     homes: 'Главная',
@@ -39,7 +45,9 @@ export const drawerTranslations = {
     advocate: 'Адвокат денег',
     admin2: 'Админ денег два',
     bankAdmin: 'Админ банка денег',
-    admin1: 'Админ денег один'
+    admin1: 'Админ денег один',
+    accessDenied: 'Доступ запрещён',
+    admin1AccessDeniedMessage: 'Открыть NiSenti Admin 1 может только владелец компании.'
   },
   sw: {
     homes: 'Nyumbani',
@@ -49,7 +57,9 @@ export const drawerTranslations = {
     advocate: 'Wakili wa Fedha',
     admin2: 'Msimamizi wa Fedha Mbili',
     bankAdmin: 'Msimamizi wa Benki ya Fedha',
-    admin1: 'Msimamizi wa Fedha Moja'
+    admin1: 'Msimamizi wa Fedha Moja',
+    accessDenied: 'Ufikiaji umekataliwa',
+    admin1AccessDeniedMessage: 'Mmiliki wa kampuni ndiye anayeweza kufungua NiSenti Admin 1.'
   },
   fr: {
     homes: 'Accueil',
@@ -59,7 +69,9 @@ export const drawerTranslations = {
     advocate: 'Avocat de l’Argent',
     admin2: 'Admin d’Argent Deux',
     bankAdmin: 'Admin Banque d’Argent',
-    admin1: 'Admin d’Argent Un'
+    admin1: 'Admin d’Argent Un',
+    accessDenied: 'Accès refusé',
+    admin1AccessDeniedMessage: 'Seul le propriétaire de l’entreprise peut ouvrir NiSenti Admin 1.'
   },
   es: {
     homes: 'Inicio',
@@ -69,7 +81,9 @@ export const drawerTranslations = {
     advocate: 'Abogado de Dinero',
     admin2: 'Admin de Dinero Dos',
     bankAdmin: 'Admin Banco de Dinero',
-    admin1: 'Admin de Dinero Uno'
+    admin1: 'Admin de Dinero Uno',
+    accessDenied: 'Acceso denegado',
+    admin1AccessDeniedMessage: 'Solo el propietario de la empresa puede abrir NiSenti Admin 1.'
   },
   de: {
     homes: 'Startseite',
@@ -79,7 +93,9 @@ export const drawerTranslations = {
     advocate: 'Geldanwalt',
     admin2: 'Geldadmin Zwei',
     bankAdmin: 'Geldbankadmin',
-    admin1: 'Geldadmin Eins'
+    admin1: 'Geldadmin Eins',
+    accessDenied: 'Zugriff verweigert',
+    admin1AccessDeniedMessage: 'Nur der Firmeninhaber kann NiSenti Admin 1 öffnen.'
   },
   pt: {
     homes: 'Início',
@@ -89,7 +105,9 @@ export const drawerTranslations = {
     advocate: 'Advogado de Dinheiro',
     admin2: 'Admin de Dinheiro Dois',
     bankAdmin: 'Admin Banco de Dinheiro',
-    admin1: 'Admin de Dinheiro Um'
+    admin1: 'Admin de Dinheiro Um',
+    accessDenied: 'Acesso negado',
+    admin1AccessDeniedMessage: 'Apenas o proprietário da empresa pode abrir o NiSenti Admin 1.'
   },
   it: {
     homes: 'Home',
@@ -99,7 +117,9 @@ export const drawerTranslations = {
     advocate: 'Avvocato dei Soldi',
     admin2: 'Admin dei Soldi Due',
     bankAdmin: 'Admin Banca dei Soldi',
-    admin1: 'Admin dei Soldi Uno'
+    admin1: 'Admin dei Soldi Uno',
+    accessDenied: 'Accesso negato',
+    admin1AccessDeniedMessage: 'Solo il proprietario dell’azienda può aprire NiSenti Admin 1.'
   },
   he: {
     homes: 'בית',
@@ -109,7 +129,9 @@ export const drawerTranslations = {
     advocate: 'עורך דין הכסף',
     admin2: 'מנהל הכסף שתיים',
     bankAdmin: 'מנהל בנק הכסף',
-    admin1: 'מנהל הכסף אחת'
+    admin1: 'מנהל הכסף אחת',
+    accessDenied: 'הגישה נדחתה',
+    admin1AccessDeniedMessage: 'רק הבעלים של החברה יכול לפתוח את NiSenti Admin 1.'
   },
   hi: {
     homes: 'होम',
@@ -119,7 +141,9 @@ export const drawerTranslations = {
     advocate: 'पैसे का वकील',
     admin2: 'पैसे का एडमिन दो',
     bankAdmin: 'पैसे का बैंक एडमिन',
-    admin1: 'पैसे का एडमिन एक'
+    admin1: 'पैसे का एडमिन एक',
+    accessDenied: 'प्रवेश अस्वीकृत',
+    admin1AccessDeniedMessage: 'केवल कंपनी के मालिक ही NiSenti Admin 1 खोल सकते हैं।'
   },
   am: {
     homes: 'ቤት',
@@ -129,6 +153,8 @@ export const drawerTranslations = {
     advocate: 'ገንዘብ ጠበቃ',
     admin2: 'ገንዘብ አስተዳዳሪ ሁለት',
     bankAdmin: 'ገንዘብ ባንክ አስተዳዳሪ',
-    admin1: 'ገንዘብ አስተዳዳሪ አንድ'
+    admin1: 'ገንዘብ አስተዳዳሪ አንድ',
+    accessDenied: 'መድረሻ ተከልክሏል',
+    admin1AccessDeniedMessage: 'የኩባንያው ባለቤት ብቻ የ NiSenti Admin 1 መክፈት ይችላል።'
   }
 };
