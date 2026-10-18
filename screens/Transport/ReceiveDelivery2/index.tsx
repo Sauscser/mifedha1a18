@@ -53,6 +53,7 @@ import {
   updateTransportRegister,
   updateBizna,
   createBenefitContributions2,
+  recordJuuFullPaymentEvent,
 } from "../../../src/graphql/mutations";
 import { Linking } from "react-native";
 
@@ -561,7 +562,29 @@ const TransportOrdersScreen = () => {
         });
       }
 
-      Alert.alert(t.success, t.deliveryReceived);
+      let performanceEventFailed = false;
+      if (["Biz2Pal", "Biz2Biz"].includes(nonLoanDtlz.status)) {
+        try {
+          const eventResult: any = await client.graphql({
+            query: recordJuuFullPaymentEvent,
+            variables: { amount: Number(nonLoanDtlz.amount) },
+          });
+          const eventResponse = eventResult?.data?.recordJuuFullPaymentEvent;
+          if (!eventResponse?.success) {
+            throw new Error(eventResponse?.message || "Juu did not confirm event receipt.");
+          }
+        } catch (eventError) {
+          performanceEventFailed = true;
+          console.error("Delivery received, but Juu performance event delivery failed:", eventError);
+        }
+      }
+
+      Alert.alert(
+        t.success,
+        performanceEventFailed
+          ? `${t.deliveryReceived}\n\nPerformance event delivery failed. Check the app logs.`
+          : t.deliveryReceived
+      );
 
       const sendSMS = (phoneNumber: string, message: string) => {
         const url = `sms:${phoneNumber}?body=${encodeURIComponent(message)}`;
@@ -986,5 +1009,4 @@ const TransportOrdersScreen = () => {
 };
 
 export default TransportOrdersScreen;
-
 

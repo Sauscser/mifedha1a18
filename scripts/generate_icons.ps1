@@ -23,14 +23,20 @@ function Write-ResizedPng {
         [string]$SourcePath,
         [string]$OutputPath,
         [int]$Size,
-        [double]$Scale = 1.0
+        [double]$Scale = 1.0,
+        [switch]$TransparentBackground
     )
 
     $sourceImage = [System.Drawing.Image]::FromFile($SourcePath)
     $bitmap = New-Object System.Drawing.Bitmap($Size, $Size, [System.Drawing.Imaging.PixelFormat]::Format32bppArgb)
     $graphics = [System.Drawing.Graphics]::FromImage($bitmap)
     try {
-        $graphics.Clear([System.Drawing.Color]::Transparent)
+        if ($TransparentBackground) {
+            $graphics.Clear([System.Drawing.Color]::Transparent)
+        }
+        else {
+            $graphics.Clear([System.Drawing.Color]::White)
+        }
         $graphics.InterpolationMode = [System.Drawing.Drawing2D.InterpolationMode]::HighQualityBicubic
         $graphics.SmoothingMode = [System.Drawing.Drawing2D.SmoothingMode]::HighQuality
         $graphics.PixelOffsetMode = [System.Drawing.Drawing2D.PixelOffsetMode]::HighQuality
@@ -63,7 +69,7 @@ foreach ($k in $map.Keys) {
 }
 
 Write-ResizedPng -SourcePath $logo -OutputPath (Join-Path $SourceDir 'nisenti_playstore_1024.png') -Size 1024
-Write-ResizedPng -SourcePath $foreground -OutputPath $adaptiveForeground -Size 512 -Scale 0.72
+Write-ResizedPng -SourcePath $foreground -OutputPath $adaptiveForeground -Size 512 -Scale 0.72 -TransparentBackground
 Write-ResizedPng -SourcePath $logo -OutputPath (Join-Path $repoRoot 'assets/favicon.png') -Size 48
 Write-Host "Wrote $adaptiveForeground with Android adaptive-icon safe margins"
 Write-Host 'Play Store source remains assets/branding/nisenti_playstore_512.png'

@@ -151,6 +151,7 @@ const CreateBiz = () => {
       quality: 1
     });
     if (!result.canceled && result.assets?.[0]?.uri) {
+      let uploadStage = 'image processing';
       try {
         const manipResult = await ImageManipulator.manipulateAsync(result.assets[0].uri, [{ resize: { width: 800 } }], { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG });
         const response = await fetch(manipResult.uri);
@@ -161,12 +162,22 @@ const CreateBiz = () => {
           return;
         }
         const filename = `${Date.now()}_item.jpg`;
+        uploadStage = 'S3 upload';
         await uploadData({ key: filename, data: blob, options: { contentType: 'image/jpeg' } }).result;
         setItemPhotoKey(filename); // Only set key, HomeScrn-style effect will fetch S3 URL
         Alert.alert(t.success, t.imageUploaded);
       } catch (err) {
-        console.error('Image upload failed:', err);
-        Alert.alert(t.error, t.imageUploadFailed);
+        const errorDetails = err && typeof err === 'object' ? err : undefined;
+        const errorMessage = err instanceof Error ? err.message : String(err);
+        console.error('Item image upload failed:', {
+          stage: uploadStage,
+          name: errorDetails?.name,
+          message: errorMessage,
+          code: errorDetails?.code,
+          metadata: errorDetails?.$metadata
+        }, err);
+        const message = __DEV__ ? `${t.imageUploadFailed}\n${uploadStage}: ${errorMessage}` : t.imageUploadFailed;
+        Alert.alert(t.error, message);
       }
     }
   };

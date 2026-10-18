@@ -1,6 +1,6 @@
 export const translations = {
   en: {
-    title: 'Exchange Rates for Kenyan Shilling',
+    title: 'Exchange Rates for Swiss Francs (CHF)',
     filterPlaceholder: 'Filter countries (e.g., Kenya, KE, India...)',
     headerSymbol: 'Symbol',
     headerBuying: 'Buying',
@@ -18,7 +18,7 @@ export const translations = {
     errorUpdateRates: 'Failed to update rates',
   },
   ar: {
-    title: 'أسعار الصرف للشلن الكيني',
+    title: 'أسعار الصرف للفرنك السويسري (CHF)',
     filterPlaceholder: 'تصفية البلدان (مثال: كينيا، KE، الهند...)',
     headerSymbol: 'الرمز',
     headerBuying: 'شراء',
@@ -34,7 +34,7 @@ export const translations = {
     errorUpdateRates: 'فشل تحديث الأسعار',
   },
   zh: {
-    title: '肯尼亚先令汇率',
+    title: '瑞士法郎汇率 (CHF)',
     filterPlaceholder: '筛选国家（如肯尼亚、KE、印度...）',
     headerSymbol: '符号',
     headerBuying: '买入',
@@ -50,7 +50,7 @@ export const translations = {
     errorUpdateRates: '更新汇率失败',
   },
   ru: {
-    title: 'Курсы обмена для кенийского шиллинга',
+    title: 'Курсы обмена для швейцарского франка (CHF)',
     filterPlaceholder: 'Фильтр стран (например, Кения, KE, Индия...)',
     headerSymbol: 'Символ',
     headerBuying: 'Покупка',
@@ -66,7 +66,7 @@ export const translations = {
     errorUpdateRates: 'Не удалось обновить курсы',
   },
   sw: {
-    title: 'Viwango vya kubadilisha kwa Shilingi ya Kenya',
+    title: 'Viwango vya kubadilisha kwa Faranga ya Uswisi (CHF)',
     filterPlaceholder: 'Chuja nchi (mfano: Kenya, KE, India...)',
     headerSymbol: 'Alama',
     headerBuying: 'Nunua',
@@ -82,7 +82,7 @@ export const translations = {
     errorUpdateRates: 'Imeshindwa kusasisha viwango',
   },
   fr: {
-    title: 'Taux de change pour le shilling kényan',
+    title: 'Taux de change pour le franc suisse (CHF)',
     filterPlaceholder: 'Filtrer les pays (ex: Kenya, KE, Inde...)',
     headerSymbol: 'Symbole',
     headerBuying: 'Achat',
@@ -98,7 +98,7 @@ export const translations = {
     errorUpdateRates: 'Échec de la mise à jour des taux',
   },
   es: {
-    title: 'Tasas de cambio para el chelín keniano',
+    title: 'Tasas de cambio para el franco suizo (CHF)',
     filterPlaceholder: 'Filtrar países (ej: Kenia, KE, India...)',
     headerSymbol: 'Símbolo',
     headerBuying: 'Compra',
@@ -114,7 +114,7 @@ export const translations = {
     errorUpdateRates: 'No se pudieron actualizar las tasas',
   },
   de: {
-    title: 'Wechselkurse für den kenianischen Schilling',
+    title: 'Wechselkurse für den Schweizer Franken (CHF)',
     filterPlaceholder: 'Länder filtern (z.B. Kenia, KE, Indien...)',
     headerSymbol: 'Symbol',
     headerBuying: 'Kauf',
@@ -130,7 +130,7 @@ export const translations = {
     errorUpdateRates: 'Kurse konnten nicht aktualisiert werden',
   },
   pt: {
-    title: 'Taxas de câmbio para o xelim queniano',
+    title: 'Taxas de câmbio para o franco suíço (CHF)',
     filterPlaceholder: 'Filtrar países (ex: Quênia, KE, Índia...)',
     headerSymbol: 'Símbolo',
     headerBuying: 'Compra',
@@ -146,7 +146,7 @@ export const translations = {
     errorUpdateRates: 'Não foi possível atualizar as taxas',
   },
   it: {
-    title: 'Tassi di cambio per lo scellino keniota',
+    title: 'Tassi di cambio per il franco svizzero (CHF)',
     filterPlaceholder: 'Filtra paesi (es: Kenya, KE, India...)',
     headerSymbol: 'Simbolo',
     headerBuying: 'Acquisto',
@@ -162,7 +162,7 @@ export const translations = {
     errorUpdateRates: 'Impossibile aggiornare i tassi',
   },
   he: {
-    title: 'שערי חליפין לשילינג קנייתי',
+    title: 'שערי חליפין לפרנק שוויצרי (CHF)',
     filterPlaceholder: 'סנן מדינות (לדוגמה: קניה, KE, הודו...)',
     headerSymbol: 'סמל',
     headerBuying: 'קנייה',
@@ -178,7 +178,7 @@ export const translations = {
     errorUpdateRates: 'לא ניתן לעדכן שערים',
   },
   hi: {
-    title: 'केन्याई शिलिंग के लिए विनिमय दर',
+    title: 'स्विस फ़्रैंक (CHF) के लिए विनिमय दर',
     filterPlaceholder: 'देशों को फ़िल्टर करें (जैसे: केन्या, KE, भारत...)',
     headerSymbol: 'प्रतीक',
     headerBuying: 'खरीद',
@@ -194,7 +194,7 @@ export const translations = {
     errorUpdateRates: 'दरें अपडेट नहीं हो सकीं',
   },
   am: {
-    title: 'የኬንያ ሺሊንግ የግዢ ዋጋዎች',
+    title: 'የስዊስ ፍራንክ (CHF) የምንዛሬ ተመኖች',
     filterPlaceholder: 'አገሮችን ይታጣሩ (ለምሳሌ፡ ኬንያ፣ KE፣ ህንድ...)',
     headerSymbol: 'ምልክት',
     headerBuying: 'ግዢ',

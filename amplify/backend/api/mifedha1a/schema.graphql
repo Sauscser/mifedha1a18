@@ -1737,7 +1737,7 @@ type Bizna
   bizBeneficiary:String!
   netEarnings:Float!
   beneficiaryType: String!
-  benefitsAmount: Float!
+  benefitsAmount: Float
   owner2email:String
   email: String!
   licenseNo: String
@@ -3681,11 +3681,18 @@ type notification
 type Mutation {
   sendNotification(riderEmail: String!, title: String!, body: String!): NotificationResponse
     @function(name: "mifedhaSendNotification-${env}")
+  recordJuuFullPaymentEvent(amount: Float!): JuuEventResponse
+    @function(name: "mifedhaJuuFullPayment-${env}")
 }
 
 type NotificationResponse {
   success: Boolean!
   message: String
+}
+
+type JuuEventResponse {
+  success: Boolean!
+  message: String!
 }
 
 

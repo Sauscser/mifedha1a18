@@ -1,0 +1,13 @@
+{
+  "permissions": {},
+  "lambdaLayers": [],
+  "environmentVariableList": [
+    {
+      "cloudFormationParameterName": "juuProductId",
+      "environmentVariableName": "JUU_PRODUCT_ID"
+    }
+  ],
+  "secretNames": [
+    "JuuIntegrationKey"
+  ]
+}

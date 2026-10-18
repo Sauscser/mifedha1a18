@@ -14,6 +14,15 @@ export const sendNotification = /* GraphQL */ `
     }
   }
 `;
+export const recordJuuFullPaymentEvent = /* GraphQL */ `
+  mutation RecordJuuFullPaymentEvent($amount: Float!) {
+    recordJuuFullPaymentEvent(amount: $amount) {
+      success
+      message
+      __typename
+    }
+  }
+`;
 export const createLaonRepaymentNotification = /* GraphQL */ `
   mutation CreateLaonRepaymentNotification(
     $input: CreateLaonRepaymentNotificationInput!

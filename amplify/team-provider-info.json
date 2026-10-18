@@ -16,7 +16,12 @@
         "mifedha1a2418a4fd": {},
         "userPoolGroups": {}
       },
-      "function": {},
+      "function": {
+        "mifedhaJuuFullPayment": {
+          "secretsPathAmplifyAppId": "d1arm3vysbz59q",
+          "deploymentBucketName": "amplify-mifedha1a-temp-a37cd-deployment"
+        }
+      },
       "hosting": {
         "amplifyhosting": {
           "appId": "d1arm3vysbz59q",
@@ -52,6 +57,11 @@
           "secretsPathAmplifyAppId": "d1arm3vysbz59q",
           "deploymentBucketName": "amplify-mifedha1a-mifedha-bcc38-deployment",
           "s3Key": "amplify-builds/mifedhaSendNotification-51586f762b2b36754134-build.zip"
+        },
+        "mifedhaJuuFullPayment": {
+          "juuProductId": "5a86c3e0-08d0-4fee-a4a4-655484ece5a5",
+          "secretsPathAmplifyAppId": "d1arm3vysbz59q",
+          "deploymentBucketName": "amplify-mifedha1a-mifedha-bcc38-deployment"
         },
         "mifedha1a": {},
         "mifedha1a2418a4fd": {}
@@ -99,6 +109,11 @@
           "deploymentBucketName": "amplify-mifedha1a-nisenti-2f02d-deployment",
           "s3Key": "amplify-builds/mifedhaSendNotification-6b2b62362b4751575961-build.zip"
         },
+        "mifedhaJuuFullPayment": {
+          "juuProductId": "5a86c3e0-08d0-4fee-a4a4-655484ece5a5",
+          "secretsPathAmplifyAppId": "duggqbbklrwc0",
+          "deploymentBucketName": "amplify-mifedha1a-nisenti-2f02d-deployment"
+        },
         "mifedha1a": {},
         "mifedha1a2418a4fd": {}
       },
@@ -143,7 +158,13 @@
           "projectId": "mifedha-bd808",
           "secretsPathAmplifyAppId": "duggqbbklrwc0",
           "deploymentBucketName": "amplify-mifedha1a-dev-ce075-deployment",
-          "s3Key": "amplify-builds/mifedhaSendNotification-6b2b62362b4751575961-build.zip"
+          "s3Key": "amplify-builds/mifedhaSendNotification-3279746666545044582f-build.zip"
+        },
+        "mifedhaJuuFullPayment": {
+          "juuProductId": "5a86c3e0-08d0-4fee-a4a4-655484ece5a5",
+          "secretsPathAmplifyAppId": "duggqbbklrwc0",
+          "deploymentBucketName": "amplify-mifedha1a-dev-ce075-deployment",
+          "s3Key": "amplify-builds/mifedhaJuuFullPayment-4b6d7253666356724974-build.zip"
         },
         "mifedha1a": {},
         "mifedha1a2418a4fd": {}

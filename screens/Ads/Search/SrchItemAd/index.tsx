@@ -18,10 +18,11 @@ import { ShoppingModeProvider, useShoppingMode } from '../ShoppingModeContext';
 import { generateClient } from 'aws-amplify/api';
 import { getCurrentUser, fetchUserAttributes } from 'aws-amplify/auth';
 import { listSokoAds, getBizna, getCompany, getSMAccount, listCovCreditSellers, listCvrdGroupLoans, listSMLoansCovereds, listBiznas } from '../../../../src/graphql/queries';
-import { createBenefitContributions2, createNonLoans, updateCompany, updateSMAccount, updateBizna, createMarketConsumption } from '../../../../src/graphql/mutations';
+import { createBenefitContributions2, createNonLoans, updateCompany, updateSMAccount, updateBizna, createMarketConsumption, recordJuuFullPaymentEvent } from '../../../../src/graphql/mutations';
 import { getUrl } from 'aws-amplify/storage';
 import { formatAmountSync, convertForeignToKsh, getUserNationalityByEmail } from '../../../../src/utils/exchange';
 import { useExchange } from '../../../../src/contexts/ExchangeContext';
+
 import { nationalityToCode } from '../../../../src/utils/nationalityToCode';
 import { buildOsrmRouteUrl } from '../../../../src/config/osrm';
 import { FontAwesome } from '@expo/vector-icons';
@@ -214,7 +215,7 @@ function SalesItemMapScreenInner({ navigation }: { navigation: any }) {
           marketItemID: item.id,
           price: itemCost.toFixed(2),
           sellerID: item.sokokntct,
-          buyerID,
+          buyerID: buyerId,
           soldAt: Date.now(),
           sokoname: item.sokoname || '',
           itemBrand: item.itemBrand || item.sokoname || '',
@@ -514,6 +515,32 @@ function SalesItemMapScreenInner({ navigation }: { navigation: any }) {
     setOverallTotalDebit(total);
   }, [cart, quantities, company]);
 
+  const reportJuuFullPayment = async (amountKes: number) => {
+    try {
+      const result: any = await client.graphql({
+        query: recordJuuFullPaymentEvent,
+        variables: { amount: amountKes }
+      });
+      const eventResult = result?.data?.recordJuuFullPaymentEvent;
+      if (!eventResult?.success) {
+        console.error('Juu did not accept the full-payment event:', {
+          success: eventResult?.success,
+          message: eventResult?.message,
+          errors: result?.errors?.map((error: any) => error.message)
+        });
+        return false;
+      }
+      console.log('Juu accepted the full-payment event:', eventResult.message);
+      return true;
+    } catch (error) {
+      console.error('Purchase completed, but Juu performance event delivery failed:', {
+        name: error instanceof Error ? error.name : undefined,
+        message: error instanceof Error ? error.message : String(error)
+      }, error);
+      return false;
+    }
+  };
+
   // Transaction logic (pivoted)
   // Accepts a param to distinguish which button was pressed
   const validateAndTransact2 = async (modeParam?: 'quick' | 'transport') => {
@@ -745,7 +772,9 @@ function SalesItemMapScreenInner({ navigation }: { navigation: any }) {
         // Defensive: check before every use of biz and all mutation values, log error if invalid
         const netEarnings = parseFloat(biz.netEarnings);
         const earningsBal = parseFloat(biz.earningsBal);
-        const benefitsAmount = parseFloat(biz.benefitsAmount);
+        const benefitsAmount = Number.isFinite(Number(biz.benefitsAmount))
+          ? Number(biz.benefitsAmount)
+          : 0;
         if (isNaN(netEarnings)) {
           console.error('[ERROR] netEarnings is NaN for seller', sokokntct, 'biz:', biz);
         }
@@ -761,7 +790,9 @@ function SalesItemMapScreenInner({ navigation }: { navigation: any }) {
             variables: {
               input: {
                 BusKntct: sokokntct,
-                
+                netEarnings: netEarnings + Number(totals.totalItemCost),
+                earningsBal: earningsBal + Number(totals.totalItemCost),
+                benefitsAmount: benefitsAmount + Number(totals.totalBenefit)
               }
             }
           });
@@ -800,8 +831,9 @@ function SalesItemMapScreenInner({ navigation }: { navigation: any }) {
           variables: {
             input: {
               BusKntct: selectedBizna.BusKntct,
-              earningsBal: parseFloat(selectedBizna.earningsBal) - OverallTotalDebit,
-              netEarnings: parseFloat(selectedBizna.netEarnings) - OverallTotalDebit,
+              earningsBal: parseFloat(sender.earningsBal) - OverallTotalDebit,
+              netEarnings: parseFloat(sender.netEarnings) - OverallTotalDebit,
+              benefitsAmount: (parseFloat(sender.benefitsAmount) || 0) + totalBenefit
             }
           }
         });
@@ -817,7 +849,13 @@ function SalesItemMapScreenInner({ navigation }: { navigation: any }) {
           }
         });
       }
-      Alert.alert(t.success, t.transactionCompleted);
+      const eventRecorded = await reportJuuFullPayment(totalCostKes || totalCost);
+      Alert.alert(
+        t.success,
+        eventRecorded
+          ? t.transactionCompleted
+          : 'Transaction completed successfully, but Juu could not record the purchase event.'
+      );
       setCart([]);
       setQuantities({});
       setPassword('');
@@ -939,6 +977,9 @@ function SalesItemMapScreenInner({ navigation }: { navigation: any }) {
           return;
         }
       }
+      const buyerId = mode === 'B2B' && selectedBizna?.BusKntct
+        ? selectedBizna.BusKntct
+        : attributes.email;
       const companyResult: any = await client.graphql({
         query: getCompany,
         variables: {
@@ -953,6 +994,12 @@ function SalesItemMapScreenInner({ navigation }: { navigation: any }) {
 
       // Process cart items
       for (const item of cart) {
+        if (!item.sokokntct) {
+          console.error('[ERROR] Cart item is missing seller contact:', item.id, item);
+          setIsLoading(false);
+          Alert.alert(t.error, t.couldNotFindBiznaRecord);
+          return;
+        }
         const qty = quantities[item.id] || 1;
         const itemCost = parseFloat(item.sokoprice) * qty;
         const fee = itemCost * parseFloat(company.biznaCashSaleFee);
@@ -972,9 +1019,9 @@ function SalesItemMapScreenInner({ navigation }: { navigation: any }) {
           }
         });
         const biz = bizResult.data.getBizna;
-        console.log('[DEBUG] getBizna result for', sokokntct, ':', biz);
+        console.log('[DEBUG] getBizna result for', item.sokokntct, ':', biz);
         if (!biz) {
-          console.warn('[DEBUG] getBizna returned undefined/null for', sokokntct, 'raw result:', bizResult);
+          console.warn('[DEBUG] getBizna returned undefined/null for', item.sokokntct, 'raw result:', bizResult);
         }
         if (!biz) {
           setIsLoading(false);
@@ -1111,7 +1158,7 @@ function SalesItemMapScreenInner({ navigation }: { navigation: any }) {
               BusKntct: selectedBizna.BusKntct,
               earningsBal: parseFloat(sender.earningsBal) - OverallTotalDebit,
               netEarnings: parseFloat(sender.netEarnings) - OverallTotalDebit,
-              benefitsAmount: parseFloat(sender.benefitsAmount) + totalBenefit
+              benefitsAmount: (parseFloat(sender.benefitsAmount) || 0) + totalBenefit
             }
           }
         });
@@ -1153,10 +1200,16 @@ function SalesItemMapScreenInner({ navigation }: { navigation: any }) {
           }
         }
       });
+      const eventRecorded = await reportJuuFullPayment(totalCostKes || totalCost);
       setCart([]);
       setQuantities({});
       setPassword('');
-      Alert.alert("Success", "Transaction completed successfully.");
+      Alert.alert(
+        "Success",
+        eventRecorded
+          ? "Transaction completed successfully."
+          : "Transaction completed successfully, but performance event delivery failed. Check the app logs."
+      );
     } catch (err) {
       console.error("Transaction error:", err);
       Alert.alert(t.error, t.somethingWentWrong);
@@ -1901,4 +1954,3 @@ const styles = StyleSheet.create({
     alignItems: 'center'
   }
 });
-

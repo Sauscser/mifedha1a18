@@ -6,3 +6,16 @@ Helpful resources:
 - Amplify CLI documentation: https://docs.amplify.aws/cli.
 - More details on this folder & generated files: https://docs.amplify.aws/cli/reference/files.
 - Join Amplify's community: https://amplify.aws/community/.
+
+## Juu purchase events
+
+The `nisenti` environment sends `nisenti_full_payment_online_purchase` after a successful full-payment marketplace checkout. The Lambda sends contract version 6 with the required `amount` in KES; it does not send buyer identity or location.
+
+Before deploying this integration:
+
+1. In the Juu company admin, copy the product ID for **NiSenti full payment e Commerce**.
+2. Configure `JUU_PRODUCT_ID` for `mifedhaJuuFullPayment` in the target Amplify environment.
+3. Configure the `JuuIntegrationKey` secret for `mifedhaJuuFullPayment`. Amplify stores it as an encrypted SSM SecureString; do not put it in app configuration or source control.
+4. Run `amplify push` for the intended environment and review the proposed API and Lambda updates before confirming.
+
+The checkout reports a tracking failure separately if Juu rejects or cannot receive an event; it does not roll back a completed purchase.
