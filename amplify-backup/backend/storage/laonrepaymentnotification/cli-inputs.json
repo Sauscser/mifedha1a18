@@ -1,0 +1,10 @@
+{
+  "resourceName": "laonrepaymentnotification",
+  "tableName": "laonrepaymentnotification",
+  "partitionKey": {
+    "fieldName": "id",
+    "fieldType": "string"
+  },
+  "gsi": [],
+  "triggerFunctions": []
+}

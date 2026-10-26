@@ -1,0 +1,11 @@
+{
+  "name": "mifedhajuufullpayment",
+  "version": "1.0.0",
+  "description": "Sends authenticated full-payment purchase events to Juu",
+  "main": "index.js",
+  "license": "Apache-2.0",
+  "dependencies": {
+    "aws-sdk": "^2.1360.0",
+    "axios": "^1.5.0"
+  }
+}
