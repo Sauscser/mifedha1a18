@@ -17,7 +17,7 @@ import { useTranslation } from 'react-i18next';
 import { translations } from './translation';
 import { ShoppingModeProvider, useShoppingMode } from '../ShoppingModeContext';
 import { useExchange } from '../../../../src/contexts/ExchangeContext';
-import { formatAmountSync, convertForeignToKsh } from '../../../../src/utils/exchange';
+import { countryToCurrency, formatAmountSync, convertForeignToKsh, getExRatesForNationality, BASE_EXCHANGE_SYMBOL } from '../../../../src/utils/exchange';
 import { nationalityToCode } from '../../../../src/utils/nationalityToCode';
 import { buildOsrmRouteUrl } from '../../../../src/config/osrm';
 import { FontAwesome } from '@expo/vector-icons';
@@ -32,6 +32,31 @@ const GAP = 4;
 const SIDE_PADDING = 8;
 const INPUT_WIDTH = (SCREEN_WIDTH - SIDE_PADDING * 2 - GAP * (INPUT_KEYS.length - 1)) / INPUT_KEYS.length;
 const CAROUSEL_CONTENT_PADDING = 8;
+const normalizeRateKey = (value: string) => value.trim().toUpperCase();
+const resolveRateKey = (value: string | null | undefined, ratesMap?: Record<string, any> | null): string | undefined => {
+  if (!value || !ratesMap) return undefined;
+
+  const trimmed = value.trim();
+  const countryCode = nationalityToCode(trimmed) || (trimmed.length === 2 ? trimmed.toUpperCase() : undefined);
+  const currencyIso = countryCode ? countryToCurrency[countryCode] : undefined;
+  const candidates = [trimmed, trimmed.toUpperCase(), countryCode, currencyIso].filter(Boolean) as string[];
+
+  for (const candidate of candidates) {
+    if (ratesMap[candidate]) return candidate;
+  }
+
+  const normalizedRates = Object.keys(ratesMap).reduce<Record<string, string>>((acc, key) => {
+    acc[normalizeRateKey(key)] = key;
+    return acc;
+  }, {});
+
+  for (const candidate of candidates) {
+    const resolved = normalizedRates[normalizeRateKey(candidate)];
+    if (resolved) return resolved;
+  }
+
+  return undefined;
+};
 
 function PartialPayFlowInner({ navigation, route }: { navigation: any; route: any }) {
   const { i18n } = useTranslation();
@@ -43,6 +68,47 @@ function PartialPayFlowInner({ navigation, route }: { navigation: any; route: an
 
   // Share the selected shopping mode and business through the navigation chain.
   const { mode, setMode, selectedBizna, setSelectedBizna } = useShoppingMode();
+  const displayNationality = selectedBizna?.Nationality || safeNationality;
+  const displayRateKey = resolveRateKey(displayNationality, ratesMap);
+  const [fallbackDisplayRate, setFallbackDisplayRate] = useState<{ nationality: string; buyingPrice: number; symbol?: string } | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+
+    const fetchFallbackRate = async () => {
+      if (!displayNationality || displayRateKey) {
+        if (mounted) setFallbackDisplayRate(null);
+        return;
+      }
+
+      setFallbackDisplayRate(null);
+      const rate = await getExRatesForNationality(displayNationality);
+      if (mounted && rate) {
+        setFallbackDisplayRate({
+          nationality: displayNationality,
+          buyingPrice: Number(rate.buyingPrice) || 1,
+          symbol: rate.symbol
+        });
+      }
+    };
+
+    fetchFallbackRate();
+    return () => {
+      mounted = false;
+    };
+  }, [displayNationality, displayRateKey]);
+
+  const formatDisplayAmount = (amount: number) => {
+    if (displayRateKey && ratesMap) {
+      return formatAmountSync(amount, displayRateKey, ratesMap);
+    }
+
+    if (fallbackDisplayRate?.nationality === displayNationality) {
+      return `${fallbackDisplayRate.symbol || BASE_EXCHANGE_SYMBOL} ${(amount * fallbackDisplayRate.buyingPrice).toFixed(2)}`;
+    }
+
+    return `${BASE_EXCHANGE_SYMBOL} ${amount.toFixed(2)}`;
+  };
   const [biznas, setBiznas] = useState<any[]>([]);
   const [loadingBiznas, setLoadingBiznas] = useState(false);
   const [showBuyerModeModal, setShowBuyerModeModal] = useState(false);
@@ -1596,7 +1662,7 @@ function PartialPayFlowInner({ navigation, route }: { navigation: any; route: an
                     <Text style={styles.cardTitle}>{item.itemName || 'Item'}</Text>
                     <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
                       <Text style={{ flex: 1, marginRight: 8 }}>
-                        {t.paidLabel || 'Paid'}: {formatAmountSync(Number(item.amountPaid || 0), natCode, ratesMap)} / {formatAmountSync(Number(item.itemCost || 0), natCode, ratesMap)}
+                        {t.paidLabel || 'Paid'}: {formatDisplayAmount(Number(item.amountPaid || 0))} / {formatDisplayAmount(Number(item.itemCost || 0))}
                       </Text>
                       <TouchableOpacity
                         onPress={() => handleOpenContributionModal(item)}
@@ -1605,10 +1671,10 @@ function PartialPayFlowInner({ navigation, route }: { navigation: any; route: an
                         <FontAwesome name="eye-slash" size={18} color="#e29d58" />
                       </TouchableOpacity>
                     </View>
-                    <Text>{t.remainingLabel || 'Remaining'}: {formatAmountSync(remaining, natCode, ratesMap)} + {t.feeLabel || 'Fee'}: {formatAmountSync(fee, natCode, ratesMap)} = {t.grandRemaining || 'Grand Remaining'}: {formatAmountSync(remainingWithFees, natCode, ratesMap)}</Text>
+                    <Text>{t.remainingLabel || 'Remaining'}: {formatDisplayAmount(remaining)} + {t.feeLabel || 'Fee'}: {formatDisplayAmount(fee)} = {t.grandRemaining || 'Grand Remaining'}: {formatDisplayAmount(remainingWithFees)}</Text>
                     {selectedEntry?.id === item.id && payAmount ? (
                       <Text style={{ marginTop: 6, color: isOverpaying ? '#d32f2f' : '#333' }}>
-                        {t.grandRemaining || 'Grand Remaining'} after payment: {formatAmountSync(dynamicRemainingForSelected, natCode, ratesMap)}
+                        {t.grandRemaining || 'Grand Remaining'} after payment: {formatDisplayAmount(dynamicRemainingForSelected)}
                         {isOverpaying ? `  — ${t.overpaying || 'Overpaying not allowed'}` : ''}
                       </Text>
                     ) : null}
@@ -1660,7 +1726,7 @@ function PartialPayFlowInner({ navigation, route }: { navigation: any; route: an
                     {contributions.map((contribution: any) => (
                       <View key={contribution.id} style={{ marginBottom: 12, padding: 10, backgroundColor: '#f7f7f7', borderRadius: 8 }}>
                         <Text style={{ fontWeight: 'bold', marginBottom: 4 }}>{contribution.itemName || contribution.itemDesc || 'Payment'}</Text>
-                        <Text>{t.amountPaid || 'Amount Paid'}: {formatAmountSync(Number(contribution.amountPaid || 0), natCode, ratesMap)}</Text>
+                        <Text>{t.amountPaid || 'Amount Paid'}: {formatDisplayAmount(Number(contribution.amountPaid || 0))}</Text>
                         <Text>{t.date || 'Date'}: {contribution.createdAt || '-'}</Text>
                         <Text>{t.sellerName || 'Seller'}: {contribution.sellerName || contribution.sellerEmail || '-'}</Text>
                       </View>
@@ -1875,7 +1941,7 @@ function PartialPayFlowInner({ navigation, route }: { navigation: any; route: an
 
                     <View style={{ flex: 1, paddingRight: 10 }}>
                       <Text style={styles.text}>
-                        [{qty}×{item.unitQuantity || 1}] {item.itemUnit || ''} {item.itemBrand || ''} {item.sokoname} @ {formatAmountSync(Number(item.sokoprice || 0), natCode, ratesMap)} at {item.bizName} ({item.bizType || item.businessType || ''}) = {formatAmountSync(Number(total || 0), natCode, ratesMap)}
+                        [{qty}×{item.unitQuantity || 1}] {item.itemUnit || ''} {item.itemBrand || ''} {item.sokoname} @ {formatDisplayAmount(Number(item.sokoprice || 0))} at {item.bizName} ({item.bizType || item.businessType || ''}) = {formatDisplayAmount(Number(total || 0))}
                         {'\n'}{item.bizContact || item.sokokntct} | {t.longPressToAdd}
                       </Text>
 
@@ -1930,7 +1996,7 @@ function PartialPayFlowInner({ navigation, route }: { navigation: any; route: an
                     ]}
                   >
                     <Text style={styles.itemText} numberOfLines={1}>
-                      {formatAmountSync(Number(activeItem.sokoprice || 0), natCode, ratesMap)}
+                      {formatDisplayAmount(Number(activeItem.sokoprice || 0))}
                     </Text>
                   </View>
                 </>
@@ -1962,8 +2028,8 @@ function PartialPayFlowInner({ navigation, route }: { navigation: any; route: an
                           <Text style={styles.cartItemTitle}>{item.sokoname}</Text>
                           <Text style={styles.cartItemSubtitle}>
                             {feeRate > 0
-                              ? `${formatAmountSync(Number(item.sokoprice || 0) * (quantities[item.id] || 1), natCode, ratesMap)} + fee = ${formatAmountSync(getCartItemTotalWithFee(item), natCode, ratesMap)}`
-                              : `${formatAmountSync(Number(item.sokoprice || 0) * (quantities[item.id] || 1), natCode, ratesMap)}`}
+                              ? `${formatDisplayAmount(Number(item.sokoprice || 0) * (quantities[item.id] || 1))} + fee = ${formatDisplayAmount(getCartItemTotalWithFee(item))}`
+                              : `${formatDisplayAmount(Number(item.sokoprice || 0) * (quantities[item.id] || 1))}`}
                           </Text>
                         </View>
                         <TouchableOpacity onPress={() => removeFromCart(item.id)}>
@@ -1972,14 +2038,14 @@ function PartialPayFlowInner({ navigation, route }: { navigation: any; route: an
                       </View>
                     ))}
                     <View style={styles.cartFooter}>
-                      <Text style={styles.cartTotal}>Subtotal: {formatAmountSync(cartNetTotal, natCode, ratesMap)}</Text>
+                      <Text style={styles.cartTotal}>Subtotal: {formatDisplayAmount(cartNetTotal)}</Text>
                       {feeRate > 0 ? (
                         <>
-                          <Text style={styles.cartTotal}>Fee: {formatAmountSync(cartFeeTotal, natCode, ratesMap)}</Text>
-                          <Text style={styles.cartTotal}>Grand Total (with fees): {formatAmountSync(cartTotalWithFees, natCode, ratesMap)}</Text>
+                          <Text style={styles.cartTotal}>Fee: {formatDisplayAmount(cartFeeTotal)}</Text>
+                          <Text style={styles.cartTotal}>Grand Total (with fees): {formatDisplayAmount(cartTotalWithFees)}</Text>
                         </>
                       ) : (
-                        <Text style={styles.cartTotal}>Total: {formatAmountSync(cartTotalWithFees, natCode, ratesMap)}</Text>
+                        <Text style={styles.cartTotal}>Total: {formatDisplayAmount(cartTotalWithFees)}</Text>
                       )}
                       <TextInput
                         style={styles.partialAmountInput}

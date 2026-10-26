@@ -20,7 +20,7 @@ import { getCurrentUser, fetchUserAttributes } from 'aws-amplify/auth';
 import { listSokoAds, getBizna, getCompany, getSMAccount, listCovCreditSellers, listCvrdGroupLoans, listSMLoansCovereds, listBiznas } from '../../../../src/graphql/queries';
 import { createBenefitContributions2, createNonLoans, updateCompany, updateSMAccount, updateBizna, createMarketConsumption, recordJuuFullPaymentEvent } from '../../../../src/graphql/mutations';
 import { getUrl } from 'aws-amplify/storage';
-import { formatAmountSync, convertForeignToKsh, getUserNationalityByEmail } from '../../../../src/utils/exchange';
+import { countryToCurrency, formatAmountSync, convertForeignToKsh, getExRatesForNationality, getUserNationalityByEmail, BASE_EXCHANGE_SYMBOL } from '../../../../src/utils/exchange';
 import { useExchange } from '../../../../src/contexts/ExchangeContext';
 
 import { nationalityToCode } from '../../../../src/utils/nationalityToCode';
@@ -36,6 +36,31 @@ const INPUT_KEYS = ['radius', 'brand', 'business', 'itemName', 'cheapestRank', '
 const GAP = 4;
 const SIDE_PADDING = 8;
 const INPUT_WIDTH = (SCREEN_WIDTH - SIDE_PADDING * 2 - GAP * (INPUT_KEYS.length - 1)) / INPUT_KEYS.length;
+const normalizeRateKey = (value: string) => value.trim().toUpperCase();
+const resolveRateKey = (value: string | null | undefined, ratesMap?: Record<string, any> | null): string | undefined => {
+  if (!value || !ratesMap) return undefined;
+
+  const trimmed = value.trim();
+  const countryCode = nationalityToCode(trimmed) || (trimmed.length === 2 ? trimmed.toUpperCase() : undefined);
+  const currencyIso = countryCode ? countryToCurrency[countryCode] : undefined;
+  const candidates = [trimmed, trimmed.toUpperCase(), countryCode, currencyIso].filter(Boolean) as string[];
+
+  for (const candidate of candidates) {
+    if (ratesMap[candidate]) return candidate;
+  }
+
+  const normalizedRates = Object.keys(ratesMap).reduce<Record<string, string>>((acc, key) => {
+    acc[normalizeRateKey(key)] = key;
+    return acc;
+  }, {});
+
+  for (const candidate of candidates) {
+    const resolved = normalizedRates[normalizeRateKey(candidate)];
+    if (resolved) return resolved;
+  }
+
+  return undefined;
+};
 const PLACEHOLDERS: Record<string,string> = {
   radius: 'Radius',
   brand: 'Brand',
@@ -139,6 +164,48 @@ function SalesItemMapScreenInner({ navigation }: { navigation: any }) {
   // Defensive: ensure nationality is a simple string (some flows return null or an object)
   const safeNationality = typeof nationality === 'string' ? nationality : (nationality && typeof nationality === 'object' && 'nationality' in nationality ? (nationality as any).nationality : null);
   const natCode = nationalityToCode(safeNationality);
+  const displayNationality = selectedBizna?.Nationality || safeNationality;
+  const displayRateKey = resolveRateKey(displayNationality, ratesMap);
+  const [fallbackDisplayRate, setFallbackDisplayRate] = useState<{ nationality: string; buyingPrice: number; symbol?: string } | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+
+    const fetchFallbackRate = async () => {
+      if (!displayNationality || displayRateKey) {
+        if (mounted) setFallbackDisplayRate(null);
+        return;
+      }
+
+      setFallbackDisplayRate(null);
+      const rate = await getExRatesForNationality(displayNationality);
+      if (mounted && rate) {
+        setFallbackDisplayRate({
+          nationality: displayNationality,
+          buyingPrice: Number(rate.buyingPrice) || 1,
+          symbol: rate.symbol
+        });
+      }
+    };
+
+    fetchFallbackRate();
+    return () => {
+      mounted = false;
+    };
+  }, [displayNationality, displayRateKey]);
+
+  const formatDisplayAmount = (amount: number) => {
+    if (displayRateKey && ratesMap) {
+      return formatAmountSync(amount, displayRateKey, ratesMap);
+    }
+
+    if (fallbackDisplayRate?.nationality === displayNationality) {
+      const converted = amount * fallbackDisplayRate.buyingPrice;
+      return `${fallbackDisplayRate.symbol || BASE_EXCHANGE_SYMBOL} ${converted.toFixed(2)}`;
+    }
+
+    return `${BASE_EXCHANGE_SYMBOL} ${amount.toFixed(2)}`;
+  };
   const [filters, setFilters] = useState({
     radius: '0.1 KM',
     brand: '',
@@ -366,9 +433,11 @@ function SalesItemMapScreenInner({ navigation }: { navigation: any }) {
           try {
             const bizRes: any = await client.graphql({ query: getBizna, variables: { BusKntct: item.sokokntct } });
             const biz = bizRes?.data?.getBizna;
-            console.log('[DEBUG] getBizna result for', item.sokokntct, ':', biz);
+            console.log('[DEBUG] getBizna lookup completed:', { found: Boolean(biz) });
             if (!biz) {
-              console.warn('[DEBUG] getBizna returned undefined/null for', item.sokokntct, 'raw result:', bizRes);
+              console.warn('[DEBUG] getBizna returned no seller record:', {
+                graphqlErrors: bizRes?.errors?.map((error: any) => error.message)
+              });
             }
             if (biz?.email) sellerNationality = biz.Nationality;
           } catch (e) {
@@ -515,11 +584,33 @@ function SalesItemMapScreenInner({ navigation }: { navigation: any }) {
     setOverallTotalDebit(total);
   }, [cart, quantities, company]);
 
-  const reportJuuFullPayment = async (amountKes: number) => {
+  const reportJuuFullPayment = async (
+    amount: number,
+    location: { latitude: number; longitude: number } | null
+  ) => {
+    if (
+      !location
+      || !Number.isFinite(location.latitude)
+      || !Number.isFinite(location.longitude)
+      || location.latitude < -90
+      || location.latitude > 90
+      || location.longitude < -180
+      || location.longitude > 180
+    ) {
+      console.error('Purchase completed, but Juu performance event delivery failed: valid buyer GPS coordinates are unavailable.');
+      return false;
+    }
+
     try {
       const result: any = await client.graphql({
         query: recordJuuFullPaymentEvent,
-        variables: { amount: amountKes }
+        variables: {
+          amount,
+          location: {
+            latitude: location.latitude,
+            longitude: location.longitude
+          }
+        }
       });
       const eventResult = result?.data?.recordJuuFullPaymentEvent;
       if (!eventResult?.success) {
@@ -667,6 +758,11 @@ function SalesItemMapScreenInner({ navigation }: { navigation: any }) {
         }
       });
       const company = companyResult.data.getCompany;
+      console.info('[FULL_PAYMENT_BENEFITS] Company rates loaded', {
+        mode: mode || 'B2C',
+        biznaCashSaleFee: company?.biznaCashSaleFee,
+        p2BBenCom: company?.p2BBenCom
+      });
       let totalCost = 0;
       let totalCompanyEarnings = 0;
       let totalBenefit = 0;
@@ -684,6 +780,17 @@ function SalesItemMapScreenInner({ navigation }: { navigation: any }) {
         const totalDebit = itemCost + fee;
         const benefit = fee * parseFloat(company.p2BBenCom) * 0.01;
         const compEarnings = fee - 2 * benefit;
+        console.info('[FULL_PAYMENT_BENEFITS] Item benefit calculation', {
+          flow: modeParam || 'quick',
+          itemId: item.id,
+          quantity: qty,
+          itemCost,
+          feeRate: company.biznaCashSaleFee,
+          fee,
+          p2BBenCom: company.p2BBenCom,
+          formula: 'fee * p2BBenCom * 0.01',
+          benefit
+        });
         if (parseFloat(sender.balance) < totalDebit) {
           if (modeParam === 'transport') setIsLoadingTransport(false); else setIsLoading2(false);
           Alert.alert(t.insufficientFundsTitle, t.insufficientFunds);
@@ -697,17 +804,19 @@ function SalesItemMapScreenInner({ navigation }: { navigation: any }) {
           }
         });
         const biz = bizResult.data.getBizna;
-        console.log('[DEBUG] getBizna result for', item.sokokntct, ':', biz);
+        console.log('[DEBUG] getBizna lookup completed:', {
+          found: Boolean(biz),
+          benefitsAmount: biz?.benefitsAmount
+        });
         if (!biz) {
-          console.warn('[DEBUG] getBizna returned undefined/null for', item.sokokntct, 'raw result:', bizResult);
+          console.warn('[DEBUG] getBizna returned no seller record:', {
+            graphqlErrors: bizResult?.errors?.map((error: any) => error.message)
+          });
           if (modeParam === 'transport') setIsLoadingTransport(false); else setIsLoading2(false);
           Alert.alert(t.couldNotFindAccount, item.bizName);
           return;
         }
-        // Convert itemCost (KES) to user's currency and attach symbol
-        const userCurrencyKey = natCode;
-        const itemCostDisplay = formatAmountSync(itemCost, userCurrencyKey, ratesMap);
-        const description = `${qty} ${item.itemUnit} of ${item.sokoname} @ ${itemCostDisplay} bought at ${item.bizName} ${item.businessType}`;
+        const description = `${qty} ${item.itemUnit} of ${item.sokoname} @ ${formatDisplayAmount(itemCost)} bought at ${item.bizName} ${item.businessType}`;
         if (!sellerTotals[item.sokokntct]) {
           sellerTotals[item.sokokntct] = {
             totalItemCost: 0,
@@ -725,6 +834,12 @@ function SalesItemMapScreenInner({ navigation }: { navigation: any }) {
         totalCost += itemCost;
         totalCompanyEarnings += compEarnings;
         totalBenefit += benefit;
+        console.info('[FULL_PAYMENT_BENEFITS] Running transaction totals', {
+          flow: modeParam || 'quick',
+          totalCost,
+          totalCompanyEarnings,
+          totalBenefit
+        });
       }
 
       // Update sellers
@@ -741,10 +856,15 @@ function SalesItemMapScreenInner({ navigation }: { navigation: any }) {
         });
         console.log(allItemsID)
         const biz = bizResult.data.getBizna;
-        console.log('[DEBUG] getBizna result for', sokokntct, ':', biz);
+        console.log('[DEBUG] getBizna seller lookup completed:', {
+          found: Boolean(biz),
+          benefitsAmount: biz?.benefitsAmount
+        });
         if (!biz) {
-          console.warn('[DEBUG] getBizna returned undefined/null for', sokokntct, 'raw result:', bizResult);
-          console.error('[FATAL] Tried to access biz properties but biz is undefined for', sokokntct, 'raw result:', bizResult);
+          console.warn('[DEBUG] getBizna returned no seller record:', {
+            graphqlErrors: bizResult?.errors?.map((error: any) => error.message)
+          });
+          console.error('[FATAL] Cannot update missing seller account.');
           if (modeParam === 'transport') setIsLoadingTransport(false); else setIsLoading2(false);
           Alert.alert(t.error, t.couldNotFindBiznaRecord);
           continue;
@@ -785,16 +905,30 @@ function SalesItemMapScreenInner({ navigation }: { navigation: any }) {
           console.error('[ERROR] benefitsAmount is NaN for seller', sokokntct, 'biz:', biz);
         }
         if (!isNaN(netEarnings) && !isNaN(earningsBal) && !isNaN(benefitsAmount) && !isNaN(Number(totals.totalItemCost)) && !isNaN(Number(totals.totalBenefit))) {
-          await client.graphql({
+          const nextBenefitsAmount = Number((benefitsAmount + Number(totals.totalBenefit)).toFixed(4));
+          console.info('[FULL_PAYMENT_BENEFITS] Seller update payload', {
+            flow: modeParam || 'quick',
+            sellerContact: sokokntct,
+            currentBenefitsAmount: biz.benefitsAmount,
+            transactionBenefit: totals.totalBenefit,
+            nextBenefitsAmount
+          });
+          const sellerUpdateResult: any = await client.graphql({
             query: updateBizna,
             variables: {
               input: {
                 BusKntct: sokokntct,
                 netEarnings: netEarnings + Number(totals.totalItemCost),
                 earningsBal: earningsBal + Number(totals.totalItemCost),
-                benefitsAmount: benefitsAmount + Number(totals.totalBenefit)
+                benefitsAmount: nextBenefitsAmount
               }
             }
+          });
+          console.info('[FULL_PAYMENT_BENEFITS] Seller update response', {
+            flow: modeParam || 'quick',
+            sellerContact: sokokntct,
+            returnedBenefitsAmount: sellerUpdateResult?.data?.updateBizna?.benefitsAmount,
+            graphqlErrors: sellerUpdateResult?.errors?.map((error: any) => error.message)
           });
         } else {
           console.error('[ERROR] Skipping updateBizna for seller', sokokntct, 'due to invalid numeric values:', {
@@ -833,13 +967,19 @@ function SalesItemMapScreenInner({ navigation }: { navigation: any }) {
               BusKntct: selectedBizna.BusKntct,
               earningsBal: parseFloat(sender.earningsBal) - OverallTotalDebit,
               netEarnings: parseFloat(sender.netEarnings) - OverallTotalDebit,
-              benefitsAmount: (parseFloat(sender.benefitsAmount) || 0) + totalBenefit
+              benefitsAmount: Number(((parseFloat(sender.benefitsAmount) || 0) + totalBenefit).toFixed(4))
             }
           }
         });
       } else {
         // Update user (use KES totals where available)
-        await client.graphql({
+        console.info('[FULL_PAYMENT_BENEFITS] B2C buyer update does not include benefitsAmount', {
+          flow: modeParam || 'quick',
+          transactionBenefit: totalBenefit,
+          currentBenefitsAmount: sender.benefitsAmount,
+          calculatedIfApplied: Number(sender.benefitsAmount || 0) + totalBenefit
+        });
+        const buyerUpdateResult: any = await client.graphql({
           query: updateSMAccount,
           variables: {
             input: {
@@ -848,8 +988,13 @@ function SalesItemMapScreenInner({ navigation }: { navigation: any }) {
             }
           }
         });
+        console.info('[FULL_PAYMENT_BENEFITS] B2C buyer update response', {
+          returnedBalance: buyerUpdateResult?.data?.updateSMAccount?.balance,
+          returnedBenefitsAmount: buyerUpdateResult?.data?.updateSMAccount?.benefitsAmount,
+          graphqlErrors: buyerUpdateResult?.errors?.map((error: any) => error.message)
+        });
       }
-      const eventRecorded = await reportJuuFullPayment(totalCostKes || totalCost);
+      const eventRecorded = await reportJuuFullPayment(totalCostKes || totalCost, userLocation);
       Alert.alert(
         t.success,
         eventRecorded
@@ -987,6 +1132,12 @@ function SalesItemMapScreenInner({ navigation }: { navigation: any }) {
         }
       });
       const company = companyResult.data.getCompany;
+      console.info('[FULL_PAYMENT_BENEFITS] Company rates loaded', {
+        flow: 'quick',
+        mode: mode || 'B2C',
+        biznaCashSaleFee: company?.biznaCashSaleFee,
+        p2BBenCom: company?.p2BBenCom
+      });
       let totalCost = 0;
       let totalCompanyEarnings = 0;
       let totalBenefit = 0;
@@ -1006,6 +1157,17 @@ function SalesItemMapScreenInner({ navigation }: { navigation: any }) {
         const totalDebit = itemCost + fee;
         const benefit = fee * parseFloat(company.p2BBenCom);
         const compEarnings = fee - 2 * benefit;
+        console.info('[FULL_PAYMENT_BENEFITS] Item benefit calculation', {
+          flow: 'quick',
+          itemId: item.id,
+          quantity: qty,
+          itemCost,
+          feeRate: company.biznaCashSaleFee,
+          fee,
+          p2BBenCom: company.p2BBenCom,
+          formula: 'fee * p2BBenCom',
+          benefit
+        });
         if (parseFloat(sender.balance) < totalDebit) {
           setIsLoading(false);
           Alert.alert("Insufficient Funds");
@@ -1019,9 +1181,11 @@ function SalesItemMapScreenInner({ navigation }: { navigation: any }) {
           }
         });
         const biz = bizResult.data.getBizna;
-        console.log('[DEBUG] getBizna result for', item.sokokntct, ':', biz);
+        console.log('[DEBUG] getBizna lookup completed:', { found: Boolean(biz) });
         if (!biz) {
-          console.warn('[DEBUG] getBizna returned undefined/null for', item.sokokntct, 'raw result:', bizResult);
+          console.warn('[DEBUG] getBizna returned no seller record:', {
+            graphqlErrors: bizResult?.errors?.map((error: any) => error.message)
+          });
         }
         if (!biz) {
           setIsLoading(false);
@@ -1029,10 +1193,7 @@ function SalesItemMapScreenInner({ navigation }: { navigation: any }) {
             Alert.alert(t.success, t.transactionCompleted);
           return;
         }
-        // Convert itemCost (KES) to user's currency and attach symbol
-        const userCurrencyKey = natCode;
-        const itemCostDisplay = formatAmountSync(itemCost, userCurrencyKey, ratesMap);
-        const description = `${qty} ${item.itemUnit} of ${item.sokoname} @ ${itemCostDisplay} bought at ${item.bizName} ${item.businessType}`;
+        const description = `${qty} ${item.itemUnit} of ${item.sokoname} @ ${formatDisplayAmount(itemCost)} bought at ${item.bizName} ${item.businessType}`;
         if (!sellerTotals[item.sokokntct]) {
           sellerTotals[item.sokokntct] = {
             totalItemCost: 0,
@@ -1050,6 +1211,12 @@ function SalesItemMapScreenInner({ navigation }: { navigation: any }) {
         totalCost += itemCost;
         totalCompanyEarnings += compEarnings;
         totalBenefit += benefit;
+        console.info('[FULL_PAYMENT_BENEFITS] Running transaction totals', {
+          flow: 'quick',
+          totalCost,
+          totalCompanyEarnings,
+          totalBenefit
+        });
       }
 
       // Update sellers (convert seller totals to KES when necessary)
@@ -1065,8 +1232,10 @@ function SalesItemMapScreenInner({ navigation }: { navigation: any }) {
         });
         const biz = bizResult.data.getBizna;
         if (!biz) {
-          console.warn('[DEBUG] getBizna returned undefined/null for', sokokntct, 'raw result:', bizResult);
-          console.error('[ERROR] Tried to update Bizna but biz is undefined for', sokokntct);
+          console.warn('[DEBUG] getBizna returned no seller record:', {
+            graphqlErrors: bizResult?.errors?.map((error: any) => error.message)
+          });
+          console.error('[ERROR] Tried to update missing seller Bizna.');
           continue;
         }
         // seller nationality (via biz email -> SMAccount)
@@ -1101,16 +1270,30 @@ function SalesItemMapScreenInner({ navigation }: { navigation: any }) {
           const netEarnings = isNaN(parseFloat(biz.netEarnings)) ? 0 : parseFloat(biz.netEarnings);
           const earningsBal = isNaN(parseFloat(biz.earningsBal)) ? 0 : parseFloat(biz.earningsBal);
           const benefitsAmount = isNaN(parseFloat(biz.benefitsAmount)) ? 0 : parseFloat(biz.benefitsAmount);
-          await client.graphql({
+          const nextBenefitsAmount = Number((benefitsAmount + benefitInKes).toFixed(4));
+          console.info('[FULL_PAYMENT_BENEFITS] Seller update payload', {
+            flow: 'quick',
+            sellerContact: sokokntct,
+            currentBenefitsAmount: biz.benefitsAmount,
+            transactionBenefit: benefitInKes,
+            nextBenefitsAmount
+          });
+          const sellerUpdateResult: any = await client.graphql({
             query: updateBizna,
             variables: {
               input: {
                 BusKntct: sokokntct,
                 netEarnings: Math.floor(netEarnings + totalInKes),
                 earningsBal: Math.floor(earningsBal + totalInKes),
-                benefitsAmount: Math.floor(benefitsAmount + benefitInKes)
+                benefitsAmount: nextBenefitsAmount
               }
             }
+          });
+          console.info('[FULL_PAYMENT_BENEFITS] Seller update response', {
+            flow: 'quick',
+            sellerContact: sokokntct,
+            returnedBenefitsAmount: sellerUpdateResult?.data?.updateBizna?.benefitsAmount,
+            graphqlErrors: sellerUpdateResult?.errors?.map((error: any) => error.message)
           });
         }
         console.log('Creating NonLoans for', sokokntct, 'owner:', allItemsID);
@@ -1158,24 +1341,42 @@ function SalesItemMapScreenInner({ navigation }: { navigation: any }) {
               BusKntct: selectedBizna.BusKntct,
               earningsBal: parseFloat(sender.earningsBal) - OverallTotalDebit,
               netEarnings: parseFloat(sender.netEarnings) - OverallTotalDebit,
-              benefitsAmount: (parseFloat(sender.benefitsAmount) || 0) + totalBenefit
+              benefitsAmount: Number(((parseFloat(sender.benefitsAmount) || 0) + totalBenefit).toFixed(4))
             }
           }
         });
       } else {
-        await client.graphql({
+        const currentBenefitsAmount = parseFloat(sender.benefitsAmount);
+        const nextBenefitsAmount = Number((currentBenefitsAmount + totalBenefit).toFixed(4));
+        console.info('[FULL_PAYMENT_BENEFITS] B2C buyer update payload', {
+          flow: 'quick',
+          currentBenefitsAmount: sender.benefitsAmount,
+          parsedCurrentBenefitsAmount: currentBenefitsAmount,
+          transactionBenefit: totalBenefit,
+          nextBenefitsAmount
+        });
+        const buyerUpdateResult: any = await client.graphql({
           query: updateSMAccount,
           variables: {
             input: {
               awsemail: attributes.email,
               ttlNonLonsSentSM: parseFloat(sender.ttlNonLonsSentSM) + (totalCostKes || totalCost),
               balance: parseFloat(sender.balance) - OverallTotalDebit,
-              benefitsAmount: parseFloat(sender.benefitsAmount) + totalBenefit
+              benefitsAmount: nextBenefitsAmount
             }
           }
         });
+        console.info('[FULL_PAYMENT_BENEFITS] B2C buyer update response', {
+          flow: 'quick',
+          returnedBenefitsAmount: buyerUpdateResult?.data?.updateSMAccount?.benefitsAmount,
+          graphqlErrors: buyerUpdateResult?.errors?.map((error: any) => error.message)
+        });
       }
-      await client.graphql({
+      console.info('[FULL_PAYMENT_BENEFITS] Benefit contribution payload', {
+        flow: 'quick',
+        transactionBenefit: totalBenefit
+      });
+      const benefitContributionResult: any = await client.graphql({
         query: createBenefitContributions2,
         variables: {
           input: {
@@ -1200,7 +1401,12 @@ function SalesItemMapScreenInner({ navigation }: { navigation: any }) {
           }
         }
       });
-      const eventRecorded = await reportJuuFullPayment(totalCostKes || totalCost);
+      console.info('[FULL_PAYMENT_BENEFITS] Benefit contribution response', {
+        flow: 'quick',
+        returnedBenefitsAmount: benefitContributionResult?.data?.createBenefitContributions2?.benefitsAmount,
+        graphqlErrors: benefitContributionResult?.errors?.map((error: any) => error.message)
+      });
+      const eventRecorded = await reportJuuFullPayment(totalCostKes || totalCost, userLocation);
       setCart([]);
       setQuantities({});
       setPassword('');
@@ -1401,7 +1607,7 @@ function SalesItemMapScreenInner({ navigation }: { navigation: any }) {
                 ]}
               >
                 <Text style={styles.itemText} numberOfLines={1}>
-                  {formatAmountSync(Number(activeItem.sokoprice), natCode, ratesMap)}
+                  {formatDisplayAmount(Number(activeItem.sokoprice))}
                 </Text>
               </View>
             </>
@@ -1537,7 +1743,7 @@ function SalesItemMapScreenInner({ navigation }: { navigation: any }) {
             paddingRight: 10
           }}>
                   <Text style={styles.text}>
-                    [{qty}×{item.unitQuantity}] {item.itemUnit} {item.itemBrand} {item.sokoname} @ {formatAmountSync(Number(item.sokoprice), natCode, ratesMap)} at {item.bizName} ({item.businessType}) = {formatAmountSync(Number(total), natCode, ratesMap)}
+                    [{qty}×{item.unitQuantity}] {item.itemUnit} {item.itemBrand} {item.sokoname} @ {formatDisplayAmount(Number(item.sokoprice))} at {item.bizName} ({item.businessType}) = {formatDisplayAmount(Number(total))}
                     {'\n'}{item.bizContact} | {t.longPressToAdd}
                   </Text>
 
@@ -1594,7 +1800,7 @@ function SalesItemMapScreenInner({ navigation }: { navigation: any }) {
                       <View style={{ flex: 1 }}>
                         <Text style={styles.cartItemTitle}>{item.sokoname}</Text>
                         <Text style={styles.cartItemSubtitle}>
-                          {formatAmountSync(Number(item.sokoprice), natCode, ratesMap)} × {quantities[item.id] || 1}
+                          {formatDisplayAmount(Number(item.sokoprice))} × {quantities[item.id] || 1}
                         </Text>
                       </View>
                       <TouchableOpacity onPress={() => removeFromCart(item.id)}>
@@ -1603,14 +1809,25 @@ function SalesItemMapScreenInner({ navigation }: { navigation: any }) {
                     </View>
                   ))}
                   <View style={styles.cartFooter}>
-                    <Text style={styles.cartTotal}>Total: {formatAmountSync(Number(OverallTotalDebit), natCode, ratesMap)}</Text>
-                    <TextInput
-                      placeholder={t.enterPassword}
-                      secureTextEntry={!isPasswordVisible}
-                      value={password}
-                      onChangeText={setPassword}
-                      style={styles.partialAmountInput}
-                    />
+                    <Text style={styles.cartTotal}>Total: {formatDisplayAmount(Number(OverallTotalDebit))}</Text>
+                    <View style={styles.passwordRow}>
+                      <TextInput
+                        placeholder={t.enterPassword}
+                        secureTextEntry={!isPasswordVisible}
+                        value={password}
+                        onChangeText={setPassword}
+                        style={[styles.partialAmountInput, styles.passwordField]}
+                        autoCapitalize="none"
+                      />
+                      <TouchableOpacity
+                        onPress={() => setIsPasswordVisible(visible => !visible)}
+                        style={styles.passwordEyeButton}
+                        accessibilityRole="button"
+                        accessibilityLabel={isPasswordVisible ? 'Hide password' : 'Show password'}
+                      >
+                        <FontAwesome name={isPasswordVisible ? 'eye-slash' : 'eye'} size={18} color="#385466" />
+                      </TouchableOpacity>
+                    </View>
                     <TouchableOpacity onPress={() => validateAndTransact()} style={styles.startBtn}>
                       {isLoading ? <ActivityIndicator color="#fff" /> : <Text style={styles.btnText}>{t.quickCheckout}</Text>}
                     </TouchableOpacity>
@@ -1904,6 +2121,25 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#222',
     fontSize: 12
+  },
+  passwordRow: {
+    flexDirection: 'row',
+    alignItems: 'center'
+  },
+  passwordField: {
+    flex: 1
+  },
+  passwordEyeButton: {
+    height: 36,
+    width: 42,
+    marginBottom: 8,
+    marginLeft: 8,
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 6,
+    backgroundColor: '#fff',
+    alignItems: 'center',
+    justifyContent: 'center'
   },
   startBtn: {
     backgroundColor: '#2e8b57',

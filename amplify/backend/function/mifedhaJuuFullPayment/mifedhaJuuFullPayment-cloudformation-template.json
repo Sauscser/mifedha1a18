@@ -29,6 +29,9 @@
     },
     "juuProductId": {
       "Type": "String"
+    },
+    "juuGroupProductId": {
+      "Type": "String"
     }
   },
   "Conditions": {
@@ -108,6 +111,9 @@
             },
             "JUU_PRODUCT_ID": {
               "Ref": "juuProductId"
+            },
+            "JUU_GROUP_PRODUCT_ID": {
+              "Ref": "juuGroupProductId"
             }
           }
         },

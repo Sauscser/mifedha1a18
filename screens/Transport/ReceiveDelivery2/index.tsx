@@ -443,7 +443,7 @@ const TransportOrdersScreen = () => {
       }
 
       const fee = parseFloat(nonLoanDtlz?.fees || "0");
-      const benefit = fee * parseFloat(compDtls.p2BBenCom) * 0.01;
+      const benefit = Number((fee * parseFloat(compDtls.p2BBenCom) * 0.01).toFixed(4));
       const compEarnings = fee - 2 * benefit;
 
       // Full mutation workflow
@@ -491,7 +491,7 @@ const TransportOrdersScreen = () => {
             BusKntct: orderDtlz.sellerContact,
             netEarnings: (biz.netEarnings + orderDtlz.orderCost).toFixed(0),
             earningsBal: (biz.earningsBal + orderDtlz.orderCost).toFixed(0),
-            benefitsAmount: parseFloat(biz.benefitsAmount) + benefit,
+            benefitsAmount: Number((parseFloat(biz.benefitsAmount) + benefit).toFixed(4)),
           },
         },
       });
@@ -501,7 +501,7 @@ const TransportOrdersScreen = () => {
         variables: {
           input: {
             awsemail: orderDtlz.customerEmail,
-            benefitsAmount: parseFloat(buyerDtlsz.benefitsAmount) + benefit,
+            benefitsAmount: Number((parseFloat(buyerDtlsz.benefitsAmount) + benefit).toFixed(4)),
           },
         },
       });
@@ -565,9 +565,27 @@ const TransportOrdersScreen = () => {
       let performanceEventFailed = false;
       if (["Biz2Pal", "Biz2Biz"].includes(nonLoanDtlz.status)) {
         try {
+          const location = {
+            latitude: Number(nonLoanDtlz.deliveryLatitude),
+            longitude: Number(nonLoanDtlz.deliveryLongitude),
+          };
+          if (
+            !Number.isFinite(location.latitude)
+            || location.latitude < -90
+            || location.latitude > 90
+            || !Number.isFinite(location.longitude)
+            || location.longitude < -180
+            || location.longitude > 180
+          ) {
+            throw new Error("Juu event delivery requires valid buyer delivery coordinates.");
+          }
+
           const eventResult: any = await client.graphql({
             query: recordJuuFullPaymentEvent,
-            variables: { amount: Number(nonLoanDtlz.amount) },
+            variables: {
+              amount: Number(nonLoanDtlz.amount),
+              location,
+            },
           });
           const eventResponse = eventResult?.data?.recordJuuFullPaymentEvent;
           if (!eventResponse?.success) {
@@ -1009,4 +1027,3 @@ const TransportOrdersScreen = () => {
 };
 
 export default TransportOrdersScreen;
-

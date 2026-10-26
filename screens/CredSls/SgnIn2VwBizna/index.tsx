@@ -9,6 +9,7 @@ import { generateClient } from "aws-amplify/api";
 import { useTranslation } from 'react-i18next';
 import translations from './translation';
 import { safeNavigateFrom } from '../../../src/utils/navigationHelper';
+import { Ionicons } from '@expo/vector-icons';
 
 const client = generateClient();
 const MFNSignIn = props => {
@@ -18,6 +19,7 @@ const MFNSignIn = props => {
   const t = translations[lang] || translations.en;
   const [MFNId, setMFNId] = useState("");
   const [MFNPW, setMFNPW] = useState("");
+  const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const fetchMFNDts = async () => {
     const userInfo = await getCurrentUser();
     try {
@@ -68,30 +70,67 @@ const MFNSignIn = props => {
     }
     setMFNPW(mfnPW);
   }, [MFNPW]);
-  return <View>
-              <View style={styles.image}>
-                <ScrollView>
-                  <View style={styles.loanTitleView}>
-                    <Text style={styles.title}>{t.fillDetailsBelow}</Text>
-                  </View>
-        
-                  <View style={styles.sendLoanView}>
-                    <TextInput placeholder={t.businessPhonePlaceholder} value={MFNId} onChangeText={setMFNId} style={styles.sendLoanInput} editable={true}></TextInput>
-                    <Text style={styles.sendLoanText}>{t.businessPhone}</Text>
-                  </View>
-        
-                  <View style={styles.sendLoanView}>
-                    <TextInput value={MFNPW} onChangeText={setMFNPW} secureTextEntry={true} style={styles.sendLoanInput} editable={true}></TextInput>
-                    <Text style={styles.sendLoanText}>{t.businessPassword}</Text>
-                  </View>
-        
-                  <TouchableOpacity onPress={fetchMFNDts} style={styles.sendLoanButton}>
-                    <Text style={styles.sendLoanButtonText}>
-                      {t.clickToView}
-                    </Text>
-                  </TouchableOpacity>
-                </ScrollView>
-              </View>
-            </View>;
+  return (
+    <View style={styles.screen}>
+      <ScrollView
+        contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.card}>
+          <View style={styles.header}>
+            <View style={styles.headerAccent} />
+            <Text style={styles.title}>{t.fillDetailsBelow}</Text>
+          </View>
+
+          <View style={styles.field}>
+            <Text style={styles.fieldLabel}>{t.businessPhone}</Text>
+            <TextInput
+              placeholder={t.businessPhonePlaceholder}
+              placeholderTextColor="#91A3AE"
+              value={MFNId}
+              onChangeText={setMFNId}
+              style={styles.input}
+              keyboardType="phone-pad"
+              autoCapitalize="none"
+              editable={true}
+            />
+          </View>
+
+          <View style={styles.field}>
+            <Text style={styles.fieldLabel}>{t.businessPassword}</Text>
+            <View style={styles.passwordRow}>
+              <TextInput
+                value={MFNPW}
+                onChangeText={setMFNPW}
+                secureTextEntry={!isPasswordVisible}
+                style={[styles.input, styles.passwordInput]}
+                placeholderTextColor="#91A3AE"
+                autoCapitalize="none"
+                editable={true}
+              />
+              <TouchableOpacity
+                onPress={() => setIsPasswordVisible(visible => !visible)}
+                style={styles.passwordToggle}
+                activeOpacity={0.7}
+                accessibilityRole="button"
+                accessibilityLabel={isPasswordVisible ? 'Hide password' : 'Show password'}
+              >
+                <Ionicons name={isPasswordVisible ? 'eye-off' : 'eye'} size={22} color="#385466" />
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          <TouchableOpacity
+            onPress={fetchMFNDts}
+            style={styles.button}
+            activeOpacity={0.85}
+          >
+            <Text style={styles.buttonText}>{t.clickToView}</Text>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
+    </View>
+  );
 };
 export default MFNSignIn;

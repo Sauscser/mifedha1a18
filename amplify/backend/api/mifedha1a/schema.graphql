@@ -2710,6 +2710,8 @@ type Group
   transportShareRates: Float
   groupFloatLoan: Float
   groupRedeemedLoan: Float
+  grpLatitude: Float
+  grpLongitude: Float
 
 
   regNo:String!
@@ -3443,6 +3445,8 @@ type ChamaApply2
   status:Status!
   ChamaAcNu: String!
   createdAt: String!  
+  latitude:Float
+  longitude: Float
 }
 
 type Auditor @model @auth(rules: [{ allow: private }, 
@@ -3681,8 +3685,15 @@ type notification
 type Mutation {
   sendNotification(riderEmail: String!, title: String!, body: String!): NotificationResponse
     @function(name: "mifedhaSendNotification-${env}")
-  recordJuuFullPaymentEvent(amount: Float!): JuuEventResponse
+  recordJuuFullPaymentEvent(amount: Float!, location: JuuEventLocationInput!): JuuEventResponse
     @function(name: "mifedhaJuuFullPayment-${env}")
+  recordJuuGroupRegistrationEvent(numberOfGroups: Int!, location: JuuEventLocationInput!): JuuEventResponse
+    @function(name: "mifedhaJuuFullPayment-${env}")
+}
+
+input JuuEventLocationInput {
+  latitude: Float!
+  longitude: Float!
 }
 
 type NotificationResponse {

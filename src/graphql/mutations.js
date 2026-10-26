@@ -15,8 +15,8 @@ export const sendNotification = /* GraphQL */ `
   }
 `;
 export const recordJuuFullPaymentEvent = /* GraphQL */ `
-  mutation RecordJuuFullPaymentEvent($amount: Float!) {
-    recordJuuFullPaymentEvent(amount: $amount) {
+  mutation RecordJuuFullPaymentEvent($amount: Float!, $location: JuuEventLocationInput!) {
+    recordJuuFullPaymentEvent(amount: $amount, location: $location) {
       success
       message
       __typename

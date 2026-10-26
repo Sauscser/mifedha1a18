@@ -120,6 +120,112 @@
       "type": "manual"
     }
   },
+  "parameters": {
+    "AMPLIFY_function_loanrepaymentnotificationlambda_deploymentBucketName": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "loanrepaymentnotificationlambda"
+        }
+      ]
+    },
+    "AMPLIFY_function_loanrepaymentnotificationlambda_s3Key": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "loanrepaymentnotificationlambda"
+        }
+      ]
+    },
+    "AMPLIFY_function_mifedhaJuuFullPayment_deploymentBucketName": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "mifedhaJuuFullPayment"
+        }
+      ]
+    },
+    "AMPLIFY_function_mifedhaJuuFullPayment_juuGroupProductId": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "mifedhaJuuFullPayment"
+        }
+      ]
+    },
+    "AMPLIFY_function_mifedhaJuuFullPayment_juuProductId": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "mifedhaJuuFullPayment"
+        }
+      ]
+    },
+    "AMPLIFY_function_mifedhaJuuFullPayment_s3Key": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "mifedhaJuuFullPayment"
+        }
+      ]
+    },
+    "AMPLIFY_function_mifedhaJuuFullPayment_secretsPathAmplifyAppId": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "mifedhaJuuFullPayment"
+        }
+      ]
+    },
+    "AMPLIFY_function_mifedhaSendNotification_deploymentBucketName": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "mifedhaSendNotification"
+        }
+      ]
+    },
+    "AMPLIFY_function_mifedhaSendNotification_projectId": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "mifedhaSendNotification"
+        }
+      ]
+    },
+    "AMPLIFY_function_mifedhaSendNotification_s3Key": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "mifedhaSendNotification"
+        }
+      ]
+    },
+    "AMPLIFY_function_mifedhaSendNotification_secretsPathAmplifyAppId": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "mifedhaSendNotification"
+        }
+      ]
+    },
+    "AMPLIFY_hosting_amplifyhosting_appId": {
+      "usedBy": [
+        {
+          "category": "hosting",
+          "resourceName": "amplifyhosting"
+        }
+      ]
+    },
+    "AMPLIFY_hosting_amplifyhosting_type": {
+      "usedBy": [
+        {
+          "category": "hosting",
+          "resourceName": "amplifyhosting"
+        }
+      ]
+    }
+  },
   "storage": {
     "MifedhaPhotos": {
       "dependsOn": [],

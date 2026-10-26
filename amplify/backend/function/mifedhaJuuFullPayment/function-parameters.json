@@ -5,6 +5,10 @@
     {
       "cloudFormationParameterName": "juuProductId",
       "environmentVariableName": "JUU_PRODUCT_ID"
+    },
+    {
+      "cloudFormationParameterName": "juuGroupProductId",
+      "environmentVariableName": "JUU_GROUP_PRODUCT_ID"
     }
   ],
   "secretNames": [

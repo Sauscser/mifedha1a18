@@ -48,18 +48,26 @@ const FetchSMNonLnsSnt = props => {
   useEffect(() => {
     fetchLoanees();
   }, []);
-  return <View style={styles.root}>
-      <FlatList style={{
-      width: "100%"
-    }} data={Recvrs} renderItem={({
-      item
-    }) => <NonLnSent ChmDtls={item} />} keyExtractor={(item, index) => index.toString()} onRefresh={fetchLoanees} refreshing={loading} showsVerticalScrollIndicator={false} ListHeaderComponentStyle={{
-      alignItems: 'center'
-    }} ListHeaderComponent={() => <>
-            
-          <Text style={styles.label}> {t.title}</Text>
-          <Text style={styles.label2}> {t.subtitle}</Text>
-          </>} />
-    </View>;
+  return (
+    <View style={styles.root}>
+      <FlatList
+        style={styles.list}
+        contentContainerStyle={styles.listContent}
+        data={Recvrs}
+        renderItem={({ item }) => <NonLnSent ChmDtls={item} />}
+        keyExtractor={(item, index) => item.BusKntct || index.toString()}
+        onRefresh={fetchLoanees}
+        refreshing={loading}
+        showsVerticalScrollIndicator={false}
+        ListHeaderComponent={
+          <View style={styles.listHeader}>
+            <View style={styles.headerAccent} />
+            <Text style={styles.title}>{t.title}</Text>
+            <Text style={styles.subtitle}>{t.subtitle}</Text>
+          </View>
+        }
+      />
+    </View>
+  );
 };
 export default FetchSMNonLnsSnt;

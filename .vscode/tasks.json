@@ -75,6 +75,25 @@
 			"problemMatcher": []
 		},
 		{
+			"label": "Run Android on connected phone (debug)",
+			"type": "shell",
+			"command": "C:\\Program Files\\nodejs\\npm.cmd",
+			"args": [
+				"run",
+				"android"
+			],
+			"options": {
+				"env": {
+					"ANDROID_HOME": "C:\\Users\\FAITH\\AppData\\Local\\Android\\Sdk",
+					"ANDROID_SDK_ROOT": "C:\\Users\\FAITH\\AppData\\Local\\Android\\Sdk",
+					"JAVA_HOME": "C:\\Program Files\\Eclipse Adoptium\\jdk-17.0.20.101-hotspot",
+					"PATH": "C:\\Users\\FAITH\\AppData\\Local\\Android\\Sdk\\platform-tools;C:\\Program Files\\Eclipse Adoptium\\jdk-17.0.20.101-hotspot\\bin;C:\\Program Files\\nodejs;${env:PATH}"
+				}
+			},
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
 			"label": "Build Android APK (release)",
 			"type": "shell",
 			"command": "gradlew",
@@ -133,6 +152,18 @@
 				"$gradle"
 			],
 			"group": "build"
+		},
+		{
+			"label": "Configure AWS CLI profile NiSenti",
+			"type": "shell",
+			"command": "C:\\Program Files\\Amazon\\AWSCLIV2\\aws.exe",
+			"args": [
+				"configure",
+				"--profile",
+				"NiSenti"
+			],
+			"isBackground": false,
+			"problemMatcher": []
 		}
 	]
 }

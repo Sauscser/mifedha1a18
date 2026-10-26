@@ -1,17 +1,42 @@
 
-import { useNavigation } from '@react-navigation/core';
-import React, {useEffect, useState} from 'react';
-import {View, Text,  Pressable,  } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text } from 'react-native';
 import styles from './styles';
-import { formatAmountSync } from '../../../src/utils/exchange';
+import { countryToCurrency, getExRatesForNationality, BASE_EXCHANGE_SYMBOL } from '../../../src/utils/exchange';
 import { nationalityToCode } from '../../../src/utils/nationalityToCode';
 import {useExchange} from '../../../src/contexts/ExchangeContext';
-import { getSMAccount } from '../../../src/graphql/queries';
-import {fetchUserAttributes} from 'aws-amplify/auth';
-import { generateClient } from 'aws-amplify/api';
 import { useTranslation } from 'react-i18next';
 import translations from './translation';
 
+const normalizeRateKey = (value: string) => value.trim().toUpperCase();
+
+const resolveRateKey = (
+    nationality: string | undefined | null,
+    ratesMap?: Record<string, any>
+): string | undefined => {
+    if (!nationality || !ratesMap) return undefined;
+
+    const trimmed = nationality.trim();
+    const countryCode = nationalityToCode(trimmed) || (trimmed.length === 2 ? trimmed.toUpperCase() : undefined);
+    const currencyIso = countryCode ? countryToCurrency[countryCode] : undefined;
+    const candidates = [trimmed, trimmed.toUpperCase(), countryCode, currencyIso].filter(Boolean) as string[];
+
+    for (const candidate of candidates) {
+        if (ratesMap[candidate]) return candidate;
+    }
+
+    const normalizedRates = Object.keys(ratesMap).reduce<Record<string, string>>((acc, key) => {
+        acc[normalizeRateKey(key)] = key;
+        return acc;
+    }, {});
+
+    for (const candidate of candidates) {
+        const resolved = normalizedRates[normalizeRateKey(candidate)];
+        if (resolved) return resolved;
+    }
+
+    return undefined;
+};
 
 export interface ChmaInfo {
     ChmDtls: {
@@ -23,6 +48,7 @@ export interface ChmaInfo {
       earningsBal: number
       benefitsAmount:number,
       description: string,
+      Nationality?: string,
         
     }}
 
@@ -40,48 +66,87 @@ const ChmInfo = (props:ChmaInfo) => {
       earningsBal,
       
       description,
+      Nationality,
    }} = props ;
 
-   const [Uzer, setUzer] = useState<string>(null);
-   const [userNationality, setUserNationality] = useState<string>(null);
-   const client = generateClient();
-   const userCode = nationalityToCode(userNationality);
    const {ratesMap} = useExchange();
+   const displayNationality = Nationality;
+   const rateKey = resolveRateKey(displayNationality, ratesMap);
+   const [fallbackRate, setFallbackRate] = useState<{ nationality: string; buyingPrice: number; symbol?: string } | null>(null);
 
    useEffect(() => {
-     const fetchUserData = async () => {
-       const user = await fetchUserAttributes();
-    setUzer(user.email);
-    try {
-    const userData = await client.graphql({
-    query: getSMAccount,
-    variables: { awsemail: user.email },
-    });
-    setUserNationality(userData.data.getSMAccount.nationality);
-    console.log('User Data:', userData);
-    } catch (error) {
-    console.error('Error fetching user data:', error);
-    }
-    };
-    fetchUserData();
-    }, [Uzer]);
+     let mounted = true;
+
+     const fetchFallbackRate = async () => {
+       if (!displayNationality || rateKey) {
+      if (mounted) setFallbackRate(null);
+      return;
+       }
+
+       setFallbackRate(null);
+       const rate = await getExRatesForNationality(displayNationality);
+       if (mounted && rate) {
+      setFallbackRate({
+        nationality: displayNationality,
+        buyingPrice: Number(rate.buyingPrice) || 1,
+        symbol: rate.symbol
+      });
+       }
+     };
+
+     fetchFallbackRate();
+     return () => {
+       mounted = false;
+     };
+   }, [displayNationality, rateKey]);
+
+   const formatBusinessAmount = (amount: number) => {
+     const rate = rateKey && ratesMap ? ratesMap[rateKey] : null;
+     if (rate) {
+       const converted = amount * (Number(rate.buyingPrice) || 1);
+       return `${rate.symbol || BASE_EXCHANGE_SYMBOL} ${converted.toFixed(4)}`;
+     }
+
+     if (fallbackRate?.nationality === displayNationality) {
+       return `${fallbackRate.symbol || BASE_EXCHANGE_SYMBOL} ${(amount * fallbackRate.buyingPrice).toFixed(2)}`;
+     }
+
+     return `${BASE_EXCHANGE_SYMBOL} ${amount.toFixed(2)}`;
+   };
 
     return (
-        <View style = {styles.pageContainer}>              
-               
-            <View style = {styles.card}>
-            <Text style = {styles.prodName}>                       
-                       {/*loaner details */}   
-                       {t.businessInfoTitle}          
-                    </Text>
-                
+        <View style={styles.pageContainer}>
+            <View style={styles.card}>
+                <View style={styles.cardHeader}>
+                    <View style={styles.headerAccent} />
+                    <View style={styles.cardHeading}>
+                        <Text style={styles.sectionTitle}>{t.businessInfoTitle}</Text>
+                        <Text style={styles.businessLabel}>{t.businessNameLabel}</Text>
+                        <Text style={styles.businessName}>{busName}</Text>
+                    </View>
+                </View>
 
-                   <Text style={styles.prodInfo}><Text style={styles.label}>{t.businessNameLabel}:</Text> {busName}</Text>
-                   <Text style={styles.prodInfo}><Text style={styles.label}>{t.businessBalanceLabel}:</Text> {formatAmountSync(Math.floor(netEarnings), userCode, ratesMap)}</Text>
-                   <Text style={styles.prodInfo}><Text style={styles.label}>{t.pooledBenefitsLabel}:</Text> {formatAmountSync(Math.floor(benefitsAmount), userCode, ratesMap)}</Text>
-                   <Text style={styles.prodDesc} > {description} </Text>     
-                     </View>
-                
+                <View style={styles.metrics}>
+                    <View style={styles.metricCard}>
+                        <Text style={styles.metricLabel}>{t.businessBalanceLabel}</Text>
+                        <Text style={styles.balanceAmount}>
+                            {formatBusinessAmount(Number(netEarnings) || 0)}
+                        </Text>
+                    </View>
+                    <View style={styles.benefitsCard}>
+                        <Text style={styles.metricLabel}>{t.pooledBenefitsLabel}</Text>
+                        <Text style={styles.benefitsAmount}>
+                            {formatBusinessAmount(Number(benefitsAmount) || 0)}
+                        </Text>
+                    </View>
+                </View>
+
+                {Boolean(description?.trim()) && (
+                    <View style={styles.descriptionSection}>
+                        <Text style={styles.description}>{description.trim()}</Text>
+                    </View>
+                )}
+            </View>
         </View>
     );
 }; 

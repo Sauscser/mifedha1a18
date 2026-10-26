@@ -1,93 +1,106 @@
-import { StyleSheet, Dimensions } from 'react-native';
+import { StyleSheet } from 'react-native';
+
 const styles = StyleSheet.create({
-  image: {
+  screen: {
+    flex: 1,
+    backgroundColor: '#F3F8FB'
+  },
+  content: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    paddingHorizontal: 22,
+    paddingVertical: 32
+  },
+  card: {
     width: '100%',
-    height: 670,
-    resizeMode: 'cover',
-    justifyContent: 'center'
+    maxWidth: 480,
+    alignSelf: 'center',
+    backgroundColor: '#FFFFFF',
+    borderColor: '#E1EBF0',
+    borderWidth: 1,
+    borderTopColor: '#29E58D',
+    borderTopWidth: 4,
+    borderRadius: 20,
+    padding: 22,
+    shadowColor: '#17384D',
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.08,
+    shadowRadius: 14,
+    elevation: 4
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 26
+  },
+  headerAccent: {
+    width: 5,
+    height: 32,
+    borderRadius: 3,
+    backgroundColor: '#87CEEB',
+    marginRight: 13
   },
   title: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: 'black'
+    flex: 1,
+    color: '#17384D',
+    fontSize: 21,
+    fontWeight: '700'
   },
-  loanTitleView: {
-    backgroundColor: 'white',
-    marginHorizontal: 10,
-    width: Dimensions.get('screen').width - 20,
-    height: 40,
-    borderRadius: 5,
-    marginTop: 30,
-    justifyContent: 'center',
-    alignItems: 'center',
-    flexDirection: 'column',
-    top: 10
+  field: {
+    marginBottom: 19
   },
-  sendLoanView: {
-    backgroundColor: 'skyblue',
-    marginHorizontal: 10,
-    width: Dimensions.get('screen').width - 20,
-    height: 90,
-    borderRadius: 20,
-    marginTop: 30,
-    justifyContent: 'center',
-    alignItems: 'center',
-    flexDirection: 'column',
-    marginBottom: 20
+  fieldLabel: {
+    color: '#385466',
+    fontSize: 14,
+    fontWeight: '600',
+    marginBottom: 8
   },
-  sendLoanText: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: 'white',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginLeft: 30
+  input: {
+    minHeight: 52,
+    backgroundColor: '#F8FBFC',
+    borderColor: '#D7E4EA',
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 15,
+    color: '#17384D',
+    fontSize: 16
   },
-  sendLoanButton: {
-    backgroundColor: '#fff',
-    height: 45,
-    borderRadius: 30,
-    marginHorizontal: 10,
-    width: Dimensions.get('screen').width - 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 30,
-    marginBottom: 400
-  },
-  sendLoanButtonText: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: 'black'
-  },
-  sendLoanInput: {
-    backgroundColor: 'white',
-    width: 300,
-    height: 45,
-    borderRadius: 10,
-    marginTop: 15,
-    justifyContent: 'center',
+  passwordRow: {
+    flexDirection: 'row',
     alignItems: 'center'
   },
-  loanSpecificationsTextInput: {
-    backgroundColor: 'white',
-    width: 300,
-    height: 200,
-    borderRadius: 10,
-    marginTop: 15,
-    justifyContent: 'center',
-    alignItems: 'center'
+  passwordInput: {
+    flex: 1
   },
-  loanSpecificationView: {
-    backgroundColor: 'skyblue',
-    marginHorizontal: 10,
-    width: Dimensions.get('screen').width - 20,
-    height: 250,
-    borderRadius: 20,
-    marginTop: 30,
+  passwordToggle: {
+    width: 48,
+    height: 52,
+    marginLeft: 8,
+    borderColor: '#D7E4EA',
+    borderWidth: 1,
+    borderRadius: 12,
+    backgroundColor: '#F8FBFC',
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  button: {
+    minHeight: 52,
     justifyContent: 'center',
     alignItems: 'center',
-    flexDirection: 'column',
-    marginBottom: 20
+    backgroundColor: '#29E58D',
+    borderRadius: 12,
+    marginTop: 8,
+    shadowColor: '#167A51',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.16,
+    shadowRadius: 6,
+    elevation: 2
+  },
+  buttonText: {
+    color: '#123B2A',
+    fontSize: 16,
+    fontWeight: '700'
   }
 });
+
 export default styles;
