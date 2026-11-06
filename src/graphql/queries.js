@@ -3204,6 +3204,8 @@ export const getGroup = /* GraphQL */ `
       transportShareRates
       groupFloatLoan
       groupRedeemedLoan
+      grpLatitude
+      grpLongitude
       regNo
       signitoryContact
       SignitoryNatid
@@ -3313,6 +3315,8 @@ export const listGroups = /* GraphQL */ `
         transportShareRates
         groupFloatLoan
         groupRedeemedLoan
+        grpLatitude
+        grpLongitude
         regNo
         signitoryContact
         SignitoryNatid
@@ -4158,6 +4162,8 @@ export const getChamaApply2 = /* GraphQL */ `
       status
       ChamaAcNu
       createdAt
+      latitude
+      longitude
       updatedAt
       owner
       __typename
@@ -4180,6 +4186,8 @@ export const listChamaApply2s = /* GraphQL */ `
         status
         ChamaAcNu
         createdAt
+        latitude
+        longitude
         updatedAt
         owner
         __typename
@@ -7244,6 +7252,8 @@ export const VwNatIdentitysz = /* GraphQL */ `
         transportShareRates
         groupFloatLoan
         groupRedeemedLoan
+        grpLatitude
+        grpLongitude
         regNo
         signitoryContact
         SignitoryNatid
@@ -7358,6 +7368,8 @@ export const ViaChmArea = /* GraphQL */ `
         transportShareRates
         groupFloatLoan
         groupRedeemedLoan
+        grpLatitude
+        grpLongitude
         regNo
         signitoryContact
         SignitoryNatid
@@ -7472,6 +7484,8 @@ export const ViaChmVenture = /* GraphQL */ `
         transportShareRates
         groupFloatLoan
         groupRedeemedLoan
+        grpLatitude
+        grpLongitude
         regNo
         signitoryContact
         SignitoryNatid

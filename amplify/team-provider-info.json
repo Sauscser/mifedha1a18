@@ -164,6 +164,7 @@
         },
         "mifedhaJuuFullPayment": {
           "juuProductId": "5a86c3e0-08d0-4fee-a4a4-655484ece5a5",
+          "juuGroupProductId": "4670ed4a-88ee-48ef-a045-421dbec0770d",
           "secretsPathAmplifyAppId": "duggqbbklrwc0",
           "deploymentBucketName": "amplify-mifedha1a-nisenti-2f02d-deployment"
         },

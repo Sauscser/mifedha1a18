@@ -15,8 +15,26 @@ export const sendNotification = /* GraphQL */ `
   }
 `;
 export const recordJuuFullPaymentEvent = /* GraphQL */ `
-  mutation RecordJuuFullPaymentEvent($amount: Float!, $location: JuuEventLocationInput!) {
+  mutation RecordJuuFullPaymentEvent(
+    $amount: Float!
+    $location: JuuEventLocationInput!
+  ) {
     recordJuuFullPaymentEvent(amount: $amount, location: $location) {
+      success
+      message
+      __typename
+    }
+  }
+`;
+export const recordJuuGroupRegistrationEvent = /* GraphQL */ `
+  mutation RecordJuuGroupRegistrationEvent(
+    $numberOfGroups: Int!
+    $location: JuuEventLocationInput!
+  ) {
+    recordJuuGroupRegistrationEvent(
+      numberOfGroups: $numberOfGroups
+      location: $location
+    ) {
       success
       message
       __typename
@@ -4461,6 +4479,8 @@ export const createGroup = /* GraphQL */ `
       transportShareRates
       groupFloatLoan
       groupRedeemedLoan
+      grpLatitude
+      grpLongitude
       regNo
       signitoryContact
       SignitoryNatid
@@ -4560,6 +4580,8 @@ export const updateGroup = /* GraphQL */ `
       transportShareRates
       groupFloatLoan
       groupRedeemedLoan
+      grpLatitude
+      grpLongitude
       regNo
       signitoryContact
       SignitoryNatid
@@ -4659,6 +4681,8 @@ export const deleteGroup = /* GraphQL */ `
       transportShareRates
       groupFloatLoan
       groupRedeemedLoan
+      grpLatitude
+      grpLongitude
       regNo
       signitoryContact
       SignitoryNatid
@@ -5794,6 +5818,8 @@ export const createChamaApply2 = /* GraphQL */ `
       status
       ChamaAcNu
       createdAt
+      latitude
+      longitude
       updatedAt
       owner
       __typename
@@ -5814,6 +5840,8 @@ export const updateChamaApply2 = /* GraphQL */ `
       status
       ChamaAcNu
       createdAt
+      latitude
+      longitude
       updatedAt
       owner
       __typename
@@ -5834,6 +5862,8 @@ export const deleteChamaApply2 = /* GraphQL */ `
       status
       ChamaAcNu
       createdAt
+      latitude
+      longitude
       updatedAt
       owner
       __typename

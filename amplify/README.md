@@ -9,7 +9,7 @@ Helpful resources:
 
 ## Juu purchase events
 
-The `nisenti` environment sends `nisenti_full_payment_online_purchase` after a successful full-payment marketplace checkout. The Lambda sends contract version 6 with the required `amount` in KES; it does not send buyer identity or location.
+The `nisenti` environment sends `nisenti_full_payment_online_purchase` after a successful full-payment marketplace checkout. The Lambda sends contract version 6 with the `amount` in KES and a top-level location object containing numeric `latitude` and `longitude`. The caller must provide valid buyer coordinates; do not use a fixed or guessed location.
 
 Before deploying this integration:
 
@@ -19,3 +19,9 @@ Before deploying this integration:
 4. Run `amplify push` for the intended environment and review the proposed API and Lambda updates before confirming.
 
 The checkout reports a tracking failure separately if Juu rejects or cannot receive an event; it does not roll back a completed purchase.
+
+## Juu Kenyan Self Help Groups events
+
+After a group, its first member, the application status, and the company group count are successfully updated, the `nisenti` environment reports `kenyan_self_help_groups` using contract version 7. The `number_of_groups` field is the updated active group total, and the event uses the group coordinates saved from its registration application. Event delivery failure is shown separately and does not undo group creation.
+
+The `mifedhaJuuFullPayment` Lambda handles both Juu event types and uses the existing `JuuIntegrationKey` SSM secret. Configure `JUU_GROUP_PRODUCT_ID` with the **Kenyan Self Help Groups** product ID for the target Amplify environment. The `nisenti` profile is configured with this product ID in `team-provider-info.json`; do not replace the existing `JUU_PRODUCT_ID`, which is used for full-payment purchases.

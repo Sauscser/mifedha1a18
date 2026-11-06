@@ -10,7 +10,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
 import * as DocumentPicker from 'expo-document-picker';
-import { createChamaMembers, createGroup, updateChamaApply2, updateCompany } from '../../../src/graphql/mutations';
+import { createChamaMembers, createGroup, updateChamaApply2, updateCompany, recordJuuGroupRegistrationEvent } from '../../../src/graphql/mutations';
 import { getMiFedhaBankAdmin, getSMAccount, getCompany } from '../../../src/graphql/queries';
 
 import { useExchange } from '../../../src/contexts/ExchangeContext';
@@ -32,7 +32,7 @@ const CreateChama = (props: UserReg) => {
   const { usr } = props;
   const navigation = useNavigation();
   const route = useRoute<any>();
-  const { id, bankAdminEmail, ChamaAcNu } = route.params;
+  const { id, bankAdminEmail, ChamaAcNu, latitude, longitude } = route.params;
   const { i18n } = useTranslation();
   const lang = i18n.language || 'en';
   const t = translations[lang] || translations.en;
@@ -54,6 +54,50 @@ const CreateChama = (props: UserReg) => {
   const [loanApprovalThreshHold, setloanApprovalThreshHold] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [userNationality, setUserNationality] = useState<string>(null);
+
+  const reportJuuGroupRegistration = async (numberOfGroups: number) => {
+    if (
+      !Number.isFinite(latitude)
+      || latitude < -90
+      || latitude > 90
+      || !Number.isFinite(longitude)
+      || longitude < -180
+      || longitude > 180
+    ) {
+      console.error('Juu group-registration event was not sent because the saved group location is invalid:', {
+        latitude,
+        longitude
+      });
+      return false;
+    }
+
+    try {
+      const result: any = await client.graphql({
+        query: recordJuuGroupRegistrationEvent,
+        variables: {
+          numberOfGroups,
+          location: { latitude, longitude }
+        }
+      });
+      const eventResult = result?.data?.recordJuuGroupRegistrationEvent;
+      if (!eventResult?.success) {
+        console.error('Juu did not accept the group-registration event:', {
+          success: eventResult?.success,
+          message: eventResult?.message,
+          errors: result?.errors?.map((error: any) => error.message)
+        });
+        return false;
+      }
+      console.log('Juu accepted the group-registration event:', eventResult.message);
+      return true;
+    } catch (error) {
+      console.error('Group created, but Juu group-registration event delivery failed:', {
+        name: error instanceof Error ? error.name : undefined,
+        message: error instanceof Error ? error.message : String(error)
+      }, error);
+      return false;
+    }
+  };
 
   // Signature states
   const [chairSignKey, setChairSignKey] = useState<string | null>(null);
@@ -279,6 +323,7 @@ const CreateChama = (props: UserReg) => {
       });
       const ttlActiveChms = compRes.data.getCompany.ttlActiveChm;
       const ttlActiveChmUserss = compRes.data.getCompany.ttlActiveChmUsers;
+      const nextActiveGroupCount = Number(ttlActiveChms) + 1;
       const today = new Date();
       const curYrs = today.getFullYear() * 365;
       const curMnths = (today.getMonth() + 1) * 30.4375;
@@ -301,6 +346,8 @@ const CreateChama = (props: UserReg) => {
             transportShareRates: 0,
             groupFloatLoan: 0,
             groupRedeemedLoan:0,
+            grpLatitude: latitude,
+            grpLongitude: longitude,
             regNo: safeChmRegNo,
             signitoryContact: attributes.phone_number,
             SignatoryEmail: attributes.email,
@@ -435,14 +482,16 @@ const CreateChama = (props: UserReg) => {
         variables: {
           input: {
             AdminId: "BaruchHabaB'ShemAdonai2",
-            ttlActiveChm: parseFloat(ttlActiveChms) + 1,
+            ttlActiveChm: nextActiveGroupCount,
             ttlActiveChmUsers: parseFloat(ttlActiveChmUserss) + 1
           }
         }
       });
+      const eventRecorded = await reportJuuGroupRegistration(nextActiveGroupCount);
       Alert.alert(
         t.success || 'Success',
-        (t.congratsCreated || 'Group created successfully!').replace('{name}', namess).replace('{group}', ChmNm),
+        (t.congratsCreated || 'Group created successfully!').replace('{name}', namess).replace('{group}', ChmNm)
+          + (eventRecorded ? '' : '\n\nGroup created successfully, but Juu could not record the group-registration event.'),
         [
           {
             text: 'OK',

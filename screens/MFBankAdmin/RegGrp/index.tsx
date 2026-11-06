@@ -9,6 +9,7 @@ import { View, Text, ScrollView, TextInput, ActivityIndicator, TouchableOpacity,
 import { LinearGradient } from 'expo-linear-gradient';
 import { getCurrentUser, fetchUserAttributes } from "aws-amplify/auth";
 import { generateClient } from "aws-amplify/api";
+import * as Location from 'expo-location';
 const client = generateClient();
 
 const CreateAdminForm = () => {
@@ -54,6 +55,26 @@ const CreateAdminForm = () => {
                 setIsLoading(false);
                 return;
               }
+              const { status } = await Location.requestForegroundPermissionsAsync();
+              if (status !== 'granted') {
+                Alert.alert("Location permission is required to register the group");
+                return;
+              }
+              const currentPosition = await Location.getCurrentPositionAsync({
+                accuracy: Location.Accuracy.Balanced
+              });
+              const { latitude, longitude } = currentPosition.coords;
+              if (
+                !Number.isFinite(latitude)
+                || latitude < -90
+                || latitude > 90
+                || !Number.isFinite(longitude)
+                || longitude < -180
+                || longitude > 180
+              ) {
+                Alert.alert("Could not get a valid location for the signed-in user");
+                return;
+              }
               await client.graphql({
                 query: createChamaApply2,
                 variables: {
@@ -63,7 +84,9 @@ const CreateAdminForm = () => {
                     BankAdminAccount: bank,
                     ChamaAcNu: ChamaAcNus,
                     mfnReg: 0,
-                    status: "AccountActive"
+                    status: "AccountActive",
+                    latitude,
+                    longitude
                   }
                 }
               });

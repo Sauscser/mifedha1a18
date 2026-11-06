@@ -4427,6 +4427,8 @@ export const onCreateGroup = /* GraphQL */ `
       transportShareRates
       groupFloatLoan
       groupRedeemedLoan
+      grpLatitude
+      grpLongitude
       regNo
       signitoryContact
       SignitoryNatid
@@ -4526,6 +4528,8 @@ export const onUpdateGroup = /* GraphQL */ `
       transportShareRates
       groupFloatLoan
       groupRedeemedLoan
+      grpLatitude
+      grpLongitude
       regNo
       signitoryContact
       SignitoryNatid
@@ -4625,6 +4629,8 @@ export const onDeleteGroup = /* GraphQL */ `
       transportShareRates
       groupFloatLoan
       groupRedeemedLoan
+      grpLatitude
+      grpLongitude
       regNo
       signitoryContact
       SignitoryNatid
@@ -5757,6 +5763,8 @@ export const onCreateChamaApply2 = /* GraphQL */ `
       status
       ChamaAcNu
       createdAt
+      latitude
+      longitude
       updatedAt
       owner
       __typename
@@ -5777,6 +5785,8 @@ export const onUpdateChamaApply2 = /* GraphQL */ `
       status
       ChamaAcNu
       createdAt
+      latitude
+      longitude
       updatedAt
       owner
       __typename
@@ -5797,6 +5807,8 @@ export const onDeleteChamaApply2 = /* GraphQL */ `
       status
       ChamaAcNu
       createdAt
+      latitude
+      longitude
       updatedAt
       owner
       __typename

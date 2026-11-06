@@ -14,14 +14,15 @@ export interface SMAccount {
       id: string,
       bankAdminEmail: string,
       ChamaAcNu: string,
-
+      latitude?: number | null,
+      longitude?: number | null,
       createdAt:string
 
     }}
 
 const SMCvLnStts = (props: SMAccount) => {
   const {
-    SMAc: { id, bankAdminEmail, ChamaAcNu, createdAt }
+    SMAc: { id, bankAdminEmail, ChamaAcNu, latitude, longitude, createdAt }
   } = props;
   const navigation = useNavigation();
   const { i18n } = useTranslation();
@@ -33,6 +34,8 @@ const SMCvLnStts = (props: SMAccount) => {
       id,
       bankAdminEmail,
       ChamaAcNu,
+      latitude,
+      longitude,
     });
   };
 

@@ -602,6 +602,25 @@ function SalesItemMapScreenInner({ navigation }: { navigation: any }) {
     }
 
     try {
+      const currentPosition = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.High
+      });
+      const location = {
+        latitude: currentPosition.coords.latitude,
+        longitude: currentPosition.coords.longitude
+      };
+      if (
+        !Number.isFinite(location.latitude)
+        || location.latitude < -90
+        || location.latitude > 90
+        || !Number.isFinite(location.longitude)
+        || location.longitude < -180
+        || location.longitude > 180
+      ) {
+        console.error('Juu full-payment event was not sent because the buyer GPS location is invalid:', location);
+        return false;
+      }
+
       const result: any = await client.graphql({
         query: recordJuuFullPaymentEvent,
         variables: {
@@ -763,6 +782,32 @@ function SalesItemMapScreenInner({ navigation }: { navigation: any }) {
         biznaCashSaleFee: company?.biznaCashSaleFee,
         p2BBenCom: company?.p2BBenCom
       });
+      console.log('[DEBUG] Marketplace fee values from getCompany:', {
+        companyFound: Boolean(company),
+        hasBiznaCashSaleFee: Object.prototype.hasOwnProperty.call(company || {}, 'biznaCashSaleFee'),
+        biznaCashSaleFee: company?.biznaCashSaleFee,
+        p2BBenCom: company?.p2BBenCom,
+        userTransferFee: company?.userTransferFee,
+        errors: companyResult.errors?.map((error: any) => error.message)
+      });
+      const biznaCashSaleFee = Number(company?.biznaCashSaleFee);
+      const benefitRate = Number(company?.p2BBenCom);
+      if (
+        company?.biznaCashSaleFee == null ||
+        !Number.isFinite(biznaCashSaleFee) ||
+        biznaCashSaleFee < 0 ||
+        company?.p2BBenCom == null ||
+        !Number.isFinite(benefitRate) ||
+        benefitRate < 0
+      ) {
+        console.error('[ERROR] Invalid marketplace fee configuration:', {
+          biznaCashSaleFee: company?.biznaCashSaleFee,
+          p2BBenCom: company?.p2BBenCom
+        });
+        if (modeParam === 'transport') setIsLoadingTransport(false); else setIsLoading2(false);
+        Alert.alert(t.error, t.somethingWentWrong);
+        return;
+      }
       let totalCost = 0;
       let totalCompanyEarnings = 0;
       let totalBenefit = 0;
@@ -776,9 +821,9 @@ function SalesItemMapScreenInner({ navigation }: { navigation: any }) {
         }
         const qty = quantities[item.id] || 1;
         const itemCost = parseFloat(item.sokoprice) * qty;
-        const fee = itemCost * parseFloat(company.biznaCashSaleFee);
+        const fee = itemCost * biznaCashSaleFee;
         const totalDebit = itemCost + fee;
-        const benefit = fee * parseFloat(company.p2BBenCom) * 0.01;
+        const benefit = fee * benefitRate * 0.01;
         const compEarnings = fee - 2 * benefit;
         console.info('[FULL_PAYMENT_BENEFITS] Item benefit calculation', {
           flow: modeParam || 'quick',
@@ -791,6 +836,12 @@ function SalesItemMapScreenInner({ navigation }: { navigation: any }) {
           formula: 'fee * p2BBenCom * 0.01',
           benefit
         });
+        if (![itemCost, fee, benefit, compEarnings].every(Number.isFinite)) {
+          console.error('[ERROR] Invalid marketplace item totals:', { itemId: item.id, itemCost, fee, benefit, compEarnings });
+          if (modeParam === 'transport') setIsLoadingTransport(false); else setIsLoading2(false);
+          Alert.alert(t.error, t.somethingWentWrong);
+          return;
+        }
         if (parseFloat(sender.balance) < totalDebit) {
           if (modeParam === 'transport') setIsLoadingTransport(false); else setIsLoading2(false);
           Alert.alert(t.insufficientFundsTitle, t.insufficientFunds);
@@ -895,6 +946,15 @@ function SalesItemMapScreenInner({ navigation }: { navigation: any }) {
         const benefitsAmount = Number.isFinite(Number(biz.benefitsAmount))
           ? Number(biz.benefitsAmount)
           : 0;
+        const feeForSeller = Number(totals.totalItemCost) > 0
+          ? Number(totals.totalItemCost) * biznaCashSaleFee
+          : 0;
+        if (!Number.isFinite(feeForSeller)) {
+          console.error('[ERROR] Invalid accumulated seller fee:', { seller: sokokntct, feeForSeller });
+          if (modeParam === 'transport') setIsLoadingTransport(false); else setIsLoading2(false);
+          Alert.alert(t.error, t.somethingWentWrong);
+          return;
+        }
         if (isNaN(netEarnings)) {
           console.error('[ERROR] netEarnings is NaN for seller', sokokntct, 'biz:', biz);
         }
@@ -936,9 +996,6 @@ function SalesItemMapScreenInner({ navigation }: { navigation: any }) {
           });
         }
         console.log('Creating NonLoans for', sokokntct, 'owner:', allItemsID);
-        const feeForSeller = Number(totals.totalItemCost) > 0
-          ? Number(totals.totalItemCost) * parseFloat(company.biznaCashSaleFee)
-          : 0;
         await client.graphql({
           query: createNonLoans,
           variables: {
@@ -951,7 +1008,7 @@ function SalesItemMapScreenInner({ navigation }: { navigation: any }) {
               SenderName: mode === 'B2B' && selectedBizna && selectedBizna.busName ? selectedBizna.busName : usrDtlsx.name,
               status: mode === 'B2B' ? 'Biz2Biz' : 'Biz2Pal',
               owner: allItemsID,
-              fees: feeForSeller.toFixed(0)
+              fees: feeForSeller
             }
           }
         });
@@ -1004,6 +1061,7 @@ function SalesItemMapScreenInner({ navigation }: { navigation: any }) {
       setCart([]);
       setQuantities({});
       setPassword('');
+      setIsPasswordVisible(false);
       VwSalesDtls4Transport();
     } catch (err) {
       console.error("Transaction error:", err);
@@ -1138,6 +1196,32 @@ function SalesItemMapScreenInner({ navigation }: { navigation: any }) {
         biznaCashSaleFee: company?.biznaCashSaleFee,
         p2BBenCom: company?.p2BBenCom
       });
+      console.log('[DEBUG] Marketplace fee values from getCompany:', {
+        companyFound: Boolean(company),
+        hasBiznaCashSaleFee: Object.prototype.hasOwnProperty.call(company || {}, 'biznaCashSaleFee'),
+        biznaCashSaleFee: company?.biznaCashSaleFee,
+        p2BBenCom: company?.p2BBenCom,
+        userTransferFee: company?.userTransferFee,
+        errors: companyResult.errors?.map((error: any) => error.message)
+      });
+      const biznaCashSaleFee = Number(company?.biznaCashSaleFee);
+      const benefitRate = Number(company?.p2BBenCom);
+      if (
+        company?.biznaCashSaleFee == null ||
+        !Number.isFinite(biznaCashSaleFee) ||
+        biznaCashSaleFee < 0 ||
+        company?.p2BBenCom == null ||
+        !Number.isFinite(benefitRate) ||
+        benefitRate < 0
+      ) {
+        console.error('[ERROR] Invalid marketplace fee configuration:', {
+          biznaCashSaleFee: company?.biznaCashSaleFee,
+          p2BBenCom: company?.p2BBenCom
+        });
+        setIsLoading(false);
+        Alert.alert(t.error, t.somethingWentWrong);
+        return;
+      }
       let totalCost = 0;
       let totalCompanyEarnings = 0;
       let totalBenefit = 0;
@@ -1153,9 +1237,9 @@ function SalesItemMapScreenInner({ navigation }: { navigation: any }) {
         }
         const qty = quantities[item.id] || 1;
         const itemCost = parseFloat(item.sokoprice) * qty;
-        const fee = itemCost * parseFloat(company.biznaCashSaleFee);
+        const fee = itemCost * biznaCashSaleFee;
         const totalDebit = itemCost + fee;
-        const benefit = fee * parseFloat(company.p2BBenCom);
+        const benefit = fee * benefitRate;
         const compEarnings = fee - 2 * benefit;
         console.info('[FULL_PAYMENT_BENEFITS] Item benefit calculation', {
           flow: 'quick',
@@ -1168,6 +1252,12 @@ function SalesItemMapScreenInner({ navigation }: { navigation: any }) {
           formula: 'fee * p2BBenCom',
           benefit
         });
+        if (![itemCost, fee, benefit, compEarnings].every(Number.isFinite)) {
+          console.error('[ERROR] Invalid marketplace item totals:', { itemId: item.id, itemCost, fee, benefit, compEarnings });
+          setIsLoading(false);
+          Alert.alert(t.error, t.somethingWentWrong);
+          return;
+        }
         if (parseFloat(sender.balance) < totalDebit) {
           setIsLoading(false);
           Alert.alert("Insufficient Funds");
@@ -1246,6 +1336,15 @@ function SalesItemMapScreenInner({ navigation }: { navigation: any }) {
         const totalInKes = totals.totalItemCost;
         const benefitInKes = totals.totalBenefit;
         totalCostKes += Number(totalInKes || 0);
+        const feeForSeller2 = Number(totalInKes) > 0
+          ? Number(totalInKes) * biznaCashSaleFee
+          : 0;
+        if (!Number.isFinite(feeForSeller2)) {
+          console.error('[ERROR] Invalid accumulated seller fee:', { seller: sokokntct, feeForSeller2 });
+          setIsLoading(false);
+          Alert.alert(t.error, t.somethingWentWrong);
+          return;
+        }
 
         
         // Buyer details depending on shopping mode
@@ -1297,9 +1396,6 @@ function SalesItemMapScreenInner({ navigation }: { navigation: any }) {
           });
         }
         console.log('Creating NonLoans for', sokokntct, 'owner:', allItemsID);
-        const feeForSeller2 = Number(totalInKes) > 0
-          ? Number(totalInKes) * parseFloat(company.biznaCashSaleFee)
-          : 0;
         await client.graphql({
           query: createNonLoans,
           variables: {
@@ -1312,7 +1408,7 @@ function SalesItemMapScreenInner({ navigation }: { navigation: any }) {
               SenderName: mode === 'B2B' && selectedBizna && selectedBizna.busName ? selectedBizna.busName : usrDts.name,
               status: 'cashSales',
               owner: allItemsID, 
-              fees: feeForSeller2.toFixed(0)
+              fees: feeForSeller2
             }
           }
         });
@@ -1410,6 +1506,7 @@ function SalesItemMapScreenInner({ navigation }: { navigation: any }) {
       setCart([]);
       setQuantities({});
       setPassword('');
+      setIsPasswordVisible(false);
       Alert.alert(
         "Success",
         eventRecorded
@@ -1809,7 +1906,7 @@ function SalesItemMapScreenInner({ navigation }: { navigation: any }) {
                     </View>
                   ))}
                   <View style={styles.cartFooter}>
-                    <Text style={styles.cartTotal}>Total: {formatDisplayAmount(Number(OverallTotalDebit))}</Text>
+                    <Text style={styles.cartTotal}>Total: {formatAmountSync(Number(OverallTotalDebit), natCode, ratesMap)}</Text>
                     <View style={styles.passwordRow}>
                       <TextInput
                         placeholder={t.enterPassword}
@@ -2124,7 +2221,8 @@ const styles = StyleSheet.create({
   },
   passwordRow: {
     flexDirection: 'row',
-    alignItems: 'center'
+    alignItems: 'center',
+    marginBottom: 8
   },
   passwordField: {
     flex: 1
