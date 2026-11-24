@@ -830,7 +830,7 @@ function SalesItemMapScreenInner({ navigation }: { navigation: any }) {
                     </View>
                   ))}
                   <View style={styles.cartFooter}>
-                    <Text style={styles.cartTotal}>Total: {formatAmountSync(Number(OverallTotalDebit), natCode, ratesMap)}</Text>
+                    <Text style={styles.cartTotal}>{t.total}: {formatAmountSync(Number(OverallTotalDebit), natCode, ratesMap)}</Text>
                     <View style={styles.passwordRow}>
                       <TextInput
                         placeholder={t.enterPassword}
@@ -1195,4 +1195,3 @@ const styles = StyleSheet.create({
     alignItems: 'center'
   }
 });
-

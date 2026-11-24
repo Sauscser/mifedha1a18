@@ -14,6 +14,7 @@ import translations from './translation';
 import { safeNavigateFrom } from '../../../../../src/utils/navigationHelper';
 import * as Location from 'expo-location';
 import { saveBusinessPerformanceEntry } from '../../../../../src/utils/businessPerformance';
+import { useBusinessPerformanceTranslation } from '../../../BusinessPerformance/translation';
 
 const client = generateClient();
 const SMASendNonLns = () => {
@@ -22,6 +23,7 @@ const SMASendNonLns = () => {
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const navigation = useNavigation();
   const { i18n } = useTranslation();
+  const tPerformance = useBusinessPerformanceTranslation();
   const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
   const t = translations[lang] || translations.en;
   const fmt = (template: string, vars: Record<string, string | number>) =>
@@ -290,7 +292,7 @@ const SMASendNonLns = () => {
         const analyticsRecorded = await recordCashPurchaseAnalytics(biz);
         Alert.alert(fmt(t.successTransactionFee, {
           fee: fee.toFixed(0)
-        }) + (analyticsRecorded ? '' : '\n\nBusiness analytics could not record this purchase. Check the app logs.'));
+        }) + (analyticsRecorded ? '' : `\n\n${tPerformance('analyticsCaptureFailed')}`));
         setIsLoading(false);
         setSnderPW("");
       }
@@ -345,7 +347,7 @@ const SMASendNonLns = () => {
         const analyticsRecorded = await recordCashPurchaseAnalytics(biz);
         Alert.alert(fmt(t.successTransactionFee, {
           fee: fee.toFixed(0)
-        }) + (analyticsRecorded ? '' : '\n\nBusiness analytics could not record this purchase. Check the app logs.'));
+        }) + (analyticsRecorded ? '' : `\n\n${tPerformance('analyticsCaptureFailed')}`));
         setIsLoading(false);
         setSnderPW("");
       }

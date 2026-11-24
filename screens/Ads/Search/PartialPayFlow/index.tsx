@@ -23,6 +23,7 @@ import { buildOsrmRouteUrl } from '../../../../src/config/osrm';
 import { FontAwesome } from '@expo/vector-icons';
 import { safeNavigateFrom } from '../../../../src/utils/navigationHelper';
 import { saveBusinessPerformanceEntry } from '../../../../src/utils/businessPerformance';
+import { useBusinessPerformanceTranslation } from '../../../CredSls/BusinessPerformance/translation';
 
 
 const client = generateClient();
@@ -61,6 +62,7 @@ const resolveRateKey = (value: string | null | undefined, ratesMap?: Record<stri
 
 function PartialPayFlowInner({ navigation, route }: { navigation: any; route: any }) {
   const { i18n } = useTranslation();
+  const tPerformance = useBusinessPerformanceTranslation();
   const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
   const t = { ...translations.en, ...(translations[lang] || {}) };
   const { nationality, ratesMap } = useExchange();
@@ -1119,7 +1121,7 @@ function PartialPayFlowInner({ navigation, route }: { navigation: any; route: an
           t.success,
           analyticsRecorded
             ? (t.transactionCompleted || 'Transaction completed successfully.')
-            : 'Purchase completed, but business analytics could not record it. Check the app logs.'
+            : tPerformance('analyticsCaptureFailed')
         );
       }
     } catch (err) {

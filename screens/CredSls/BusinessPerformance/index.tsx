@@ -14,7 +14,7 @@ import { generateClient } from 'aws-amplify/api';
 import { fetchUserAttributes, getCurrentUser } from 'aws-amplify/auth';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
-import Svg, { Circle, Line, Polyline, Text as SvgText } from 'react-native-svg';
+import Svg, { Circle, Line, Polyline, Rect, Text as SvgText } from 'react-native-svg';
 import { useExchange } from '../../../src/contexts/ExchangeContext';
 import {
   BASE_EXCHANGE_SYMBOL,
@@ -38,6 +38,7 @@ import {
 } from '../../../src/graphql/queries';
 import BusinessHeatmap from './BusinessHeatmap';
 import BusinessTargets from './BusinessTargets';
+import { useBusinessPerformanceTranslation } from './translation';
 
 const client = generateClient();
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -108,6 +109,136 @@ type ChartBucket = {
   expenses: number;
 };
 
+type ChartMetric = 'revenue' | 'expenses' | 'profit';
+type ChartSelection = 'all' | ChartMetric;
+
+const chartMetrics: Array<{ key: ChartMetric; color: string }> = [
+  { key: 'revenue', color: '#14804a' },
+  { key: 'expenses', color: '#c46919' },
+  { key: 'profit', color: '#1769aa' },
+];
+
+const getMetricValue = (bucket: ChartBucket, metric: ChartMetric) =>
+  metric === 'profit' ? bucket.revenue - bucket.expenses : bucket[metric];
+
+const ChartMetricSelector = ({
+  selected,
+  onSelect,
+}: {
+  selected: ChartSelection;
+  onSelect: (selection: ChartSelection) => void;
+}) => {
+  const t = useBusinessPerformanceTranslation();
+  return (
+    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 9, marginBottom: 8 }}>
+      {[
+        { key: 'all' as const, label: t('all') },
+        ...chartMetrics.map(metric => ({ key: metric.key, label: t(metric.key) })),
+      ].map(option => (
+        <TouchableOpacity
+          key={option.key}
+          accessibilityRole="button"
+          accessibilityState={{ selected: selected === option.key }}
+          onPress={() => onSelect(option.key)}
+          style={{
+            backgroundColor: selected === option.key ? '#1678b9' : '#e8eef2',
+            paddingVertical: 6,
+            paddingHorizontal: 10,
+            borderRadius: 15,
+            marginRight: 6,
+          }}
+        >
+          <Text style={{ color: selected === option.key ? '#fff' : '#344955', fontSize: 11, fontWeight: '700' }}>
+            {option.label}
+          </Text>
+        </TouchableOpacity>
+      ))}
+    </ScrollView>
+  );
+};
+
+const getVisibleMetrics = (selection: ChartSelection) =>
+  selection === 'all' ? chartMetrics : chartMetrics.filter(metric => metric.key === selection);
+
+const BusinessPerformanceBarChart = ({ buckets }: { buckets: ChartBucket[] }) => {
+  const t = useBusinessPerformanceTranslation();
+  const [selected, setSelected] = useState<ChartSelection>('all');
+  if (!buckets.length) return null;
+
+  const metrics = getVisibleMetrics(selected);
+  const values = buckets.flatMap(bucket => metrics.map(metric => getMetricValue(bucket, metric.key)));
+  const maximumMagnitude = Math.max(1, ...values.map(value => Math.abs(value)));
+  const hasNegativeValues = values.some(value => value < 0);
+  const chartHeight = 142;
+  const chartTop = 12;
+  const baseline = hasNegativeValues ? chartTop + chartHeight / 2 : chartTop + chartHeight;
+  const positiveHeight = baseline - chartTop;
+  const negativeHeight = chartTop + chartHeight - baseline;
+  const barWidth = metrics.length === 1 ? 28 : 17;
+  const groupWidth = Math.max(60, metrics.length * (barWidth + 4) + 10);
+  const width = Math.max(360, buckets.length * (groupWidth + 9) + 12);
+  const height = 190;
+  const xFor = (bucketIndex: number, metricIndex: number) =>
+    6 + bucketIndex * (groupWidth + 9) + 5 + metricIndex * (barWidth + 4);
+
+  return (
+    <View style={{ marginTop: 10 }}>
+      <Text style={{ fontWeight: '800', color: '#243a4a', fontSize: 15 }}>{t('chartHeading')}</Text>
+      <Text style={{ color: '#63727d', fontSize: 11, marginTop: 3 }}>
+        {t('chartFilterHint')}
+      </Text>
+      <ChartMetricSelector selected={selected} onSelect={setSelected} />
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginBottom: 7 }}>
+        {metrics.map(metric => (
+          <View key={metric.key} style={{ flexDirection: 'row', alignItems: 'center', marginRight: 12 }}>
+            <View style={{ width: 10, height: 10, borderRadius: 2, backgroundColor: metric.color, marginRight: 4 }} />
+            <Text style={{ color: '#53636e', fontSize: 11 }}>{t(metric.key)}</Text>
+          </View>
+        ))}
+      </View>
+      <ScrollView horizontal showsHorizontalScrollIndicator>
+        <Svg width={width} height={height}>
+          <Line x1={0} y1={baseline} x2={width} y2={baseline} stroke="#758795" strokeWidth={1.2} />
+          {buckets.map((bucket, bucketIndex) => (
+            <React.Fragment key={`${bucket.label}-${bucketIndex}`}>
+              {metrics.map((metric, metricIndex) => {
+                const value = getMetricValue(bucket, metric.key);
+                const barHeight = value >= 0
+                  ? (value / maximumMagnitude) * positiveHeight
+                  : (-value / maximumMagnitude) * negativeHeight;
+                const y = value >= 0 ? baseline - barHeight : baseline;
+                return (
+                  <Rect
+                    key={metric.key}
+                    x={xFor(bucketIndex, metricIndex)}
+                    y={y}
+                    width={barWidth}
+                    height={Math.max(1, barHeight)}
+                    fill={metric.color}
+                    rx={3}
+                  />
+                );
+              })}
+              <SvgText
+                x={6 + bucketIndex * (groupWidth + 9) + groupWidth / 2}
+                y={height - 13}
+                fill="#63727d"
+                fontSize="10"
+                textAnchor="middle"
+              >
+                {bucket.label}
+              </SvgText>
+            </React.Fragment>
+          ))}
+        </Svg>
+      </ScrollView>
+      <Text style={{ color: '#63727d', fontSize: 12, marginTop: 5 }}>
+        {t('barDateHint')} {t('profitLossHint')}
+      </Text>
+    </View>
+  );
+};
+
 const BusinessPerformanceTrendChart = ({
   buckets,
   currency,
@@ -117,43 +248,38 @@ const BusinessPerformanceTrendChart = ({
   currency: string;
   formatMoney: (value: number) => string;
 }) => {
+  const t = useBusinessPerformanceTranslation();
+  const [selected, setSelected] = useState<ChartSelection>('all');
   if (!buckets.length) return null;
 
+  const series = getVisibleMetrics(selected).map(metric => ({
+    ...metric,
+    label: t(metric.key),
+    values: buckets.map(bucket => getMetricValue(bucket, metric.key)),
+  }));
   const width = Math.max(360, buckets.length * 72);
   const height = 250;
   const padding = { top: 18, right: 16, bottom: 52, left: 90 };
   const chartWidth = width - padding.left - padding.right;
   const chartHeight = height - padding.top - padding.bottom;
-  const values = buckets.flatMap(bucket => [
-    bucket.revenue,
-    bucket.expenses,
-    bucket.revenue - bucket.expenses,
-  ]);
+  const values = series.flatMap(item => item.values);
   const minimum = Math.min(0, ...values);
   const maximum = Math.max(1, ...values);
   const yFor = (value: number) =>
     padding.top + ((maximum - value) / (maximum - minimum || 1)) * chartHeight;
   const xFor = (index: number) =>
     padding.left + index * (chartWidth / Math.max(1, buckets.length - 1));
-  const series = [
-    { key: 'revenue', label: 'Revenue', color: '#14804a', values: buckets.map(bucket => bucket.revenue) },
-    { key: 'expenses', label: 'Expenses', color: '#c46919', values: buckets.map(bucket => bucket.expenses) },
-    {
-      key: 'profit',
-      label: 'Profit',
-      color: '#1769aa',
-      values: buckets.map(bucket => bucket.revenue - bucket.expenses),
-    },
-  ];
   const tickValues = Array.from({ length: 5 }, (_, index) =>
     maximum - ((maximum - minimum) * index) / 4
   );
 
   return (
     <View style={{ marginTop: 22 }}>
-      <Text style={{ fontWeight: '800', color: '#243a4a', fontSize: 16 }}>
-        Performance trend
+      <Text style={{ fontWeight: '800', color: '#243a4a', fontSize: 15 }}>{t('performanceTrend')}</Text>
+      <Text style={{ color: '#63727d', fontSize: 11, marginTop: 3 }}>
+        {t('chartFilterHint')}
       </Text>
+      <ChartMetricSelector selected={selected} onSelect={setSelected} />
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginTop: 8, marginBottom: 8 }}>
         {series.map(item => (
           <View key={item.key} style={{ flexDirection: 'row', alignItems: 'center', marginRight: 14, marginBottom: 4 }}>
@@ -254,13 +380,14 @@ const BusinessPerformanceTrendChart = ({
         </Svg>
       </ScrollView>
       <Text style={{ color: '#63727d', fontSize: 12, marginTop: 4 }}>
-        Y-axis shows amounts in {currency}; X-axis shows time.
+        {t('axisAmounts')} ({currency}); {t('axisTime').toLowerCase()}.
       </Text>
     </View>
   );
 };
 
 const BusinessPerformanceScreen = () => {
+  const t = useBusinessPerformanceTranslation();
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
   const { nationality, ratesMap } = useExchange();
@@ -438,11 +565,11 @@ const BusinessPerformanceScreen = () => {
       );
     } catch (error) {
       console.error('Failed to load business performance data:', error);
-      Alert.alert('Unable to load analytics', 'Please try again.');
+      Alert.alert(t('loadAnalyticsFailed'), t('tryAgain'));
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     loadBusinessesAndRecords();
@@ -489,7 +616,7 @@ const BusinessPerformanceScreen = () => {
         if (active) setRecords(businessRecords);
       } catch (error) {
         console.error('Failed to load business performance analytics:', error);
-        if (active) Alert.alert('Unable to load analytics', 'Please try again.');
+        if (active) Alert.alert(t('loadAnalyticsFailed'), t('tryAgain'));
       } finally {
         if (active) setRecordsLoading(false);
       }
@@ -499,7 +626,7 @@ const BusinessPerformanceScreen = () => {
     return () => {
       active = false;
     };
-  }, [selectedBusiness, selectedOrganizationId, organizations, recordsRefreshKey]);
+  }, [selectedBusiness, selectedOrganizationId, organizations, recordsRefreshKey, t]);
 
   const selectedOrganization = organizations.find(organization => organization.id === selectedOrganizationId) || null;
   const selectedAccountIds = useMemo(
@@ -591,8 +718,8 @@ const BusinessPerformanceScreen = () => {
   const openManualEntry = (type: 'REVENUE' | 'EXPENSE') => {
     if (!nationality) {
       Alert.alert(
-        'Currency unavailable',
-        'We could not determine the signed-in user currency. Please try again after your account details load.'
+        t('currencyUnavailable'),
+        t('currencyUnavailableBody')
       );
       return;
     }
@@ -604,12 +731,12 @@ const BusinessPerformanceScreen = () => {
     if (!selectedBusiness || !ownerSub) return;
     const originalAmount = Number(amount);
     if (!Number.isFinite(originalAmount) || originalAmount <= 0) {
-      Alert.alert('Enter a valid amount.');
+      Alert.alert(t('validAmount'));
       return;
     }
     const quantityValue = quantity.trim() ? Number(quantity) : undefined;
     if (quantityValue !== undefined && (!Number.isFinite(quantityValue) || quantityValue <= 0)) {
-      Alert.alert('Enter a valid quantity.');
+      Alert.alert(t('validQuantity'));
       return;
     }
 
@@ -620,11 +747,11 @@ const BusinessPerformanceScreen = () => {
       const currencyCode = (entryCountryCode && countryToCurrency[entryCountryCode])
         || (rateKey && ratesMap?.[rateKey]?.cur);
       if (!entryNationality || !currencyCode) {
-        throw new Error('The signed-in user currency could not be determined.');
+        throw new Error(t('currencyUndetermined'));
       }
       const amountChf = await convertForeignToChf(originalAmount, entryNationality);
       if (!Number.isFinite(amountChf) || amountChf <= 0) {
-        throw new Error('The amount could not be converted to CHF.');
+        throw new Error(t('conversionFailed'));
       }
       const result: any = await client.graphql({
         query: createBusinessPerformanceRecord,
@@ -647,15 +774,17 @@ const BusinessPerformanceScreen = () => {
         },
       });
       if (!result?.data?.createBusinessPerformanceRecord?.id) {
-        throw new Error('The analytics entry was not saved.');
+        throw new Error(t('entryNotSaved'));
       }
       resetEntry();
       await loadBusinessesAndRecords();
     } catch (error) {
       console.error('Failed to save business performance entry:', error);
       Alert.alert(
-        'Unable to save entry',
-        error instanceof Error ? error.message : 'Please check the details and try again.'
+        t('saveEntryFailed'),
+        error instanceof Error && error.message.startsWith('No valid CHF exchange rate')
+          ? t('currencyRateUnavailable')
+          : t('checkDetails')
       );
     } finally {
       setSaving(false);
@@ -686,23 +815,23 @@ const BusinessPerformanceScreen = () => {
       return;
     }
     Alert.alert(
-      'No branches available to link',
-      'To create an organization, your account must have created at least two unlinked business branches. To add branches, you must have created an organization and at least one unlinked branch.'
+      t('noBranchesTitle'),
+      t('noBranchesBody')
     );
-  }, [loading, route.params?.openOrganizationLinking, creatorBusinesses.length, creatorOrganizations.length]);
+  }, [loading, route.params?.openOrganizationLinking, creatorBusinesses.length, creatorOrganizations.length, t]);
   const saveOrganization = async () => {
     const minimumBranches = organizationToExtend ? 1 : 2;
     if (selectedBranchIds.length < minimumBranches) {
       Alert.alert(
-        'Select branches',
+        t('selectBranchesTitle'),
         organizationToExtend
-          ? 'Select at least one unlinked branch to add.'
-          : 'Select at least two branches to create a multi-branch organization.'
+          ? t('selectOneBranch')
+          : t('selectTwoBranches')
       );
       return;
     }
     if (!organizationToExtend && !organizationName.trim()) {
-      Alert.alert('Enter an organization name.');
+      Alert.alert(t('enterOrganizationName'));
       return;
     }
 
@@ -719,7 +848,7 @@ const BusinessPerformanceScreen = () => {
           },
         });
         organizationId = result?.data?.createBusinessOrganization?.id;
-        if (!organizationId) throw new Error('The organization was not confirmed by the backend.');
+        if (!organizationId) throw new Error(t('organizationNotConfirmed'));
         organizationCreated = true;
       }
 
@@ -732,7 +861,7 @@ const BusinessPerformanceScreen = () => {
           },
         });
         if (!result?.data?.updateBizna?.BusKntct) {
-          throw new Error(`Branch ${BusKntct} was not linked.`);
+          throw new Error(t('branchNotLinked', { branch: BusKntct }));
         }
         linkedCount += 1;
       }
@@ -744,13 +873,13 @@ const BusinessPerformanceScreen = () => {
         closeOrganizationModal();
         await loadBusinessesAndRecords();
         Alert.alert(
-          organizationCreated ? 'Organization created' : 'Partially linked',
+          organizationCreated ? t('organizationCreated') : t('partiallyLinked'),
           organizationCreated && linkedCount === 0
-            ? 'The organization was saved, but no branches were linked. You can try adding branches again.'
-            : `${linkedCount} branch${linkedCount === 1 ? '' : 'es'} linked. One or more remaining branches could not be linked; refresh and try again.`
+            ? t('organizationSavedNoBranches')
+            : t('someBranchesNotLinked', { count: linkedCount })
         );
       } else {
-        Alert.alert('Unable to link branches', 'No branches were linked. Please refresh and try again.');
+        Alert.alert(t('unableToLinkBranches'), t('noBranchesLinked'));
       }
     } finally {
       setOrganizationSaving(false);
@@ -760,44 +889,43 @@ const BusinessPerformanceScreen = () => {
   if (loading) {
     return <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
       <ActivityIndicator size="large" />
-      <Text style={{ marginTop: 10 }}>Loading business performance...</Text>
+      <Text style={{ marginTop: 10 }}>{t('loadingPerformance')}</Text>
     </View>;
   }
 
   if (!businesses.length && !organizations.length && !createdBusinesses.length) {
     return <View style={{ flex: 1, justifyContent: 'center', padding: 24 }}>
-      <Text style={{ fontSize: 21, fontWeight: '700', textAlign: 'center' }}>Business performance</Text>
+      <Text style={{ fontSize: 21, fontWeight: '700', textAlign: 'center' }}>{t('businessPerformance')}</Text>
       <Text style={{ marginTop: 12, textAlign: 'center', color: '#52616b' }}>
-        No business records list {signedInEmail || 'your signed-in email'} in Admin1 through Admin50.
+        {t('noBusinessRecords', { email: signedInEmail || '' })}
       </Text>
       <Text style={{ marginTop: 8, textAlign: 'center', color: '#63727d' }}>
-        Checked {businessLookupCount} Bizna record{businessLookupCount === 1 ? '' : 's'}. Confirm the email in the backend admin fields matches the signed-in email.
+        {t('checkedRecords', { count: businessLookupCount })} {t('verifyAdminEmail')}
       </Text>
       <TouchableOpacity
         onPress={loadBusinessesAndRecords}
         style={{ marginTop: 16, alignSelf: 'center', paddingVertical: 10, paddingHorizontal: 18, borderRadius: 8, backgroundColor: '#1678b9' }}
       >
-        <Text style={{ color: '#fff', fontWeight: '700' }}>Refresh business list</Text>
+        <Text style={{ color: '#fff', fontWeight: '700' }}>{t('refreshBusinessList')}</Text>
       </TouchableOpacity>
     </View>;
   }
 
-  const maxValue = Math.max(1, ...chartBuckets.flatMap(bucket => [bucket.revenue, bucket.expenses]));
   const dateButton = (label: string, value: Date, target: 'from' | 'to') => (
     <TouchableOpacity
       onPress={() => setDatePickerTarget(target)}
       style={{ flex: 1, padding: 11, borderRadius: 9, backgroundColor: '#f0f4f7' }}
     >
-      <Text style={{ color: '#53636e', fontSize: 12 }}>{label}</Text>
+      <Text style={{ color: '#53636e', fontSize: 12 }}>{t(label === 'FROM' ? 'from' : 'to')}</Text>
       <Text style={{ fontWeight: '700', marginTop: 4 }}>{value.toLocaleDateString()}</Text>
     </TouchableOpacity>
   );
 
   return (
     <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 36, backgroundColor: '#fff' }}>
-      <Text style={{ fontSize: 23, fontWeight: '800', color: '#243a4a' }}>Business performance</Text>
+      <Text style={{ fontSize: 23, fontWeight: '800', color: '#243a4a' }}>{t('businessPerformance')}</Text>
       <Text style={{ marginTop: 5, color: '#63727d' }}>
-        Revenue, expenses, and profit for the selected branch or combined organization.
+        {t('performanceSummary')}
       </Text>
 
       <View style={{
@@ -811,11 +939,11 @@ const BusinessPerformanceScreen = () => {
         backgroundColor: '#f4f8fb',
       }}>
         <Text style={{ flex: 1, color: '#344955', fontWeight: '700' }} numberOfLines={1}>
-          {selectedOrganization?.name || selectedBusiness?.busName || 'Select a business'}
+          {selectedOrganization?.name || selectedBusiness?.busName || t('selectBusiness')}
         </Text>
         <TouchableOpacity
           accessibilityRole="button"
-          accessibilityLabel="Reload business performance records"
+          accessibilityLabel={t('reloadRecords')}
           accessibilityState={{ disabled: recordsLoading || !selectedAccountIds.length, busy: recordsLoading }}
           disabled={recordsLoading || !selectedAccountIds.length}
           onPress={() => setRecordsRefreshKey(current => current + 1)}
@@ -838,7 +966,7 @@ const BusinessPerformanceScreen = () => {
 
       {organizations.length > 0 && (
         <>
-          <Text style={{ marginTop: 15, fontWeight: '700', color: '#344955' }}>Organizations</Text>
+          <Text style={{ marginTop: 15, fontWeight: '700', color: '#344955' }}>{t('organizations')}</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 8 }}>
             {organizations.map(organization => (
               <TouchableOpacity
@@ -866,7 +994,7 @@ const BusinessPerformanceScreen = () => {
 
       {businesses.length > 0 && (
         <>
-          <Text style={{ marginTop: 15, fontWeight: '700', color: '#344955' }}>Individual branches</Text>
+          <Text style={{ marginTop: 15, fontWeight: '700', color: '#344955' }}>{t('individualBranches')}</Text>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 16 }}>
         {businesses.map(business => (
           <TouchableOpacity
@@ -896,7 +1024,7 @@ const BusinessPerformanceScreen = () => {
         <View style={{ marginTop: 8 }}>
           {creatorBusinesses.length >= 2 && (
             <TouchableOpacity onPress={() => openOrganizationModal()} style={{ paddingVertical: 7 }}>
-              <Text style={{ color: '#1678b9', fontWeight: '700' }}>Create a multi-branch organization</Text>
+              <Text style={{ color: '#1678b9', fontWeight: '700' }}>{t('createOrganization')}</Text>
             </TouchableOpacity>
           )}
           {creatorBusinesses.length > 0 && creatorOrganizations.map(organization => (
@@ -905,7 +1033,7 @@ const BusinessPerformanceScreen = () => {
               onPress={() => openOrganizationModal(organization)}
               style={{ paddingVertical: 7 }}
             >
-              <Text style={{ color: '#1678b9', fontWeight: '700' }}>Add branches to {organization.name}</Text>
+              <Text style={{ color: '#1678b9', fontWeight: '700' }}>{t('addBranchesTo', { name: organization.name })}</Text>
             </TouchableOpacity>
           ))}
         </View>
@@ -930,14 +1058,14 @@ const BusinessPerformanceScreen = () => {
         />
       )}
       {fromDate > toDate && (
-        <Text style={{ color: '#b42318', marginTop: 8 }}>The start date must be before the end date.</Text>
+        <Text style={{ color: '#b42318', marginTop: 8 }}>{t('dateOrderError')}</Text>
       )}
 
       <View style={{ flexDirection: 'row', gap: 8, marginTop: 16 }}>
         {[
-          { title: 'Revenue', value: totals.revenue, color: '#14804a' },
-          { title: 'Expenses', value: totals.expenses, color: '#c46919' },
-          { title: 'Profit', value: totals.revenue - totals.expenses, color: '#1769aa' },
+          { title: t('revenue'), value: totals.revenue, color: '#14804a' },
+          { title: t('expenses'), value: totals.expenses, color: '#c46919' },
+          { title: t('profit'), value: totals.revenue - totals.expenses, color: '#1769aa' },
         ].map(card => (
           <View key={card.title} style={{ flex: 1, padding: 11, borderRadius: 10, backgroundColor: '#f5f7f9' }}>
             <Text style={{ color: '#53636e', fontSize: 12 }}>{card.title}</Text>
@@ -952,43 +1080,21 @@ const BusinessPerformanceScreen = () => {
         <View style={{ padding: 20, marginTop: 18, borderRadius: 12, backgroundColor: '#f4f8fb' }}>
           <ActivityIndicator />
           <Text style={{ textAlign: 'center', color: '#63727d', marginTop: 8 }}>
-            Loading analytics for {selectedOrganization?.name || selectedBusiness?.busName || 'business'}...
+            {t('loadingAnalytics', { name: selectedOrganization?.name || selectedBusiness?.busName || t('selectBusiness') })}
           </Text>
         </View>
       ) : businessRecords.length === 0 ? (
         <View style={{ padding: 20, marginTop: 18, borderRadius: 12, backgroundColor: '#f4f8fb' }}>
           <Text style={{ textAlign: 'center', fontWeight: '700', color: '#243a4a' }}>
-            {hasBusinessAnalytics ? 'No analytics are available for this date range.' : 'Transact on MiFedha to enjoy this free service.'}
+            {hasBusinessAnalytics ? t('noAnalyticsInRange') : t('transactForFree')}
           </Text>
           <Text style={{ textAlign: 'center', color: '#63727d', marginTop: 6 }}>
-            {hasBusinessAnalytics
-              ? 'Choose a different period or add a revenue or expense from business activity outside NiSenti.'
-              : 'You can also add revenue or expenses from business activity outside NiSenti.'}
+            {hasBusinessAnalytics ? t('rangeOrOutsideHint') : t('noAnalyticsYet')}
           </Text>
         </View>
       ) : (
         <View style={{ marginTop: 20, padding: 14, borderRadius: 12, backgroundColor: '#f8fafb' }}>
-          <Text style={{ fontWeight: '800', color: '#243a4a', fontSize: 16 }}>Revenue and expenses</Text>
-          <View style={{ flexDirection: 'row', marginTop: 9, marginBottom: 12 }}>
-            <Text style={{ color: '#14804a', marginRight: 16 }}>■ Revenue</Text>
-            <Text style={{ color: '#c46919' }}>■ Expenses</Text>
-          </View>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            <View style={{ flexDirection: 'row', alignItems: 'flex-end', minHeight: 180 }}>
-              {chartBuckets.map((bucket, index) => (
-                <View key={`${bucket.label}-${index}`} style={{ width: 58, alignItems: 'center', marginRight: 5 }}>
-                  <View style={{ height: 145, flexDirection: 'row', alignItems: 'flex-end', gap: 4 }}>
-                    <View style={{ width: 17, height: Math.max(2, 130 * bucket.revenue / maxValue), backgroundColor: '#14804a', borderTopLeftRadius: 4, borderTopRightRadius: 4 }} />
-                    <View style={{ width: 17, height: Math.max(2, 130 * bucket.expenses / maxValue), backgroundColor: '#c46919', borderTopLeftRadius: 4, borderTopRightRadius: 4 }} />
-                  </View>
-                  <Text style={{ color: '#63727d', fontSize: 10, marginTop: 7 }}>{bucket.label}</Text>
-                </View>
-              ))}
-            </View>
-          </ScrollView>
-          <Text style={{ color: '#63727d', fontSize: 12, marginTop: 5 }}>
-            Bars group by day; longer periods are grouped by week.
-          </Text>
+          <BusinessPerformanceBarChart buckets={chartBuckets} />
           <BusinessPerformanceTrendChart
             buckets={chartBuckets}
             currency={displayCurrency}
@@ -1026,13 +1132,13 @@ const BusinessPerformanceScreen = () => {
           onPress={() => openManualEntry('REVENUE')}
           style={{ flex: 1, padding: 13, borderRadius: 9, backgroundColor: '#14804a', alignItems: 'center' }}
         >
-          <Text style={{ color: '#fff', fontWeight: '800' }}>Add outside revenue</Text>
+          <Text style={{ color: '#fff', fontWeight: '800' }}>{t('addOutsideRevenue')}</Text>
         </TouchableOpacity>
         <TouchableOpacity
           onPress={() => openManualEntry('EXPENSE')}
           style={{ flex: 1, padding: 13, borderRadius: 9, backgroundColor: '#c46919', alignItems: 'center' }}
         >
-          <Text style={{ color: '#fff', fontWeight: '800' }}>Add outside expense</Text>
+          <Text style={{ color: '#fff', fontWeight: '800' }}>{t('addOutsideExpense')}</Text>
         </TouchableOpacity>
       </View>}
 
@@ -1043,18 +1149,18 @@ const BusinessPerformanceScreen = () => {
             contentContainerStyle={{ backgroundColor: '#fff', borderRadius: 14, padding: 18 }}
           >
             <Text style={{ color: '#243a4a', fontWeight: '800', fontSize: 19 }}>
-              {organizationToExtend ? `Add branches to ${organizationToExtend.name}` : 'Create an organization'}
+              {organizationToExtend ? t('addBranchesTo', { name: organizationToExtend.name }) : t('createOrganization')}
             </Text>
             {!organizationToExtend && (
               <TextInput
                 value={organizationName}
                 onChangeText={setOrganizationName}
-                placeholder="Organization name"
+                placeholder={t('organizationName')}
                 style={{ borderWidth: 1, borderColor: '#ccd5dc', borderRadius: 8, padding: 11, marginTop: 14 }}
               />
             )}
             <Text style={{ color: '#63727d', marginTop: 14, marginBottom: 8 }}>
-              Only branches created by your signed-in account and not already linked are listed.
+              {t('branchEligibility')}
             </Text>
             {creatorBusinesses.map(business => {
               const checked = selectedBranchIds.includes(business.BusKntct);
@@ -1079,7 +1185,7 @@ const BusinessPerformanceScreen = () => {
                 disabled={organizationSaving}
                 style={{ flex: 1, padding: 12, borderRadius: 8, backgroundColor: '#eef3f6', alignItems: 'center', marginRight: 8 }}
               >
-                <Text style={{ color: '#344955', fontWeight: '700' }}>Cancel</Text>
+                <Text style={{ color: '#344955', fontWeight: '700' }}>{t('cancel')}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={saveOrganization}
@@ -1087,7 +1193,7 @@ const BusinessPerformanceScreen = () => {
                 style={{ flex: 1, padding: 12, borderRadius: 8, backgroundColor: '#1678b9', alignItems: 'center' }}
               >
                 <Text style={{ color: '#fff', fontWeight: '800' }}>
-                  {organizationSaving ? 'Saving...' : organizationToExtend ? 'Link branches' : 'Create and link'}
+                  {organizationSaving ? t('saving') : organizationToExtend ? t('linkBranches') : t('createAndLink')}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -1102,48 +1208,48 @@ const BusinessPerformanceScreen = () => {
             contentContainerStyle={{ padding: 18, borderRadius: 14, backgroundColor: '#fff' }}
           >
             <Text style={{ fontWeight: '800', fontSize: 19, color: '#243a4a' }}>
-              Add outside {recordType.toLowerCase()}
+              {recordType === 'REVENUE' ? t('addOutsideRevenueTitle') : t('addOutsideExpenseTitle')}
             </Text>
             <Text style={{ color: '#63727d', marginTop: 5 }}>
-              Enter the amount in {entryCurrencyLabel}. It is converted to CHF for reporting. No buyer identity is collected.
+              {t('entryCurrencyNotice', { currency: entryCurrencyLabel })}
             </Text>
             <TextInput
               value={amount}
               onChangeText={setAmount}
               keyboardType="decimal-pad"
-              placeholder={`Amount (${entryCurrencyLabel})`}
+              placeholder={t('amountPlaceholder', { currency: entryCurrencyLabel })}
               style={{ borderWidth: 1, borderColor: '#ccd5dc', borderRadius: 8, padding: 11, marginTop: 14 }}
             />
             <TextInput
               value={description}
               onChangeText={setDescription}
-              placeholder="Description (optional)"
+              placeholder={t('descriptionOptional')}
               style={{ borderWidth: 1, borderColor: '#ccd5dc', borderRadius: 8, padding: 11, marginTop: 9 }}
             />
             <TextInput
               value={itemName}
               onChangeText={setItemName}
-              placeholder="Item or service (optional)"
+              placeholder={t('itemOptional')}
               style={{ borderWidth: 1, borderColor: '#ccd5dc', borderRadius: 8, padding: 11, marginTop: 9 }}
             />
             <TextInput
               value={category}
               onChangeText={setCategory}
-              placeholder="Category (optional)"
+              placeholder={t('categoryOptional')}
               style={{ borderWidth: 1, borderColor: '#ccd5dc', borderRadius: 8, padding: 11, marginTop: 9 }}
             />
             <TextInput
               value={quantity}
               onChangeText={setQuantity}
               keyboardType="decimal-pad"
-              placeholder="Quantity (optional)"
+              placeholder={t('quantityOptional')}
               style={{ borderWidth: 1, borderColor: '#ccd5dc', borderRadius: 8, padding: 11, marginTop: 9 }}
             />
             <TouchableOpacity
               onPress={() => setShowEntryDatePicker(true)}
               style={{ padding: 12, borderRadius: 8, backgroundColor: '#f0f4f7', marginTop: 9 }}
             >
-              <Text>Transaction date: {entryDate.toLocaleDateString()}</Text>
+              <Text>{t('transactionDate', { date: entryDate.toLocaleDateString() })}</Text>
             </TouchableOpacity>
             {showEntryDatePicker && (
               <DateTimePicker
@@ -1158,14 +1264,14 @@ const BusinessPerformanceScreen = () => {
             )}
             <View style={{ flexDirection: 'row', gap: 10, marginTop: 16 }}>
               <TouchableOpacity onPress={resetEntry} style={{ flex: 1, padding: 12, alignItems: 'center' }}>
-                <Text>Cancel</Text>
+                <Text>{t('cancel')}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 disabled={saving}
                 onPress={saveManualEntry}
                 style={{ flex: 1, padding: 12, borderRadius: 8, backgroundColor: '#1678b9', alignItems: 'center' }}
               >
-                {saving ? <ActivityIndicator color="#fff" /> : <Text style={{ color: '#fff', fontWeight: '800' }}>Save entry</Text>}
+                {saving ? <ActivityIndicator color="#fff" /> : <Text style={{ color: '#fff', fontWeight: '800' }}>{t('saveEntry')}</Text>}
               </TouchableOpacity>
             </View>
           </ScrollView>

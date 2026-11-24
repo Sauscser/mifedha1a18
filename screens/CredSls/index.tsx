@@ -193,13 +193,13 @@ const MyLoanAccount = () => {
               onPress: OpenBusinessPerformance,
               style: styles.viewForClientsPressables
             }, {
-              label: 'Link Business Branches',
+              label: 'linkBusinessBranches',
               onPress: OpenBusinessBranchLinking,
               style: styles.viewForClientsPressables
             }]} />
             
-             <Section title="Cascade Payments" options={[{
-              label: 'Cascade Payments',
+             <Section title="cascadePayments" options={[{
+              label: 'cascadePayments',
               onPress: OpenCascadePayments,
               style: styles.viewForClientsPressables
             }]} />

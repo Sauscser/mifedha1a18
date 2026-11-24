@@ -14,6 +14,7 @@ import translations from './translation';
 import { safeNavigateFrom } from '../../../../../src/utils/navigationHelper';
 import * as Location from 'expo-location';
 import { saveBusinessPerformanceEntry } from '../../../../../src/utils/businessPerformance';
+import { useBusinessPerformanceTranslation } from '../../../BusinessPerformance/translation';
 
 const client = generateClient();
 const SMASendNonLns = props => {
@@ -22,6 +23,7 @@ const SMASendNonLns = props => {
   const navigation = useNavigation();
   const { ratesMap } = useExchange();
   const { i18n } = useTranslation();
+  const tPerformance = useBusinessPerformanceTranslation();
   const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
   const t = translations[lang] || translations.en;
   const fmt = (template: string, vars: Record<string, string | number>) =>
@@ -299,7 +301,7 @@ const SMASendNonLns = props => {
         Alert.alert(fmt(t.amountFee, {
           amount: formatAmountSync(parseFloat(amount), userCode, ratesMap),
           fee: formatAmountSync(parseFloat(UsrTransferFeeAmt), userCode, ratesMap)
-        }) + (analyticsRecorded ? '' : '\n\nBusiness analytics could not record this purchase. Check the app logs.'));
+        }) + (analyticsRecorded ? '' : `\n\n${tPerformance('analyticsCaptureFailed')}`));
       }
       async function sendSMNonLn11() {
         await client.graphql({
@@ -362,7 +364,7 @@ const SMASendNonLns = props => {
         const analyticsRecorded = await recordB2BCashPurchaseAnalytics();
         Alert.alert(fmt(t.lowFeeSent, {
           amount: parseFloat(amount).toFixed(0)
-        }) + (analyticsRecorded ? '' : '\n\nBusiness analytics could not record this purchase. Check the app logs.'));
+        }) + (analyticsRecorded ? '' : `\n\n${tPerformance('analyticsCaptureFailed')}`));
       }
       async function sendSMNonLn9() {
         // Same cascade style preserved for Public receiver
@@ -424,7 +426,7 @@ const SMASendNonLns = props => {
           }
         });
         const analyticsRecorded = await recordB2BCashPurchaseAnalytics();
-        Alert.alert(t.publicReceiverSuccess + (analyticsRecorded ? '' : '\n\nBusiness analytics could not record this purchase. Check the app logs.'));
+        Alert.alert(t.publicReceiverSuccess + (analyticsRecorded ? '' : `\n\n${tPerformance('analyticsCaptureFailed')}`));
       }
       async function sendSMNonLn7() {
         // Cascade for Public sender and Public receiver
@@ -486,7 +488,7 @@ const SMASendNonLns = props => {
           }
         });
         const analyticsRecorded = await recordB2BCashPurchaseAnalytics();
-        Alert.alert(t.publicSenderReceiverSuccess + (analyticsRecorded ? '' : '\n\nBusiness analytics could not record this purchase. Check the app logs.'));
+        Alert.alert(t.publicSenderReceiverSuccess + (analyticsRecorded ? '' : `\n\n${tPerformance('analyticsCaptureFailed')}`));
       }
     } catch (error) {
       console.error(error);

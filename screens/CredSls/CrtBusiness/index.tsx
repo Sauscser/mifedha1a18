@@ -13,7 +13,8 @@ import { generateClient } from "aws-amplify/api";
 const client = generateClient();
 const CreateBiz = () => {
   const { i18n } = useTranslation();
-  const t = translations[i18n.language] || translations.en;
+  const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
+  const t = { ...translations.en, ...(translations[lang] || {}) };
   const navigation = useNavigation();
   const [isLoading, setIsLoading] = useState(false);
   const [businessName, setBusinessName] = useState("");

@@ -12,6 +12,7 @@ import {
   businessPerformanceTargetsByBusiness,
   businessPerformanceTargetsByOrganization,
 } from '../../../src/graphql/queries';
+import { useBusinessPerformanceTranslation } from './translation';
 
 const client = generateClient();
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -85,14 +86,14 @@ const dateForYear = (date: Date, year: number) => {
 };
 
 const metrics: Array<{ value: Metric; label: string }> = [
-  { value: 'PROFIT', label: 'Profit' },
-  { value: 'REVENUE', label: 'Revenue' },
-  { value: 'EXPENSES', label: 'Expenses' },
+  { value: 'PROFIT', label: '' },
+  { value: 'REVENUE', label: '' },
+  { value: 'EXPENSES', label: '' },
 ];
 const periods: Array<{ value: Period; label: string }> = [
-  { value: 'DAILY', label: 'Daily' },
-  { value: 'WEEKLY', label: 'Weekly' },
-  { value: 'MONTHLY', label: 'Monthly' },
+  { value: 'DAILY', label: '' },
+  { value: 'WEEKLY', label: '' },
+  { value: 'MONTHLY', label: '' },
 ];
 
 const metricValue = (records: RecordRow[], metric: Metric) => records.reduce((sum, record) => {
@@ -120,6 +121,7 @@ const TargetSeriesChart = ({
   toDate: Date;
   formatMoney: (amount: number) => string;
 }) => {
+  const t = useBusinessPerformanceTranslation();
   const historicalDataAvailable = target.method !== 'HISTORICAL'
     || records.some(record => new Date(record.occurredAt).getFullYear() === target.baselineYear);
   const points = useMemo(() => {
@@ -205,10 +207,12 @@ const TargetSeriesChart = ({
     <View style={{ marginTop: 16 }}>
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginBottom: 8 }}>
         <Text style={{ color: '#1769aa', fontWeight: '700', marginRight: 14 }}>
-          — Actual {target.method === 'FORMULA' ? 'revenue' : target.metric.toLowerCase()}
+          — {t('targetActualLabel', {
+            metric: t(target.method === 'FORMULA' ? 'revenue' : target.metric.toLowerCase() as 'profit' | 'revenue' | 'expenses'),
+          })}
         </Text>
         <Text style={{ color: '#b42318', fontWeight: '700' }}>
-          {historical ? '- - Baseline' : '- - Target'}
+          {historical ? `- - ${t('targetBaselineLabel')}` : `- - ${t('targetGoalLabel')}`}
         </Text>
       </View>
       <ScrollView horizontal showsHorizontalScrollIndicator>
@@ -253,15 +257,15 @@ const TargetSeriesChart = ({
       </ScrollView>
       {points.length > 0 && (
         <Text style={{ color: '#63727d', fontSize: 12, marginTop: 4 }}>
-          Latest actual: {formatMoney(points[points.length - 1].actual)}
+          {t('latestActual', { amount: formatMoney(points[points.length - 1].actual) })}
           {points[points.length - 1].target === undefined
             ? ''
-            : ` · Target: ${formatMoney(points[points.length - 1].target as number)}`}
+            : ` · ${t('target')}: ${formatMoney(points[points.length - 1].target as number)}`}
         </Text>
       )}
       {!historicalDataAvailable && (
         <Text style={{ color: '#a15c00', fontSize: 12, marginTop: 5 }}>
-          No records were found for {target.baselineYear}. Add or import historical records to show this comparison.
+          {t('noHistoricalRecords', { year: target.baselineYear })}
         </Text>
       )}
     </View>
@@ -269,6 +273,7 @@ const TargetSeriesChart = ({
 };
 
 const BusinessTargets = ({ business, organizationId, records, fromDate, toDate, email, formatMoney }: Props) => {
+  const t = useBusinessPerformanceTranslation();
   const [targets, setTargets] = useState<Target[]>([]);
   const [selectedTargetId, setSelectedTargetId] = useState('');
   const [visible, setVisible] = useState(false);
@@ -314,9 +319,9 @@ const BusinessTargets = ({ business, organizationId, records, fromDate, toDate, 
   useEffect(() => {
     loadTargets().catch(error => {
       console.error('Failed to load business performance targets:', error);
-      Alert.alert('Unable to load targets', 'Please try again.');
+      Alert.alert(t('loadTargetsFailed'), t('tryAgain'));
     });
-  }, [loadTargets]);
+  }, [loadTargets, t]);
 
   const selectedTarget = useMemo(
     () => targets.find(target => target.id === selectedTargetId) || null,
@@ -344,16 +349,16 @@ const BusinessTargets = ({ business, organizationId, records, fromDate, toDate, 
     const amountValue = Number(amount);
     const yearValue = Number(baselineYear);
     const marginValue = Number(marginPercent);
-    if (!name.trim()) return Alert.alert('Enter a target name.');
-    if (!starts || !ends || starts > ends) return Alert.alert('Enter a valid target date range.');
+    if (!name.trim()) return Alert.alert(t('enterTargetName'));
+    if (!starts || !ends || starts > ends) return Alert.alert(t('validTargetRange'));
     if (method === 'FIXED' && (!Number.isFinite(amountValue) || amountValue <= 0)) {
-      return Alert.alert('Enter a valid target amount in KES.');
+      return Alert.alert(t('validTargetAmount'));
     }
     if (method === 'HISTORICAL' && (!Number.isInteger(yearValue) || yearValue < 1900 || yearValue >= starts.getFullYear())) {
-      return Alert.alert('Enter a baseline year before the target start year.');
+      return Alert.alert(t('baselineBeforeStart'));
     }
     if (method === 'FORMULA' && (!Number.isFinite(marginValue) || marginValue < 0 || marginValue > 10000)) {
-      return Alert.alert('Enter a valid revenue margin percentage.');
+      return Alert.alert(t('validMargin'));
     }
 
     setSaving(true);
@@ -385,14 +390,14 @@ const BusinessTargets = ({ business, organizationId, records, fromDate, toDate, 
         ? result?.data?.updateBusinessPerformanceTarget
         : result?.data?.createBusinessPerformanceTarget;
       if (!savedTarget?.id) {
-        throw new Error('The performance target was not confirmed by the backend.');
+        throw new Error(t('saveTargetFailed'));
       }
       await loadTargets();
       setSelectedTargetId(savedTarget.id);
       resetForm();
     } catch (error) {
       console.error('Failed to save business performance target:', error);
-      Alert.alert('Unable to save target', 'Please check the details and try again.');
+      Alert.alert(t('saveTargetFailed'), t('checkDetails'));
     } finally {
       setSaving(false);
     }
@@ -440,10 +445,10 @@ const BusinessTargets = ({ business, organizationId, records, fromDate, toDate, 
 
   const removeSelectedTarget = () => {
     if (!selectedTarget) return;
-    Alert.alert('Delete target?', `Delete "${selectedTarget.name}"?`, [
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert(t('deleteTargetConfirm'), `${t('targetName')}: ${selectedTarget.name}`, [
+      { text: t('cancel'), style: 'cancel' },
       {
-        text: 'Delete',
+        text: t('deleteTarget'),
         style: 'destructive',
         onPress: async () => {
           try {
@@ -454,7 +459,7 @@ const BusinessTargets = ({ business, organizationId, records, fromDate, toDate, 
             await loadTargets();
           } catch (error) {
             console.error('Failed to delete business performance target:', error);
-            Alert.alert('Unable to delete target', 'Please try again.');
+            Alert.alert(t('deleteTargetFailed'), t('tryAgain'));
           }
         },
       },
@@ -490,9 +495,9 @@ const BusinessTargets = ({ business, organizationId, records, fromDate, toDate, 
 
   return (
     <View style={{ marginTop: 20, padding: 14, borderRadius: 12, backgroundColor: '#f8fafb' }}>
-      <Text style={{ fontWeight: '800', color: '#243a4a', fontSize: 16 }}>Business targets</Text>
+      <Text style={{ fontWeight: '800', color: '#243a4a', fontSize: 16 }}>{t('businessTargets')}</Text>
       <Text style={{ marginTop: 5, color: '#63727d', fontSize: 12 }}>
-        Compare actual performance with a historical baseline, fixed goal, or expense-based revenue goal.
+        {t('targetSummary')}
       </Text>
 
       {targets.length > 0 && (
@@ -521,10 +526,20 @@ const BusinessTargets = ({ business, organizationId, records, fromDate, toDate, 
         <>
           <Text style={{ color: '#344955', fontSize: 12, marginTop: 8 }}>
             {selectedTarget.method === 'HISTORICAL'
-              ? `${selectedTarget.metric.toLowerCase()} compared with ${selectedTarget.baselineYear}`
+              ? t('historicalComparedWith', {
+                metric: t(selectedTarget.metric.toLowerCase() as 'profit' | 'revenue' | 'expenses'),
+                year: selectedTarget.baselineYear || '',
+              })
               : selectedTarget.method === 'FIXED'
-                ? `${selectedTarget.metric.toLowerCase()} target: ${formatMoney(Number(selectedTarget.amountKes || 0))} per ${selectedTarget.period.toLowerCase()}`
-                : `Revenue target: expenses × ${1 + Number(selectedTarget.marginPercent || 0) / 100} per ${selectedTarget.period.toLowerCase()}`}
+                ? t('fixedTargetPer', {
+                  metric: t(selectedTarget.metric.toLowerCase() as 'profit' | 'revenue' | 'expenses'),
+                  amount: formatMoney(Number(selectedTarget.amountKes || 0)),
+                  period: t(selectedTarget.period.toLowerCase() as 'daily' | 'weekly' | 'monthly'),
+                })
+                : t('formulaTargetPer', {
+                  factor: 1 + Number(selectedTarget.marginPercent || 0) / 100,
+                  period: t(selectedTarget.period.toLowerCase() as 'daily' | 'weekly' | 'monthly'),
+                })}
           </Text>
           <TargetSeriesChart
             target={selectedTarget}
@@ -535,22 +550,22 @@ const BusinessTargets = ({ business, organizationId, records, fromDate, toDate, 
           />
           <View style={{ flexDirection: 'row', marginTop: 10 }}>
             <TouchableOpacity onPress={editSelectedTarget} style={{ marginRight: 18 }}>
-              <Text style={{ color: '#1678b9', fontWeight: '700' }}>Edit selected target</Text>
+              <Text style={{ color: '#1678b9', fontWeight: '700' }}>{t('editTarget')}</Text>
             </TouchableOpacity>
             <TouchableOpacity onPress={removeSelectedTarget}>
-              <Text style={{ color: '#b42318', fontWeight: '700' }}>Delete selected target</Text>
+              <Text style={{ color: '#b42318', fontWeight: '700' }}>{t('deleteTarget')}</Text>
             </TouchableOpacity>
           </View>
         </>
       ) : (
-        <Text style={{ color: '#63727d', marginTop: 10, fontSize: 12 }}>No targets set for this business yet.</Text>
+        <Text style={{ color: '#63727d', marginTop: 10, fontSize: 12 }}>{t('noTargets')}</Text>
       )}
 
       <TouchableOpacity
         onPress={openNewTarget}
         style={{ marginTop: 12, padding: 12, borderRadius: 9, backgroundColor: '#1678b9', alignItems: 'center' }}
       >
-        <Text style={{ color: '#fff', fontWeight: '800' }}>Set a business target</Text>
+        <Text style={{ color: '#fff', fontWeight: '800' }}>{t('setTarget')}</Text>
       </TouchableOpacity>
 
       <Modal visible={visible} transparent animationType="slide" onRequestClose={resetForm}>
@@ -560,33 +575,39 @@ const BusinessTargets = ({ business, organizationId, records, fromDate, toDate, 
             contentContainerStyle={{ backgroundColor: '#fff', borderRadius: 14, padding: 18, marginVertical: 28 }}
           >
             <Text style={{ color: '#243a4a', fontWeight: '800', fontSize: 19 }}>
-              {editingTargetId ? 'Edit target' : 'Create a target'}
+              {editingTargetId ? t('editTarget') : t('createTarget')}
             </Text>
             <Text style={{ color: '#63727d', fontSize: 12, marginTop: 4 }}>{business.busName}</Text>
 
-            <Text style={fieldLabel}>Target name</Text>
-            <TextInput value={name} onChangeText={setName} placeholder="e.g. 2026 profit goal" style={inputStyle} />
+            <Text style={fieldLabel}>{t('targetName')}</Text>
+            <TextInput value={name} onChangeText={setName} placeholder={t('targetName')} style={inputStyle} />
 
-            <Text style={fieldLabel}>Target method</Text>
+            <Text style={fieldLabel}>{t('targetMethod')}</Text>
             {toggleOption([
-              { value: 'HISTORICAL', label: 'Historical year' },
-              { value: 'FIXED', label: 'Fixed amount' },
-              { value: 'FORMULA', label: 'Revenue vs expenses' },
+              { value: 'HISTORICAL', label: t('historicalYear') },
+              { value: 'FIXED', label: t('fixedAmount') },
+              { value: 'FORMULA', label: t('revenueVsExpenses') },
             ], method, (value: Method) => setMethod(value))}
 
             {method !== 'FORMULA' && (
               <>
-                <Text style={fieldLabel}>Metric</Text>
-                {toggleOption(metrics, metric, (value: Metric) => setMetric(value))}
+                <Text style={fieldLabel}>{t('metric')}</Text>
+                {toggleOption(metrics.map(option => ({
+                  ...option,
+                  label: t(option.value.toLowerCase() as 'profit' | 'revenue' | 'expenses'),
+                })), metric, (value: Metric) => setMetric(value))}
               </>
             )}
 
-            <Text style={fieldLabel}>Compare by</Text>
-            {toggleOption(periods, period, (value: Period) => setPeriod(value))}
+            <Text style={fieldLabel}>{t('compareBy')}</Text>
+            {toggleOption(periods.map(option => ({
+              ...option,
+              label: t(option.value.toLowerCase() as 'daily' | 'weekly' | 'monthly'),
+            })), period, (value: Period) => setPeriod(value))}
 
             {method === 'HISTORICAL' && (
               <>
-                <Text style={fieldLabel}>Baseline year</Text>
+                <Text style={fieldLabel}>{t('baselineYear')}</Text>
                 <TextInput
                   value={baselineYear}
                   onChangeText={setBaselineYear}
@@ -598,7 +619,7 @@ const BusinessTargets = ({ business, organizationId, records, fromDate, toDate, 
             )}
             {method === 'FIXED' && (
               <>
-                <Text style={fieldLabel}>Target amount (CHF per period)</Text>
+                <Text style={fieldLabel}>{t('targetAmountChf')}</Text>
                 <TextInput
                   value={amount}
                   onChangeText={setAmount}
@@ -610,7 +631,7 @@ const BusinessTargets = ({ business, organizationId, records, fromDate, toDate, 
             )}
             {method === 'FORMULA' && (
               <>
-                <Text style={fieldLabel}>Revenue above expenses (%)</Text>
+                <Text style={fieldLabel}>{t('revenueMargin')}</Text>
                 <TextInput
                   value={marginPercent}
                   onChangeText={setMarginPercent}
@@ -619,15 +640,15 @@ const BusinessTargets = ({ business, organizationId, records, fromDate, toDate, 
                   style={inputStyle}
                 />
                 <Text style={{ color: '#63727d', fontSize: 12, marginTop: 3 }}>
-                  A 25% target means revenue should reach expenses × 1.25.
+                  {t('formulaExplanation')}
                 </Text>
               </>
             )}
 
-            <Text style={fieldLabel}>Target starts</Text>
-            {dateButton('Target start date', startDate, 'start')}
-            <Text style={fieldLabel}>Target ends</Text>
-            {dateButton('Target end date', endDate, 'end')}
+            <Text style={fieldLabel}>{t('targetStarts')}</Text>
+            {dateButton(t('targetStartDate'), startDate, 'start')}
+            <Text style={fieldLabel}>{t('targetEnds')}</Text>
+            {dateButton(t('targetEndDate'), endDate, 'end')}
             {datePickerTarget && (
               <DateTimePicker
                 value={parseDateInput(datePickerTarget === 'start' ? startDate : endDate) || new Date()}
@@ -651,7 +672,7 @@ const BusinessTargets = ({ business, organizationId, records, fromDate, toDate, 
                 disabled={saving}
                 style={{ flex: 1, padding: 12, borderRadius: 8, backgroundColor: '#eef3f6', alignItems: 'center', marginRight: 8 }}
               >
-                <Text style={{ color: '#344955', fontWeight: '700' }}>Cancel</Text>
+                <Text style={{ color: '#344955', fontWeight: '700' }}>{t('cancel')}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={saveTarget}
@@ -659,7 +680,7 @@ const BusinessTargets = ({ business, organizationId, records, fromDate, toDate, 
                 style={{ flex: 1, padding: 12, borderRadius: 8, backgroundColor: '#1678b9', alignItems: 'center' }}
               >
                 <Text style={{ color: '#fff', fontWeight: '800' }}>
-                  {saving ? 'Saving...' : editingTargetId ? 'Update target' : 'Save target'}
+                  {saving ? t('saving') : editingTargetId ? t('editTarget') : t('saveEntry')}
                 </Text>
               </TouchableOpacity>
             </View>

@@ -58,6 +58,7 @@ import {
 import { Linking } from "react-native";
 import * as Location from "expo-location";
 import { saveBusinessPerformanceEntry } from "../../../src/utils/businessPerformance";
+import { useBusinessPerformanceTranslation } from "../../CredSls/BusinessPerformance/translation";
 
 const screenHeight = Dimensions.get("window").height;
 const screenWidth = Dimensions.get("window").width;
@@ -89,6 +90,7 @@ const TransportOrdersScreen = () => {
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [refreshingOrders, setRefreshingOrders] = useState(false);
   const { i18n } = useTranslation();
+  const tPerformance = useBusinessPerformanceTranslation();
   const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
   const t = translations[lang] || translations.en;
 
@@ -691,8 +693,8 @@ const TransportOrdersScreen = () => {
         t.success,
         [
           t.deliveryReceived,
-          performanceEventFailed ? "Performance event delivery failed. Check the app logs." : "",
-          businessAnalyticsFailed ? "Business analytics could not record this delivery. Check the app logs." : "",
+          performanceEventFailed ? tPerformance('performanceEventFailed') : "",
+          businessAnalyticsFailed ? tPerformance('analyticsCaptureFailed') : "",
         ].filter(Boolean).join("\n\n")
       );
 

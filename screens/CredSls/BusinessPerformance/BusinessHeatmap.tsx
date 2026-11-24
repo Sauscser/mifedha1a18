@@ -14,6 +14,7 @@ import {
   locationsAssignedToFeature,
   locationsWithinFeature,
 } from '../../../src/utils/businessHeatmap';
+import { useBusinessPerformanceTranslation } from './translation';
 
 type Props = {
   locations: HeatmapLocation[];
@@ -40,15 +41,8 @@ const heatColor = (count: number, maxCount: number) => {
   return '#f6c978';
 };
 
-const pluralizeBoundary = (label: string) => {
-  if (label === 'County') return 'Counties';
-  if (label === 'Sub-county') return 'Sub-counties';
-  if (label.endsWith('y')) return `${label.slice(0, -1)}ies`;
-  if (label.endsWith('s')) return label;
-  return `${label}s`;
-};
-
 const BusinessHeatmap = ({ locations }: Props) => {
+  const t = useBusinessPerformanceTranslation();
   const [continent, setContinent] = useState<string>();
   const [country, setCountry] = useState<HeatmapFeature>();
   const [admin1, setAdmin1] = useState<HeatmapFeature>();
@@ -151,6 +145,31 @@ const BusinessHeatmap = ({ locations }: Props) => {
   );
   const visibleLocationCount = clusters.reduce((total, cluster) => total + cluster.count, 0);
   const maxCount = Math.max(1, ...displayedFeatures.map(feature => feature.count));
+  const localizedContinent = (value: string) => {
+    const keys: Record<string, 'africa' | 'asia' | 'europe' | 'northAmerica' | 'southAmerica' | 'oceania' | 'antarctica'> = {
+      Africa: 'africa',
+      Asia: 'asia',
+      Europe: 'europe',
+      'North America': 'northAmerica',
+      'South America': 'southAmerica',
+      Oceania: 'oceania',
+      Antarctica: 'antarctica',
+    };
+    const key = keys[value];
+    return key ? t(key) : value;
+  };
+  const localizedBoundary = (label?: string) => {
+    const normalized = label?.toLowerCase() || '';
+    if (normalized.includes('sub-county')) return t('subcountyLabel');
+    if (normalized.includes('county')) return t('countyLabel');
+    if (normalized.includes('state')) return t('stateLabel');
+    if (normalized.includes('province')) return t('provinceLabel');
+    if (normalized.includes('territory')) return t('territoryLabel');
+    if (normalized.includes('district')) return t('districtLabel');
+    if (normalized.includes('municipality')) return t('municipalityLabel');
+    if (normalized.includes('region')) return t('regionLabel');
+    return t('regionLabel');
+  };
 
   const project = (longitude: number, latitude: number) => ({
     x: ((longitude - bounds.minLongitude) / (bounds.maxLongitude - bounds.minLongitude)) * MAP_WIDTH,
@@ -186,33 +205,33 @@ const BusinessHeatmap = ({ locations }: Props) => {
   };
 
   const contextLabel = admin2
-    ? `${admin2.adminLevel || 'Area'}: ${admin2.name}`
+    ? `${localizedBoundary(admin2.adminLevel)}: ${admin2.name}`
     : admin1
-      ? `${admin1.adminLevel || 'Region'}: ${admin1.name}`
+      ? `${localizedBoundary(admin1.adminLevel)}: ${admin1.name}`
       : country
-        ? `Country: ${country.name}`
+        ? `${t('countryLabel')}: ${country.name}`
         : continent
-          ? `Continent: ${continent}`
-          : 'World';
+          ? `${t('continentLabel')}: ${localizedContinent(continent)}`
+          : t('world');
   const nextLevelLabel = admin1
-    ? admin1Children[0]?.adminLevel || 'Sub-region'
+    ? localizedBoundary(admin1Children[0]?.adminLevel || 'Sub-region')
     : country
-      ? countryAdmin1[0]?.adminLevel || 'State / province / region'
-      : 'Country';
+      ? localizedBoundary(countryAdmin1[0]?.adminLevel || 'Region')
+      : t('countryLabel');
   const levelDescription = admin2
-    ? 'Selected area'
+    ? t('selectedArea')
     : admin1
-      ? admin1Children.length ? `${pluralizeBoundary(nextLevelLabel)} with buyer locations` : 'No finer boundary data is available for this area'
+      ? admin1Children.length ? `${nextLevelLabel} ${t('regionsWithLocations')}` : t('noFinerBoundaries')
       : country
-        ? countryAdmin1.length ? `${pluralizeBoundary(nextLevelLabel)} with buyer locations` : 'No regional boundary data is available for this country'
+        ? countryAdmin1.length ? `${nextLevelLabel} ${t('regionsWithLocations')}` : t('noRegionalBoundaries')
         : continent
-          ? 'Countries with buyer locations'
-          : 'Countries with buyer locations';
+          ? t('countriesWithLocations')
+          : t('countriesWithLocations');
   return (
     <View style={{ marginTop: 18, padding: 14, borderRadius: 12, backgroundColor: '#f8fafb' }}>
-      <Text style={{ fontWeight: '800', color: '#243a4a', fontSize: 16 }}>Customer location heat map</Text>
+      <Text style={{ fontWeight: '800', color: '#243a4a', fontSize: 16 }}>{t('customerHeatmap')}</Text>
       <Text style={{ color: '#63727d', fontSize: 12, marginTop: 5 }}>
-        Purchase locations are grouped and shown without buyer identities.
+        {t('locationPrivacy')}
       </Text>
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 12 }}>
@@ -228,7 +247,7 @@ const BusinessHeatmap = ({ locations }: Props) => {
           }}
         >
           <Text style={{ color: !continent ? '#fff' : '#344955', fontSize: 11, fontWeight: '700' }}>
-            All locations
+            {t('allLocations')}
           </Text>
         </TouchableOpacity>
         {availableContinents.map(option => (
@@ -246,7 +265,7 @@ const BusinessHeatmap = ({ locations }: Props) => {
             }}
           >
             <Text style={{ color: continent === option ? '#fff' : '#344955', fontSize: 11, fontWeight: '700' }}>
-              {option}
+              {localizedContinent(option)}
             </Text>
           </TouchableOpacity>
         ))}
@@ -254,10 +273,10 @@ const BusinessHeatmap = ({ locations }: Props) => {
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 10 }}>
         <TouchableOpacity onPress={reset} accessibilityRole="button">
-          <Text style={{ color: '#1678b9', fontSize: 12, fontWeight: '700' }}>World</Text>
+          <Text style={{ color: '#1678b9', fontSize: 12, fontWeight: '700' }}>{t('world')}</Text>
         </TouchableOpacity>
         {continent && (
-          <Text style={{ color: '#63727d', fontSize: 12 }}>  ›  {continent}</Text>
+          <Text style={{ color: '#63727d', fontSize: 12 }}>  ›  {localizedContinent(continent)}</Text>
         )}
         {country && (
           <>
@@ -308,7 +327,7 @@ const BusinessHeatmap = ({ locations }: Props) => {
       )}
 
       <Text style={{ color: '#63727d', fontSize: 11, marginTop: 10 }}>
-        {contextLabel} · {levelDescription}. Tap a highlighted map area or name to focus it.
+        {contextLabel} · {levelDescription}. {t('tapToFocus')}
       </Text>
 
       <ScrollView horizontal showsHorizontalScrollIndicator style={{ marginTop: 8 }}>
@@ -329,7 +348,7 @@ const BusinessHeatmap = ({ locations }: Props) => {
                   stroke="#748896"
                   strokeWidth={0.55}
                   onPress={() => selectFeature(feature)}
-                  accessibilityLabel={`${feature.name}, ${feature.count} purchases`}
+                  accessibilityLabel={`${feature.name}, ${t('purchasesWithLocation', { count: feature.count })}`}
                 />
               );
             })
@@ -360,15 +379,15 @@ const BusinessHeatmap = ({ locations }: Props) => {
       </ScrollView>
 
       <Text style={{ color: '#53636e', fontSize: 12, marginTop: 7 }}>
-        {visibleLocationCount} purchase{visibleLocationCount === 1 ? '' : 's'} with location data in this view.
+        {t('purchasesWithLocation', { count: visibleLocationCount })}
       </Text>
       {displayedFeatures.length === 0 ? (
         <Text style={{ color: '#63727d', fontSize: 12, marginTop: 8 }}>
-          No recorded buyer locations are available for this view.
+          {t('noBuyerLocations')}
         </Text>
       ) : null}
       <Text style={{ color: '#74818a', fontSize: 10, marginTop: 10 }}>
-        Boundary data: Natural Earth (public domain) and geoBoundaries.org. Kenya sub-county boundaries: CC BY 3.0 IGO.
+        {t('boundaryData')}
       </Text>
     </View>
   );

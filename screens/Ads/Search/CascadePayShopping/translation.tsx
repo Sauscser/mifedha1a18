@@ -405,3 +405,23 @@ export const translations = {
     somethingWentWrong: "በግብይት ሂደት ውስጥ አንዳንድ ችግሮች ተከስተዋል።"
   }
 };
+
+const cascadeCartTitles: Record<string, string> = {
+  en: 'Your Cart',
+  ar: 'سلة التسوق',
+  zh: '购物车',
+  ru: 'Корзина',
+  sw: 'Kapu lako',
+  fr: 'Votre panier',
+  es: 'Tu carrito',
+  de: 'Ihr Warenkorb',
+  pt: 'Seu carrinho',
+  it: 'Il tuo carrello',
+  he: 'העגלה שלך',
+  hi: 'आपकी कार्ट',
+  am: 'የግዢ ጋሪዎ',
+};
+
+Object.entries(cascadeCartTitles).forEach(([locale, title]) => {
+  (translations as Record<string, Record<string, string>>)[locale].yourCart = title;
+});

@@ -47,7 +47,10 @@ const translations = {
     viewCashSentToBiz: "View Cash sent to Biz",
     bizAdverts: "Biz Adverts",
     transferOwnership: "Transfer Ownership",
-    receiveOwnership: "Receive Ownership"
+    receiveOwnership: "Receive Ownership",
+    businessPerformance: "Business Performance",
+    viewMyBusinessPerformance: "View My Business Performance",
+    linkBusinessBranches: "Link Business Branches"
   },
   ar: {
     bizProducts: "منتجات الأعمال",
@@ -94,7 +97,10 @@ const translations = {
     viewCashSentToBiz: "عرض النقد المرسل لعمل",
     bizAdverts: "إعلانات الأعمال",
     transferOwnership: "نقل الملكية",
-    receiveOwnership: "استلام الملكية"
+    receiveOwnership: "استلام الملكية",
+    businessPerformance: "أداء الأعمال",
+    viewMyBusinessPerformance: "عرض أداء أعمالي",
+    linkBusinessBranches: "ربط فروع الأعمال"
   },
   zh: {
     bizProducts: "业务产品",
@@ -141,7 +147,10 @@ const translations = {
     viewCashSentToBiz: "查看汇给企业的现金",
     bizAdverts: "企业广告",
     transferOwnership: "转让所有权",
-    receiveOwnership: "接收所有权"
+    receiveOwnership: "接收所有权",
+    businessPerformance: "企业业绩",
+    viewMyBusinessPerformance: "查看我的企业业绩",
+    linkBusinessBranches: "关联企业分店"
   },
   ru: {
     bizProducts: "Бизнес-продукты",
@@ -188,7 +197,10 @@ const translations = {
     viewCashSentToBiz: "Просмотр отправленных бизнесу денег",
     bizAdverts: "Бизнес-объявления",
     transferOwnership: "Передать право собственности",
-    receiveOwnership: "Получить право собственности"
+    receiveOwnership: "Получить право собственности",
+    businessPerformance: "Показатели бизнеса",
+    viewMyBusinessPerformance: "Мои показатели бизнеса",
+    linkBusinessBranches: "Связать филиалы бизнеса"
   },
   sw: {
     bizProducts: "Bidhaa za Biashara",
@@ -235,7 +247,10 @@ const translations = {
     viewCashSentToBiz: "Tazama Pesa Zilizotumwa kwa Biashara",
     bizAdverts: "Matangazo ya Biashara",
     transferOwnership: "Hamisha Umiliki",
-    receiveOwnership: "Pokea Umiliki"
+    receiveOwnership: "Pokea Umiliki",
+    businessPerformance: "Utendaji wa Biashara",
+    viewMyBusinessPerformance: "Tazama Utendaji wa Biashara Yangu",
+    linkBusinessBranches: "Unganisha Matawi ya Biashara"
   },
   fr: {
     bizProducts: "Produits d'entreprise",
@@ -281,7 +296,10 @@ const translations = {
     viewCashSentToBiz: "Voir l'argent envoyé à une entreprise",
     bizAdverts: "Annonces d'entreprise",
     transferOwnership: "Transférer la propriété",
-    receiveOwnership: "Recevoir la propriété"
+    receiveOwnership: "Recevoir la propriété",
+    businessPerformance: "Performances de l’entreprise",
+    viewMyBusinessPerformance: "Voir les performances de mon entreprise",
+    linkBusinessBranches: "Associer les succursales"
   },
   es: {
     bizProducts: "Productos de negocio",
@@ -327,7 +345,10 @@ const translations = {
     viewCashSentToBiz: "Ver efectivo enviado a negocio",
     bizAdverts: "Anuncios de negocio",
     transferOwnership: "Transferir propiedad",
-    receiveOwnership: "Recibir propiedad"
+    receiveOwnership: "Recibir propiedad",
+    businessPerformance: "Rendimiento empresarial",
+    viewMyBusinessPerformance: "Ver el rendimiento de mi empresa",
+    linkBusinessBranches: "Vincular sucursales"
   },
   de: {
     bizProducts: "Geschäftsprodukte",
@@ -373,7 +394,10 @@ const translations = {
     viewCashSentToBiz: "Gesendetes Geld an Geschäft anzeigen",
     bizAdverts: "Geschäftsanzeigen",
     transferOwnership: "Eigentum übertragen",
-    receiveOwnership: "Eigentum erhalten"
+    receiveOwnership: "Eigentum erhalten",
+    businessPerformance: "Geschäftsleistung",
+    viewMyBusinessPerformance: "Meine Geschäftsleistung anzeigen",
+    linkBusinessBranches: "Geschäftsfilialen verknüpfen"
   },
   pt: {
     bizProducts: "Produtos de Negócio",
@@ -419,7 +443,10 @@ const translations = {
     viewCashSentToBiz: "Ver Dinheiro Enviado para Negócio",
     bizAdverts: "Anúncios de Negócio",
     transferOwnership: "Transferir Propriedade",
-    receiveOwnership: "Receber Propriedade"
+    receiveOwnership: "Receber Propriedade",
+    businessPerformance: "Desempenho empresarial",
+    viewMyBusinessPerformance: "Ver meu desempenho empresarial",
+    linkBusinessBranches: "Vincular filiais empresariais"
   },
   it: {
     bizProducts: "Prodotti Aziendali",
@@ -465,7 +492,10 @@ const translations = {
     viewCashSentToBiz: "Visualizza Denaro Inviato a Azienda",
     bizAdverts: "Annunci Aziendali",
     transferOwnership: "Trasferisci Proprietà",
-    receiveOwnership: "Ricevi Proprietà"
+    receiveOwnership: "Ricevi Proprietà",
+    businessPerformance: "Prestazioni aziendali",
+    viewMyBusinessPerformance: "Visualizza le mie prestazioni aziendali",
+    linkBusinessBranches: "Collega filiali aziendali"
   },
   he: {
     bizProducts: "מוצרי עסק",
@@ -511,7 +541,10 @@ const translations = {
     viewCashSentToBiz: "הצג מזומן שנשלח לעסק",
     bizAdverts: "מודעות עסקיות",
     transferOwnership: "העבר בעלות",
-    receiveOwnership: "קבל בעלות"
+    receiveOwnership: "קבל בעלות",
+    businessPerformance: "ביצועי העסק",
+    viewMyBusinessPerformance: "הצגת ביצועי העסק שלי",
+    linkBusinessBranches: "קישור סניפי העסק"
   },
   hi: {
     bizProducts: "व्यापार उत्पाद",
@@ -557,7 +590,10 @@ const translations = {
     viewCashSentToBiz: "व्यापार को भेजी गई नकद देखें",
     bizAdverts: "व्यापार विज्ञापन",
     transferOwnership: "स्वामित्व स्थानांतरित करें",
-    receiveOwnership: "स्वामित्व प्राप्त करें"
+    receiveOwnership: "स्वामित्व प्राप्त करें",
+    businessPerformance: "व्यावसायिक प्रदर्शन",
+    viewMyBusinessPerformance: "मेरा व्यावसायिक प्रदर्शन देखें",
+    linkBusinessBranches: "व्यावसायिक शाखाएँ लिंक करें"
   },
   am: {
     bizProducts: "የንግድ ምርቶች",
@@ -603,8 +639,32 @@ const translations = {
     viewCashSentToBiz: "ወደ ንግድ የተላከውን ገንዘብ ይመልከቱ",
     bizAdverts: "የንግድ ማስታወቂያዎች",
     transferOwnership: "ባለቤትነት ያስተላልፉ",
-    receiveOwnership: "ባለቤትነት ያግኙ"
+    receiveOwnership: "ባለቤትነት ያግኙ",
+    businessPerformance: "የንግድ አፈጻጸም",
+    viewMyBusinessPerformance: "የኔን የንግድ አፈጻጸም ይመልከቱ",
+    linkBusinessBranches: "የንግድ ቅርንጫፎችን አገናኝ"
   },
 };
 export { translations };
+
+const cascadePaymentLabels: Record<string, string> = {
+  en: "Cascade Payments",
+  ar: "المدفوعات المتتالية",
+  zh: "级联付款",
+  ru: "Каскадные платежи",
+  sw: "Malipo ya Msururu",
+  fr: "Paiements en cascade",
+  es: "Pagos en cascada",
+  de: "Kaskadenzahlungen",
+  pt: "Pagamentos em cascata",
+  it: "Pagamenti a cascata",
+  he: "תשלומים מדורגים",
+  hi: "कैस्केड भुगतान",
+  am: "ተከታታይ ክፍያዎች",
+};
+
+Object.entries(cascadePaymentLabels).forEach(([locale, label]) => {
+  (translations as Record<string, Record<string, string>>)[locale].cascadePayments = label;
+});
+
 export default translations;

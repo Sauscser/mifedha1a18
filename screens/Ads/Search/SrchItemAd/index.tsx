@@ -29,6 +29,7 @@ import { FontAwesome } from '@expo/vector-icons';
 import { Image } from 'react-native';
 import { safeNavigateFrom } from '../../../../src/utils/navigationHelper';
 import { saveBusinessPerformanceEntry } from '../../../../src/utils/businessPerformance';
+import { useBusinessPerformanceTranslation } from '../../../CredSls/BusinessPerformance/translation';
 
 const client = generateClient();
 const SCREEN_WIDTH = Dimensions.get('window').width;
@@ -161,6 +162,7 @@ function SalesItemMapScreenInner({ navigation }: { navigation: any }) {
     const { i18n } = useTranslation();
     const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
     const t = translations[lang] || translations.en;
+    const tPerformance = useBusinessPerformanceTranslation();
   const { nationality, ratesMap } = useExchange();
   // Defensive: ensure nationality is a simple string (some flows return null or an object)
   const safeNationality = typeof nationality === 'string' ? nationality : (nationality && typeof nationality === 'object' && 'nationality' in nationality ? (nationality as any).nationality : null);
@@ -1576,8 +1578,8 @@ function SalesItemMapScreenInner({ navigation }: { navigation: any }) {
         "Success",
         [
           'Transaction completed successfully.',
-          !eventRecorded ? 'Performance event delivery failed. Check the app logs.' : '',
-          !analyticsRecorded ? 'Business analytics could not record this purchase. Check the app logs.' : '',
+          !eventRecorded ? tPerformance('performanceEventFailed') : '',
+          !analyticsRecorded ? tPerformance('analyticsCaptureFailed') : '',
         ].filter(Boolean).join('\n\n')
       );
     } catch (err) {

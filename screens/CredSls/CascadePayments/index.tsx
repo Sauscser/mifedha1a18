@@ -140,6 +140,13 @@ const CascadePaymentsScreen = () => {
     return null;
   };
 
+  const getRecipientTypeLabel = (value?: string) => {
+    if (value === 'BUSINESS') return t.businessRecipientType;
+    if (value === 'SUBUNIT') return t.subUnitRecipientType;
+    if (value === 'INDIVIDUAL') return t.individualRecipientType;
+    return value || '—';
+  };
+
   const normalizeRecipientType = (value?: string): RecipientType => {
     if (value === 'BUSINESS') {
       return 'BUSINESS';
@@ -425,9 +432,9 @@ const CascadePaymentsScreen = () => {
                         <View key={node.id} style={styles.optionButton}>
                           <Text style={styles.optionButtonText}>{node.description || t.cascadeTransactionLabel}</Text>
                           <Text style={styles.helperText}>{`${t.payerLabel}: ${node.senderAccountName || '—'}`}</Text>
-                          <Text style={styles.helperText}>{`Receiver Name: ${receiverName}`}</Text>
-                          <Text style={styles.helperText}>{`Receiver Account: ${receiverRef}`}</Text>
-                          <Text style={styles.helperText}>{`${t.recipientTypeLabel}: ${node.recipientType || '—'}`}</Text>
+                          <Text style={styles.helperText}>{`${t.receiverNameLabel}: ${receiverName}`}</Text>
+                          <Text style={styles.helperText}>{`${t.receiverAccountLabel}: ${receiverRef}`}</Text>
+                          <Text style={styles.helperText}>{`${t.recipientTypeLabel}: ${getRecipientTypeLabel(node.recipientType)}`}</Text>
                           <Text style={styles.helperText}>{`${t.totalAmountLabel}: ${formatMoneyForUser(totalAmountValue)}`}</Text>
                           <Text style={styles.helperText}>{`${t.subTotalLabel}: ${formatMoneyForUser(subTotalValue)}`}</Text>
                           <Text style={styles.helperText}>{`${t.feesLabel}: ${formatMoneyForUser(feesValue)}`}</Text>
@@ -466,7 +473,7 @@ const CascadePaymentsScreen = () => {
   const handleUpdateFlowOwner = async (flowId: string) => {
     const newOwner = `${ownerEditValues[flowId] || ''}`.trim();
     if (!newOwner) {
-      Alert.alert('Please enter an email address before saving the owner.');
+      Alert.alert(t.ownerEmailPrompt);
       return;
     }
     setSavingOwnerFlowIds((current) => ({ ...current, [flowId]: true }));
@@ -488,10 +495,10 @@ const CascadePaymentsScreen = () => {
         });
         return next;
       });
-      Alert.alert('Owner updated.');
+      Alert.alert(t.ownerUpdated);
     } catch (error) {
       console.error('Failed to update cascade payment flow owner', error);
-      Alert.alert('Unable to update the owner right now.');
+      Alert.alert(t.ownerUpdateFailed);
     } finally {
       setSavingOwnerFlowIds((current) => ({ ...current, [flowId]: false }));
     }
@@ -566,13 +573,13 @@ const CascadePaymentsScreen = () => {
       return;
     }
     if (!sellerBreakdown.length) {
-      Alert.alert('No seller checkout details were returned.');
+      Alert.alert(t.noSellerCheckoutDetails);
       return;
     }
     const totalAmountDue = Number(payload?.totalAmountDue ?? (Number(payload?.totalCost || 0) + Number(payload?.totalFees || 0)));
     const fundsCheck = await ensureSufficientSenderFunds(totalAmountDue);
     if (!fundsCheck.hasFunds) {
-      Alert.alert('Insufficient funds', 'You do not have enough available balance to complete this checkout.');
+      Alert.alert(t.insufficientFundsTitle, t.insufficientFundsCheckout);
       return;
     }
     try {
@@ -637,7 +644,7 @@ const CascadePaymentsScreen = () => {
             },
           });
         }
-        const nodeDescription = `${seller.description || `Checkout for ${biz?.busName || sellerContact || recipientBusinessAccountNumber || 'business'}`}`.trim();
+        const nodeDescription = `${seller.description || t.checkoutForBusiness.replace('{business}', biz?.busName || sellerContact || recipientBusinessAccountNumber || t.businessRecipientType)}`.trim();
         await client.graphql({
           query: createNonLoans,
           variables: {
@@ -645,9 +652,9 @@ const CascadePaymentsScreen = () => {
               recPhn: senderRef,
               senderPhn: senderRef,
               amount: String(Math.max(0, totalCost - totalFees)),
-              description: nodeDescription || 'Cascade payment checkout',
+              description: nodeDescription || t.cascadeCheckoutDescription,
               RecName: biz?.busName || sellerContact,
-              SenderName: senderName || 'Sender account',
+              SenderName: senderName || t.senderAccountFallback,
               status: 'cashSales',
               owner: ownerEmail,
               fees: String(Math.max(0, totalFees)),
@@ -665,12 +672,12 @@ const CascadePaymentsScreen = () => {
               parentNodeId: senderFlowId,
               level: Number(currentFlow.currentLevel || 1) + 1,
               senderAccountRef: senderRef,
-              senderAccountName: senderName || senderRef || 'Sender account',
+              senderAccountName: senderName || senderRef || t.senderAccountFallback,
               recipientAccountRef: sellerContact,
               recipientAccountName: biz?.busName || sellerContact,
               recipientType: 'BUSINESS',
               amount: totalCost,
-              description: nodeDescription || 'Cascade payment checkout',
+              description: nodeDescription || t.cascadeCheckoutDescription,
               isLeaf: true,
               childCount: 0,
               subtotal: sellerAmountDue,
@@ -707,13 +714,13 @@ const CascadePaymentsScreen = () => {
         });
       }
       const notificationTarget = ownerEmail || userEmail || '';
-      const notificationBody = `Business checkout of ${formatAmountSync(totalAmountDue, userCurrencyKey, ratesMap)} across ${sellerBreakdown.length} seller${sellerBreakdown.length === 1 ? '' : 's'} has been processed.`;
-      await dispatchCascadeNotifications(notificationTarget, 'Cascade checkout processed', notificationBody);
-      Alert.alert('Checkout completed', 'The purchase summary was processed successfully.');
+      const notificationBody = t.businessCheckoutNotification.replace('{amount}', formatMoneyForUser(totalAmountDue)).replace('{count}', String(sellerBreakdown.length));
+      await dispatchCascadeNotifications(notificationTarget, t.businessCheckoutNotificationTitle, notificationBody);
+      Alert.alert(t.checkoutCompleted, t.checkoutCompletedMessage);
       resetActionState();
     } catch (error) {
       console.error('Failed to finalize business checkout', error);
-      Alert.alert('Unable to finalize the checkout right now.');
+      Alert.alert(t.checkoutFailed);
     }
   };
 
@@ -919,7 +926,7 @@ const CascadePaymentsScreen = () => {
           senderPhn: selectedAddFundsBizna.BusKntct,
           amount: String(amountInKsh),
           description: 'funds transfer',
-          RecName: currentFlow.senderAccountName || currentFlow.title || 'Cascade flow',
+          RecName: currentFlow.senderAccountName || currentFlow.title || t.cascadeFlowFallback,
           SenderName: selectedAddFundsBizna.busName || selectedAddFundsBizna.BusKntct,
           status: 'cashSales',
           owner: userEmail || (await hydrateUserContext()).email || '',
@@ -940,10 +947,10 @@ const CascadePaymentsScreen = () => {
           senderAccountRef: selectedAddFundsBizna.BusKntct,
           senderAccountName: selectedAddFundsBizna.busName || selectedAddFundsBizna.BusKntct,
           recipientAccountRef: currentFlow.senderAccountRef || '',
-          recipientAccountName: currentFlow.senderAccountName || currentFlow.title || 'Cascade flow',
+          recipientAccountName: currentFlow.senderAccountName || currentFlow.title || t.cascadeFlowFallback,
           recipientType: 'BUSINESS',
           amount: amountInKsh,
-          description: `Added funds from Bizna ${selectedAddFundsBizna.busName || selectedAddFundsBizna.BusKntct}`,
+          description: t.addedFundsFromBizna.replace('{bizna}', selectedAddFundsBizna.busName || selectedAddFundsBizna.BusKntct),
           isLeaf: true,
           childCount: 0,
           subtotal: totalAmountDeducted,
@@ -958,7 +965,7 @@ const CascadePaymentsScreen = () => {
       await loadOwnedCascadeFlows();
     } catch (error) {
       console.error('Failed to add funds from Bizna to flow', error);
-      Alert.alert('Unable to add funds right now.');
+      Alert.alert(t.unableToAddFunds);
     } finally {
       setAddingFunds(false);
     }
@@ -1062,7 +1069,7 @@ const CascadePaymentsScreen = () => {
   const handleOpenBusinessSearch = () => {
     try {
       if (!selectedParentId && !selectedSenderAccount) {
-        Alert.alert('Please select a sender account before continuing to shopping.');
+        Alert.alert(t.selectSenderAccountPrompt);
         return;
       }
       const senderAccountRef = selectedSenderAccount?.senderAccountRef || selectedSenderAccount?.recipientAccountRef || selectedSenderAccount?.accountNumber || '';
@@ -1077,18 +1084,18 @@ const CascadePaymentsScreen = () => {
       });
     } catch (error) {
       console.error('Failed to open business shopping screen', error);
-      Alert.alert('Unable to open the shopping screen right now.');
+      Alert.alert(t.shoppingScreenFailed);
     }
   };
 
   const handleCreateAccount = async () => {
     setSavingAccount(true);
     const profile = await hydrateUserContext();
-    const resolvedName = profile.name || userName || 'Individual account';
+    const resolvedName = profile.name || userName || t.individualAccountFallback;
     const resolvedEmail = profile.email || userEmail || '';
-    const resolvedNationality = profile.nationality || accountNationality || 'Nationality not captured';
+    const resolvedNationality = profile.nationality || accountNationality || t.nationalityNotCaptured;
 
-    let resolvedAccountName = resolvedName || 'Individual account';
+    let resolvedAccountName = resolvedName || t.individualAccountFallback;
     let resolvedAccountNumber = resolvedEmail || '';
     let flowInput: any = null;
     let accountRecipientType: RecipientType = 'BUSINESS';
@@ -1096,12 +1103,12 @@ const CascadePaymentsScreen = () => {
     if (createMode === 'SUBUNIT') {
       if (!selectedParentFlow) {
         setSavingAccount(false);
-        Alert.alert('Please select an existing CascadePaymentFlow to create the sub unit from.');
+        Alert.alert(t.selectParentFlowPrompt);
         return;
       }
       const selectedParentFlowId = `${selectedParentFlow.id || ''}`.trim();
-      const selectedParentTitle = `${selectedParentFlow.title || selectedParentFlow.senderAccountName || 'Selected flow'}`.trim();
-      resolvedAccountName = businessSenderAccountName.trim() || selectedParentTitle || 'Sub unit account';
+      const selectedParentTitle = `${selectedParentFlow.title || selectedParentFlow.senderAccountName || t.selectedFlowFallback}`.trim();
+      resolvedAccountName = businessSenderAccountName.trim() || selectedParentTitle || t.subUnitAccountFallback;
       resolvedAccountNumber = `${selectedParentFlow.senderAccountRef || selectedParentFlow.recipientAccountRef || selectedParentFlow.id || ''}`.trim();
       accountRecipientType = 'SUBUNIT';
       setAccountName(resolvedAccountName);
@@ -1126,10 +1133,10 @@ const CascadePaymentsScreen = () => {
     } else {
       if (!selectedBizna) {
         setSavingAccount(false);
-        Alert.alert('Please select one of your admin Bizna accounts first.');
+        Alert.alert(t.selectBiznaPrompt);
         return;
       }
-      resolvedAccountName = businessSenderAccountName.trim() || selectedBizna.busName || selectedBizna.BusKntct || 'Bizna account';
+      resolvedAccountName = businessSenderAccountName.trim() || selectedBizna.busName || selectedBizna.BusKntct || t.biznaAccountFallback;
       resolvedAccountNumber = selectedBizna.BusKntct || '';
       accountRecipientType = 'BUSINESS';
       setAccountName(resolvedAccountName);
@@ -1158,7 +1165,7 @@ const CascadePaymentsScreen = () => {
       name: resolvedAccountName,
       accountNumber: resolvedAccountNumber,
       recipientType: accountRecipientType,
-      nationality: resolvedNationality.trim() || 'Nationality not captured',
+      nationality: resolvedNationality.trim() || t.nationalityNotCaptured,
       description: accountDescription.trim(),
       amountShared: 0,
       createdAt: new Date().toISOString(),
@@ -1182,7 +1189,7 @@ const CascadePaymentsScreen = () => {
     setAccounts((current) => [...current, { ...account, id: createdFlowId }]);
     setSelectedParentId(createdFlowId);
     setSavingAccount(false);
-    Alert.alert('Account created.');
+    Alert.alert(t.accountCreated);
     resetActionState();
   };
 
@@ -1206,7 +1213,7 @@ const CascadePaymentsScreen = () => {
         name: selectedSenderAccount.senderAccountName || selectedSenderAccount.title || selectedSenderAccount.name || '',
         accountNumber: selectedSenderAccount.senderAccountRef || selectedSenderAccount.recipientAccountRef || selectedSenderAccount.accountNumber || '',
         recipientType: (selectedSenderAccount.recipientType || 'SUBUNIT') as RecipientType,
-        nationality: accountNationality.trim() || 'Nationality not captured',
+        nationality: accountNationality.trim() || t.nationalityNotCaptured,
         description: selectedSenderAccount.description || '',
         amountShared: 0,
         createdAt: new Date().toISOString(),
@@ -1214,21 +1221,21 @@ const CascadePaymentsScreen = () => {
         children: [],
       } as CascadeAccount) : null);
       if (!selectedParent) {
-        Alert.alert('Create an account before sending money.');
+        Alert.alert(t.createAccountBeforeSend);
         return;
       }
       if (!transferAmount || Number.isNaN(Number(transferAmount))) {
-        Alert.alert('Please enter a valid amount.');
+        Alert.alert(t.enterValidAmount);
         return;
       }
 
       const recipientEmail = recipientIdentifier.trim();
       if (normalizedRecipientType === 'SUBUNIT' && !selectedRecipient?.id) {
-        Alert.alert('Please select a sub unit flow before sending.');
+        Alert.alert(t.selectSubUnitFlowPrompt);
         return;
       }
       if (normalizedRecipientType === 'INDIVIDUAL' && !recipientEmail) {
-        Alert.alert('Please enter the recipient email.');
+        Alert.alert(t.enterRecipientEmail);
         return;
       }
 
@@ -1253,7 +1260,7 @@ const CascadePaymentsScreen = () => {
 
       const fundsCheck = await ensureSufficientSenderFunds(totalAmountDeducted);
       if (!fundsCheck.hasFunds) {
-        Alert.alert('Insufficient funds', 'You do not have enough available balance to cover this transfer and fees.');
+        Alert.alert(t.insufficientFundsTitle, t.insufficientFundsTransfer);
         return;
       }
 
@@ -1263,10 +1270,10 @@ const CascadePaymentsScreen = () => {
 
       const childAccount: CascadeAccount = {
         id: createAccountId(),
-        name: selectedRecipient?.name || (normalizedRecipientType === 'INDIVIDUAL' ? 'Individual recipient' : 'Sub unit recipient'),
+        name: selectedRecipient?.name || (normalizedRecipientType === 'INDIVIDUAL' ? t.individualRecipientFallback : t.subUnitRecipientFallback),
         accountNumber: effectiveRecipientRef,
         recipientType: normalizedRecipientType,
-        nationality: accountNationality.trim() || 'Nationality not captured',
+        nationality: accountNationality.trim() || t.nationalityNotCaptured,
         description: transferDescription.trim(),
         amountShared: amountInKsh,
         createdAt: new Date().toISOString(),
@@ -1312,7 +1319,7 @@ const CascadePaymentsScreen = () => {
               recipientAccountName: recipientName,
               recipientType: normalizedRecipientType,
               amount: amountInKsh,
-              description: transferDescription.trim() || 'Cascade payment node',
+              description: transferDescription.trim() || t.cascadePaymentDescription,
               isLeaf: true,
               childCount: 0,
               subtotal: totalAmountDeducted,
@@ -1368,16 +1375,16 @@ const CascadePaymentsScreen = () => {
         const notificationTarget = normalizedRecipientType === 'SUBUNIT'
           ? (selectedRecipient?.owner || ownerEmail || recipientEmail || userEmail || '')
           : (recipientEmail || ownerEmail || userEmail || '');
-        const notificationBody = `Cascade payment of ${formatAmountSync(amountInKsh, userCurrencyKey, ratesMap)} has been processed for ${recipientName}.`;
-        await dispatchCascadeNotifications(notificationTarget, 'Cascade payment updated', notificationBody);
+        const notificationBody = t.cascadePaymentNotification.replace('{amount}', formatMoneyForUser(amountInKsh)).replace('{recipient}', recipientName);
+        await dispatchCascadeNotifications(notificationTarget, t.cascadePaymentNotificationTitle, notificationBody);
       } catch (error) {
         console.error('Failed to create cascade payment node', error);
       }
 
-      const successTitle = normalizedRecipientType === 'INDIVIDUAL' ? 'Sending money was successful' : 'Money shared to child account.';
+      const successTitle = normalizedRecipientType === 'INDIVIDUAL' ? t.individualSendSuccessTitle : t.businessSendSuccessTitle;
       const successMessage = normalizedRecipientType === 'INDIVIDUAL'
-        ? `Sending money to ${recipientName} was successful.`
-        : `Sent ${formatAmountSync(amountInKsh, userCurrencyKey, ratesMap)} to ${recipientName}.`;
+        ? t.individualSendSuccessMessage.replace('{recipient}', recipientName)
+        : t.sendSuccessMessage.replace('{amount}', formatMoneyForUser(amountInKsh)).replace('{recipient}', recipientName);
       Alert.alert(successTitle, successMessage);
       resetActionState();
     } finally {
@@ -1394,7 +1401,7 @@ const CascadePaymentsScreen = () => {
     <View key={account.id} style={[styles.card, { marginLeft: level * 10 }]}> 
       <View style={styles.cardHeader}>
         <Text style={styles.cardTitle}>{account.name}</Text>
-        <Text style={styles.badge}>{account.recipientType}</Text>
+        <Text style={styles.badge}>{getRecipientTypeLabel(account.recipientType)}</Text>
       </View>
       <Text style={styles.metaText}>{`${t.accountNumberLabel}: ${account.accountNumber}`}</Text>
       <Text style={styles.metaText}>{`${t.nationalityLabel}: ${account.nationality}`}</Text>
@@ -1707,7 +1714,7 @@ const CascadePaymentsScreen = () => {
                         await loadRecipientAccountsByName('');
                       }
                     }}>
-                      <Text style={[styles.pillText, recipientType === type && styles.pillTextActive]}>{type === 'SUBUNIT' ? 'Sub unit' : type === 'BUSINESS' ? 'Business' : 'Individual'}</Text>
+                      <Text style={[styles.pillText, recipientType === type && styles.pillTextActive]}>{getRecipientTypeLabel(type)}</Text>
                     </TouchableOpacity>
                   ))}
                 </View>
@@ -2018,9 +2025,9 @@ const CascadePaymentsScreen = () => {
                                   <View key={node.id} style={styles.optionButton}>
                                     <Text style={styles.optionButtonText}>{node.description || t.cascadeTransactionLabel}</Text>
                                     <Text style={styles.helperText}>{`${t.payerLabel}: ${node.senderAccountName || '—'}`}</Text>
-                                    <Text style={styles.helperText}>{`Receiver Name: ${receiverName}`}</Text>
-                                    <Text style={styles.helperText}>{`Receiver Account: ${receiverRef}`}</Text>
-                                    <Text style={styles.helperText}>{`${t.recipientTypeLabel}: ${node.recipientType || '—'}`}</Text>
+                                    <Text style={styles.helperText}>{`${t.receiverNameLabel}: ${receiverName}`}</Text>
+                                    <Text style={styles.helperText}>{`${t.receiverAccountLabel}: ${receiverRef}`}</Text>
+                                    <Text style={styles.helperText}>{`${t.recipientTypeLabel}: ${getRecipientTypeLabel(node.recipientType)}`}</Text>
                                     <Text style={styles.helperText}>{`${t.totalAmountLabel}: ${formatMoneyForUser(totalAmountValue)}`}</Text>
                                     <Text style={styles.helperText}>{`${t.subTotalLabel}: ${formatMoneyForUser(subTotalValue)}`}</Text>
                                     <Text style={styles.helperText}>{`${t.feesLabel}: ${formatMoneyForUser(feesValue)}`}</Text>
@@ -2059,7 +2066,7 @@ const CascadePaymentsScreen = () => {
               viewedAccount.children.map((child) => (
                 <TouchableOpacity key={child.id} style={styles.childRow} onPress={() => openChildModal(child)}>
                   <Text style={styles.childRowTitle}>{child.name}</Text>
-                  <Text style={styles.metaText}>{`${child.recipientType} • ${child.accountNumber}`}</Text>
+                  <Text style={styles.metaText}>{`${getRecipientTypeLabel(child.recipientType)} • ${child.accountNumber}`}</Text>
                   <Text style={styles.metaText}>{`${t.sharedLabel}: ${child.amountShared.toFixed(2)}`}</Text>
                   <Text style={styles.metaText}>{`${t.descriptionLabel}: ${child.description || '—'}`}</Text>
                 </TouchableOpacity>
