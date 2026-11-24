@@ -1817,6 +1817,7 @@ export const getBizna = /* GraphQL */ `
       benefitsAmount
       owner2email
       email
+      organizationId
       licenseNo
       bizType
       bankType
@@ -1941,6 +1942,7 @@ export const listBiznas = /* GraphQL */ `
         benefitsAmount
         owner2email
         email
+        organizationId
         licenseNo
         bizType
         bankType
@@ -4923,6 +4925,166 @@ export const listMarketConsumptions = /* GraphQL */ `
     }
   }
 `;
+export const getBusinessPerformanceRecord = /* GraphQL */ `
+  query GetBusinessPerformanceRecord($id: ID!) {
+    getBusinessPerformanceRecord(id: $id) {
+      id
+      ownerSub
+      businessAccount
+      recordType
+      amountKes
+      feesKes
+      originalAmount
+      currency
+      exchangeRateToKes
+      occurredAt
+      source
+      sourceReference
+      itemName
+      category
+      quantity
+      fulfillmentType
+      latitude
+      longitude
+      description
+      createdAt
+      updatedAt
+      __typename
+    }
+  }
+`;
+export const listBusinessPerformanceRecords = /* GraphQL */ `
+  query ListBusinessPerformanceRecords(
+    $filter: ModelBusinessPerformanceRecordFilterInput
+    $limit: Int
+    $nextToken: String
+  ) {
+    listBusinessPerformanceRecords(
+      filter: $filter
+      limit: $limit
+      nextToken: $nextToken
+    ) {
+      items {
+        id
+        ownerSub
+        businessAccount
+        recordType
+        amountKes
+        feesKes
+        originalAmount
+        currency
+        exchangeRateToKes
+        occurredAt
+        source
+        sourceReference
+        itemName
+        category
+        quantity
+        fulfillmentType
+        latitude
+        longitude
+        description
+        createdAt
+        updatedAt
+        __typename
+      }
+      nextToken
+      __typename
+    }
+  }
+`;
+export const getBusinessPerformanceTarget = /* GraphQL */ `
+  query GetBusinessPerformanceTarget($id: ID!) {
+    getBusinessPerformanceTarget(id: $id) {
+      id
+      businessAccount
+      organizationId
+      name
+      method
+      metric
+      period
+      amountKes
+      baselineYear
+      marginPercent
+      startDate
+      endDate
+      createdByEmail
+      createdAt
+      updatedAt
+      __typename
+    }
+  }
+`;
+export const listBusinessPerformanceTargets = /* GraphQL */ `
+  query ListBusinessPerformanceTargets(
+    $filter: ModelBusinessPerformanceTargetFilterInput
+    $limit: Int
+    $nextToken: String
+  ) {
+    listBusinessPerformanceTargets(
+      filter: $filter
+      limit: $limit
+      nextToken: $nextToken
+    ) {
+      items {
+        id
+        businessAccount
+        organizationId
+        name
+        method
+        metric
+        period
+        amountKes
+        baselineYear
+        marginPercent
+        startDate
+        endDate
+        createdByEmail
+        createdAt
+        updatedAt
+        __typename
+      }
+      nextToken
+      __typename
+    }
+  }
+`;
+export const getBusinessOrganization = /* GraphQL */ `
+  query GetBusinessOrganization($id: ID!) {
+    getBusinessOrganization(id: $id) {
+      id
+      name
+      createdByEmail
+      createdAt
+      updatedAt
+      __typename
+    }
+  }
+`;
+export const listBusinessOrganizations = /* GraphQL */ `
+  query ListBusinessOrganizations(
+    $filter: ModelBusinessOrganizationFilterInput
+    $limit: Int
+    $nextToken: String
+  ) {
+    listBusinessOrganizations(
+      filter: $filter
+      limit: $limit
+      nextToken: $nextToken
+    ) {
+      items {
+        id
+        name
+        createdByEmail
+        createdAt
+        updatedAt
+        __typename
+      }
+      nextToken
+      __typename
+    }
+  }
+`;
 export const getCombPersonel = /* GraphQL */ `
   query GetCombPersonel($workerId: String!) {
     getCombPersonel(workerId: $workerId) {
@@ -7055,6 +7217,265 @@ export const BiznaVwws = /* GraphQL */ `
         benefitsAmount
         owner2email
         email
+        organizationId
+        licenseNo
+        bizType
+        bankType
+        bankAccount
+        status
+        owner
+        description
+        createdAt
+        noBL
+        latitude
+        longitude
+        businessType
+        bizContact
+        TtlActvLonsTmsLnrCredSlsB2B
+        TtlActvLonsAmtLnrCredSlsB2B
+        TtlBLLonsTmsLnrCredSlsB2B
+        TtlBLLonsAmtLnrCredSlsB2B
+        TtlClrdLonsTmsLnrCredSlsB2B
+        TtlClrdLonsAmtLnrCredSlsB2B
+        TtlActvLonsTmsLneeCredSlsB2B
+        TtlActvLonsAmtLneeCredSlsB2B
+        TtlBLLonsTmsLneeCredSlsB2B
+        TtlBLLonsAmtLneeCredSlsB2B
+        TtlClrdLonsTmsLneeCredSlsB2B
+        TtlClrdLonsAmtLneeCredSlsB2B
+        TtlActvLonsTmsLnrCredSlsB2P
+        TtlActvLonsAmtLnrCredSlsB2P
+        TtlBLLonsTmsLnrCredSlsB2P
+        TtlBLLonsAmtLnrCredSlsB2P
+        TtlClrdLonsTmsLnrCredSlsB2P
+        TtlClrdLonsAmtLnrCredSlsB2P
+        TtlActvLonsTmsLneeCredSlsP2B
+        TtlActvLonsAmtLneeCredSlsP2B
+        TtlBLLonsTmsLneeCredSlsP2B
+        TtlBLLonsAmtLneeCredSlsP2B
+        TtlClrdLonsTmsLneeCredSlsP2B
+        TtlClrdLonsAmtLneeCredSlsP2B
+        objectionStatus
+        objOfficer
+        objReason
+        AdminNo
+        Admin1
+        Admin2
+        Admin3
+        Admin4
+        Admin5
+        Admin6
+        Admin7
+        Admin8
+        Admin9
+        Admin10
+        Admin11
+        Admin12
+        Admin13
+        Admin14
+        Admin15
+        Admin16
+        Admin17
+        Admin18
+        Admin19
+        Admin20
+        Admin21
+        Admin22
+        Admin23
+        Admin24
+        Admin25
+        Admin26
+        Admin27
+        Admin28
+        Admin29
+        Admin30
+        Admin31
+        Admin32
+        Admin33
+        Admin34
+        Admin35
+        Admin36
+        Admin37
+        Admin38
+        Admin39
+        Admin40
+        Admin41
+        Admin42
+        Admin43
+        Admin44
+        Admin45
+        Admin46
+        Admin47
+        Admin48
+        Admin49
+        Admin50
+        Nationality
+        updatedAt
+        __typename
+      }
+      nextToken
+      __typename
+    }
+  }
+`;
+export const biznasByCreatorEmail = /* GraphQL */ `
+  query BiznasByCreatorEmail(
+    $email: String!
+    $busName: ModelStringKeyConditionInput
+    $sortDirection: ModelSortDirection
+    $filter: ModelBiznaFilterInput
+    $limit: Int
+    $nextToken: String
+  ) {
+    biznasByCreatorEmail(
+      email: $email
+      busName: $busName
+      sortDirection: $sortDirection
+      filter: $filter
+      limit: $limit
+      nextToken: $nextToken
+    ) {
+      items {
+        BusKntct
+        busName
+        pw
+        TtlEarnings
+        earningsBal
+        bizBeneficiary
+        netEarnings
+        beneficiaryType
+        benefitsAmount
+        owner2email
+        email
+        organizationId
+        licenseNo
+        bizType
+        bankType
+        bankAccount
+        status
+        owner
+        description
+        createdAt
+        noBL
+        latitude
+        longitude
+        businessType
+        bizContact
+        TtlActvLonsTmsLnrCredSlsB2B
+        TtlActvLonsAmtLnrCredSlsB2B
+        TtlBLLonsTmsLnrCredSlsB2B
+        TtlBLLonsAmtLnrCredSlsB2B
+        TtlClrdLonsTmsLnrCredSlsB2B
+        TtlClrdLonsAmtLnrCredSlsB2B
+        TtlActvLonsTmsLneeCredSlsB2B
+        TtlActvLonsAmtLneeCredSlsB2B
+        TtlBLLonsTmsLneeCredSlsB2B
+        TtlBLLonsAmtLneeCredSlsB2B
+        TtlClrdLonsTmsLneeCredSlsB2B
+        TtlClrdLonsAmtLneeCredSlsB2B
+        TtlActvLonsTmsLnrCredSlsB2P
+        TtlActvLonsAmtLnrCredSlsB2P
+        TtlBLLonsTmsLnrCredSlsB2P
+        TtlBLLonsAmtLnrCredSlsB2P
+        TtlClrdLonsTmsLnrCredSlsB2P
+        TtlClrdLonsAmtLnrCredSlsB2P
+        TtlActvLonsTmsLneeCredSlsP2B
+        TtlActvLonsAmtLneeCredSlsP2B
+        TtlBLLonsTmsLneeCredSlsP2B
+        TtlBLLonsAmtLneeCredSlsP2B
+        TtlClrdLonsTmsLneeCredSlsP2B
+        TtlClrdLonsAmtLneeCredSlsP2B
+        objectionStatus
+        objOfficer
+        objReason
+        AdminNo
+        Admin1
+        Admin2
+        Admin3
+        Admin4
+        Admin5
+        Admin6
+        Admin7
+        Admin8
+        Admin9
+        Admin10
+        Admin11
+        Admin12
+        Admin13
+        Admin14
+        Admin15
+        Admin16
+        Admin17
+        Admin18
+        Admin19
+        Admin20
+        Admin21
+        Admin22
+        Admin23
+        Admin24
+        Admin25
+        Admin26
+        Admin27
+        Admin28
+        Admin29
+        Admin30
+        Admin31
+        Admin32
+        Admin33
+        Admin34
+        Admin35
+        Admin36
+        Admin37
+        Admin38
+        Admin39
+        Admin40
+        Admin41
+        Admin42
+        Admin43
+        Admin44
+        Admin45
+        Admin46
+        Admin47
+        Admin48
+        Admin49
+        Admin50
+        Nationality
+        updatedAt
+        __typename
+      }
+      nextToken
+      __typename
+    }
+  }
+`;
+export const businessesByOrganization = /* GraphQL */ `
+  query BusinessesByOrganization(
+    $organizationId: ID!
+    $sortDirection: ModelSortDirection
+    $filter: ModelBiznaFilterInput
+    $limit: Int
+    $nextToken: String
+  ) {
+    businessesByOrganization(
+      organizationId: $organizationId
+      sortDirection: $sortDirection
+      filter: $filter
+      limit: $limit
+      nextToken: $nextToken
+    ) {
+      items {
+        BusKntct
+        busName
+        pw
+        TtlEarnings
+        earningsBal
+        bizBeneficiary
+        netEarnings
+        beneficiaryType
+        benefitsAmount
+        owner2email
+        email
+        organizationId
         licenseNo
         bizType
         bankType
@@ -9122,6 +9543,162 @@ export const byMarketItem2 = /* GraphQL */ `
         itemSpecifications
         createdAt
         Nationality
+        updatedAt
+        __typename
+      }
+      nextToken
+      __typename
+    }
+  }
+`;
+export const businessPerformanceRecordsByOwnerAndTime = /* GraphQL */ `
+  query BusinessPerformanceRecordsByOwnerAndTime(
+    $ownerSub: String!
+    $occurredAt: ModelStringKeyConditionInput
+    $sortDirection: ModelSortDirection
+    $filter: ModelBusinessPerformanceRecordFilterInput
+    $limit: Int
+    $nextToken: String
+  ) {
+    businessPerformanceRecordsByOwnerAndTime(
+      ownerSub: $ownerSub
+      occurredAt: $occurredAt
+      sortDirection: $sortDirection
+      filter: $filter
+      limit: $limit
+      nextToken: $nextToken
+    ) {
+      items {
+        id
+        ownerSub
+        businessAccount
+        recordType
+        amountKes
+        feesKes
+        originalAmount
+        currency
+        exchangeRateToKes
+        occurredAt
+        source
+        sourceReference
+        itemName
+        category
+        quantity
+        fulfillmentType
+        latitude
+        longitude
+        description
+        createdAt
+        updatedAt
+        __typename
+      }
+      nextToken
+      __typename
+    }
+  }
+`;
+export const businessPerformanceTargetsByBusiness = /* GraphQL */ `
+  query BusinessPerformanceTargetsByBusiness(
+    $businessAccount: String!
+    $name: ModelStringKeyConditionInput
+    $sortDirection: ModelSortDirection
+    $filter: ModelBusinessPerformanceTargetFilterInput
+    $limit: Int
+    $nextToken: String
+  ) {
+    businessPerformanceTargetsByBusiness(
+      businessAccount: $businessAccount
+      name: $name
+      sortDirection: $sortDirection
+      filter: $filter
+      limit: $limit
+      nextToken: $nextToken
+    ) {
+      items {
+        id
+        businessAccount
+        organizationId
+        name
+        method
+        metric
+        period
+        amountKes
+        baselineYear
+        marginPercent
+        startDate
+        endDate
+        createdByEmail
+        createdAt
+        updatedAt
+        __typename
+      }
+      nextToken
+      __typename
+    }
+  }
+`;
+export const businessPerformanceTargetsByOrganization = /* GraphQL */ `
+  query BusinessPerformanceTargetsByOrganization(
+    $organizationId: ID!
+    $name: ModelStringKeyConditionInput
+    $sortDirection: ModelSortDirection
+    $filter: ModelBusinessPerformanceTargetFilterInput
+    $limit: Int
+    $nextToken: String
+  ) {
+    businessPerformanceTargetsByOrganization(
+      organizationId: $organizationId
+      name: $name
+      sortDirection: $sortDirection
+      filter: $filter
+      limit: $limit
+      nextToken: $nextToken
+    ) {
+      items {
+        id
+        businessAccount
+        organizationId
+        name
+        method
+        metric
+        period
+        amountKes
+        baselineYear
+        marginPercent
+        startDate
+        endDate
+        createdByEmail
+        createdAt
+        updatedAt
+        __typename
+      }
+      nextToken
+      __typename
+    }
+  }
+`;
+export const businessOrganizationsByCreator = /* GraphQL */ `
+  query BusinessOrganizationsByCreator(
+    $createdByEmail: String!
+    $name: ModelStringKeyConditionInput
+    $sortDirection: ModelSortDirection
+    $filter: ModelBusinessOrganizationFilterInput
+    $limit: Int
+    $nextToken: String
+  ) {
+    businessOrganizationsByCreator(
+      createdByEmail: $createdByEmail
+      name: $name
+      sortDirection: $sortDirection
+      filter: $filter
+      limit: $limit
+      nextToken: $nextToken
+    ) {
+      items {
+        id
+        name
+        createdByEmail
+        createdAt
         updatedAt
         __typename
       }

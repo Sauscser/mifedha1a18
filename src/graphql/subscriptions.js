@@ -2505,6 +2505,7 @@ export const onCreateBizna = /* GraphQL */ `
       benefitsAmount
       owner2email
       email
+      organizationId
       licenseNo
       bizType
       bankType
@@ -2616,6 +2617,7 @@ export const onUpdateBizna = /* GraphQL */ `
       benefitsAmount
       owner2email
       email
+      organizationId
       licenseNo
       bizType
       bankType
@@ -2727,6 +2729,7 @@ export const onDeleteBizna = /* GraphQL */ `
       benefitsAmount
       owner2email
       email
+      organizationId
       licenseNo
       bizType
       bankType
@@ -6857,6 +6860,213 @@ export const onDeleteMarketConsumption = /* GraphQL */ `
       itemSpecifications
       createdAt
       Nationality
+      updatedAt
+      __typename
+    }
+  }
+`;
+export const onCreateBusinessPerformanceRecord = /* GraphQL */ `
+  subscription OnCreateBusinessPerformanceRecord(
+    $filter: ModelSubscriptionBusinessPerformanceRecordFilterInput
+    $ownerSub: String
+  ) {
+    onCreateBusinessPerformanceRecord(filter: $filter, ownerSub: $ownerSub) {
+      id
+      ownerSub
+      businessAccount
+      recordType
+      amountKes
+      feesKes
+      originalAmount
+      currency
+      exchangeRateToKes
+      occurredAt
+      source
+      sourceReference
+      itemName
+      category
+      quantity
+      fulfillmentType
+      latitude
+      longitude
+      description
+      createdAt
+      updatedAt
+      __typename
+    }
+  }
+`;
+export const onUpdateBusinessPerformanceRecord = /* GraphQL */ `
+  subscription OnUpdateBusinessPerformanceRecord(
+    $filter: ModelSubscriptionBusinessPerformanceRecordFilterInput
+    $ownerSub: String
+  ) {
+    onUpdateBusinessPerformanceRecord(filter: $filter, ownerSub: $ownerSub) {
+      id
+      ownerSub
+      businessAccount
+      recordType
+      amountKes
+      feesKes
+      originalAmount
+      currency
+      exchangeRateToKes
+      occurredAt
+      source
+      sourceReference
+      itemName
+      category
+      quantity
+      fulfillmentType
+      latitude
+      longitude
+      description
+      createdAt
+      updatedAt
+      __typename
+    }
+  }
+`;
+export const onDeleteBusinessPerformanceRecord = /* GraphQL */ `
+  subscription OnDeleteBusinessPerformanceRecord(
+    $filter: ModelSubscriptionBusinessPerformanceRecordFilterInput
+    $ownerSub: String
+  ) {
+    onDeleteBusinessPerformanceRecord(filter: $filter, ownerSub: $ownerSub) {
+      id
+      ownerSub
+      businessAccount
+      recordType
+      amountKes
+      feesKes
+      originalAmount
+      currency
+      exchangeRateToKes
+      occurredAt
+      source
+      sourceReference
+      itemName
+      category
+      quantity
+      fulfillmentType
+      latitude
+      longitude
+      description
+      createdAt
+      updatedAt
+      __typename
+    }
+  }
+`;
+export const onCreateBusinessPerformanceTarget = /* GraphQL */ `
+  subscription OnCreateBusinessPerformanceTarget(
+    $filter: ModelSubscriptionBusinessPerformanceTargetFilterInput
+  ) {
+    onCreateBusinessPerformanceTarget(filter: $filter) {
+      id
+      businessAccount
+      organizationId
+      name
+      method
+      metric
+      period
+      amountKes
+      baselineYear
+      marginPercent
+      startDate
+      endDate
+      createdByEmail
+      createdAt
+      updatedAt
+      __typename
+    }
+  }
+`;
+export const onUpdateBusinessPerformanceTarget = /* GraphQL */ `
+  subscription OnUpdateBusinessPerformanceTarget(
+    $filter: ModelSubscriptionBusinessPerformanceTargetFilterInput
+  ) {
+    onUpdateBusinessPerformanceTarget(filter: $filter) {
+      id
+      businessAccount
+      organizationId
+      name
+      method
+      metric
+      period
+      amountKes
+      baselineYear
+      marginPercent
+      startDate
+      endDate
+      createdByEmail
+      createdAt
+      updatedAt
+      __typename
+    }
+  }
+`;
+export const onDeleteBusinessPerformanceTarget = /* GraphQL */ `
+  subscription OnDeleteBusinessPerformanceTarget(
+    $filter: ModelSubscriptionBusinessPerformanceTargetFilterInput
+  ) {
+    onDeleteBusinessPerformanceTarget(filter: $filter) {
+      id
+      businessAccount
+      organizationId
+      name
+      method
+      metric
+      period
+      amountKes
+      baselineYear
+      marginPercent
+      startDate
+      endDate
+      createdByEmail
+      createdAt
+      updatedAt
+      __typename
+    }
+  }
+`;
+export const onCreateBusinessOrganization = /* GraphQL */ `
+  subscription OnCreateBusinessOrganization(
+    $filter: ModelSubscriptionBusinessOrganizationFilterInput
+  ) {
+    onCreateBusinessOrganization(filter: $filter) {
+      id
+      name
+      createdByEmail
+      createdAt
+      updatedAt
+      __typename
+    }
+  }
+`;
+export const onUpdateBusinessOrganization = /* GraphQL */ `
+  subscription OnUpdateBusinessOrganization(
+    $filter: ModelSubscriptionBusinessOrganizationFilterInput
+  ) {
+    onUpdateBusinessOrganization(filter: $filter) {
+      id
+      name
+      createdByEmail
+      createdAt
+      updatedAt
+      __typename
+    }
+  }
+`;
+export const onDeleteBusinessOrganization = /* GraphQL */ `
+  subscription OnDeleteBusinessOrganization(
+    $filter: ModelSubscriptionBusinessOrganizationFilterInput
+  ) {
+    onDeleteBusinessOrganization(filter: $filter) {
+      id
+      name
+      createdByEmail
+      createdAt
       updatedAt
       __typename
     }

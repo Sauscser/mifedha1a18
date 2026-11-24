@@ -28,6 +28,7 @@ import { buildOsrmRouteUrl } from '../../../../src/config/osrm';
 import { FontAwesome } from '@expo/vector-icons';
 import { Image } from 'react-native';
 import { safeNavigateFrom } from '../../../../src/utils/navigationHelper';
+import { saveBusinessPerformanceEntry } from '../../../../src/utils/businessPerformance';
 
 const client = generateClient();
 const SCREEN_WIDTH = Dimensions.get('window').width;
@@ -292,6 +293,48 @@ function SalesItemMapScreenInner({ navigation }: { navigation: any }) {
       }
     });
     return itemCost;
+  };
+
+  const recordMarketplaceAnalytics = async (
+    sellerTotals: Record<string, any>,
+    buyerBusiness: any,
+    fulfillmentType: 'PICKUP' | 'DELIVERY',
+    location: { latitude: number; longitude: number } | null
+  ) => {
+    const occurredAt = new Date().toISOString();
+    for (const [sellerAccount, totals] of Object.entries(sellerTotals) as [string, any][]) {
+      if (!totals.ownerSub) {
+        throw new Error(`Business owner is missing for seller ${sellerAccount}.`);
+      }
+      for (const item of totals.items || []) {
+        const sharedEntry = {
+          amountKes: item.amount,
+          occurredAt,
+          source: 'NISENTI',
+          sourceReference: `${item.id}:${occurredAt}`,
+          itemName: item.itemName,
+          category: item.category,
+          quantity: item.quantity,
+          fulfillmentType,
+          ...(location ? { latitude: location.latitude, longitude: location.longitude } : {}),
+        };
+        await saveBusinessPerformanceEntry({
+          ...sharedEntry,
+          ownerSub: totals.ownerSub,
+          businessAccount: sellerAccount,
+          recordType: 'REVENUE',
+        });
+        if (buyerBusiness?.BusKntct && buyerBusiness?.owner) {
+          await saveBusinessPerformanceEntry({
+            ...sharedEntry,
+            ownerSub: buyerBusiness.owner,
+            businessAccount: buyerBusiness.BusKntct,
+            recordType: 'EXPENSE',
+            feesKes: item.fee,
+          });
+        }
+      }
+    }
   };
 
   const VwSalesDtls4Transport = () => {
@@ -1289,10 +1332,19 @@ function SalesItemMapScreenInner({ navigation }: { navigation: any }) {
             totalItemCost: 0,
             totalBenefit: 0,
             description: [],
+            items: [],
             // store last item id for this seller
             lastItemId: item.id
           };
         }
+        sellerTotals[item.sokokntct].items.push({
+          id: item.id,
+          itemName: item.sokoname,
+          category: item.businessType,
+          quantity: qty,
+          amount: itemCost,
+          fee,
+        });
         sellerTotals[item.sokokntct].description.push(description);
         sellerTotals[item.sokokntct].totalItemCost += itemCost;
         sellerTotals[item.sokokntct].totalBenefit += benefit;
@@ -1328,6 +1380,7 @@ function SalesItemMapScreenInner({ navigation }: { navigation: any }) {
           console.error('[ERROR] Tried to update missing seller Bizna.');
           continue;
         }
+        totals.ownerSub = biz.owner;
         // seller nationality (via biz email -> SMAccount)
         let sellerNationality = null;
         try {
@@ -1503,15 +1556,29 @@ function SalesItemMapScreenInner({ navigation }: { navigation: any }) {
         graphqlErrors: benefitContributionResult?.errors?.map((error: any) => error.message)
       });
       const eventRecorded = await reportJuuFullPayment(totalCostKes || totalCost, userLocation);
+      let analyticsRecorded = true;
+      try {
+        await recordMarketplaceAnalytics(
+          sellerTotals,
+          mode === 'B2B' ? sender : null,
+          'PICKUP',
+          userLocation
+        );
+      } catch (analyticsError) {
+        analyticsRecorded = false;
+        console.error('Purchase completed, but business analytics capture failed:', analyticsError);
+      }
       setCart([]);
       setQuantities({});
       setPassword('');
       setIsPasswordVisible(false);
       Alert.alert(
         "Success",
-        eventRecorded
-          ? "Transaction completed successfully."
-          : "Transaction completed successfully, but performance event delivery failed. Check the app logs."
+        [
+          'Transaction completed successfully.',
+          !eventRecorded ? 'Performance event delivery failed. Check the app logs.' : '',
+          !analyticsRecorded ? 'Business analytics could not record this purchase. Check the app logs.' : '',
+        ].filter(Boolean).join('\n\n')
       );
     } catch (err) {
       console.error("Transaction error:", err);

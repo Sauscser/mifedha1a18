@@ -13,6 +13,7 @@ import { updateCombContractVoucher, updateSMAccount, updateBizna, createNonLoans
 import { useExchange } from '../../../src/contexts/ExchangeContext';
 import { formatAmountSync, convertKshToUserCurrency } from '../../../src/utils/exchange';
 import { nationalityToCode } from '../../../src/utils/nationalityToCode';
+import { saveBusinessPerformanceEntry } from '../../../src/utils/businessPerformance';
 const client = generateClient();
 
 /* -------------------- Voucher Card -------------------- */
@@ -665,6 +666,70 @@ const FunderClearApprovedVoucherScreen = () => {
           }
         }
       });
+      try {
+        const occurredAt = new Date().toISOString();
+        const buyerLocation = {
+          latitude: Number(voucher.buyerLatitude),
+          longitude: Number(voucher.buyerLongitude),
+        };
+        const hasBuyerLocation =
+          Number.isFinite(buyerLocation.latitude)
+          && Number.isFinite(buyerLocation.longitude)
+          && buyerLocation.latitude >= -90
+          && buyerLocation.latitude <= 90
+          && buyerLocation.longitude >= -180
+          && buyerLocation.longitude <= 180;
+        if (voucher.sellerType === 'sellerTypeBiz') {
+          const sellerRes: any = await client.graphql({
+            query: getBizna,
+            variables: { BusKntct: voucher.sellerAccount },
+          });
+          const seller = sellerRes?.data?.getBizna;
+          if (seller?.owner) {
+            await saveBusinessPerformanceEntry({
+              ownerSub: seller.owner,
+              businessAccount: voucher.sellerAccount,
+              recordType: 'REVENUE',
+              amountKes: totalAmountInKes,
+              occurredAt,
+              source: 'COMB_SETTLEMENT',
+              sourceReference: String(voucher.id),
+              itemName: String(voucher.itemName || 'COMB purchase'),
+              quantity: Number(voucher.numberOfItems) || 1,
+              fulfillmentType: 'COMB',
+              ...(hasBuyerLocation ? buyerLocation : {}),
+            });
+          } else {
+            console.warn('COMB settlement completed, but seller business analytics owner is unavailable.');
+          }
+        }
+        if (voucher.consumerType === 'consumerTypeBiz') {
+          const buyerRes: any = await client.graphql({
+            query: getBizna,
+            variables: { BusKntct: voucher.consumerAccount },
+          });
+          const buyer = buyerRes?.data?.getBizna;
+          if (buyer?.owner) {
+            await saveBusinessPerformanceEntry({
+              ownerSub: buyer.owner,
+              businessAccount: voucher.consumerAccount,
+              recordType: 'EXPENSE',
+              amountKes: totalAmountInKes,
+              occurredAt,
+              source: 'COMB_SETTLEMENT',
+              sourceReference: String(voucher.id),
+              itemName: String(voucher.itemName || 'COMB purchase'),
+              quantity: Number(voucher.numberOfItems) || 1,
+              fulfillmentType: 'COMB',
+              ...(hasBuyerLocation ? buyerLocation : {}),
+            });
+          } else {
+            console.warn('COMB settlement completed, but buyer business analytics owner is unavailable.');
+          }
+        }
+      } catch (analyticsError) {
+        console.error('COMB settlement completed, but business analytics capture failed:', analyticsError);
+      }
       const message = t.voucherClearedMessage
         ? t.voucherClearedMessage.replace('{{itemName}}', voucher.itemName).replace('{{funderName}}', voucher.funderName)
         : `COMB bill for ${voucher.itemName} has been settled by the funder ${voucher.funderName}.`;

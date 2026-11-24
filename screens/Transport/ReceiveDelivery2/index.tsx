@@ -56,6 +56,8 @@ import {
   recordJuuFullPaymentEvent,
 } from "../../../src/graphql/mutations";
 import { Linking } from "react-native";
+import * as Location from "expo-location";
+import { saveBusinessPerformanceEntry } from "../../../src/utils/businessPerformance";
 
 const screenHeight = Dimensions.get("window").height;
 const screenWidth = Dimensions.get("window").width;
@@ -382,6 +384,27 @@ const TransportOrdersScreen = () => {
     try {
       const user = await getCurrentUser();
       const attributes = await fetchUserAttributes();
+      let buyerGps: { latitude: number; longitude: number } | null = null;
+      try {
+        const permission = await Location.requestForegroundPermissionsAsync();
+        if (permission.status === "granted") {
+          const currentPosition = await Location.getCurrentPositionAsync({
+            accuracy: Location.Accuracy.High,
+          });
+          const latitude = Number(currentPosition.coords.latitude);
+          const longitude = Number(currentPosition.coords.longitude);
+          if (
+            Number.isFinite(latitude) && latitude >= -90 && latitude <= 90
+            && Number.isFinite(longitude) && longitude >= -180 && longitude <= 180
+          ) {
+            buyerGps = { latitude, longitude };
+          }
+        } else {
+          console.warn("Buyer location permission was not granted when receiving delivery.");
+        }
+      } catch (locationError) {
+        console.error("Could not capture buyer location when receiving delivery:", locationError);
+      }
 
       const orderDtl: any = await client.graphql({ query: getTransportOrder, variables: { id } });
       const orderDtlz = orderDtl.data.getTransportOrder;
@@ -398,11 +421,19 @@ const TransportOrdersScreen = () => {
       });
       const biz = bizResult.data.getBizna;
 
+      const isBusinessBuyer = orderDtlz.purchaseType === "B2B";
       const buyerDtls: any = await client.graphql({
-        query: getSMAccount,
-        variables: { awsemail: orderDtlz.customerEmail },
+        query: isBusinessBuyer ? getBizna : getSMAccount,
+        variables: isBusinessBuyer
+          ? { BusKntct: orderDtlz.customerEmail }
+          : { awsemail: orderDtlz.customerEmail },
       });
-      const buyerDtlsz = buyerDtls.data.getSMAccount;
+      const buyerDtlsz = isBusinessBuyer
+        ? buyerDtls.data.getBizna
+        : buyerDtls.data.getSMAccount;
+      if (!buyerDtlsz) {
+        throw new Error("Could not load the buyer account for delivery receipt.");
+      }
 
       const CompDtls: any = await client.graphql({
         query: getCompany,
@@ -496,15 +527,27 @@ const TransportOrdersScreen = () => {
         },
       });
 
-      await client.graphql({
-        query: updateSMAccount,
-        variables: {
-          input: {
-            awsemail: orderDtlz.customerEmail,
-            benefitsAmount: Number((parseFloat(buyerDtlsz.benefitsAmount) + benefit).toFixed(4)),
+      if (isBusinessBuyer) {
+        await client.graphql({
+          query: updateBizna,
+          variables: {
+            input: {
+              BusKntct: orderDtlz.customerEmail,
+              benefitsAmount: Number((parseFloat(buyerDtlsz.benefitsAmount) + benefit).toFixed(4)),
+            },
           },
-        },
-      });
+        });
+      } else {
+        await client.graphql({
+          query: updateSMAccount,
+          variables: {
+            input: {
+              awsemail: orderDtlz.customerEmail,
+              benefitsAmount: Number((parseFloat(buyerDtlsz.benefitsAmount) + benefit).toFixed(4)),
+            },
+          },
+        });
+      }
 
       await client.graphql({
         query: createBenefitContributions2,
@@ -517,11 +560,11 @@ const TransportOrdersScreen = () => {
             beneficiaryPhone: attributes.phone_number || "String",
             creatorEmail: attributes.email,
             prodName: orderDtlz.deliveryDesc,
-            creatorName: buyerDtlsz.name,
+            creatorName: isBusinessBuyer ? buyerDtlsz.busName : buyerDtlsz.name,
             owner: user.userId,
             prodCost: 0,
             benefitsAmount: benefit,
-            beneficiaryType: "Pal",
+            beneficiaryType: isBusinessBuyer ? "Biz" : "Pal",
             prodDesc: orderDtlz.deliveryDesc,
             benefitStatus: "Active",
             amount: benefit,
@@ -562,6 +605,53 @@ const TransportOrdersScreen = () => {
         });
       }
 
+      let businessAnalyticsFailed = false;
+      try {
+        if (!biz?.owner || !orderDtlz.sellerContact || !nonLoanDtlz?.id) {
+          throw new Error("Seller analytics ownership or sale reference is missing.");
+        }
+        const occurredAt = new Date().toISOString();
+        const saleAmount = Number(nonLoanDtlz.amount ?? orderDtlz.orderCost);
+        const commonRecord = {
+          amountKes: saleAmount,
+          occurredAt,
+          source: "NISENTI_DELIVERY",
+          sourceReference: orderDtlz.deliveryID,
+          itemName: orderDtlz.deliveryDesc || "",
+          quantity: 1,
+          fulfillmentType: "DELIVERY",
+          ...(buyerGps || {}),
+          description: orderDtlz.deliveryDesc || "",
+        };
+        await saveBusinessPerformanceEntry({
+          ...commonRecord,
+          ownerSub: biz.owner,
+          businessAccount: orderDtlz.sellerContact,
+          recordType: "REVENUE",
+        });
+
+        if (orderDtlz.purchaseType === "B2B" && orderDtlz.customerEmail) {
+          const buyerBizResult: any = await client.graphql({
+            query: getBizna,
+            variables: { BusKntct: orderDtlz.customerEmail },
+          });
+          const buyerBiz = buyerBizResult?.data?.getBizna;
+          if (!buyerBiz?.owner) {
+            throw new Error("Business buyer analytics ownership is missing.");
+          }
+          await saveBusinessPerformanceEntry({
+            ...commonRecord,
+            ownerSub: buyerBiz.owner,
+            businessAccount: orderDtlz.customerEmail,
+            recordType: "EXPENSE",
+            feesKes: Number(nonLoanDtlz.fees || 0),
+          });
+        }
+      } catch (analyticsError) {
+        businessAnalyticsFailed = true;
+        console.error("Delivery received, but business analytics capture failed:", analyticsError);
+      }
+
       let performanceEventFailed = false;
       if (["Biz2Pal", "Biz2Biz"].includes(nonLoanDtlz.status)) {
         try {
@@ -599,9 +689,11 @@ const TransportOrdersScreen = () => {
 
       Alert.alert(
         t.success,
-        performanceEventFailed
-          ? `${t.deliveryReceived}\n\nPerformance event delivery failed. Check the app logs.`
-          : t.deliveryReceived
+        [
+          t.deliveryReceived,
+          performanceEventFailed ? "Performance event delivery failed. Check the app logs." : "",
+          businessAnalyticsFailed ? "Business analytics could not record this delivery. Check the app logs." : "",
+        ].filter(Boolean).join("\n\n")
       );
 
       const sendSMS = (phoneNumber: string, message: string) => {

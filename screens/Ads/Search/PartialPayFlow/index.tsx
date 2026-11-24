@@ -22,6 +22,7 @@ import { nationalityToCode } from '../../../../src/utils/nationalityToCode';
 import { buildOsrmRouteUrl } from '../../../../src/config/osrm';
 import { FontAwesome } from '@expo/vector-icons';
 import { safeNavigateFrom } from '../../../../src/utils/navigationHelper';
+import { saveBusinessPerformanceEntry } from '../../../../src/utils/businessPerformance';
 
 
 const client = generateClient();
@@ -1012,6 +1013,7 @@ function PartialPayFlowInner({ navigation, route }: { navigation: any; route: an
                               }
                             });
 
+      let analyticsRecorded = true;
       if (modeParam === 'quick') {
         let buyerAccountDetails: any = null;
         if (selectedEntry.buyerType === 'Biz') {
@@ -1045,6 +1047,65 @@ function PartialPayFlowInner({ navigation, route }: { navigation: any; route: an
           itemDesc: selectedEntry.itemDesc || '',
           itemUrl: selectedEntry.itemUrl || ''
         });
+
+        await createMarketConsumptionForPartialPayEntry({
+          id: selectedEntry.id,
+          itemCost,
+          sellerAccount,
+          buyerAccount: selectedEntry.buyerAccount,
+          itemName: selectedEntry.itemName || '',
+          itemBrand: selectedEntry.itemName || '',
+          itemDesc: selectedEntry.itemDesc || '',
+          itemPhoto: selectedEntry.itemPhoto || '',
+          itemUrl: selectedEntry.itemUrl || '',
+          sellerNationality: seller.Nationality || ''
+        });
+
+        try {
+          const occurredAt = new Date().toISOString();
+          const location = userLocation
+            && Number.isFinite(Number(userLocation.latitude))
+            && Number.isFinite(Number(userLocation.longitude))
+            ? {
+                latitude: Number(userLocation.latitude),
+                longitude: Number(userLocation.longitude)
+              }
+            : null;
+          await saveBusinessPerformanceEntry({
+            ownerSub: seller.owner,
+            businessAccount: sellerAccount,
+            recordType: 'REVENUE',
+            amountKes: itemCost,
+            occurredAt,
+            source: 'NISENTI_PARTIAL_PAY',
+            sourceReference: selectedEntry.id,
+            itemName: selectedEntry.itemName || '',
+            quantity: 1,
+            fulfillmentType: 'PICKUP',
+            ...(location || {}),
+            description: selectedEntry.itemDesc || selectedEntry.itemName || ''
+          });
+          if (selectedEntry.buyerType === 'Biz' && buyerAccountDetails?.owner) {
+            await saveBusinessPerformanceEntry({
+              ownerSub: buyerAccountDetails.owner,
+              businessAccount: selectedEntry.buyerAccount,
+              recordType: 'EXPENSE',
+              amountKes: itemCost,
+              feesKes: accumulatedFees,
+              occurredAt,
+              source: 'NISENTI_PARTIAL_PAY',
+              sourceReference: selectedEntry.id,
+              itemName: selectedEntry.itemName || '',
+              quantity: 1,
+              fulfillmentType: 'PICKUP',
+              ...(location || {}),
+              description: selectedEntry.itemDesc || selectedEntry.itemName || ''
+            });
+          }
+        } catch (analyticsError) {
+          analyticsRecorded = false;
+          console.error('Partial-pay purchase completed, but business analytics capture failed:', analyticsError);
+        }
       }
 
       await loadExistingPartialPays();
@@ -1054,7 +1115,12 @@ function PartialPayFlowInner({ navigation, route }: { navigation: any; route: an
       if (modeParam === 'transport') {
         VwSalesDtls4Transport();
       } else {
-        Alert.alert(t.success, t.transactionCompleted || 'Transaction completed successfully.');
+        Alert.alert(
+          t.success,
+          analyticsRecorded
+            ? (t.transactionCompleted || 'Transaction completed successfully.')
+            : 'Purchase completed, but business analytics could not record it. Check the app logs.'
+        );
       }
     } catch (err) {
       console.error('Failed to complete full payment records:', err);
@@ -1192,19 +1258,6 @@ function PartialPayFlowInner({ navigation, route }: { navigation: any; route: an
         itemName,
         itemDesc,
         itemUrl
-      });
-
-      await createMarketConsumptionForPartialPayEntry({
-        id: createdPartialPay.id || itemUrl,
-        itemCost: totalCost,
-        sellerAccount: sellerContact,
-        buyerAccount: buyer.buyerAccount,
-        itemName,
-        itemBrand: cart[0]?.itemBrand || cart[0]?.sokoname || cart[0]?.bizName || '',
-        itemDesc,
-        itemPhoto,
-        itemUrl,
-        sellerNationality: cart[0]?.Nationality || cart[0]?.sellerNationality || ''
       });
 
       Alert.alert(t.successPartialPayment, t.partialPaymentRecorded);

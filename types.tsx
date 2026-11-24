@@ -479,6 +479,7 @@ ViewMinutes: {
       RequestLoansPage:undefined;
       LnsScreen:undefined;
       CredSlsScreen:undefined;
+      BusinessPerformance:undefined;
       ChamaScreen:undefined;
       Homeie:undefined;
       MFNdogoo:undefined;
@@ -890,5 +891,4 @@ export type RootTabScreenProps<Screen extends keyof RootTabParamList> = Composit
 export type UserReg = {
   usr:String;
 }
-
 

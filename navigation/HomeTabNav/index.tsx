@@ -307,6 +307,7 @@ import SgnIn2VwChmWthdrwls from "../../screens/Chama/SignitoryWthdrwFnds/SgnIn2V
 
 import LnsScreen from "../../screens/Loans";
 import CredSlsScreen from "../../screens/CredSls";
+import BusinessPerformanceScreen from "../../screens/CredSls/BusinessPerformance";
 import ChamaScreen from "../../screens/Chama";
 
 import DetailedChmPrfl from "../../screens/Ads/VwDtldInfo/DtldChmInfo";
@@ -1228,6 +1229,7 @@ const HomeNavigator = ({ navigation, route }: any) => {
       
       <Stack.Screen name={'LnsScreen'} component={LnsScreen} />
       <Stack.Screen name={'CredSlsScreen'} component={CredSlsScreen} />
+      <Stack.Screen name={'BusinessPerformance'} component={BusinessPerformanceScreen} />
       <Stack.Screen name={'ChamaScreen'} component={ChamaScreen} />
       
       <Stack.Screen name={'SgnIn2VwChmDpstss'} component={SgnIn2VwChmDpsts} />

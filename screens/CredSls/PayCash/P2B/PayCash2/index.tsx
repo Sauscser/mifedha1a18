@@ -12,6 +12,8 @@ import { generateClient } from "aws-amplify/api";
 import { useTranslation } from 'react-i18next';
 import translations from './translation';
 import { safeNavigateFrom } from '../../../../../src/utils/navigationHelper';
+import * as Location from 'expo-location';
+import { saveBusinessPerformanceEntry } from '../../../../../src/utils/businessPerformance';
 
 const client = generateClient();
 const SMASendNonLns = () => {
@@ -37,6 +39,41 @@ const SMASendNonLns = () => {
   const showError = msg => {
     Alert.alert(msg);
     setIsLoading(false);
+  };
+  const recordCashPurchaseAnalytics = async (seller: any) => {
+    try {
+      if (!seller?.owner) throw new Error('Seller analytics owner is unavailable.');
+      let location: { latitude: number; longitude: number } | null = null;
+      try {
+        const permission = await Location.requestForegroundPermissionsAsync();
+        if (permission.status === 'granted') {
+          const position = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
+          location = {
+            latitude: Number(position.coords.latitude),
+            longitude: Number(position.coords.longitude),
+          };
+        }
+      } catch (locationError) {
+        console.error('Could not capture pickup location for cash purchase analytics:', locationError);
+      }
+      await saveBusinessPerformanceEntry({
+        ownerSub: seller.owner,
+        businessAccount: sokokntct,
+        recordType: 'REVENUE',
+        amountKes: Number(totalCost),
+        occurredAt: new Date().toISOString(),
+        source: 'NISENTI_CASH',
+        sourceReference: `cash-purchase-${Date.now()}`,
+        itemName: String(sokoname || ''),
+        quantity: Number(quantity) || 1,
+        fulfillmentType: 'PICKUP',
+        ...(location || {}),
+      });
+      return true;
+    } catch (analyticsError) {
+      console.error('Cash purchase completed, but business analytics capture failed:', analyticsError);
+      return false;
+    }
   };
   const fetchCvLnSM = async () => {
     setIsLoading(true);
@@ -250,9 +287,10 @@ const SMASendNonLns = () => {
             }
           }
         })]);
+        const analyticsRecorded = await recordCashPurchaseAnalytics(biz);
         Alert.alert(fmt(t.successTransactionFee, {
           fee: fee.toFixed(0)
-        }));
+        }) + (analyticsRecorded ? '' : '\n\nBusiness analytics could not record this purchase. Check the app logs.'));
         setIsLoading(false);
         setSnderPW("");
       }
@@ -304,9 +342,10 @@ const SMASendNonLns = () => {
             }
           }
         })]);
+        const analyticsRecorded = await recordCashPurchaseAnalytics(biz);
         Alert.alert(fmt(t.successTransactionFee, {
           fee: fee.toFixed(0)
-        }));
+        }) + (analyticsRecorded ? '' : '\n\nBusiness analytics could not record this purchase. Check the app logs.'));
         setIsLoading(false);
         setSnderPW("");
       }

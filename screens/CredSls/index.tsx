@@ -170,6 +170,12 @@ const MyLoanAccount = () => {
   const OpenCascadePayments = () => {
     safeNavigateFrom(navigation, 'CascadePaymentsScreen');
   };
+  const OpenBusinessPerformance = () => {
+    safeNavigateFrom(navigation, 'BusinessPerformance');
+  };
+  const OpenBusinessBranchLinking = () => {
+    safeNavigateFrom(navigation, 'BusinessPerformance', { openOrganizationLinking: true });
+  };
   return <SafeAreaView>
       <ScrollView>
       <LinearGradient colors={['#FF8C00', 'skyblue', 'white']} // Linear gradient for orange hues
@@ -182,6 +188,15 @@ const MyLoanAccount = () => {
         y: 1
       }} style={styles.clientsPressableGradient}>
           
+            <Section title="businessPerformance" options={[{
+              label: 'viewMyBusinessPerformance',
+              onPress: OpenBusinessPerformance,
+              style: styles.viewForClientsPressables
+            }, {
+              label: 'Link Business Branches',
+              onPress: OpenBusinessBranchLinking,
+              style: styles.viewForClientsPressables
+            }]} />
             
              <Section title="Cascade Payments" options={[{
               label: 'Cascade Payments',

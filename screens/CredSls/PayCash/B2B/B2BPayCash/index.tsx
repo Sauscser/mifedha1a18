@@ -12,6 +12,8 @@ import { nationalityToCode } from '../../../../../src/utils/nationalityToCode';
 import { useTranslation } from 'react-i18next';
 import translations from './translation';
 import { safeNavigateFrom } from '../../../../../src/utils/navigationHelper';
+import * as Location from 'expo-location';
+import { saveBusinessPerformanceEntry } from '../../../../../src/utils/businessPerformance';
 
 const client = generateClient();
 const SMASendNonLns = props => {
@@ -152,6 +154,56 @@ const SMASendNonLns = props => {
       });
       const SenderUsrBal8 = accountDtl8.data.getSMAccount.balance;
       const recbeneficiaryAmt = accountDtl8.data.getSMAccount.beneficiaryAmt;
+      const recordB2BCashPurchaseAnalytics = async () => {
+        try {
+          const buyerOwner = senderBiz.data.getBizna.owner;
+          const sellerOwner = RecAccountDtl.data.getBizna.owner;
+          if (!buyerOwner || !sellerOwner) {
+            throw new Error('Business analytics owners are missing for this cash purchase.');
+          }
+          let location: { latitude: number; longitude: number } | null = null;
+          try {
+            const permission = await Location.requestForegroundPermissionsAsync();
+            if (permission.status === 'granted') {
+              const position = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
+              location = {
+                latitude: Number(position.coords.latitude),
+                longitude: Number(position.coords.longitude),
+              };
+            }
+          } catch (locationError) {
+            console.error('Could not capture pickup location for B2B cash analytics:', locationError);
+          }
+          const occurredAt = new Date().toISOString();
+          const common = {
+            amountKes: Number(amount),
+            occurredAt,
+            source: 'NISENTI_CASH',
+            sourceReference: String(route.params.id),
+            itemName: 'Business cash purchase',
+            quantity: 1,
+            fulfillmentType: 'PICKUP',
+            ...(location || {}),
+          };
+          await saveBusinessPerformanceEntry({
+            ...common,
+            ownerSub: sellerOwner,
+            businessAccount: recPhn,
+            recordType: 'REVENUE',
+          });
+          await saveBusinessPerformanceEntry({
+            ...common,
+            ownerSub: buyerOwner,
+            businessAccount: senderPhn,
+            recordType: 'EXPENSE',
+            feesKes: Number(UsrTransferFeeAmt || 0),
+          });
+          return true;
+        } catch (analyticsError) {
+          console.error('B2B cash purchase completed, but business analytics capture failed:', analyticsError);
+          return false;
+        }
+      };
 
       // Conditional cascades preserved
       if (SenderUsrBal >= TotalTransacted && SenderbizType !== "Public" && RecBizType !== "Public") {
@@ -243,10 +295,11 @@ const SMASendNonLns = props => {
         });
         const rawNationality = (attributes as any).nationality;
         const userCode = nationalityToCode(rawNationality) || rawNationality || 'KE';
+        const analyticsRecorded = await recordB2BCashPurchaseAnalytics();
         Alert.alert(fmt(t.amountFee, {
           amount: formatAmountSync(parseFloat(amount), userCode, ratesMap),
           fee: formatAmountSync(parseFloat(UsrTransferFeeAmt), userCode, ratesMap)
-        }));
+        }) + (analyticsRecorded ? '' : '\n\nBusiness analytics could not record this purchase. Check the app logs.'));
       }
       async function sendSMNonLn11() {
         await client.graphql({
@@ -306,9 +359,10 @@ const SMASendNonLns = props => {
             }
           }
         });
+        const analyticsRecorded = await recordB2BCashPurchaseAnalytics();
         Alert.alert(fmt(t.lowFeeSent, {
           amount: parseFloat(amount).toFixed(0)
-        }));
+        }) + (analyticsRecorded ? '' : '\n\nBusiness analytics could not record this purchase. Check the app logs.'));
       }
       async function sendSMNonLn9() {
         // Same cascade style preserved for Public receiver
@@ -369,7 +423,8 @@ const SMASendNonLns = props => {
             }
           }
         });
-        Alert.alert(t.publicReceiverSuccess);
+        const analyticsRecorded = await recordB2BCashPurchaseAnalytics();
+        Alert.alert(t.publicReceiverSuccess + (analyticsRecorded ? '' : '\n\nBusiness analytics could not record this purchase. Check the app logs.'));
       }
       async function sendSMNonLn7() {
         // Cascade for Public sender and Public receiver
@@ -430,7 +485,8 @@ const SMASendNonLns = props => {
             }
           }
         });
-        Alert.alert(t.publicSenderReceiverSuccess);
+        const analyticsRecorded = await recordB2BCashPurchaseAnalytics();
+        Alert.alert(t.publicSenderReceiverSuccess + (analyticsRecorded ? '' : '\n\nBusiness analytics could not record this purchase. Check the app logs.'));
       }
     } catch (error) {
       console.error(error);

@@ -1,0 +1,23 @@
+Boundary data used by the business performance heat map
+
+World countries
+Source: Natural Earth, Admin 0 Countries, 1:110m, v5.1.2
+URL: https://github.com/nvkelso/natural-earth-vector
+License: Public domain
+
+Global first-level administrative boundaries
+Source: Natural Earth, Admin 1 States and Provinces, 1:50m
+URL: https://github.com/nvkelso/natural-earth-vector
+License: Public domain
+
+Kenya counties (ADM1)
+Source: geoBoundaries, KEN ADM1, boundary data built December 2023
+URL: https://www.geoboundaries.org/api/current/gbOpen/KEN/ADM1/
+License: Public domain
+
+Kenya sub-counties (ADM2)
+Source: geoBoundaries, KEN ADM2, boundary data built December 2023
+URL: https://www.geoboundaries.org/api/current/gbOpen/KEN/ADM2/
+License: Creative Commons Attribution 3.0 Intergovernmental Organisations (CC BY 3.0 IGO)
+
+geoBoundaries requests prominent attribution in the application. The map screen displays geoBoundaries.org attribution.

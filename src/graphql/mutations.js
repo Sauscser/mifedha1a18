@@ -2551,6 +2551,7 @@ export const createBizna = /* GraphQL */ `
       benefitsAmount
       owner2email
       email
+      organizationId
       licenseNo
       bizType
       bankType
@@ -2665,6 +2666,7 @@ export const updateBizna = /* GraphQL */ `
       benefitsAmount
       owner2email
       email
+      organizationId
       licenseNo
       bizType
       bankType
@@ -2779,6 +2781,7 @@ export const deleteBizna = /* GraphQL */ `
       benefitsAmount
       owner2email
       email
+      organizationId
       licenseNo
       bizType
       bankType
@@ -6930,6 +6933,219 @@ export const deleteMarketConsumption = /* GraphQL */ `
       itemSpecifications
       createdAt
       Nationality
+      updatedAt
+      __typename
+    }
+  }
+`;
+export const createBusinessPerformanceRecord = /* GraphQL */ `
+  mutation CreateBusinessPerformanceRecord(
+    $input: CreateBusinessPerformanceRecordInput!
+    $condition: ModelBusinessPerformanceRecordConditionInput
+  ) {
+    createBusinessPerformanceRecord(input: $input, condition: $condition) {
+      id
+      ownerSub
+      businessAccount
+      recordType
+      amountKes
+      feesKes
+      originalAmount
+      currency
+      exchangeRateToKes
+      occurredAt
+      source
+      sourceReference
+      itemName
+      category
+      quantity
+      fulfillmentType
+      latitude
+      longitude
+      description
+      createdAt
+      updatedAt
+      __typename
+    }
+  }
+`;
+export const updateBusinessPerformanceRecord = /* GraphQL */ `
+  mutation UpdateBusinessPerformanceRecord(
+    $input: UpdateBusinessPerformanceRecordInput!
+    $condition: ModelBusinessPerformanceRecordConditionInput
+  ) {
+    updateBusinessPerformanceRecord(input: $input, condition: $condition) {
+      id
+      ownerSub
+      businessAccount
+      recordType
+      amountKes
+      feesKes
+      originalAmount
+      currency
+      exchangeRateToKes
+      occurredAt
+      source
+      sourceReference
+      itemName
+      category
+      quantity
+      fulfillmentType
+      latitude
+      longitude
+      description
+      createdAt
+      updatedAt
+      __typename
+    }
+  }
+`;
+export const deleteBusinessPerformanceRecord = /* GraphQL */ `
+  mutation DeleteBusinessPerformanceRecord(
+    $input: DeleteBusinessPerformanceRecordInput!
+    $condition: ModelBusinessPerformanceRecordConditionInput
+  ) {
+    deleteBusinessPerformanceRecord(input: $input, condition: $condition) {
+      id
+      ownerSub
+      businessAccount
+      recordType
+      amountKes
+      feesKes
+      originalAmount
+      currency
+      exchangeRateToKes
+      occurredAt
+      source
+      sourceReference
+      itemName
+      category
+      quantity
+      fulfillmentType
+      latitude
+      longitude
+      description
+      createdAt
+      updatedAt
+      __typename
+    }
+  }
+`;
+export const createBusinessPerformanceTarget = /* GraphQL */ `
+  mutation CreateBusinessPerformanceTarget(
+    $input: CreateBusinessPerformanceTargetInput!
+    $condition: ModelBusinessPerformanceTargetConditionInput
+  ) {
+    createBusinessPerformanceTarget(input: $input, condition: $condition) {
+      id
+      businessAccount
+      organizationId
+      name
+      method
+      metric
+      period
+      amountKes
+      baselineYear
+      marginPercent
+      startDate
+      endDate
+      createdByEmail
+      createdAt
+      updatedAt
+      __typename
+    }
+  }
+`;
+export const updateBusinessPerformanceTarget = /* GraphQL */ `
+  mutation UpdateBusinessPerformanceTarget(
+    $input: UpdateBusinessPerformanceTargetInput!
+    $condition: ModelBusinessPerformanceTargetConditionInput
+  ) {
+    updateBusinessPerformanceTarget(input: $input, condition: $condition) {
+      id
+      businessAccount
+      organizationId
+      name
+      method
+      metric
+      period
+      amountKes
+      baselineYear
+      marginPercent
+      startDate
+      endDate
+      createdByEmail
+      createdAt
+      updatedAt
+      __typename
+    }
+  }
+`;
+export const deleteBusinessPerformanceTarget = /* GraphQL */ `
+  mutation DeleteBusinessPerformanceTarget(
+    $input: DeleteBusinessPerformanceTargetInput!
+    $condition: ModelBusinessPerformanceTargetConditionInput
+  ) {
+    deleteBusinessPerformanceTarget(input: $input, condition: $condition) {
+      id
+      businessAccount
+      organizationId
+      name
+      method
+      metric
+      period
+      amountKes
+      baselineYear
+      marginPercent
+      startDate
+      endDate
+      createdByEmail
+      createdAt
+      updatedAt
+      __typename
+    }
+  }
+`;
+export const createBusinessOrganization = /* GraphQL */ `
+  mutation CreateBusinessOrganization(
+    $input: CreateBusinessOrganizationInput!
+    $condition: ModelBusinessOrganizationConditionInput
+  ) {
+    createBusinessOrganization(input: $input, condition: $condition) {
+      id
+      name
+      createdByEmail
+      createdAt
+      updatedAt
+      __typename
+    }
+  }
+`;
+export const updateBusinessOrganization = /* GraphQL */ `
+  mutation UpdateBusinessOrganization(
+    $input: UpdateBusinessOrganizationInput!
+    $condition: ModelBusinessOrganizationConditionInput
+  ) {
+    updateBusinessOrganization(input: $input, condition: $condition) {
+      id
+      name
+      createdByEmail
+      createdAt
+      updatedAt
+      __typename
+    }
+  }
+`;
+export const deleteBusinessOrganization = /* GraphQL */ `
+  mutation DeleteBusinessOrganization(
+    $input: DeleteBusinessOrganizationInput!
+    $condition: ModelBusinessOrganizationConditionInput
+  ) {
+    deleteBusinessOrganization(input: $input, condition: $condition) {
+      id
+      name
+      createdByEmail
+      createdAt
       updatedAt
       __typename
     }

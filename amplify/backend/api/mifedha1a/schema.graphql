@@ -1300,7 +1300,6 @@ type Agent
   ttlEarnings: Float!
   pw: String!
   email: String!
-
   groupFloatStatus: String
   groupFloatAmount: Float
  
@@ -1740,6 +1739,19 @@ type Bizna
   benefitsAmount: Float
   owner2email:String
   email: String!
+    @index(
+      name: "byBiznaCreatorEmail"
+      sortKeyFields: ["busName"]
+      queryField: "biznasByCreatorEmail"
+    )
+  organizationId: ID
+    @auth(
+      rules: [
+        { allow: private, operations: [read] }
+        { allow: owner, ownerField: "email", identityClaim: "email", operations: [update] }
+      ]
+    )
+    @index(name: "byBusinessOrganization", queryField: "businessesByOrganization")
   licenseNo: String
   bizType: String!
   bankType:String
@@ -3909,6 +3921,101 @@ type MarketConsumption @model
   Nationality: String!
 }
 
+type BusinessPerformanceRecord
+  @model
+  @auth(
+    rules: [
+      { allow: private, operations: [create, read] }
+      {
+        allow: owner
+        ownerField: "ownerSub"
+        operations: [read, update, delete]
+      }
+    ]
+  ) {
+  id: ID!
+  ownerSub: String!
+    @index(
+      name: "byOwnerOccurredAt"
+      sortKeyFields: ["occurredAt"]
+      queryField: "businessPerformanceRecordsByOwnerAndTime"
+    )
+  businessAccount: String!
+  recordType: BusinessPerformanceRecordType!
+  amountKes: Float!
+  feesKes: Float
+  originalAmount: Float
+  currency: String
+  exchangeRateToKes: Float
+  occurredAt: AWSDateTime!
+  source: String!
+  sourceReference: String
+  itemName: String
+  category: String
+  quantity: Float
+  fulfillmentType: String
+  latitude: Float
+  longitude: Float
+  description: String
+}
+
+type BusinessPerformanceTarget
+  @model
+  @auth(
+    rules: [
+      { allow: private, operations: [create, read, update, delete] }
+      { allow: groups, groups: ["Executive"], operations: [read, delete] }
+    ]
+  ) {
+  id: ID!
+  businessAccount: String
+    @index(
+      name: "byBusinessAccountAndName"
+      sortKeyFields: ["name"]
+      queryField: "businessPerformanceTargetsByBusiness"
+    )
+  organizationId: ID
+    @index(
+      name: "byOrganizationAndName"
+      sortKeyFields: ["name"]
+      queryField: "businessPerformanceTargetsByOrganization"
+    )
+  name: String!
+  method: BusinessPerformanceTargetMethod!
+  metric: BusinessPerformanceTargetMetric!
+  period: BusinessPerformanceTargetPeriod!
+  amountKes: Float
+  baselineYear: Int
+  marginPercent: Float
+  startDate: AWSDate!
+  endDate: AWSDate!
+  createdByEmail: String!
+}
+
+type BusinessOrganization
+  @model
+  @auth(
+    rules: [
+      { allow: private, operations: [read] }
+      {
+        allow: owner
+        ownerField: "createdByEmail"
+        identityClaim: "email"
+        operations: [create, update, delete]
+      }
+      { allow: groups, groups: ["Executive"], operations: [read, delete] }
+    ]
+  ) {
+  id: ID!
+  name: String!
+  createdByEmail: String!
+    @index(
+      name: "byOrganizationCreator"
+      sortKeyFields: ["name"]
+      queryField: "businessOrganizationsByCreator"
+    )
+}
+
 
 type combPersonel
   @model
@@ -4051,6 +4158,25 @@ enum AttendanceStatus {
   PRESENT
   ABSENT
   APOLOGY
+}
+enum BusinessPerformanceRecordType {
+  REVENUE
+  EXPENSE
+}
+enum BusinessPerformanceTargetMethod {
+  HISTORICAL
+  FIXED
+  FORMULA
+}
+enum BusinessPerformanceTargetMetric {
+  PROFIT
+  REVENUE
+  EXPENSES
+}
+enum BusinessPerformanceTargetPeriod {
+  DAILY
+  WEEKLY
+  MONTHLY
 }
 enum PriceFlag {
   NORMAL

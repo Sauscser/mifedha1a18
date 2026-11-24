@@ -107,9 +107,15 @@ export async function getExRatesForNationality(nationality: string): Promise<{ s
       });
       const rates = res?.data?.getExRates;
       if (rates) {
+        const sellingPrice = Number(rates.sellingPrice);
+        const buyingPrice = Number(rates.buyingPrice);
+        if (!Number.isFinite(sellingPrice) || sellingPrice <= 0
+          || !Number.isFinite(buyingPrice) || buyingPrice <= 0) {
+          continue;
+        }
         return {
-          sellingPrice: parseFloat(rates.sellingPrice || '1'),
-          buyingPrice: parseFloat(rates.buyingPrice || '1'),
+          sellingPrice,
+          buyingPrice,
           symbol: rates.symbol || 'Ksh'
         };
       }
@@ -125,9 +131,15 @@ export async function getExRatesForNationality(nationality: string): Promise<{ s
     });
 
     if (!found) return null;
+    const sellingPrice = Number(found.sellingPrice);
+    const buyingPrice = Number(found.buyingPrice);
+    if (!Number.isFinite(sellingPrice) || sellingPrice <= 0
+      || !Number.isFinite(buyingPrice) || buyingPrice <= 0) {
+      return null;
+    }
     return {
-      sellingPrice: parseFloat(found.sellingPrice || '1'),
-      buyingPrice: parseFloat(found.buyingPrice || '1'),
+      sellingPrice,
+      buyingPrice,
       symbol: found.symbol || 'Ksh'
     };
   } catch (e) {
@@ -192,6 +204,21 @@ export async function convertForeignToKsh(amountForeign: number, nationality?: s
     console.warn('convertForeignToKsh error', e);
     return amountForeign;
   }
+}
+
+export async function convertForeignToChf(amountForeign: number, nationality: string): Promise<number> {
+  if (!Number.isFinite(amountForeign) || amountForeign <= 0) {
+    throw new Error('The amount must be a positive number.');
+  }
+  if (!nationality.trim()) {
+    throw new Error('The signed-in user currency is unavailable.');
+  }
+  const rates = await getExRatesForNationality(nationality);
+  const foreignPerChf = Number(rates?.sellingPrice);
+  if (!Number.isFinite(foreignPerChf) || foreignPerChf <= 0) {
+    throw new Error(`No valid CHF exchange rate is available for ${nationality}.`);
+  }
+  return amountForeign / foreignPerChf;
 }
 
 export function getCurrencyIsoFromCountryCode(countryCode: string): string | null {
