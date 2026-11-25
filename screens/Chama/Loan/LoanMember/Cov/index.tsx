@@ -113,7 +113,7 @@ const ChmCovLns = () => {
       const {
         getCompany: company
       } = await fetchGraphQL(getCompany, {
-        AdminId: "BaruchHabaB'ShemAdonai2"
+        AdminId: ""
       });
       const {
         getSMAccount: recAccount
@@ -301,7 +301,7 @@ const ChmCovLns = () => {
         query: updateCompany,
         variables: {
           input: {
-            AdminId: "BaruchHabaB'ShemAdonai2",
+            AdminId: "",
             ttlCompCovEarnings: (parseFloat(company.ttlCompCovEarnings) + totalAmount).toFixed(0),
             AdvEarningBal: (parseFloat(company.AdvEarningBal) + ttlCovFeeAmount).toFixed(0),
             AdvEarning: (parseFloat(company.AdvEarning) + ttlCovFeeAmount).toFixed(0),

@@ -95,7 +95,7 @@ const ViewSMDeposts = ({ Agent, isSelected = false, onPress, onLongPress }: Prop
             try {
               const MFNDtlszz: any = await client.graphql({
                 query: getCompany,
-                variables: { AdminId: "BaruchHabaB'ShemAdonai2" }
+                variables: { AdminId: "" }
               });
               setCompWithdrwlFee(MFNDtlszz.data.getCompany.companyComDisc);
               setUsrWthdrwlFees(MFNDtlszz.data.getCompany.UsrWthdrwlFees);

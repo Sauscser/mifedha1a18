@@ -101,7 +101,7 @@ const SMASendChmNonLns = props => {
     try {
       const CompDtls: any = await client.graphql({
         query: getCompany,
-        variables: { AdminId: "BaruchHabaB'ShemAdonai2" }
+        variables: { AdminId: "" }
       });
       userTransferFees = CompDtls.data.getCompany.chmMmbrTransferFee || 0;
     } catch {}
@@ -139,7 +139,7 @@ const SMASendChmNonLns = props => {
     try {
       const CompDtls: any = await client.graphql({
         query: getCompany,
-        variables: { AdminId: "BaruchHabaB'ShemAdonai2" }
+        variables: { AdminId: "" }
       });
       userTransferFees = CompDtls.data.getCompany.chmMmbrTransferFee || 0;
     } catch {}
@@ -181,7 +181,7 @@ const SMASendChmNonLns = props => {
               const CompDtls: any = await client.graphql({
                 query: getCompany,
                 variables: {
-                  AdminId: "BaruchHabaB'ShemAdonai2"
+                  AdminId: ""
                 }
               });
               const userTransferFees = CompDtls.data.getCompany.chmMmbrTransferFee;
@@ -282,7 +282,7 @@ const SMASendChmNonLns = props => {
                         query: updateCompany,
                         variables: {
                           input: {
-                            AdminId: "BaruchHabaB'ShemAdonai2",
+                            AdminId: "",
                             companyEarningBal: parseFloat(companyEarningBals) + UsrTransferFeeAmt,
                             companyEarning: parseFloat(companyEarnings) + UsrTransferFeeAmt,
                             ttlNonLonssRecChm: (amountInKES + parseFloat(ttlNonLonssRecChmss)).toFixed(2)
@@ -399,7 +399,7 @@ const SMASendChmNonLns = props => {
                         query: updateCompany,
                         variables: {
                           input: {
-                            AdminId: "BaruchHabaB'ShemAdonai2",
+                            AdminId: "",
                             companyEarningBal: parseFloat(companyEarningBals),
                             companyEarning: parseFloat(companyEarnings),
                             ttlNonLonssRecChm: (amountInKES + parseFloat(ttlNonLonssRecChmss)).toFixed(2)

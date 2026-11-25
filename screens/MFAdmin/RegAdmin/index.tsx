@@ -29,7 +29,7 @@ const CreateAdminForm = () => {
       const compDtls: any = await client.graphql({
         query: getCompany,
         variables: {
-          AdminId: "BaruchHabaB'ShemAdonai2"
+          AdminId: ""
         }
       });
       const actvAdm = compDtls.data.getCompany.ttlKFAdmActv;
@@ -87,7 +87,7 @@ const CreateAdminForm = () => {
                 query: updateCompany,
                 variables: {
                   input: {
-                    AdminId: "BaruchHabaB'ShemAdonai2",
+                    AdminId: "",
                     ttlKFAdmActv: parseFloat(actvAdm) + 1
                   }
                 }

@@ -27,7 +27,7 @@ const BLSMNonCovLoanee = props => {
       const compDtls: any = await client.graphql({
         query: getCompany,
         variables: {
-          AdminId: "BaruchHabaB'ShemAdonai2"
+          AdminId: ""
         }
       });
       const ttlSMLnsInBlAmtNonCovs = compDtls.data.getCompany.ttlSMLnsInBlAmtNonCov;
@@ -148,7 +148,7 @@ const BLSMNonCovLoanee = props => {
                         query: updateCompany,
                         variables: {
                           input: {
-                            AdminId: "BaruchHabaB'ShemAdonai2",
+                            AdminId: "",
                             ttlSMLnsInBlAmtNonCov: (parseFloat(ttlSMLnsInBlAmtNonCovs) + parseFloat(userClearanceFees) * parseFloat(amountexpecteds)).toFixed(0),
                             ttlSMLnsInBlTymsNonCov: parseFloat(ttlSMLnsInBlTymsNonCovs) + 1,
                             ttlBLUsrs: parseFloat(ttlBLUsrss) + 1

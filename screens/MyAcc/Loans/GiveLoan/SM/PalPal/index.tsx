@@ -170,7 +170,7 @@ const SMASendLns = props => {
                           const CompDtls: any = await client.graphql({
                             query: getCompany,
                             variables: {
-                              AdminId: "BaruchHabaB'ShemAdonai2"
+                              AdminId: ""
                             }
                           });
                           const userLoanTransferFees = CompDtls.data.getCompany.userLoanTransferFee;
@@ -352,7 +352,7 @@ const SMASendLns = props => {
                                     query: updateCompany,
                                     variables: {
                                       input: {
-                                        AdminId: "BaruchHabaB'ShemAdonai2",
+                                        AdminId: "",
                                         companyEarningBal: CompanyTotalEarnings2 + parseFloat(companyEarningBals),
                                         companyEarning: CompanyTotalEarnings2 + parseFloat(companyEarnings),
                                         ttlSMLnsInAmtCov: TotalAmtExp2 + parseFloat(ttlSMLnsInAmtCovs),
@@ -551,7 +551,7 @@ const SMASendLns = props => {
                                         query: updateCompany,
                                         variables: {
                                           input: {
-                                            AdminId: "BaruchHabaB'ShemAdonai2",
+                                            AdminId: "",
                                             ttlCompCovEarnings: CompCovAmt + parseFloat(ttlCompCovEarningss),
                                             AdvEarningBal: AdvCovAmt + parseFloat(AdvEarningBals),
                                             AdvEarning: AdvCovAmt + parseFloat(AdvEarnings),

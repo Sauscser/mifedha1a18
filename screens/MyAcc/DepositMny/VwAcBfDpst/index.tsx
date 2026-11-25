@@ -84,7 +84,7 @@ const FetchSMNonCovLns = props => {
                   const compDtlszx: any = await client.graphql({
                     query: getCompany,
                     variables: {
-                      AdminId: "BaruchHabaB'ShemAdonai2"
+                      AdminId: ""
                     }
                   });
                   setRecom(compDtlszx.data.getCompany.PayPalTNC);

@@ -13,7 +13,7 @@ const SyncExRates = () => {
     setIsLoading(true);
     try {
       const u = await getCurrentUser();
-      const compDtls: any = await client.graphql({ query: getCompany, variables: { AdminId: "BaruchHabaB'ShemAdonai2" } });
+      const compDtls: any = await client.graphql({ query: getCompany, variables: { AdminId: "" } });
       const ownersss = compDtls.data.getCompany.owner;
       if (ownersss !== u.userId) {
         Alert.alert('Access Denied');

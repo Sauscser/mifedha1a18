@@ -413,7 +413,7 @@ try {
         const result = await client.graphql({
           query: getCompany,
           variables: {
-            AdminId: "BaruchHabaB'ShemAdonai2"
+            AdminId: ""
           }
         });
         setCompany(result.data.getCompany);

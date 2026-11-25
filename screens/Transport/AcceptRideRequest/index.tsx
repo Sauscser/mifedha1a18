@@ -33,7 +33,7 @@ const FALLBACK_CHECK_INTERVAL_MS = 30_000; // check fallback every 30s
 const METRICS_STORAGE_KEY = 'rideMetricsBackup_v1';
 const SAVE_METRICS_INTERVAL_MS = 30_000; // persist metrics to AsyncStorage every 30s
 
-const COMPANY_ADMIN_ID = "BaruchHabaB'ShemAdonai2";
+const COMPANY_ADMIN_ID = "";
 
 const LIST_RIDE_REQUESTS_SAFE_QUERY = /* GraphQL */ `
   query ListRideRequestsSafe($filter: ModelRideRequestFilterInput, $limit: Int, $nextToken: String) {

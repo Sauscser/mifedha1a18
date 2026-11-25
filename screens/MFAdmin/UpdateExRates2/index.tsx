@@ -173,7 +173,7 @@ const UpdateExRates = () => {
     try {
       const compDtls: any = await client.graphql({
         query: getCompany,
-        variables: { AdminId: "BaruchHabaB'ShemAdonai2" }
+        variables: { AdminId: "" }
       });
       const ownersss = compDtls?.data?.getCompany?.owner;
       if (ownersss !== ownerId) {

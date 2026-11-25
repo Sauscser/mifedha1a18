@@ -19,7 +19,7 @@ const DeregMFKForm = props => {
       const compDtls: any = await client.graphql({
         query: getCompany,
         variables: {
-          AdminId: "BaruchHabaB'ShemAdonai2"
+          AdminId: ""
         }
       });
       const ActvMFKUsrs = compDtls.data.getCompany.ttlKFKbwActv;
@@ -34,7 +34,7 @@ const DeregMFKForm = props => {
             query: updateCompany,
             variables: {
               input: {
-                AdminId: "BaruchHabaB'ShemAdonai2",
+                AdminId: "",
                 ttlKFKbwActv: parseFloat(ActvMFKUsrs) - 1,
                 ttlKFKbwInActv: parseFloat(InActvMFKUsrs) + 1
               }

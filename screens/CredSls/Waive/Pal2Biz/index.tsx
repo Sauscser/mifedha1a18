@@ -123,7 +123,7 @@ const RepayCovSellerLnsss = props => {
               const CompDtls: any = await client.graphql({
                 query: getCompany,
                 variables: {
-                  AdminId: "BaruchHabaB'ShemAdonai2"
+                  AdminId: ""
                 }
               });
               const UsrTransferFee = CompDtls.data.getCompany.crdSllrLnRpymntFee;
@@ -301,7 +301,7 @@ const RepayCovSellerLnsss = props => {
                         query: updateCompany,
                         variables: {
                           input: {
-                            AdminId: "BaruchHabaB'ShemAdonai2"
+                            AdminId: ""
                           }
                         }
                       });
@@ -435,7 +435,7 @@ const RepayCovSellerLnsss = props => {
                         query: updateCompany,
                         variables: {
                           input: {
-                            AdminId: "BaruchHabaB'ShemAdonai2"
+                            AdminId: ""
                           }
                         }
                       });

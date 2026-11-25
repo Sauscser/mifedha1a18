@@ -96,6 +96,9 @@ const RegKFKubwa = props => {
   const ViewMFBankAdmin = () => {
     safeNavigateFrom(navigation, 'ViewMFBankAdmin');
   };
+  const ApproveNiSentiNdogo = () => {
+    safeNavigateFrom(navigation, 'AddMFNdogos');
+  };
   const RecoverMemberLoan = () => {
     safeNavigateFrom(navigation, 'RecoverMemberLoan');
   };
@@ -142,6 +145,10 @@ const RegKFKubwa = props => {
         }, {
           label: 'Recover Member Loan',
           onPress: RecoverMemberLoan,
+          style: styles.ClientsPressables
+        }, {
+          label: 'Approve a NiSenti Ndogo',
+          onPress: ApproveNiSentiNdogo,
           style: styles.ClientsPressables
         }]} />
 

@@ -318,7 +318,7 @@ const CreateChama = (props: UserReg) => {
       const compRes: any = await client.graphql({
         query: getCompany,
         variables: {
-          AdminId: "BaruchHabaB'ShemAdonai2"
+          AdminId: ""
         }
       });
       const ttlActiveChms = compRes.data.getCompany.ttlActiveChm;
@@ -481,7 +481,7 @@ const CreateChama = (props: UserReg) => {
         query: updateCompany,
         variables: {
           input: {
-            AdminId: "BaruchHabaB'ShemAdonai2",
+            AdminId: "",
             ttlActiveChm: nextActiveGroupCount,
             ttlActiveChmUsers: parseFloat(ttlActiveChmUserss) + 1
           }

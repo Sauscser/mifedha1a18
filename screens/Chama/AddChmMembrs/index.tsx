@@ -349,7 +349,7 @@ const AddChmMmbrs = () => {
         query: updateCompany,
         variables: {
           input: {
-            AdminId: "BaruchHabaB'ShemAdonai2",
+            AdminId: "",
             ttlActiveChmUsers: 1
           }
         }

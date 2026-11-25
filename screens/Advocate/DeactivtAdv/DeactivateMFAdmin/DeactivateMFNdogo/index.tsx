@@ -17,7 +17,7 @@ const DeregMFAdvForm = props => {
       const compDtls: any = await client.graphql({
         query: getCompany,
         variables: {
-          AdminId: "BaruchHabaB'ShemAdonai2"
+          AdminId: ""
         }
       });
       const ActvMFAdv = compDtls.data.getCompany.ttlKFAdvActv;
@@ -53,7 +53,7 @@ const DeregMFAdvForm = props => {
               query: updateCompany,
               variables: {
                 input: {
-                  AdminId: "BaruchHabaB'ShemAdonai2",
+                  AdminId: "",
                   ttlKFAdvActv: parseFloat(ActvMFAdv) - 1,
                   ttlKFAdvInActv: parseFloat(ttlKFAdvInActvs) + 1
                 }

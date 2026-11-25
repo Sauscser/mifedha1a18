@@ -105,7 +105,7 @@ const SellerPartialPayRecords = () => {
   useEffect(() => {
     const fetchCompany = async () => {
       try {
-        const res: any = await client.graphql({ query: getCompany, variables: { AdminId: "BaruchHabaB'ShemAdonai2" } });
+        const res: any = await client.graphql({ query: getCompany, variables: { AdminId: "" } });
         setCompany(res?.data?.getCompany || null);
       } catch (e) {
         console.error('Failed to fetch company fee info', e);

@@ -122,7 +122,7 @@ const DepositScreen = () => {
       const companyData = await client.graphql({
         query: getCompany,
         variables: {
-          AdminId: "BaruchHabaB'ShemAdonai2"
+          AdminId: ""
         }
       });
       const company = companyData.data.getCompany;
@@ -157,7 +157,7 @@ const DepositScreen = () => {
         query: updateCompany,
         variables: {
           input: {
-            AdminId: "BaruchHabaB'ShemAdonai2",
+            AdminId: "",
             ttlUsrDep: parseFloat(company.ttlUsrDep) + parseFloat(convertedAmount),
             agentFloatOut: parseFloat(company.agentFloatOut) + parseFloat(convertedAmount)
           }

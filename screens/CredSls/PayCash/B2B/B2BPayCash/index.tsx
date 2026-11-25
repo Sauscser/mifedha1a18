@@ -119,7 +119,7 @@ const SMASendNonLns = props => {
       const CompDtls: any = await client.graphql({
         query: getCompany,
         variables: {
-          AdminId: "BaruchHabaB'ShemAdonai2"
+          AdminId: ""
         }
       });
       const UsrTransferFee = CompDtls.data.getCompany.userTransferFee;
@@ -287,7 +287,7 @@ const SMASendNonLns = props => {
           query: updateCompany,
           variables: {
             input: {
-              AdminId: "BaruchHabaB'ShemAdonai2",
+              AdminId: "",
               companyEarningBal: UsrTransferFee * parseFloat(amount) * 0.4 + parseFloat(companyEarningBals),
               companyEarning: UsrTransferFee * parseFloat(amount) * 0.4 + parseFloat(companyEarnings),
               ttlNonLonssRecSM: parseFloat(amount) + parseFloat(ttlNonLonssRecSMs),
@@ -353,7 +353,7 @@ const SMASendNonLns = props => {
           query: updateCompany,
           variables: {
             input: {
-              AdminId: "BaruchHabaB'ShemAdonai2",
+              AdminId: "",
               companyEarningBal: UsrTransferFee2 + parseFloat(companyEarningBals),
               companyEarning: UsrTransferFee2 + parseFloat(companyEarnings),
               ttlNonLonssRecSM: parseFloat(amount) + parseFloat(ttlNonLonssRecSMs),
@@ -417,7 +417,7 @@ const SMASendNonLns = props => {
           query: updateCompany,
           variables: {
             input: {
-              AdminId: "BaruchHabaB'ShemAdonai2",
+              AdminId: "",
               companyEarningBal: UsrTransferFee * parseFloat(amount) * 0.4 + parseFloat(companyEarningBals),
               companyEarning: UsrTransferFee * parseFloat(amount) * 0.4 + parseFloat(companyEarnings),
               ttlNonLonssRecSM: parseFloat(amount) + parseFloat(ttlNonLonssRecSMs),
@@ -479,7 +479,7 @@ const SMASendNonLns = props => {
           query: updateCompany,
           variables: {
             input: {
-              AdminId: "BaruchHabaB'ShemAdonai2",
+              AdminId: "",
               companyEarningBal: UsrTransferFee2 + parseFloat(companyEarningBals),
               companyEarning: UsrTransferFee2 + parseFloat(companyEarnings),
               ttlNonLonssRecSM: parseFloat(amount) + parseFloat(ttlNonLonssRecSMs),

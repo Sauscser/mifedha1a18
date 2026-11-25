@@ -484,7 +484,7 @@ function SalesItemMapScreenInner({ navigation }: { navigation: any }) {
         const result: any = await client.graphql({
           query: getCompany,
           variables: {
-            AdminId: "BaruchHabaB'ShemAdonai2"
+            AdminId: ""
           }
         });
         setCompany(result.data.getCompany);
@@ -634,7 +634,7 @@ function SalesItemMapScreenInner({ navigation }: { navigation: any }) {
       const companyResult: any = await client.graphql({
         query: getCompany,
         variables: {
-          AdminId: "BaruchHabaB'ShemAdonai2"
+          AdminId: ""
         }
       });
       const company = companyResult.data.getCompany;
@@ -940,7 +940,7 @@ function SalesItemMapScreenInner({ navigation }: { navigation: any }) {
       const companyResult: any = await client.graphql({
         query: getCompany,
         variables: {
-          AdminId: "BaruchHabaB'ShemAdonai2"
+          AdminId: ""
         }
       });
       const company = companyResult.data.getCompany;
@@ -1091,7 +1091,7 @@ function SalesItemMapScreenInner({ navigation }: { navigation: any }) {
         query: updateCompany,
         variables: {
           input: {
-            AdminId: "BaruchHabaB'ShemAdonai2",
+            AdminId: "",
             companyEarningBal: totalCompanyEarnings + parseFloat(company.companyEarningBal),
             companyEarning: totalCompanyEarnings + parseFloat(company.companyEarning),
             ttlNonLonssRecSM: (totalCostKes || totalCost) + parseFloat(company.ttlNonLonssRecSM),

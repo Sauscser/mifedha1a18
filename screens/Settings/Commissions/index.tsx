@@ -37,7 +37,7 @@ const UpdtSMPW = props => {
       const compDtls: any = await client.graphql({
         query: getCompany,
         variables: {
-          AdminId: "BaruchHabaB'ShemAdonai2"
+          AdminId: ""
         }
       });
       const owners = compDtls.data.getCompany.owner;
@@ -64,7 +64,7 @@ const UpdtSMPW = props => {
                 query: updateCompany,
                 variables: {
                   input: {
-                    AdminId: "BaruchHabaB'ShemAdonai2",
+                    AdminId: "",
                     agentCom: CompPW1,
                     sagentCom: CompPW2,
                     companyCom: CompCom,

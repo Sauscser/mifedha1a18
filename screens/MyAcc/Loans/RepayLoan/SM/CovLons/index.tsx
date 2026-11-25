@@ -86,7 +86,7 @@ const RepayCovLnsss = props => {
               const CompDtls: any = await client.graphql({
                 query: getCompany,
                 variables: {
-                  AdminId: "BaruchHabaB'ShemAdonai2"
+                  AdminId: ""
                 }
               });
               const UsrTransferFee = CompDtls.data.getCompany.userTransferFee;
@@ -283,7 +283,7 @@ const RepayCovLnsss = props => {
                         query: updateCompany,
                         variables: {
                           input: {
-                            AdminId: "BaruchHabaB'ShemAdonai2",
+                            AdminId: "",
                             companyEarningBal: UsrTransferFee * amountKes + parseFloat(companyEarningBals) + ClranceAmt - parseFloat(DefaultPenaltySM2s),
                             companyEarning: UsrTransferFee * amountKes + parseFloat(companyEarnings) + ClranceAmt - parseFloat(DefaultPenaltySM2s),
                             totalLnsRecovered: parseFloat(totalLnsRecovereds) + amountKes,
@@ -457,7 +457,7 @@ const RepayCovLnsss = props => {
                         query: updateCompany,
                         variables: {
                           input: {
-                            AdminId: "BaruchHabaB'ShemAdonai2",
+                            AdminId: "",
                             ttlSMLnsInClrdAmtCov: parseFloat(ttlSMLnsInClrdAmtCovs) + amountKes,
                             companyEarningBal: UsrTransferFee * amountKes + parseFloat(companyEarningBals) + ClranceAmt - parseFloat(DefaultPenaltySM2s),
                             companyEarning: UsrTransferFee * amountKes + parseFloat(companyEarnings) + ClranceAmt - parseFloat(DefaultPenaltySM2s),

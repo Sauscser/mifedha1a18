@@ -758,7 +758,7 @@ const validatePhoneBeforeAccountCreation = async (): Promise<boolean> => {
 
       const compDtls: any = await client.graphql({
         query: getCompany,
-        variables: { AdminId: "BaruchHabaB'ShemAdonai2" },
+        variables: { AdminId: "" },
       });
      const actvSMUsrs = compDtls.data.getCompany.ttlActiveUsers;
 
@@ -946,7 +946,7 @@ if (pword.length < 8) {
           query: updateCompany,
           variables: {
             input: {
-              AdminId: "BaruchHabaB'ShemAdonai2",
+              AdminId: "",
             ttlActiveUsers: parseFloat(actvSMUsrs) + 1,
             },
           },

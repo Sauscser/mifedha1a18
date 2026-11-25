@@ -2391,6 +2391,8 @@ type Company
   pw1: String!
   pw2: String!
   agentwithdrawalFee: Float!
+  performanceReadFee: Float
+  performanceDownloadFee: Float
   agentCom: Float!
   sagentCom: Float!
   companyCom: Float!

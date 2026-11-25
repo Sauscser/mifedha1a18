@@ -57,7 +57,7 @@ const BLChmCovLoanee = () => {
       const companyResult: any = await client.graphql({
         query: getCompany,
         variables: {
-          AdminId: "BaruchHabaB'ShemAdonai2"
+          AdminId: ""
         }
       });
       const company = companyResult.data.getCompany;
@@ -256,7 +256,7 @@ const BLChmCovLoanee = () => {
           query: updateCompany,
           variables: {
             input: {
-              AdminId: "BaruchHabaB'ShemAdonai2",
+              AdminId: "",
               ttlChmLnsInBlTymsCov: parseFloat(ttlChmLnsInBlTymsCov) + 1,
               ttlChmLnsInBlAmtCov: (parseFloat(ttlChmLnsInBlAmtCov) + parseFloat(userClearanceFee) * amountExpectedBack).toFixed(0),
               ttlBLUsrs: parseFloat(ttlBLUsrs) + 1

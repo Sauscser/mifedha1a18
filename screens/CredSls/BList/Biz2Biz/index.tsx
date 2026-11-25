@@ -38,7 +38,7 @@ const BLCovCredByr = () => {
       const compDtls: any = await client.graphql({
         query: getCompany,
         variables: {
-          AdminId: "BaruchHabaB'ShemAdonai2"
+          AdminId: ""
         }
       });
       const {
@@ -175,7 +175,7 @@ const BLCovCredByr = () => {
           query: updateCompany,
           variables: {
             input: {
-              AdminId: "BaruchHabaB'ShemAdonai2",
+              AdminId: "",
               ttlSellerLnsInBlTymsCov: parseFloat(ttlSellerLnsInBlTymsCov) + 1,
               ttlSellerLnsInBlAmtCov: (parseFloat(ttlSellerLnsInBlAmtCov) + parseFloat(userClearanceFee) * parseFloat(amountexpectedBack)).toFixed(0),
               ttlBLUsrs: parseFloat(ttlBLUsrs) + 1

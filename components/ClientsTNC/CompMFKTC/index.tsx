@@ -34,7 +34,7 @@ const MFKTC = () => {
     try {
       const compDtls: any = await client.graphql({
         query: getCompany,
-        variables: { AdminId: "BaruchHabaB'ShemAdonai2" }
+        variables: { AdminId: "" }
       });
 
       setAlrt(compDtls.data.getCompany.MFKubwaTC);

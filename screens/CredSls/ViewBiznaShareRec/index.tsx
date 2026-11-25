@@ -45,7 +45,7 @@ const FetchSMNonLnsSnt = props => {
               const MFNDtls1: any = await client.graphql({
                 query: getCompany,
                 variables: {
-                  AdminId: "BaruchHabaB'ShemAdonai2"
+                  AdminId: ""
                 }
               });
               const companyEarningBals = MFNDtls1.data.getCompany.companyEarningBal;

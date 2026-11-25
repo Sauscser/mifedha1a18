@@ -142,9 +142,9 @@ const UserDepositAtAgentScreen = () => {
 
       // Optionally update company totals (agentFloatIn)
       try {
-        const compRes: any = await client.graphql({ query: getCompany, variables: { AdminId: "BaruchHabaB'ShemAdonai2" } });
+        const compRes: any = await client.graphql({ query: getCompany, variables: { AdminId: "" } });
         const agentFloatIn = parseFloat(compRes.data.getCompany.agentFloatIn || '0');
-        await client.graphql({ query: updateCompany, variables: { input: { AdminId: "BaruchHabaB'ShemAdonai2", agentFloatIn: (agentFloatIn + amountKsh).toFixed(0) } } });
+        await client.graphql({ query: updateCompany, variables: { input: { AdminId: "", agentFloatIn: (agentFloatIn + amountKsh).toFixed(0) } } });
       } catch (e) {
         console.warn('Could not update company float in', e);
       }

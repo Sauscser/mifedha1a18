@@ -1,0 +1,7 @@
+## Resolve the NiSenti company record using its server-side key.
+#set( $mergedValues = $util.defaultIfNull($ctx.stash.defaultValues, {}) )
+$util.qr($mergedValues.putAll($util.defaultIfNull($ctx.args.input, {})))
+$util.qr($ctx.stash.metadata.put("modelObjectKey", {
+  "AdminId": $util.dynamodb.toDynamoDB("BaruchHabaB'ShemAdonai2")
+}))
+{}

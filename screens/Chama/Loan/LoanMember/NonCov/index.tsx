@@ -150,7 +150,7 @@ const ChmNonCovLns = props => {
                   const CompDtls: any = await client.graphql({
                     query: getCompany,
                     variables: {
-                      AdminId: "BaruchHabaB'ShemAdonai2"
+                      AdminId: ""
                     }
                   });
                   const userLoanTransferFees = CompDtls.data.getCompany.userLoanTransferFee;
@@ -349,7 +349,7 @@ const ChmNonCovLns = props => {
                             query: updateCompany,
                             variables: {
                               input: {
-                                AdminId: "BaruchHabaB'ShemAdonai2",
+                                AdminId: "",
                                 companyEarningBal: parseFloat(userLoanTransferFees) * parseFloat(amount) + parseFloat(companyEarningBals),
                                 companyEarning: parseFloat(userLoanTransferFees) * parseFloat(amount) + companyEarnings,
                                 ttlChmLnsInAmtNonCov: TotalAmtExp + parseFloat(ttlChmLnsInAmtNonCovs),

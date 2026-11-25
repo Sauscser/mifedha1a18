@@ -248,9 +248,9 @@ const CreateBiz = () => {
       setIsLoading(false);
       return;
     }
-    // Convert user-entered price (in their currency) to KES for backend
-    const priceInKsh = await convertForeignToKsh(parseFloat(itemPrice), businessOwnerNationality);
-    if (!Number.isFinite(priceInKsh) || priceInKsh <= 0) {
+    // Convert user-entered price to the CHF base currency used for backend amounts.
+    const priceInChf = await convertForeignToKsh(parseFloat(itemPrice), businessOwnerNationality);
+    if (!Number.isFinite(priceInChf) || priceInChf <= 0) {
       Alert.alert(t.error, t.enterValidPrice);
       setIsLoading(false);
       return;
@@ -307,8 +307,8 @@ const CreateBiz = () => {
             itemSpecifications: itemSpecifications || '',
             itemCodeBar: ItemCode,
             itemPhoto: itemPhotoKey,
-            // NOTE: Price is stored in KES in backend, even though displayed in owner's currency in UI
-            sokoprice: priceInKsh,
+            // Prices are stored in CHF and formatted in the owner's currency for display.
+            sokoprice: priceInChf,
             latitude: business.latitude,
             longitude: business.longitude,
             itemBrand: brandName || '',
@@ -350,7 +350,7 @@ const CreateBiz = () => {
               itemName,
               itemBrand: brandName,
               itemSpecs: itemSpecifications,
-              itemPrice: priceInKsh.toFixed(2),
+              itemPrice: priceInChf.toFixed(2),
               Nationality: businessOwnerNationality
             }
           }
@@ -359,8 +359,8 @@ const CreateBiz = () => {
       // Format price for display in business owner's currency
       const ownerCode = nationalityToCode(businessOwnerNationality);
       const priceInOwnerCurrency = ownerCode
-        ? formatAmountSync(priceInKsh, ownerCode, ratesMap)
-        : `Ksh ${priceInKsh.toFixed(2)}`;
+        ? formatAmountSync(priceInChf, ownerCode, ratesMap)
+        : `CHF ${priceInChf.toFixed(2)}`;
 
         console.log(itemPrice);
       

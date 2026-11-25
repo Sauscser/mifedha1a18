@@ -68,7 +68,7 @@ const PayPalPg = () => {
                   const compDtls = await client.graphql({
                     query: getCompany,
                     variables: {
-                      AdminId: "BaruchHabaB'ShemAdonai2"
+                      AdminId: ""
                     }
                   });
                   const ttlUsrDpsts = compDtls.data.getCompany.ttlUsrDep;
@@ -148,7 +148,7 @@ const PayPalPg = () => {
                             query: updateCompany,
                             variables: {
                               input: {
-                                AdminId: "BaruchHabaB'ShemAdonai2",
+                                AdminId: "",
                                 ttlUsrDep: parseFloat(ttlUsrDpsts) + Amtz,
                                 agentFloatOut: parseFloat(agentFloatOuts) + Amtz
                               }

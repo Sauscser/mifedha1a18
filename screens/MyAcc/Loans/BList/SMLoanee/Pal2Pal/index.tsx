@@ -28,7 +28,7 @@ const BLSMCovLoanee = props => {
       const compDtls: any = await client.graphql({
         query: getCompany,
         variables: {
-          AdminId: "BaruchHabaB'ShemAdonai2"
+          AdminId: ""
         }
       });
       const ttlSMLnsInBlAmtCovs = compDtls.data.getCompany.ttlSMLnsInBlAmtCov;
@@ -233,7 +233,7 @@ const BLSMCovLoanee = props => {
                         query: updateCompany,
                         variables: {
                           input: {
-                            AdminId: "BaruchHabaB'ShemAdonai2",
+                            AdminId: "",
                             ttlSMLnsInBlAmtCov: (parseFloat(ttlSMLnsInBlAmtCovs) + parseFloat(userClearanceFees) * parseFloat(amountexpecteds)).toFixed(2),
                             ttlSMLnsInBlTymsCov: parseFloat(ttlSMLnsInBlTymsCovs) + 1,
                             ttlBLUsrs: parseFloat(ttlBLUsrss) + 1
@@ -375,7 +375,7 @@ const BLSMCovLoanee = props => {
                         query: updateCompany,
                         variables: {
                           input: {
-                            AdminId: "BaruchHabaB'ShemAdonai2",
+                            AdminId: "",
                             ttlSMLnsInBlAmtCov: (parseFloat(ttlSMLnsInBlAmtCovs) + parseFloat(userClearanceFees) * parseFloat(amountexpecteds)).toFixed(2),
                             ttlSMLnsInBlTymsCov: parseFloat(ttlSMLnsInBlTymsCovs) + 1,
                             ttlBLUsrs: parseFloat(ttlBLUsrss) + 1

@@ -26,7 +26,7 @@ const AdminSignIn = props => {
       const ExDtls: any = await client.graphql({
         query: getCompany,
         variables: {
-          AdminId: "BaruchHabaB'ShemAdonai2"
+          AdminId: ""
         }
       });
       const ownersss = ExDtls.data.getCompany.owner;

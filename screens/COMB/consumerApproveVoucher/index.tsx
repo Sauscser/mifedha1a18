@@ -537,7 +537,7 @@ const ConsumerApproveVoucherScreen = () => {
         const companyRes: any = await client.graphql({
           query: getCompany,
           variables: {
-            AdminId: "BaruchHabaB'ShemAdonai2"
+            AdminId: ""
           }
         });
         const company = companyRes.data.getCompany;
@@ -673,7 +673,7 @@ const ConsumerApproveVoucherScreen = () => {
           query: updateCompany,
           variables: {
             input: {
-              AdminId: "BaruchHabaB'ShemAdonai2",
+              AdminId: "",
               companyEarningBal: companyEarningBal + companyEarningss,
               companyEarning: compEarnings + companyEarningss
             }

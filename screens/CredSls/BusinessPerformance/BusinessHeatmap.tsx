@@ -1,8 +1,8 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import { Dimensions, ScrollView, Text, TouchableOpacity, View } from 'react-native';
-import Svg, { Circle, Polygon, Text as SvgText } from 'react-native-svg';
+import Svg, { Circle, Polygon } from 'react-native-svg';
+import { PinchGestureHandler, State } from 'react-native-gesture-handler';
 import {
-  clusterLocations,
   countLocationsByFeature,
   getAdmin1Features,
   getAdmin2Features,
@@ -31,14 +31,14 @@ const continentOrder = [
   'South America',
   'Antarctica',
 ];
-
-const heatColor = (count: number, maxCount: number) => {
-  if (!count) return '#e8eef2';
-  const intensity = count / maxCount;
-  if (intensity >= 0.7) return '#a83220';
-  if (intensity >= 0.4) return '#d45a2d';
-  if (intensity >= 0.15) return '#ef9a43';
-  return '#f6c978';
+const continentColors: Record<string, string> = {
+  Africa: '#d9a441',
+  Asia: '#6f9f73',
+  Europe: '#6d91bd',
+  'North America': '#c77a70',
+  Oceania: '#9a82b5',
+  'South America': '#61a6a0',
+  Antarctica: '#aab8c2',
 };
 
 const BusinessHeatmap = ({ locations }: Props) => {
@@ -47,6 +47,8 @@ const BusinessHeatmap = ({ locations }: Props) => {
   const [country, setCountry] = useState<HeatmapFeature>();
   const [admin1, setAdmin1] = useState<HeatmapFeature>();
   const [admin2, setAdmin2] = useState<HeatmapFeature>();
+  const [zoom, setZoom] = useState(1);
+  const pinchStartZoom = useRef(1);
 
   const validLocations = useMemo(
     () => locations.filter(({ latitude, longitude }) =>
@@ -66,18 +68,17 @@ const BusinessHeatmap = ({ locations }: Props) => {
   );
   const availableContinents = useMemo(
     () => continentOrder.filter(option =>
-      countedCountries.some(feature => feature.count > 0 && feature.continent === option)
+      allCountries.some(feature => feature.continent === option)
     ),
-    [countedCountries]
+    [allCountries]
   );
 
   const countriesInView = useMemo(
     () => countedCountries.filter(feature =>
-      feature.count > 0 && (!continent || feature.continent === continent)
+      !continent || feature.continent === continent
     ),
     [countedCountries, continent]
   );
-
   const countryLocations = useMemo(
     () => country ? locationsWithinFeature(country, validLocations) : [],
     [country, validLocations]
@@ -87,8 +88,7 @@ const BusinessHeatmap = ({ locations }: Props) => {
     [country]
   );
   const countryAdmin1 = useMemo(
-    () => countLocationsByFeature(countryAdmin1Features, countryLocations, true)
-      .filter(feature => feature.count > 0),
+    () => countLocationsByFeature(countryAdmin1Features, countryLocations, true),
     [countryAdmin1Features, countryLocations]
   );
   const admin1Locations = useMemo(
@@ -102,8 +102,7 @@ const BusinessHeatmap = ({ locations }: Props) => {
     [admin1, country]
   );
   const admin1Children = useMemo(
-    () => countLocationsByFeature(admin2Features, admin1Locations, true)
-      .filter(feature => feature.count > 0),
+    () => countLocationsByFeature(admin2Features, admin1Locations, true),
     [admin1Locations, admin2Features]
   );
   const admin2Locations = useMemo(
@@ -113,7 +112,6 @@ const BusinessHeatmap = ({ locations }: Props) => {
     [admin2, admin1Locations, admin2Features]
   );
 
-  const level = admin2 ? 'admin2' : admin1 ? 'admin1' : country ? 'country' : continent ? 'continent' : 'world';
   const childFeatures = admin1
     ? admin1Children
     : country
@@ -125,7 +123,9 @@ const BusinessHeatmap = ({ locations }: Props) => {
       ? (admin1Children.length ? admin1Children : [{ ...admin1, count: admin1Locations.length }])
       : country
         ? (countryAdmin1.length ? countryAdmin1 : [{ ...country, count: countryLocations.length }])
-        : countriesInView;
+        : continent
+          ? countriesInView
+          : countedCountries;
   const visibleLocations = admin2
     ? admin2Locations
     : admin1
@@ -139,12 +139,22 @@ const BusinessHeatmap = ({ locations }: Props) => {
     () => getMapBounds(displayedFeatures, visibleLocations, !continent && !country),
     [displayedFeatures, visibleLocations, continent, country]
   );
-  const clusters = useMemo(
-    () => clusterLocations(visibleLocations, level),
-    [visibleLocations, level]
-  );
-  const visibleLocationCount = clusters.reduce((total, cluster) => total + cluster.count, 0);
-  const maxCount = Math.max(1, ...displayedFeatures.map(feature => feature.count));
+  const mapWidth = MAP_WIDTH * zoom;
+  const mapHeight = MAP_HEIGHT * zoom;
+  const visibleLocationCount = visibleLocations.length;
+  const updateZoom = (value: number) => {
+    const nextZoom = Math.min(3, Math.max(1, value));
+    pinchStartZoom.current = nextZoom;
+    setZoom(nextZoom);
+  };
+  const handlePinch = (event: { nativeEvent: { scale: number } }) => {
+    setZoom(Math.min(3, Math.max(1, pinchStartZoom.current * event.nativeEvent.scale)));
+  };
+  const handlePinchStateChange = (event: { nativeEvent: { state: number } }) => {
+    if (event.nativeEvent.state === State.BEGAN) {
+      pinchStartZoom.current = zoom;
+    }
+  };
   const localizedContinent = (value: string) => {
     const keys: Record<string, 'africa' | 'asia' | 'europe' | 'northAmerica' | 'southAmerica' | 'oceania' | 'antarctica'> = {
       Africa: 'africa',
@@ -172,8 +182,8 @@ const BusinessHeatmap = ({ locations }: Props) => {
   };
 
   const project = (longitude: number, latitude: number) => ({
-    x: ((longitude - bounds.minLongitude) / (bounds.maxLongitude - bounds.minLongitude)) * MAP_WIDTH,
-    y: MAP_HEIGHT - ((latitude - bounds.minLatitude) / (bounds.maxLatitude - bounds.minLatitude)) * MAP_HEIGHT,
+    x: ((longitude - bounds.minLongitude) / (bounds.maxLongitude - bounds.minLongitude)) * mapWidth,
+    y: mapHeight - ((latitude - bounds.minLatitude) / (bounds.maxLatitude - bounds.minLatitude)) * mapHeight,
   });
 
   const reset = () => {
@@ -199,7 +209,11 @@ const BusinessHeatmap = ({ locations }: Props) => {
     setAdmin2(undefined);
   };
   const selectFeature = (feature: HeatmapFeature) => {
-    if (!country) selectCountry(feature);
+    if (!continent) {
+      if (feature.continent && availableContinents.includes(feature.continent)) {
+        selectContinent(feature.continent);
+      }
+    } else if (!country) selectCountry(feature);
     else if (!admin1 && countryAdmin1.length) selectAdmin1(feature);
     else if (admin1 && admin1Children.length) setAdmin2(feature);
   };
@@ -330,8 +344,73 @@ const BusinessHeatmap = ({ locations }: Props) => {
         {contextLabel} · {levelDescription}. {t('tapToFocus')}
       </Text>
 
-      <ScrollView horizontal showsHorizontalScrollIndicator style={{ marginTop: 8 }}>
-        <Svg width={MAP_WIDTH} height={MAP_HEIGHT} viewBox={`0 0 ${MAP_WIDTH} ${MAP_HEIGHT}`}>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginTop: 8 }}>
+        {[
+          { type: 'REVENUE', label: t('revenue'), color: '#14804a' },
+          { type: 'EXPENSE', label: t('expenses'), color: '#c46919' },
+        ].map(item => (
+          <View key={item.type} style={{ flexDirection: 'row', alignItems: 'center', marginRight: 12 }}>
+            <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: item.color, marginRight: 4 }} />
+            <Text style={{ color: '#53636e', fontSize: 11 }}>{item.label}</Text>
+          </View>
+        ))}
+      </View>
+
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', marginTop: 8 }}>
+        <TouchableOpacity
+          accessibilityRole="button"
+          accessibilityLabel="Zoom out"
+          accessibilityState={{ disabled: zoom <= 1 }}
+          disabled={zoom <= 1}
+          onPress={() => updateZoom(zoom - 0.5)}
+          style={{
+            width: 36,
+            height: 34,
+            alignItems: 'center',
+            justifyContent: 'center',
+            borderRadius: 7,
+            backgroundColor: zoom <= 1 ? '#e8eef2' : '#1678b9',
+            marginRight: 6,
+          }}
+        >
+          <Text style={{ color: zoom <= 1 ? '#87949c' : '#fff', fontSize: 20, fontWeight: '700' }}>−</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          accessibilityRole="button"
+          accessibilityLabel="Reset map zoom"
+          onPress={() => updateZoom(1)}
+          style={{ paddingHorizontal: 9, paddingVertical: 8, marginRight: 6 }}
+        >
+          <Text style={{ color: '#53636e', fontSize: 11, fontWeight: '700' }}>{Math.round(zoom * 100)}%</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          accessibilityRole="button"
+          accessibilityLabel="Zoom in"
+          accessibilityState={{ disabled: zoom >= 3 }}
+          disabled={zoom >= 3}
+          onPress={() => updateZoom(zoom + 0.5)}
+          style={{
+            width: 36,
+            height: 34,
+            alignItems: 'center',
+            justifyContent: 'center',
+            borderRadius: 7,
+            backgroundColor: zoom >= 3 ? '#e8eef2' : '#1678b9',
+          }}
+        >
+          <Text style={{ color: zoom >= 3 ? '#87949c' : '#fff', fontSize: 20, fontWeight: '700' }}>+</Text>
+        </TouchableOpacity>
+      </View>
+
+      <PinchGestureHandler
+        onGestureEvent={handlePinch}
+        onHandlerStateChange={handlePinchStateChange}
+        minPointers={2}
+        maxPointers={2}
+      >
+        <View>
+          <ScrollView horizontal showsHorizontalScrollIndicator style={{ marginTop: 8 }}>
+            <Svg width={mapWidth} height={mapHeight} viewBox={`0 0 ${mapWidth} ${mapHeight}`}>
           {displayedFeatures.flatMap((feature, featureIndex) =>
             getGeometryPolygons(feature.geometry).map((polygon, polygonIndex) => {
               const outerRing = polygon[0];
@@ -344,39 +423,34 @@ const BusinessHeatmap = ({ locations }: Props) => {
                 <Polygon
                   key={`${feature.name}-${featureIndex}-${polygonIndex}`}
                   points={points}
-                  fill={heatColor(feature.count, maxCount)}
-                  stroke="#748896"
-                  strokeWidth={0.55}
+                  fill={!continent && !country
+                    ? continentColors[feature.continent || ''] || '#d5dde2'
+                    : '#f2f5f7'}
+                  stroke={!continent && !country ? '#fff' : '#a9b7c0'}
+                  strokeWidth={0.65 * zoom}
                   onPress={() => selectFeature(feature)}
                   accessibilityLabel={`${feature.name}, ${t('purchasesWithLocation', { count: feature.count })}`}
                 />
               );
             })
           )}
-          {clusters.map(cluster => {
-            const point = project(cluster.longitude, cluster.latitude);
-            const radius = Math.min(7, 2.5 + Math.sqrt(cluster.count));
+          {visibleLocations.map((location, index) => {
+            const point = project(location.longitude, location.latitude);
+            const color = location.recordType === 'EXPENSE' ? '#c46919' : '#14804a';
             return (
-              <React.Fragment key={`${cluster.latitude}-${cluster.longitude}`}>
-                <Circle cx={point.x} cy={point.y} r={radius + 2} fill="#b42318" opacity={0.18} />
-                <Circle cx={point.x} cy={point.y} r={radius} fill="#b42318" opacity={0.78} />
-                {cluster.count > 1 && (
-                  <SvgText
-                    x={point.x}
-                    y={point.y + 3}
-                    fill="#fff"
-                    fontSize="8"
-                    fontWeight="bold"
-                    textAnchor="middle"
-                  >
-                    {cluster.count}
-                  </SvgText>
-                )}
-              </React.Fragment>
+              <Circle
+                key={`${location.latitude},${location.longitude},${location.recordType || 'REVENUE'},${index}`}
+                cx={point.x}
+                cy={point.y}
+                r={3.5 * zoom}
+                fill={color}
+              />
             );
           })}
-        </Svg>
-      </ScrollView>
+            </Svg>
+          </ScrollView>
+        </View>
+      </PinchGestureHandler>
 
       <Text style={{ color: '#53636e', fontSize: 12, marginTop: 7 }}>
         {t('purchasesWithLocation', { count: visibleLocationCount })}

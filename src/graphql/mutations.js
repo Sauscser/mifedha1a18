@@ -3635,6 +3635,8 @@ export const createCompany = /* GraphQL */ `
       pw1
       pw2
       agentwithdrawalFee
+      performanceReadFee
+      performanceDownloadFee
       agentCom
       sagentCom
       companyCom
@@ -3806,6 +3808,8 @@ export const updateCompany = /* GraphQL */ `
       pw1
       pw2
       agentwithdrawalFee
+      performanceReadFee
+      performanceDownloadFee
       agentCom
       sagentCom
       companyCom
@@ -3977,6 +3981,8 @@ export const deleteCompany = /* GraphQL */ `
       pw1
       pw2
       agentwithdrawalFee
+      performanceReadFee
+      performanceDownloadFee
       agentCom
       sagentCom
       companyCom

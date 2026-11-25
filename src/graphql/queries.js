@@ -2624,6 +2624,8 @@ export const getCompany = /* GraphQL */ `
       pw1
       pw2
       agentwithdrawalFee
+      performanceReadFee
+      performanceDownloadFee
       agentCom
       sagentCom
       companyCom
@@ -2805,6 +2807,8 @@ export const listCompanies = /* GraphQL */ `
         pw1
         pw2
         agentwithdrawalFee
+        performanceReadFee
+        performanceDownloadFee
         agentCom
         sagentCom
         companyCom

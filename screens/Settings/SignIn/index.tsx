@@ -34,7 +34,7 @@ const AdminSignIn = props => {
       await API.graphql(
         graphqlOperation(createCompany, {
           input: {
-            AdminId: "BaruchHabaB'ShemAdonai2",
+            AdminId: "",
             phoneContact: "0724071582, 0711852707",
             companyEmail: "myfedha@gmail.com",
             termsNconditions: "TERMS AND CONDITIONS",
@@ -222,7 +222,7 @@ const AdminSignIn = props => {
       const ExDtls: any = await client.graphql({
         query: getCompany,
         variables: {
-          AdminId: "BaruchHabaB'ShemAdonai2"
+          AdminId: ""
         }
       });
       const pw1s = ExDtls.data.getCompany.pw1;
@@ -234,7 +234,7 @@ const AdminSignIn = props => {
         query: createCompany,
         variables: {
           input: {
-            AdminId: "BaruchHabaB'ShemAdonai2",
+            AdminId: "",
             phoneContact: "0724071582, 0711852707",
             companyEmail: "myfedha@gmail.com",
             termsNconditions: "TERMS AND CONDITIONS",

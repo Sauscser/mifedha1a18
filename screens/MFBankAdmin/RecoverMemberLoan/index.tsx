@@ -276,7 +276,7 @@ const RecoverMemberLoan = () => {
         return;
       }
 
-      const companyRes: any = await client.graphql({ query: getCompany, variables: { AdminId: "BaruchHabaB'ShemAdonai2" } });
+      const companyRes: any = await client.graphql({ query: getCompany, variables: { AdminId: "" } });
       const company = companyRes?.data?.getCompany;
       const clearanceFee = Number(company?.userClearanceFee || 0);
       const { amountToRecover, recoverAmount } = getRecoveryAmounts(loan, clearanceFee);
@@ -492,7 +492,7 @@ const RecoverMemberLoan = () => {
       }
 
       if (feeRecovered > 0) {
-        await client.graphql({ query: updateCompany, variables: { input: { AdminId: "BaruchHabaB'ShemAdonai2", companyEarning: String(Number(company?.companyEarning || 0) + feeRecovered) } } });
+        await client.graphql({ query: updateCompany, variables: { input: { AdminId: "", companyEarning: String(Number(company?.companyEarning || 0) + feeRecovered) } } });
       }
 
       const unrecovered = Math.max(0, Number((recoverAmount - totalCollected).toFixed(2)));

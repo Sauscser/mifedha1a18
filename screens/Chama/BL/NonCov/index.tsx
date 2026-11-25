@@ -48,7 +48,7 @@ const BLChmNonCovLoanee = () => {
       const compDtls: any = await client.graphql({
         query: getCompany,
         variables: {
-          AdminId: "BaruchHabaB'ShemAdonai2"
+          AdminId: ""
         }
       });
       const ttlChmLnsInBlAmtNonCovs = compDtls.data.getCompany.ttlChmLnsInBlAmtNonCov;
@@ -153,7 +153,7 @@ const BLChmNonCovLoanee = () => {
                         query: updateCompany,
                         variables: {
                           input: {
-                            AdminId: "BaruchHabaB'ShemAdonai2",
+                            AdminId: "",
                             ttlChmLnsInBlAmtNonCov: (parseFloat(ttlChmLnsInBlAmtNonCovs) + parseFloat(userClearanceFees) * parseFloat(amountexpecteds)).toFixed(0),
                             ttlChmLnsInBlTymsNonCov: parseFloat(ttlChmLnsInBlTymsNonCovs) + 1,
                             ttlBLUsrs: parseFloat(ttlBLUsrss) + 1

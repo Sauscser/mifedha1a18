@@ -41,6 +41,18 @@ const keys = [
 ] as const;
 
 type Locale = 'en' | 'ar' | 'zh' | 'ru' | 'sw' | 'fr' | 'es' | 'de' | 'pt' | 'it' | 'he' | 'hi' | 'am';
+type ReportKey = 'downloadReport' | 'reportExporting' | 'reportExportFailed'
+  | 'reportTransactions' | 'reportDate' | 'reportAsOf' | 'reportBranch' | 'reportType'
+  | 'reportDetails' | 'reportAmount' | 'reportFees' | 'reportSource'
+  | 'viewReport' | 'reportFeesDisclosure' | 'reportViewFeeTitle'
+  | 'reportViewFeeConfirmation' | 'reportDownloadFeeTitle'
+  | 'reportDownloadFeeConfirmation' | 'chooseReportPayer'
+  | 'reportPayerInstruction' | 'reportFeeCurrencyUnavailable'
+  | 'reportInsufficientFunds' | 'reportChargeFailed' | 'proceedToReport'
+  | 'reportExportingFee' | 'performanceCharts' | 'performanceBars'
+  | 'performanceLines' | 'reportShareFailedAfterCharge';
+type ReportValues = Record<Exclude<ReportKey, 'reportShareFailedAfterCharge' | 'reportAsOf'>, string>
+  & Partial<Record<'reportShareFailedAfterCharge' | 'reportAsOf', string>>;
 const geographyKeys = [
   'africa', 'asia', 'europe', 'northAmerica', 'southAmerica', 'oceania', 'antarctica',
   'countyLabel', 'subcountyLabel', 'stateLabel', 'provinceLabel', 'territoryLabel',
@@ -48,7 +60,10 @@ const geographyKeys = [
 ] as const;
 type GeographyKey = typeof geographyKeys[number];
 type Key = typeof keys[number] | GeographyKey | 'daily' | 'weekly' | 'monthly'
-  | 'loadAnalyticsFailed' | 'currencyRateUnavailable' | 'analyticsCaptureFailed' | 'performanceEventFailed';
+  | ReportKey | 'reportPersonalFallbackConfirmation' | 'reportFeesLoading'
+  | 'reportFeesLoadFailed' | 'reportFeesNotConfigured' | 'reportFeeChanged'
+  | 'performancePointHint' | 'performancePointDetails'
+  | 'reportRefundFailed' | 'loadAnalyticsFailed' | 'currencyRateUnavailable' | 'analyticsCaptureFailed' | 'performanceEventFailed';
 
 const values: Record<Locale, string[]> = {
   en: [
@@ -865,6 +880,273 @@ const geographyValues: Record<Locale, Record<GeographyKey, string>> = {
   am: { africa: 'አፍሪካ', asia: 'እስያ', europe: 'አውሮፓ', northAmerica: 'ሰሜን አሜሪካ', southAmerica: 'ደቡብ አሜሪካ', oceania: 'ኦሺኒያ', antarctica: 'አንታርክቲካ', countyLabel: 'ካውንቲ', subcountyLabel: 'ንዑስ ካውንቲ', stateLabel: 'ግዛት', provinceLabel: 'ክልል', territoryLabel: 'ግዛት', districtLabel: 'ወረዳ', municipalityLabel: 'ማዘጋጃ ቤት', federalDistrictLabel: 'የፌዴራል ክልል' },
 };
 
+const reportValues: Record<Locale, ReportValues> = {
+  en: { downloadReport: 'Download report', reportExporting: 'Preparing report...', reportExportFailed: 'Unable to export report', reportTransactions: 'Transactions', reportDate: 'Date', reportBranch: 'Branch', reportType: 'Type', reportDetails: 'Details', reportAmount: 'Amount', reportFees: 'Fees', reportSource: 'Source', viewReport: 'View report · {amount}', reportFeesDisclosure: 'Viewing this report costs {viewAmount}. Downloading it costs {downloadAmount} for this date range. If the business balance is insufficient, your SMAccount will be charged.', reportViewFeeTitle: 'Confirm report viewing fee', reportViewFeeConfirmation: 'You will be charged {amount} to view this report. {business} will be charged first; if its balance is insufficient, your SMAccount will be charged. Continue?', reportDownloadFeeTitle: 'Confirm report download fee', reportDownloadFeeConfirmation: 'You will be charged {amount} to download this report. {business} will be charged first; if its balance is insufficient, your SMAccount will be charged. Continue?', chooseReportPayer: 'Choose a business account to pay', reportPayerInstruction: 'Select which branch to charge for this organization report.', reportFeeCurrencyUnavailable: 'Your currency exchange rate is unavailable, so the report fee cannot be shown or charged. Please try again later.', reportInsufficientFunds: 'The selected business and your SMAccount do not have enough funds for this report fee.', reportChargeFailed: 'The report fee could not be processed. Please check your balances and try again.', proceedToReport: 'Continue', reportExportingFee: 'Processing fee...', performanceCharts: 'Performance charts', performanceBars: 'Revenue, expenses, and profit by period', performanceLines: 'Performance trend', reportShareFailedAfterCharge: 'The fee was charged, but the file could not be shared. Please contact support before trying again.' },
+  ar: { downloadReport: 'تنزيل التقرير', reportExporting: 'جارٍ إعداد التقرير...', reportExportFailed: 'تعذر تصدير التقرير', reportTransactions: 'المعاملات', reportDate: 'التاريخ', reportBranch: 'الفرع', reportType: 'النوع', reportDetails: 'التفاصيل', reportAmount: 'المبلغ', reportFees: 'الرسوم', reportSource: 'المصدر', viewReport: 'عرض التقرير · {amount}', reportFeesDisclosure: 'تبلغ تكلفة عرض هذا التقرير {viewAmount} وتنزيله {downloadAmount} للفترة المحددة. إذا لم يكن رصيد النشاط التجاري كافياً، فسيتم الخصم من حسابك SMAccount.', reportViewFeeTitle: 'تأكيد رسوم عرض التقرير', reportViewFeeConfirmation: 'سيتم خصم {amount} لعرض التقرير. سيتم الخصم أولاً من {business}، وإذا لم يكن رصيده كافياً فسيتم الخصم من حسابك SMAccount. هل تريد المتابعة؟', reportDownloadFeeTitle: 'تأكيد رسوم تنزيل التقرير', reportDownloadFeeConfirmation: 'سيتم خصم {amount} لتنزيل التقرير. سيتم الخصم أولاً من {business}، وإذا لم يكن رصيده كافياً فسيتم الخصم من حسابك SMAccount. هل تريد المتابعة؟', chooseReportPayer: 'اختر حساب النشاط التجاري للدفع', reportPayerInstruction: 'اختر الفرع الذي سيتم الخصم منه مقابل تقرير المؤسسة.', reportFeeCurrencyUnavailable: 'سعر صرف عملتك غير متوفر، لذلك لا يمكن عرض رسوم التقرير أو خصمها. يرجى المحاولة لاحقاً.', reportInsufficientFunds: 'لا يتوفر رصيد كافٍ في النشاط التجاري المحدد أو حسابك SMAccount لدفع رسوم التقرير.', reportChargeFailed: 'تعذر إتمام رسوم التقرير. تحقق من الأرصدة وحاول مرة أخرى.', proceedToReport: 'متابعة', reportExportingFee: 'جارٍ معالجة الرسوم...', performanceCharts: 'مخططات الأداء', performanceBars: 'الإيرادات والمصروفات والأرباح حسب الفترة', performanceLines: 'اتجاه الأداء', reportShareFailedAfterCharge: 'تم خصم الرسوم، لكن تعذرت مشاركة الملف. يرجى الاتصال بالدعم قبل المحاولة مرة أخرى.' },
+  zh: { downloadReport: '下载报告', reportExporting: '正在准备报告...', reportExportFailed: '无法导出报告', reportTransactions: '交易', reportDate: '日期', reportBranch: '分支机构', reportType: '类型', reportDetails: '详情', reportAmount: '金额', reportFees: '费用', reportSource: '来源', viewReport: '查看报告 · {amount}', reportFeesDisclosure: '查看此报告的费用为 {viewAmount}，下载费用为 {downloadAmount}（适用于所选日期范围）。如果企业余额不足，将从您的 SMAccount 扣款。', reportViewFeeTitle: '确认报告查看费用', reportViewFeeConfirmation: '查看此报告将收取 {amount}。优先从 {business} 扣款；余额不足时将从您的 SMAccount 扣款。继续吗？', reportDownloadFeeTitle: '确认报告下载费用', reportDownloadFeeConfirmation: '下载此报告将收取 {amount}。优先从 {business} 扣款；余额不足时将从您的 SMAccount 扣款。继续吗？', chooseReportPayer: '选择付款企业账户', reportPayerInstruction: '选择要为此组织报告扣款的分支。', reportFeeCurrencyUnavailable: '无法获取您的货币汇率，因此无法显示或收取报告费用。请稍后重试。', reportInsufficientFunds: '所选企业和您的 SMAccount 余额均不足以支付报告费用。', reportChargeFailed: '无法处理报告费用。请检查余额后重试。', proceedToReport: '继续', reportExportingFee: '正在处理费用...', performanceCharts: '业绩图表', performanceBars: '各期间的收入、支出和利润', performanceLines: '业绩趋势' },
+  ru: { downloadReport: 'Скачать отчет', reportExporting: 'Подготовка отчета...', reportExportFailed: 'Не удалось экспортировать отчет', reportTransactions: 'Операции', reportDate: 'Дата', reportBranch: 'Филиал', reportType: 'Тип', reportDetails: 'Сведения', reportAmount: 'Сумма', reportFees: 'Комиссии', reportSource: 'Источник', viewReport: 'Посмотреть отчет · {amount}', reportFeesDisclosure: 'Просмотр отчета стоит {viewAmount}, скачивание — {downloadAmount} за выбранный период. При недостатке средств на счете бизнеса будет списание с вашего SMAccount.', reportViewFeeTitle: 'Подтвердите плату за просмотр', reportViewFeeConfirmation: 'За просмотр отчета будет списано {amount}. Сначала со счета {business}; при нехватке средств — с вашего SMAccount. Продолжить?', reportDownloadFeeTitle: 'Подтвердите плату за скачивание', reportDownloadFeeConfirmation: 'За скачивание отчета будет списано {amount}. Сначала со счета {business}; при нехватке средств — с вашего SMAccount. Продолжить?', chooseReportPayer: 'Выберите бизнес-счет для оплаты', reportPayerInstruction: 'Выберите филиал для списания платы за отчет организации.', reportFeeCurrencyUnavailable: 'Курс вашей валюты недоступен, поэтому показать или списать плату за отчет нельзя. Повторите попытку позже.', reportInsufficientFunds: 'На выбранном бизнес-счете и вашем SMAccount недостаточно средств для оплаты отчета.', reportChargeFailed: 'Не удалось обработать плату за отчет. Проверьте баланс и повторите попытку.', proceedToReport: 'Продолжить', reportExportingFee: 'Обработка платы...', performanceCharts: 'Графики показателей', performanceBars: 'Доходы, расходы и прибыль по периодам', performanceLines: 'Динамика показателей' },
+  sw: { downloadReport: 'Pakua ripoti', reportExporting: 'Ripoti inaandaliwa...', reportExportFailed: 'Imeshindwa kuhamisha ripoti', reportTransactions: 'Miamala', reportDate: 'Tarehe', reportBranch: 'Tawi', reportType: 'Aina', reportDetails: 'Maelezo', reportAmount: 'Kiasi', reportFees: 'Ada', reportSource: 'Chanzo', viewReport: 'Tazama ripoti · {amount}', reportFeesDisclosure: 'Kutazama ripoti hii kunagharimu {viewAmount}, na kuipakua {downloadAmount} kwa kipindi hiki. Salio la biashara lisipotosha, SMAccount yako itatozwa.', reportViewFeeTitle: 'Thibitisha ada ya kutazama ripoti', reportViewFeeConfirmation: 'Utatozwa {amount} kutazama ripoti hii. {business} itatozwa kwanza; salio lisipotosha, SMAccount yako itatozwa. Endelea?', reportDownloadFeeTitle: 'Thibitisha ada ya kupakua ripoti', reportDownloadFeeConfirmation: 'Utatozwa {amount} kupakua ripoti hii. {business} itatozwa kwanza; salio lisipotosha, SMAccount yako itatozwa. Endelea?', chooseReportPayer: 'Chagua akaunti ya biashara ya kulipa', reportPayerInstruction: 'Chagua tawi litakalotozwa kwa ripoti hii ya shirika.', reportFeeCurrencyUnavailable: 'Kiwango cha ubadilishaji wa sarafu yako hakipatikani, kwa hivyo ada haiwezi kuonyeshwa au kutozwa. Jaribu tena baadaye.', reportInsufficientFunds: 'Biashara uliyochagua na SMAccount yako hazina salio la kutosha kulipia ripoti hii.', reportChargeFailed: 'Imeshindwa kuchakata ada ya ripoti. Angalia salio na ujaribu tena.', proceedToReport: 'Endelea', reportExportingFee: 'Inachakata ada...', performanceCharts: 'Chati za utendaji', performanceBars: 'Mapato, matumizi na faida kwa kipindi', performanceLines: 'Mwelekeo wa utendaji' },
+  fr: { downloadReport: 'Télécharger le rapport', reportExporting: 'Préparation du rapport...', reportExportFailed: 'Impossible d’exporter le rapport', reportTransactions: 'Transactions', reportDate: 'Date', reportBranch: 'Agence', reportType: 'Type', reportDetails: 'Détails', reportAmount: 'Montant', reportFees: 'Frais', reportSource: 'Source', viewReport: 'Voir le rapport · {amount}', reportFeesDisclosure: 'La consultation de ce rapport coûte {viewAmount} et son téléchargement {downloadAmount} pour la période choisie. Si le solde de l’entreprise est insuffisant, votre SMAccount sera débité.', reportViewFeeTitle: 'Confirmer les frais de consultation', reportViewFeeConfirmation: 'La consultation coûtera {amount}. {business} sera débité en premier ; si son solde est insuffisant, votre SMAccount sera débité. Continuer ?', reportDownloadFeeTitle: 'Confirmer les frais de téléchargement', reportDownloadFeeConfirmation: 'Le téléchargement coûtera {amount}. {business} sera débité en premier ; si son solde est insuffisant, votre SMAccount sera débité. Continuer ?', chooseReportPayer: 'Choisir le compte professionnel à débiter', reportPayerInstruction: 'Choisissez l’agence à débiter pour ce rapport consolidé.', reportFeeCurrencyUnavailable: 'Le taux de change de votre devise est indisponible ; les frais ne peuvent pas être affichés ni débités. Réessayez plus tard.', reportInsufficientFunds: 'Le compte de l’entreprise sélectionnée et votre SMAccount ne disposent pas de fonds suffisants.', reportChargeFailed: 'Impossible de traiter les frais du rapport. Vérifiez les soldes et réessayez.', proceedToReport: 'Continuer', reportExportingFee: 'Traitement des frais...', performanceCharts: 'Graphiques de performance', performanceBars: 'Revenus, dépenses et bénéfices par période', performanceLines: 'Tendance des performances' },
+  es: { downloadReport: 'Descargar informe', reportExporting: 'Preparando informe...', reportExportFailed: 'No se pudo exportar el informe', reportTransactions: 'Transacciones', reportDate: 'Fecha', reportBranch: 'Sucursal', reportType: 'Tipo', reportDetails: 'Detalles', reportAmount: 'Importe', reportFees: 'Tarifas', reportSource: 'Origen', viewReport: 'Ver informe · {amount}', reportFeesDisclosure: 'Ver este informe cuesta {viewAmount} y descargarlo cuesta {downloadAmount} para el periodo seleccionado. Si el saldo de la empresa no es suficiente, se cobrará a su SMAccount.', reportViewFeeTitle: 'Confirmar tarifa de visualización', reportViewFeeConfirmation: 'Se cobrará {amount} por ver este informe. Primero se cobrará a {business}; si no hay saldo suficiente, se cobrará a su SMAccount. ¿Continuar?', reportDownloadFeeTitle: 'Confirmar tarifa de descarga', reportDownloadFeeConfirmation: 'Se cobrará {amount} por descargar este informe. Primero se cobrará a {business}; si no hay saldo suficiente, se cobrará a su SMAccount. ¿Continuar?', chooseReportPayer: 'Elegir cuenta de empresa para el pago', reportPayerInstruction: 'Seleccione la sucursal a la que se cobrará este informe de organización.', reportFeeCurrencyUnavailable: 'El tipo de cambio de su moneda no está disponible, por lo que no se puede mostrar ni cobrar la tarifa. Inténtelo más tarde.', reportInsufficientFunds: 'La empresa seleccionada y su SMAccount no tienen fondos suficientes para esta tarifa.', reportChargeFailed: 'No se pudo procesar la tarifa del informe. Compruebe los saldos e inténtelo de nuevo.', proceedToReport: 'Continuar', reportExportingFee: 'Procesando tarifa...', performanceCharts: 'Gráficos de rendimiento', performanceBars: 'Ingresos, gastos y beneficios por periodo', performanceLines: 'Tendencia del rendimiento' },
+  de: { downloadReport: 'Bericht herunterladen', reportExporting: 'Bericht wird vorbereitet...', reportExportFailed: 'Bericht konnte nicht exportiert werden', reportTransactions: 'Transaktionen', reportDate: 'Datum', reportBranch: 'Filiale', reportType: 'Typ', reportDetails: 'Details', reportAmount: 'Betrag', reportFees: 'Gebühren', reportSource: 'Quelle', viewReport: 'Bericht ansehen · {amount}', reportFeesDisclosure: 'Das Anzeigen dieses Berichts kostet {viewAmount}, der Download {downloadAmount} für den ausgewählten Zeitraum. Reicht das Geschäftsguthaben nicht aus, wird Ihr SMAccount belastet.', reportViewFeeTitle: 'Gebühr für Berichtsanzeige bestätigen', reportViewFeeConfirmation: 'Für die Anzeige werden {amount} berechnet. Zuerst wird {business} belastet; bei unzureichendem Guthaben Ihr SMAccount. Fortfahren?', reportDownloadFeeTitle: 'Downloadgebühr bestätigen', reportDownloadFeeConfirmation: 'Für den Download werden {amount} berechnet. Zuerst wird {business} belastet; bei unzureichendem Guthaben Ihr SMAccount. Fortfahren?', chooseReportPayer: 'Geschäftskonto für Zahlung auswählen', reportPayerInstruction: 'Wählen Sie die Filiale, die für diesen Organisationsbericht belastet wird.', reportFeeCurrencyUnavailable: 'Der Wechselkurs Ihrer Währung ist nicht verfügbar. Die Berichtsgebühr kann daher nicht angezeigt oder berechnet werden. Bitte später erneut versuchen.', reportInsufficientFunds: 'Das ausgewählte Geschäftskonto und Ihr SMAccount haben nicht genügend Guthaben für diese Gebühr.', reportChargeFailed: 'Die Berichtsgebühr konnte nicht verarbeitet werden. Prüfen Sie die Guthaben und versuchen Sie es erneut.', proceedToReport: 'Weiter', reportExportingFee: 'Gebühr wird verarbeitet...', performanceCharts: 'Leistungsdiagramme', performanceBars: 'Einnahmen, Ausgaben und Gewinn nach Zeitraum', performanceLines: 'Leistungstrend' },
+  pt: { downloadReport: 'Baixar relatório', reportExporting: 'Preparando relatório...', reportExportFailed: 'Não foi possível exportar o relatório', reportTransactions: 'Transações', reportDate: 'Data', reportBranch: 'Filial', reportType: 'Tipo', reportDetails: 'Detalhes', reportAmount: 'Valor', reportFees: 'Taxas', reportSource: 'Origem', viewReport: 'Ver relatório · {amount}', reportFeesDisclosure: 'Visualizar este relatório custa {viewAmount}; baixá-lo custa {downloadAmount} para o período selecionado. Se o saldo da empresa for insuficiente, sua SMAccount será debitada.', reportViewFeeTitle: 'Confirmar taxa de visualização', reportViewFeeConfirmation: 'Será cobrado {amount} para visualizar este relatório. {business} será debitada primeiro; se o saldo for insuficiente, sua SMAccount será debitada. Continuar?', reportDownloadFeeTitle: 'Confirmar taxa de download', reportDownloadFeeConfirmation: 'Será cobrado {amount} para baixar este relatório. {business} será debitada primeiro; se o saldo for insuficiente, sua SMAccount será debitada. Continuar?', chooseReportPayer: 'Escolher conta empresarial para pagamento', reportPayerInstruction: 'Selecione a filial a ser debitada por este relatório da organização.', reportFeeCurrencyUnavailable: 'A taxa de câmbio da sua moeda não está disponível, portanto a tarifa não pode ser exibida nem cobrada. Tente novamente mais tarde.', reportInsufficientFunds: 'A empresa selecionada e sua SMAccount não têm fundos suficientes para esta tarifa.', reportChargeFailed: 'Não foi possível processar a tarifa do relatório. Verifique os saldos e tente novamente.', proceedToReport: 'Continuar', reportExportingFee: 'Processando tarifa...', performanceCharts: 'Gráficos de desempenho', performanceBars: 'Receitas, despesas e lucro por período', performanceLines: 'Tendência de desempenho' },
+  it: { downloadReport: 'Scarica il report', reportExporting: 'Preparazione del report...', reportExportFailed: 'Impossibile esportare il report', reportTransactions: 'Transazioni', reportDate: 'Data', reportBranch: 'Filiale', reportType: 'Tipo', reportDetails: 'Dettagli', reportAmount: 'Importo', reportFees: 'Commissioni', reportSource: 'Fonte', viewReport: 'Visualizza report · {amount}', reportFeesDisclosure: 'La visualizzazione di questo report costa {viewAmount}; il download costa {downloadAmount} per il periodo selezionato. Se il saldo aziendale non è sufficiente, verrà addebitato il tuo SMAccount.', reportViewFeeTitle: 'Conferma costo visualizzazione', reportViewFeeConfirmation: 'Per visualizzare il report verrà addebitato {amount}. Prima verrà addebitato {business}; se il saldo non basta, verrà addebitato il tuo SMAccount. Continuare?', reportDownloadFeeTitle: 'Conferma costo download', reportDownloadFeeConfirmation: 'Per scaricare il report verrà addebitato {amount}. Prima verrà addebitato {business}; se il saldo non basta, verrà addebitato il tuo SMAccount. Continuare?', chooseReportPayer: 'Scegli l’account aziendale per il pagamento', reportPayerInstruction: 'Scegli la filiale da addebitare per questo report organizzativo.', reportFeeCurrencyUnavailable: 'Il tasso di cambio della tua valuta non è disponibile; il costo non può essere mostrato né addebitato. Riprova più tardi.', reportInsufficientFunds: 'L’azienda selezionata e il tuo SMAccount non hanno fondi sufficienti.', reportChargeFailed: 'Impossibile elaborare il costo del report. Controlla i saldi e riprova.', proceedToReport: 'Continua', reportExportingFee: 'Elaborazione del costo...', performanceCharts: 'Grafici delle prestazioni', performanceBars: 'Ricavi, spese e profitti per periodo', performanceLines: 'Andamento delle prestazioni' },
+  he: { downloadReport: 'הורדת דוח', reportExporting: 'מכין את הדוח...', reportExportFailed: 'לא ניתן לייצא את הדוח', reportTransactions: 'עסקאות', reportDate: 'תאריך', reportBranch: 'סניף', reportType: 'סוג', reportDetails: 'פרטים', reportAmount: 'סכום', reportFees: 'עמלות', reportSource: 'מקור', viewReport: 'הצגת דוח · {amount}', reportFeesDisclosure: 'צפייה בדוח זה עולה {viewAmount} והורדתו עולה {downloadAmount} עבור טווח התאריכים. אם אין יתרה מספקת בעסק, נחייב את חשבון SMAccount שלך.', reportViewFeeTitle: 'אישור עמלת צפייה בדוח', reportViewFeeConfirmation: 'תחויבו ב-{amount} לצפייה בדוח. תחילה נחייב את {business}; אם היתרה אינה מספיקה, נחייב את חשבון SMAccount שלך. להמשיך?', reportDownloadFeeTitle: 'אישור עמלת הורדת דוח', reportDownloadFeeConfirmation: 'תחויבו ב-{amount} להורדת הדוח. תחילה נחייב את {business}; אם היתרה אינה מספיקה, נחייב את חשבון SMAccount שלך. להמשיך?', chooseReportPayer: 'בחירת חשבון עסקי לתשלום', reportPayerInstruction: 'בחרו את הסניף שיחויב עבור דוח הארגון.', reportFeeCurrencyUnavailable: 'שער החליפין של המטבע שלך אינו זמין, ולכן לא ניתן להציג או לגבות את עמלת הדוח. נסה שוב מאוחר יותר.', reportInsufficientFunds: 'אין יתרה מספקת בעסק שנבחר או בחשבון SMAccount שלך.', reportChargeFailed: 'לא ניתן לעבד את עמלת הדוח. בדקו יתרות ונסו שוב.', proceedToReport: 'המשך', reportExportingFee: 'מעבד עמלה...', performanceCharts: 'תרשימי ביצועים', performanceBars: 'הכנסות, הוצאות ורווח לפי תקופה', performanceLines: 'מגמת ביצועים' },
+  hi: { downloadReport: 'रिपोर्ट डाउनलोड करें', reportExporting: 'रिपोर्ट तैयार हो रही है...', reportExportFailed: 'रिपोर्ट निर्यात नहीं हो सकी', reportTransactions: 'लेन-देन', reportDate: 'तारीख', reportBranch: 'शाखा', reportType: 'प्रकार', reportDetails: 'विवरण', reportAmount: 'राशि', reportFees: 'शुल्क', reportSource: 'स्रोत', viewReport: 'रिपोर्ट देखें · {amount}', reportFeesDisclosure: 'इस रिपोर्ट को देखने का शुल्क {viewAmount} और डाउनलोड का शुल्क {downloadAmount} है। यदि व्यवसाय खाते में पर्याप्त राशि नहीं है, तो आपके SMAccount से शुल्क लिया जाएगा।', reportViewFeeTitle: 'रिपोर्ट देखने का शुल्क पुष्टि करें', reportViewFeeConfirmation: 'रिपोर्ट देखने के लिए {amount} शुल्क लिया जाएगा। पहले {business} से शुल्क लिया जाएगा; राशि कम होने पर आपके SMAccount से लिया जाएगा। जारी रखें?', reportDownloadFeeTitle: 'रिपोर्ट डाउनलोड शुल्क पुष्टि करें', reportDownloadFeeConfirmation: 'रिपोर्ट डाउनलोड करने के लिए {amount} शुल्क लिया जाएगा। पहले {business} से शुल्क लिया जाएगा; राशि कम होने पर आपके SMAccount से लिया जाएगा। जारी रखें?', chooseReportPayer: 'भुगतान के लिए व्यवसाय खाता चुनें', reportPayerInstruction: 'संगठन की इस रिपोर्ट के लिए शुल्क देने वाली शाखा चुनें।', reportFeeCurrencyUnavailable: 'आपकी मुद्रा की विनिमय दर उपलब्ध नहीं है, इसलिए शुल्क दिखाया या लिया नहीं जा सकता। कृपया बाद में पुनः प्रयास करें।', reportInsufficientFunds: 'चुने गए व्यवसाय खाते और आपके SMAccount में इस रिपोर्ट शुल्क के लिए पर्याप्त राशि नहीं है।', reportChargeFailed: 'रिपोर्ट शुल्क संसाधित नहीं हो सका। शेष राशि जाँचकर पुनः प्रयास करें।', proceedToReport: 'जारी रखें', reportExportingFee: 'शुल्क संसाधित हो रहा है...', performanceCharts: 'प्रदर्शन चार्ट', performanceBars: 'अवधि के अनुसार आय, व्यय और लाभ', performanceLines: 'प्रदर्शन रुझान' },
+  am: { downloadReport: 'ሪፖርቱን ያውርዱ', reportExporting: 'ሪፖርቱ በመዘጋጀት ላይ ነው...', reportExportFailed: 'ሪፖርቱን መላክ አልተቻለም', reportTransactions: 'ግብይቶች', reportDate: 'ቀን', reportBranch: 'ቅርንጫፍ', reportType: 'ዓይነት', reportDetails: 'ዝርዝሮች', reportAmount: 'መጠን', reportFees: 'ክፍያዎች', reportSource: 'ምንጭ', viewReport: 'ሪፖርቱን ይመልከቱ · {amount}', reportFeesDisclosure: 'ይህን ሪፖርት ለማየት {viewAmount}፣ ለማውረድ {downloadAmount} ያስከፍላል። የንግድ ሂሳቡ በቂ ገንዘብ ከሌለው ከSMAccount ይከፈላል።', reportViewFeeTitle: 'የሪፖርት ማየት ክፍያን ያረጋግጡ', reportViewFeeConfirmation: 'ይህን ሪፖርት ለማየት {amount} ይከፈላል። መጀመሪያ {business} ይከፍላል፤ በቂ ገንዘብ ከሌለ ከSMAccount ይከፈላል። ይቀጥሉ?', reportDownloadFeeTitle: 'የሪፖርት ማውረድ ክፍያን ያረጋግጡ', reportDownloadFeeConfirmation: 'ሪፖርቱን ለማውረድ {amount} ይከፈላል። መጀመሪያ {business} ይከፍላል፤ በቂ ገንዘብ ከሌለ ከSMAccount ይከፈላል። ይቀጥሉ?', chooseReportPayer: 'የሚከፍለውን የንግድ ሂሳብ ይምረጡ', reportPayerInstruction: 'ለዚህ የድርጅት ሪፖርት የሚከፈልበትን ቅርንጫፍ ይምረጡ።', reportFeeCurrencyUnavailable: 'የምንዛሬ ተመንዎ ስለማይገኝ የሪፖርት ክፍያውን ማሳየት ወይም መቀበል አይቻልም። ቆይተው ይሞክሩ።', reportInsufficientFunds: 'የተመረጠው ንግድ እና SMAccount ለዚህ ክፍያ በቂ ገንዘብ የላቸውም።', reportChargeFailed: 'የሪፖርት ክፍያውን ማከናወን አልተቻለም። ቀሪ ሂሳቦቹን ያረጋግጡና እንደገና ይሞክሩ።', proceedToReport: 'ቀጥል', reportExportingFee: 'ክፍያው በመከናወን ላይ ነው...', performanceCharts: 'የአፈጻጸም ግራፎች', performanceBars: 'ገቢ፣ ወጪ እና ትርፍ በየጊዜው', performanceLines: 'የአፈጻጸም አዝማሚያ' },
+};
+
+const reportRefundFailureValues: Record<Locale, string> = {
+  en: 'The fee may have been debited, but its transfer to company revenue failed. Please contact support before trying again.',
+  ar: 'قد يكون قد تم خصم الرسوم، لكن تعذر تحويلها إلى إيرادات الشركة. يرجى الاتصال بالدعم قبل المحاولة مرة أخرى.',
+  zh: '费用可能已扣除，但未能转入公司收入。请联系支持人员后再重试。',
+  ru: 'Плата могла быть списана, но не зачислена в доход компании. Перед повторной попыткой обратитесь в службу поддержки.',
+  sw: 'Ada huenda ilitozwa lakini haikuweza kuhamishiwa kwenye mapato ya kampuni. Wasiliana na usaidizi kabla ya kujaribu tena.',
+  fr: 'Les frais ont peut-être été débités, mais leur transfert vers les revenus de l’entreprise a échoué. Contactez l’assistance avant de réessayer.',
+  es: 'Es posible que se haya cobrado la tarifa, pero no se pudo transferir a los ingresos de la empresa. Contacte con soporte antes de volver a intentarlo.',
+  de: 'Die Gebühr wurde möglicherweise abgebucht, aber nicht den Unternehmenseinnahmen gutgeschrieben. Wenden Sie sich vor einem erneuten Versuch an den Support.',
+  pt: 'A tarifa pode ter sido debitada, mas não foi transferida para a receita da empresa. Entre em contato com o suporte antes de tentar novamente.',
+  it: 'Il costo potrebbe essere stato addebitato, ma non trasferito ai ricavi aziendali. Contatta l’assistenza prima di riprovare.',
+  he: 'ייתכן שהעמלה חויבה, אך העברתה להכנסות החברה נכשלה. יש לפנות לתמיכה לפני ניסיון נוסף.',
+  hi: 'शुल्क काटा गया हो सकता है, लेकिन कंपनी की आय में जमा नहीं हुआ। दोबारा प्रयास करने से पहले सहायता से संपर्क करें।',
+  am: 'ክፍያው ተቀንሶ ሊሆን ይችላል፣ ግን ወደ የኩባንያ ገቢ ማስገባት አልተቻለም። እንደገና ከመሞከርዎ በፊት ድጋፍን ያነጋግሩ።',
+};
+const reportShareFailureValues: Record<Locale, string> = {
+  en: 'The fee was charged, but the file could not be shared. Please contact support before trying again.',
+  ar: 'تم خصم الرسوم، لكن تعذرت مشاركة الملف. يرجى الاتصال بالدعم قبل المحاولة مرة أخرى.',
+  zh: '费用已扣除，但无法分享文件。请联系支持人员后再重试。',
+  ru: 'Плата списана, но не удалось поделиться файлом. Перед повторной попыткой обратитесь в службу поддержки.',
+  sw: 'Ada imetozwa lakini faili haikuweza kushirikiwa. Wasiliana na usaidizi kabla ya kujaribu tena.',
+  fr: 'Les frais ont été débités, mais le fichier n’a pas pu être partagé. Contactez l’assistance avant de réessayer.',
+  es: 'Se cobró la tarifa, pero no se pudo compartir el archivo. Contacte con soporte antes de volver a intentarlo.',
+  de: 'Die Gebühr wurde abgebucht, aber die Datei konnte nicht geteilt werden. Wenden Sie sich vor einem erneuten Versuch an den Support.',
+  pt: 'A tarifa foi debitada, mas não foi possível compartilhar o arquivo. Entre em contato com o suporte antes de tentar novamente.',
+  it: 'Il costo è stato addebitato, ma non è stato possibile condividere il file. Contatta l’assistenza prima di riprovare.',
+  he: 'העמלה חויבה, אך לא ניתן היה לשתף את הקובץ. יש לפנות לתמיכה לפני ניסיון נוסף.',
+  hi: 'शुल्क काटा गया, लेकिन फ़ाइल साझा नहीं की जा सकी। दोबारा प्रयास करने से पहले सहायता से संपर्क करें।',
+  am: 'ክፍያው ተቀንሷል፣ ግን ፋይሉን ማጋራት አልተቻለም። እንደገና ከመሞከርዎ በፊት ድጋፍን ያነጋግሩ።',
+};
+
+const reportConsentValues: Record<Locale, {
+  view: string;
+  download: string;
+  disclosure: string;
+  personalFallback: string;
+}> = {
+  en: {
+    view: 'You will be charged {amount} to view this report. {business} will be charged first. If its balance cannot cover the full fee, we will ask your permission before charging your SMAccount. Continue?',
+    download: 'You will be charged {amount} to download this report. {business} will be charged first. If its balance cannot cover the full fee, we will ask your permission before charging your SMAccount. Continue?',
+    disclosure: 'Viewing this report costs {viewAmount}. Downloading it costs {downloadAmount} for this date range. The selected business account is charged first; if it cannot cover the fee, we will ask your permission before charging your SMAccount.',
+    personalFallback: 'The business account cannot cover this fee. Do you agree to charge {amount} to your SMAccount?',
+  },
+  ar: {
+    view: 'سيتم خصم {amount} لعرض هذا التقرير. سيتم الخصم أولاً من {business}. إذا لم يغطِ رصيده الرسوم كاملة، فسنطلب موافقتك قبل الخصم من حسابك SMAccount. هل تريد المتابعة؟',
+    download: 'سيتم خصم {amount} لتنزيل هذا التقرير. سيتم الخصم أولاً من {business}. إذا لم يغطِ رصيده الرسوم كاملة، فسنطلب موافقتك قبل الخصم من حسابك SMAccount. هل تريد المتابعة؟',
+    disclosure: 'تبلغ تكلفة عرض هذا التقرير {viewAmount} وتنزيله {downloadAmount} للفترة المحددة. سيتم الخصم أولاً من حساب النشاط التجاري المحدد؛ وإذا لم يغطِ الرصيد الرسوم، فسنطلب موافقتك قبل الخصم من حسابك SMAccount.',
+    personalFallback: 'لا يستطيع حساب النشاط التجاري تغطية هذه الرسوم. هل توافق على خصم {amount} من حسابك SMAccount؟',
+  },
+  zh: {
+    view: '查看此报告将收取 {amount}。优先从 {business} 扣款；如果其余额不足以支付全额，我们会先征求您的同意，再从您的 SMAccount 扣款。继续吗？',
+    download: '下载此报告将收取 {amount}。优先从 {business} 扣款；如果其余额不足以支付全额，我们会先征求您的同意，再从您的 SMAccount 扣款。继续吗？',
+    disclosure: '查看此报告的费用为 {viewAmount}，下载费用为 {downloadAmount}（适用于所选日期范围）。优先从所选企业账户扣款；余额不足时，我们会先征求您的同意，再从您的 SMAccount 扣款。',
+    personalFallback: '企业账户余额不足以支付此费用。您同意从您的 SMAccount 扣除 {amount} 吗？',
+  },
+  ru: {
+    view: 'Просмотр отчета стоит {amount}. Сначала списание будет произведено с {business}. Если средств не хватит на полную сумму, мы запросим ваше согласие перед списанием с SMAccount. Продолжить?',
+    download: 'Загрузка отчета стоит {amount}. Сначала списание будет произведено с {business}. Если средств не хватит на полную сумму, мы запросим ваше согласие перед списанием с SMAccount. Продолжить?',
+    disclosure: 'Просмотр отчета стоит {viewAmount}, а загрузка — {downloadAmount} за выбранный период. Сначала оплата списывается с выбранного бизнес-счета; если средств недостаточно, мы запросим ваше согласие перед списанием с SMAccount.',
+    personalFallback: 'На бизнес-счете недостаточно средств для оплаты. Вы согласны списать {amount} с вашего SMAccount?',
+  },
+  sw: {
+    view: 'Utatozwa {amount} kutazama ripoti hii. {business} ndiyo itakayotozwa kwanza. Salio lisipotosha kulipa ada yote, tutakuomba uruhusu kabla ya kutoza SMAccount yako. Uendelee?',
+    download: 'Utatozwa {amount} kupakua ripoti hii. {business} ndiyo itakayotozwa kwanza. Salio lisipotosha kulipa ada yote, tutakuomba uruhusu kabla ya kutoza SMAccount yako. Uendelee?',
+    disclosure: 'Kutazama ripoti hii kunagharimu {viewAmount}; kuipakua kunagharimu {downloadAmount} kwa kipindi hiki. Akaunti ya biashara iliyochaguliwa hutozwa kwanza; salio lisipotosha, tutakuomba uruhusu kabla ya kutoza SMAccount yako.',
+    personalFallback: 'Akaunti ya biashara haiwezi kulipa ada hii yote. Unakubali kutozwa {amount} kutoka kwa SMAccount yako?',
+  },
+  fr: {
+    view: 'La consultation de ce rapport coûte {amount}. {business} sera débité en premier. Si son solde ne couvre pas la totalité des frais, nous vous demanderons votre accord avant de débiter votre SMAccount. Continuer ?',
+    download: 'Le téléchargement de ce rapport coûte {amount}. {business} sera débité en premier. Si son solde ne couvre pas la totalité des frais, nous vous demanderons votre accord avant de débiter votre SMAccount. Continuer ?',
+    disclosure: 'La consultation coûte {viewAmount} et le téléchargement {downloadAmount} pour cette période. Le compte professionnel sélectionné est débité en premier ; si son solde est insuffisant, nous vous demanderons votre accord avant de débiter votre SMAccount.',
+    personalFallback: 'Le compte professionnel ne peut pas couvrir ces frais. Acceptez-vous de débiter {amount} de votre SMAccount ?',
+  },
+  es: {
+    view: 'Se te cobrarán {amount} por ver este informe. Primero se cobrará a {business}. Si su saldo no cubre el importe completo, te pediremos autorización antes de cobrar a tu SMAccount. ¿Continuar?',
+    download: 'Se te cobrarán {amount} por descargar este informe. Primero se cobrará a {business}. Si su saldo no cubre el importe completo, te pediremos autorización antes de cobrar a tu SMAccount. ¿Continuar?',
+    disclosure: 'Ver este informe cuesta {viewAmount} y descargarlo cuesta {downloadAmount} para este período. Primero se cobra a la cuenta empresarial seleccionada; si el saldo no es suficiente, te pediremos autorización antes de cobrar a tu SMAccount.',
+    personalFallback: 'La cuenta empresarial no puede cubrir esta tarifa. ¿Aceptas que se cobren {amount} a tu SMAccount?',
+  },
+  de: {
+    view: 'Das Anzeigen dieses Berichts kostet {amount}. Zuerst wird {business} belastet. Reicht das Guthaben nicht für den vollen Betrag, fragen wir Sie um Erlaubnis, bevor Ihr SMAccount belastet wird. Fortfahren?',
+    download: 'Das Herunterladen dieses Berichts kostet {amount}. Zuerst wird {business} belastet. Reicht das Guthaben nicht für den vollen Betrag, fragen wir Sie um Erlaubnis, bevor Ihr SMAccount belastet wird. Fortfahren?',
+    disclosure: 'Das Anzeigen dieses Berichts kostet {viewAmount}, das Herunterladen {downloadAmount} für diesen Zeitraum. Zuerst wird das ausgewählte Geschäftskonto belastet; reicht das Guthaben nicht aus, fragen wir Sie um Erlaubnis, bevor Ihr SMAccount belastet wird.',
+    personalFallback: 'Das Geschäftskonto kann diese Gebühr nicht decken. Stimmen Sie zu, dass {amount} von Ihrem SMAccount abgebucht wird?',
+  },
+  pt: {
+    view: 'A visualização deste relatório custa {amount}. {business} será cobrado primeiro. Se o saldo não cobrir o valor total, pediremos sua autorização antes de cobrar sua SMAccount. Continuar?',
+    download: 'O download deste relatório custa {amount}. {business} será cobrado primeiro. Se o saldo não cobrir o valor total, pediremos sua autorização antes de cobrar sua SMAccount. Continuar?',
+    disclosure: 'A visualização custa {viewAmount} e o download custa {downloadAmount} para este período. A conta empresarial selecionada é cobrada primeiro; se o saldo for insuficiente, pediremos sua autorização antes de cobrar sua SMAccount.',
+    personalFallback: 'A conta empresarial não pode cobrir esta tarifa. Você concorda em cobrar {amount} da sua SMAccount?',
+  },
+  it: {
+    view: 'La visualizzazione del report costa {amount}. L’addebito sarà effettuato prima su {business}. Se il saldo non copre l’intero importo, chiederemo il tuo consenso prima di addebitare la SMAccount. Continuare?',
+    download: 'Il download del report costa {amount}. L’addebito sarà effettuato prima su {business}. Se il saldo non copre l’intero importo, chiederemo il tuo consenso prima di addebitare la SMAccount. Continuare?',
+    disclosure: 'La visualizzazione costa {viewAmount} e il download {downloadAmount} per questo periodo. L’addebito viene effettuato prima sul conto aziendale selezionato; se il saldo è insufficiente, chiederemo il tuo consenso prima di addebitare la SMAccount.',
+    personalFallback: 'Il conto aziendale non può coprire questa tariffa. Acconsenti all’addebito di {amount} sulla tua SMAccount?',
+  },
+  he: {
+    view: 'הצגת הדוח תעלה {amount}. החיוב יתבצע תחילה מ-{business}. אם היתרה לא תכסה את מלוא הסכום, נבקש את אישורך לפני חיוב חשבון SMAccount שלך. להמשיך?',
+    download: 'הורדת הדוח תעלה {amount}. החיוב יתבצע תחילה מ-{business}. אם היתרה לא תכסה את מלוא הסכום, נבקש את אישורך לפני חיוב חשבון SMAccount שלך. להמשיך?',
+    disclosure: 'הצגת הדוח עולה {viewAmount} והורדתו עולה {downloadAmount} לתקופה זו. החיוב מתבצע תחילה מחשבון העסק שנבחר; אם היתרה אינה מספיקה, נבקש את אישורך לפני חיוב חשבון SMAccount שלך.',
+    personalFallback: 'יתרת העסק אינה מספיקה לכיסוי העמלה. האם להסכים לחיוב של {amount} מחשבון SMAccount שלך?',
+  },
+  hi: {
+    view: 'इस रिपोर्ट को देखने का शुल्क {amount} है। पहले {business} से शुल्क लिया जाएगा। यदि उसकी शेष राशि पूरी फीस के लिए पर्याप्त नहीं है, तो आपके SMAccount से शुल्क लेने से पहले हम आपकी अनुमति माँगेंगे। जारी रखें?',
+    download: 'इस रिपोर्ट को डाउनलोड करने का शुल्क {amount} है। पहले {business} से शुल्क लिया जाएगा। यदि उसकी शेष राशि पूरी फीस के लिए पर्याप्त नहीं है, तो आपके SMAccount से शुल्क लेने से पहले हम आपकी अनुमति माँगेंगे। जारी रखें?',
+    disclosure: 'इस अवधि के लिए रिपोर्ट देखने का शुल्क {viewAmount} और डाउनलोड करने का शुल्क {downloadAmount} है। पहले चुने गए व्यावसायिक खाते से शुल्क लिया जाएगा; शेष राशि कम होने पर SMAccount से शुल्क लेने से पहले आपकी अनुमति माँगी जाएगी।',
+    personalFallback: 'व्यावसायिक खाता यह शुल्क पूरा नहीं कर सकता। क्या आप अपने SMAccount से {amount} शुल्क लेने की अनुमति देते हैं?',
+  },
+  am: {
+    view: 'ይህን ሪፖርት ለማየት {amount} ይከፈላል። መጀመሪያ {business} ይከፍላል። ቀሪ ሂሳቡ ሙሉውን ክፍያ ካልሸፈነ፣ ከSMAccount ከመቀነሳችን በፊት ፈቃድዎን እንጠይቃለን። ይቀጥሉ?',
+    download: 'ይህን ሪፖርት ለማውረድ {amount} ይከፈላል። መጀመሪያ {business} ይከፍላል። ቀሪ ሂሳቡ ሙሉውን ክፍያ ካልሸፈነ፣ ከSMAccount ከመቀነሳችን በፊት ፈቃድዎን እንጠይቃለን። ይቀጥሉ?',
+    disclosure: 'ለዚህ ጊዜ ሪፖርቱን ማየት {viewAmount} እና ማውረድ {downloadAmount} ያስከፍላል። መጀመሪያ የተመረጠው የንግድ ሂሳብ ይከፍላል፤ ቀሪ ሂሳቡ ካልበቃ ከSMAccount ከመቀነሳችን በፊት ፈቃድዎን እንጠይቃለን።',
+    personalFallback: 'የንግድ ሂሳቡ ይህን ክፍያ መሸፈን አይችልም። {amount} ከSMAccount እንዲቀነስ ይፈቅዳሉ?',
+  },
+};
+
+const reportFeeSettingsValues: Record<Locale, {
+  loading: string;
+  loadFailed: string;
+  notConfigured: string;
+  changed: string;
+}> = {
+  en: {
+    loading: 'Loading report fees...',
+    loadFailed: 'Report fees could not be loaded. Please try again later.',
+    notConfigured: 'Report fees are not configured. Please contact support.',
+    changed: 'Report fees changed while this action was being confirmed. Review the updated fee and try again.',
+  },
+  ar: {
+    loading: 'جارٍ تحميل رسوم التقرير...',
+    loadFailed: 'تعذر تحميل رسوم التقرير. يرجى المحاولة لاحقاً.',
+    notConfigured: 'لم يتم إعداد رسوم التقرير. يرجى الاتصال بالدعم.',
+    changed: 'تغيرت رسوم التقرير أثناء التأكيد. راجع الرسوم المحدّثة وحاول مرة أخرى.',
+  },
+  zh: {
+    loading: '正在加载报告费用...',
+    loadFailed: '无法加载报告费用，请稍后重试。',
+    notConfigured: '尚未设置报告费用。请联系支持人员。',
+    changed: '确认期间报告费用已更改。请查看更新后的费用并重试。',
+  },
+  ru: {
+    loading: 'Загрузка платы за отчет...',
+    loadFailed: 'Не удалось загрузить плату за отчет. Повторите попытку позже.',
+    notConfigured: 'Плата за отчет не настроена. Обратитесь в службу поддержки.',
+    changed: 'Плата за отчет изменилась во время подтверждения. Проверьте обновленную сумму и повторите попытку.',
+  },
+  sw: {
+    loading: 'Inapakia ada za ripoti...',
+    loadFailed: 'Ada za ripoti hazikuweza kupakiwa. Tafadhali jaribu tena baadaye.',
+    notConfigured: 'Ada za ripoti hazijawekwa. Wasiliana na usaidizi.',
+    changed: 'Ada za ripoti zimebadilika wakati wa uthibitishaji. Kagua ada mpya na ujaribu tena.',
+  },
+  fr: {
+    loading: 'Chargement des frais du rapport...',
+    loadFailed: 'Impossible de charger les frais du rapport. Réessayez plus tard.',
+    notConfigured: 'Les frais du rapport ne sont pas configurés. Contactez l’assistance.',
+    changed: 'Les frais du rapport ont changé pendant la confirmation. Vérifiez le nouveau montant et réessayez.',
+  },
+  es: {
+    loading: 'Cargando tarifas del informe...',
+    loadFailed: 'No se pudieron cargar las tarifas del informe. Inténtelo más tarde.',
+    notConfigured: 'Las tarifas del informe no están configuradas. Contacte con soporte.',
+    changed: 'Las tarifas del informe cambiaron durante la confirmación. Revise la tarifa actualizada e inténtelo de nuevo.',
+  },
+  de: {
+    loading: 'Berichtsgebühren werden geladen...',
+    loadFailed: 'Die Berichtsgebühren konnten nicht geladen werden. Bitte versuchen Sie es später erneut.',
+    notConfigured: 'Die Berichtsgebühren sind nicht konfiguriert. Wenden Sie sich an den Support.',
+    changed: 'Die Berichtsgebühren haben sich während der Bestätigung geändert. Prüfen Sie den aktualisierten Betrag und versuchen Sie es erneut.',
+  },
+  pt: {
+    loading: 'Carregando taxas do relatório...',
+    loadFailed: 'Não foi possível carregar as taxas do relatório. Tente novamente mais tarde.',
+    notConfigured: 'As taxas do relatório não estão configuradas. Entre em contato com o suporte.',
+    changed: 'As taxas do relatório mudaram durante a confirmação. Confira o valor atualizado e tente novamente.',
+  },
+  it: {
+    loading: 'Caricamento dei costi del report...',
+    loadFailed: 'Impossibile caricare i costi del report. Riprova più tardi.',
+    notConfigured: 'I costi del report non sono configurati. Contatta l’assistenza.',
+    changed: 'I costi del report sono cambiati durante la conferma. Controlla il nuovo importo e riprova.',
+  },
+  he: {
+    loading: 'טוען את עמלות הדוח...',
+    loadFailed: 'לא ניתן לטעון את עמלות הדוח. יש לנסות שוב מאוחר יותר.',
+    notConfigured: 'עמלות הדוח לא הוגדרו. יש לפנות לתמיכה.',
+    changed: 'עמלות הדוח השתנו במהלך האישור. יש לבדוק את העמלה המעודכנת ולנסות שוב.',
+  },
+  hi: {
+    loading: 'रिपोर्ट शुल्क लोड हो रहा है...',
+    loadFailed: 'रिपोर्ट शुल्क लोड नहीं हो सका। कृपया बाद में पुनः प्रयास करें।',
+    notConfigured: 'रिपोर्ट शुल्क कॉन्फ़िगर नहीं है। कृपया सहायता से संपर्क करें।',
+    changed: 'पुष्टि के दौरान रिपोर्ट शुल्क बदल गया। अपडेट किया गया शुल्क देखें और फिर प्रयास करें।',
+  },
+  am: {
+    loading: 'የሪፖርት ክፍያዎችን በመጫን ላይ...',
+    loadFailed: 'የሪፖርት ክፍያዎችን መጫን አልተቻለም። ቆይተው እንደገና ይሞክሩ።',
+    notConfigured: 'የሪፖርት ክፍያዎች አልተዋቀሩም። ድጋፍን ያነጋግሩ።',
+    changed: 'በማረጋገጫ ጊዜ የሪፖርት ክፍያዎች ተቀይረዋል። የተዘመነውን ክፍያ ይመልከቱና እንደገና ይሞክሩ።',
+  },
+};
+
+const reportAsOfLabels: Record<Locale, string> = {
+  en: 'Data through',
+  ar: 'البيانات حتى',
+  zh: '数据截至',
+  ru: 'Данные на',
+  sw: 'Data hadi',
+  fr: 'Données jusqu’au',
+  es: 'Datos hasta',
+  de: 'Daten bis',
+  pt: 'Dados até',
+  it: 'Dati fino alle',
+  he: 'הנתונים עד',
+  hi: 'इस समय तक का डेटा',
+  am: 'ውሂብ እስከ',
+};
+
+const personalAccountLabels: Record<Locale, string> = {
+  en: 'personal account',
+  ar: 'حساب شخصي',
+  zh: '个人账户',
+  ru: 'личный счет',
+  sw: 'akaunti binafsi',
+  fr: 'compte personnel',
+  es: 'cuenta personal',
+  de: 'persönliches Konto',
+  pt: 'conta pessoal',
+  it: 'conto personale',
+  he: 'חשבון אישי',
+  hi: 'व्यक्तिगत खाता',
+  am: 'የግል ሂሳብ',
+};
+
+const performancePointValues: Record<Locale, { hint: string; details: string }> = {
+  en: { hint: 'Tap a chart point to see exact revenue, expenses, and profit for that date range.', details: 'Performance for {date}' },
+  ar: { hint: 'اضغط على نقطة في الرسم لعرض الإيرادات والمصروفات والأرباح الدقيقة للفترة.', details: 'الأداء للفترة {date}' },
+  zh: { hint: '点击图表数据点，查看该日期范围的准确收入、支出和利润。', details: '{date} 的业绩' },
+  ru: { hint: 'Нажмите на точку графика, чтобы увидеть точные доходы, расходы и прибыль за этот период.', details: 'Показатели за период {date}' },
+  sw: { hint: 'Gusa nukta kwenye grafu kuona mapato, matumizi na faida kamili za kipindi hicho.', details: 'Utendaji wa kipindi cha {date}' },
+  fr: { hint: 'Touchez un point du graphique pour afficher les revenus, dépenses et bénéfices exacts de cette période.', details: 'Performances pour la période {date}' },
+  es: { hint: 'Toca un punto del gráfico para ver los ingresos, gastos y beneficios exactos de ese período.', details: 'Rendimiento del período {date}' },
+  de: { hint: 'Tippen Sie auf einen Diagrammpunkt, um die genauen Einnahmen, Ausgaben und Gewinne für diesen Zeitraum zu sehen.', details: 'Leistung für den Zeitraum {date}' },
+  pt: { hint: 'Toque em um ponto do gráfico para ver a receita, as despesas e o lucro exatos desse período.', details: 'Desempenho do período {date}' },
+  it: { hint: 'Tocca un punto del grafico per vedere ricavi, spese e profitti esatti del periodo.', details: 'Prestazioni per il periodo {date}' },
+  he: { hint: 'יש להקיש על נקודה בגרף כדי לראות את ההכנסות, ההוצאות והרווח המדויקים לתקופה.', details: 'ביצועים לתקופה {date}' },
+  hi: { hint: 'उस अवधि की सटीक आय, खर्च और लाभ देखने के लिए ग्राफ़ के बिंदु पर टैप करें।', details: '{date} की अवधि का प्रदर्शन' },
+  am: { hint: 'የዚያን ጊዜ ትክክለኛ ገቢ፣ ወጪ እና ትርፍ ለማየት በግራፉ ላይ ያለውን ነጥብ ይንኩ።', details: 'የ{date} ጊዜ አፈጻጸም' },
+};
+
 const operationalValues: Record<Locale, {
   loadAnalyticsFailed: string;
   currencyRateUnavailable: string;
@@ -900,6 +1182,20 @@ const translations = Object.fromEntries(
       weekly: periodValues[language][1],
       monthly: periodValues[language][2],
       ...geographyValues[language],
+      ...reportValues[language],
+      reportAsOf: reportAsOfLabels[language],
+      performancePointHint: performancePointValues[language].hint,
+      performancePointDetails: performancePointValues[language].details,
+      reportViewFeeConfirmation: reportConsentValues[language].view,
+      reportDownloadFeeConfirmation: reportConsentValues[language].download,
+      reportFeesDisclosure: reportConsentValues[language].disclosure,
+      reportPersonalFallbackConfirmation: reportConsentValues[language].personalFallback,
+      reportFeesLoading: reportFeeSettingsValues[language].loading,
+      reportFeesLoadFailed: reportFeeSettingsValues[language].loadFailed,
+      reportFeesNotConfigured: reportFeeSettingsValues[language].notConfigured,
+      reportFeeChanged: reportFeeSettingsValues[language].changed,
+      reportRefundFailed: reportRefundFailureValues[language],
+      reportShareFailedAfterCharge: reportShareFailureValues[language],
       ...operationalValues[language],
     },
   ])
@@ -910,8 +1206,30 @@ export const useBusinessPerformanceTranslation = () => {
   const language = (i18n.language?.split('-')[0] || 'en') as Locale;
   const dictionary = translations[language] || translations.en;
   return useMemo(
-    () => (key: Key, params: Record<string, string | number> = {}) =>
-      dictionary[key].replace(/\{(\w+)\}/g, (_, name: string) => String(params[name] ?? '')),
-    [dictionary]
+    () => (key: Key, params: Record<string, string | number> = {}) => {
+      let message = dictionary[key];
+      if (language === 'ar') {
+        message = message
+          .replace(/حسابك SMAccount/g, 'حسابك الشخصي')
+          .replace(/حساب SMAccount/g, 'حساب شخصي');
+      } else if (language === 'sw') {
+        message = message.replace(/SMAccount yako/g, 'akaunti yako binafsi');
+      } else if (language === 'he') {
+        message = message
+          .replace(/חשבון SMAccount שלך/g, 'החשבון האישי שלך')
+          .replace(/חשבון SMAccount/g, 'חשבון אישי');
+      } else if (language === 'it') {
+        message = message
+          .replace(/sulla tua SMAccount/g, 'sul tuo conto personale')
+          .replace(/la SMAccount/g, 'il conto personale')
+          .replace(/della SMAccount/g, 'del conto personale');
+      } else if (language === 'am') {
+        message = message.replace(/ከSMAccount/g, 'ከግል ሂሳብ');
+      }
+      return message
+        .replace(/SMAccount/g, personalAccountLabels[language] || personalAccountLabels.en)
+        .replace(/\{(\w+)\}/g, (_, name: string) => String(params[name] ?? ''));
+    },
+    [dictionary, language]
   );
 };

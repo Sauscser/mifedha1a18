@@ -79,6 +79,9 @@ exports.handler = async event => {
     return { success: false, message: 'Juu product ID or integration secret is not configured.' };
   }
 
+  const eventId = crypto.randomUUID();
+  const occurredAt = new Date().toISOString();
+  const fields = isGroupRegistration ? { number_of_groups: numberOfGroups } : { amount };
   try {
     const { Parameters = [], InvalidParameters = [] } = await ssm.getParameters({
       Names: [secretParameterName],
@@ -89,17 +92,16 @@ exports.handler = async event => {
       throw new Error('Juu integration secret is missing from AWS Systems Manager Parameter Store.');
     }
 
-    const eventId = crypto.randomUUID();
-    const fields = isGroupRegistration ? { number_of_groups: numberOfGroups } : { amount };
-    const response = await axios.post(JUU_API_URL, {
+    const juuEvent = {
       contractVersion,
       eventId,
       eventType,
-      occurredAt: new Date().toISOString(),
+      occurredAt,
       productId,
       location,
       fields
-    }, {
+    };
+    const response = await axios.post(JUU_API_URL, juuEvent, {
       headers: {
         'Content-Type': 'application/json',
         'x-uppy-api-key': integrationKey
@@ -124,14 +126,17 @@ exports.handler = async event => {
       code: error.code,
       message: error.message,
       responseRequestId: error.response?.headers?.['x-amzn-requestid']
-        || error.response?.headers?.['x-amz-apigw-id'],
+        || error.response?.headers?.['x-amz-apigw-id']
+        || error.response?.headers?.['x-amzn-trace-id']
+        || error.response?.headers?.['x-amz-cf-id'],
       responseBody: responseBodyForLog,
       event: {
+        eventId,
+        occurredAt,
         contractVersion,
         eventType,
         fields: isGroupRegistration ? { number_of_groups: numberOfGroups } : { amount },
-        productId,
-        location
+        productId
       }
     });
     return {

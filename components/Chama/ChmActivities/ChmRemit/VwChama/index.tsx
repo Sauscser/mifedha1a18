@@ -171,7 +171,7 @@ const ChmRemitInfo = ({ ChamaRemitDtls }: ChamaRemitInfo) => {
 
       const companyData: any = await client.graphql({
         query: getCompany,
-        variables: { AdminId: "BaruchHabaB'ShemAdonai2" }
+        variables: { AdminId: "" }
       });
       const company = companyData.data.getCompany;
 

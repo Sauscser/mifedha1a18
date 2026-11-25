@@ -149,7 +149,7 @@ const CovCredSls = props => {
                       const CompDtls: any = await client.graphql({
                         query: getCompany,
                         variables: {
-                          AdminId: "BaruchHabaB'ShemAdonai2"
+                          AdminId: ""
                         }
                       });
                       const userLoanTransferFees = CompDtls.data.getCompany.biznaCredSaleFee;
@@ -379,7 +379,7 @@ const CovCredSls = props => {
                                             query: updateCompany,
                                             variables: {
                                               input: {
-                                                AdminId: "BaruchHabaB'ShemAdonai2",
+                                                AdminId: "",
                                                 companyEarningBal: parseFloat(companyEarningBals) + UsrTransferFee2,
                                                 companyEarning: parseFloat(companyEarnings) + UsrTransferFee2,
                                                 ttlSellerLnsInAmtCov: TotalAmtExp3 + parseFloat(ttlSellerLnsInAmtCovs),
@@ -553,7 +553,7 @@ const CovCredSls = props => {
                                             query: updateCompany,
                                             variables: {
                                               input: {
-                                                AdminId: "BaruchHabaB'ShemAdonai2",
+                                                AdminId: "",
                                                 companyEarningBal: parseFloat(companyEarningBals) + parseFloat(userLoanTransferFees) * parseFloat(amount),
                                                 companyEarning: parseFloat(companyEarnings) + parseFloat(userLoanTransferFees) * parseFloat(amount),
                                                 ttlSellerLnsInAmtCov: TotalAmtExp2 + parseFloat(ttlSellerLnsInAmtCovs),
@@ -741,7 +741,7 @@ const CovCredSls = props => {
                                                 query: updateCompany,
                                                 variables: {
                                                   input: {
-                                                    AdminId: "BaruchHabaB'ShemAdonai2",
+                                                    AdminId: "",
                                                     ttlCompCovEarnings: CompCovAmt + parseFloat(ttlCompCovEarningss),
                                                     AdvEarningBal: AdvCovAmt + parseFloat(AdvEarningBals),
                                                     AdvEarning: AdvCovAmt + parseFloat(AdvEarnings),

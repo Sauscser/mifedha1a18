@@ -123,7 +123,7 @@ const [distanceMeters, setDistanceMeters] = useState<number>(0);
              
               const CompDtls:any = await client.graphql({
                          query: getCompany,
-                         variables: { AdminId: "BaruchHabaB'ShemAdonai2" },
+                         variables: { AdminId: "" },
                        }
                        );
 
@@ -240,7 +240,7 @@ const [distanceMeters, setDistanceMeters] = useState<number>(0);
                            query: updateCompany,
                            variables: {
                              input: {
-                               AdminId: "BaruchHabaB'ShemAdonai2",
+                               AdminId: "",
                                companyEarningBal: parseFloat(compDtls.companyEarningBal) + CompEarning + compEarnings,
                                companyEarning: parseFloat(compDtls.companyEarning) + CompEarning + compEarnings,
                              
@@ -374,7 +374,7 @@ const [distanceMeters, setDistanceMeters] = useState<number>(0);
                            query: updateCompany,
                            variables: {
                            input: {
-                             AdminId: "BaruchHabaB'ShemAdonai2",
+                             AdminId: "",
                             companyEarningBal: parseFloat(compDtls.companyEarningBal) + CompEarning + compEarnings,
                              companyEarning: parseFloat(compDtls.companyEarning) + CompEarning + compEarnings,
                              

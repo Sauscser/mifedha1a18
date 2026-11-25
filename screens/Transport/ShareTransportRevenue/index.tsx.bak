@@ -25,7 +25,7 @@ const SMASendNonLns = props => {
         try {
           const CompDtlsRes = await client.graphql({
             query: getCompany,
-            variables: { AdminId: "BaruchHabaB'ShemAdonai2" }
+            variables: { AdminId: "" }
           });
           const fee = (CompDtlsRes as any)?.data?.getCompany?.userTransferFee;
           setUserTransferFee(fee || 0);

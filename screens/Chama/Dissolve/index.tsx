@@ -34,7 +34,7 @@ const DissolveChm = props => {
       const compDtls: any = await client.graphql({
         query: getCompany,
         variables: {
-          AdminId: "BaruchHabaB'ShemAdonai2"
+          AdminId: ""
         }
       });
       const ttlActiveChms = compDtls.data.getCompany.ttlActiveChm;
@@ -71,7 +71,7 @@ const DissolveChm = props => {
                 query: updateCompany,
                 variables: {
                   input: {
-                    AdminId: "BaruchHabaB'ShemAdonai2",
+                    AdminId: "",
                     ttlActiveChm: parseFloat(ttlActiveChms) - 1,
                     ttlInactvChm: parseFloat(ttlInactvChms) + 1
                   }

@@ -439,7 +439,7 @@ const TransportOrdersScreen = () => {
 
       const CompDtls: any = await client.graphql({
         query: getCompany,
-        variables: { AdminId: "BaruchHabaB'ShemAdonai2" },
+        variables: { AdminId: "" },
       });
       const compDtls = CompDtls.data.getCompany;
 
@@ -509,7 +509,7 @@ const TransportOrdersScreen = () => {
         query: updateCompany,
         variables: {
           input: {
-            AdminId: "BaruchHabaB'ShemAdonai2",
+            AdminId: "",
             companyEarningBal:
               parseFloat(compDtls.companyEarningBal) + companyShare + compEarnings,
             companyEarning: parseFloat(compDtls.companyEarning) + companyShare + compEarnings,

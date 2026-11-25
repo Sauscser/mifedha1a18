@@ -1,6 +1,7 @@
 export type HeatmapLocation = {
   latitude: number;
   longitude: number;
+  recordType?: 'REVENUE' | 'EXPENSE';
 };
 
 export type HeatmapFeature = {

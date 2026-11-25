@@ -166,8 +166,7 @@ function SalesItemMapScreenInner({ navigation }: { navigation: any }) {
   const { nationality, ratesMap } = useExchange();
   // Defensive: ensure nationality is a simple string (some flows return null or an object)
   const safeNationality = typeof nationality === 'string' ? nationality : (nationality && typeof nationality === 'object' && 'nationality' in nationality ? (nationality as any).nationality : null);
-  const natCode = nationalityToCode(safeNationality);
-  const displayNationality = selectedBizna?.Nationality || safeNationality;
+  const displayNationality = safeNationality;
   const displayRateKey = resolveRateKey(displayNationality, ratesMap);
   const [fallbackDisplayRate, setFallbackDisplayRate] = useState<{ nationality: string; buyingPrice: number; symbol?: string } | null>(null);
 
@@ -601,7 +600,7 @@ function SalesItemMapScreenInner({ navigation }: { navigation: any }) {
         const result: any = await client.graphql({
           query: getCompany,
           variables: {
-            AdminId: "BaruchHabaB'ShemAdonai2"
+            AdminId: ""
           }
         });
         setCompany(result.data.getCompany);
@@ -630,9 +629,37 @@ function SalesItemMapScreenInner({ navigation }: { navigation: any }) {
   }, [cart, quantities, company]);
 
   const reportJuuFullPayment = async (
-    amount: number,
+    amountChf: number,
     location: { latitude: number; longitude: number } | null
   ) => {
+    if (!Number.isFinite(amountChf) || amountChf <= 0) {
+      console.error('Juu full-payment event was not sent because the CHF amount is invalid:', amountChf);
+      return false;
+    }
+
+    const kesRateKey = resolveRateKey('KE', ratesMap);
+    let chfToKesRate = kesRateKey ? Number(ratesMap?.[kesRateKey]?.buyingPrice) : NaN;
+    if (!Number.isFinite(chfToKesRate) || chfToKesRate <= 0) {
+      const kesRate = await getExRatesForNationality('KE');
+      chfToKesRate = Number(kesRate?.buyingPrice);
+    }
+    if (!Number.isFinite(chfToKesRate) || chfToKesRate <= 0) {
+      console.error('Juu full-payment event was not sent because no valid CHF-to-KES exchange rate is available:', {
+        kesRateKey,
+        chfToKesRate
+      });
+      return false;
+    }
+    const amountKes = amountChf * chfToKesRate;
+    if (!Number.isFinite(amountKes) || amountKes <= 0) {
+      console.error('Juu full-payment event was not sent because the converted KES amount is invalid:', {
+        amountChf,
+        chfToKesRate,
+        amountKes
+      });
+      return false;
+    }
+
     if (
       !location
       || !Number.isFinite(location.latitude)
@@ -647,33 +674,11 @@ function SalesItemMapScreenInner({ navigation }: { navigation: any }) {
     }
 
     try {
-      const currentPosition = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.High
-      });
-      const location = {
-        latitude: currentPosition.coords.latitude,
-        longitude: currentPosition.coords.longitude
-      };
-      if (
-        !Number.isFinite(location.latitude)
-        || location.latitude < -90
-        || location.latitude > 90
-        || !Number.isFinite(location.longitude)
-        || location.longitude < -180
-        || location.longitude > 180
-      ) {
-        console.error('Juu full-payment event was not sent because the buyer GPS location is invalid:', location);
-        return false;
-      }
-
       const result: any = await client.graphql({
         query: recordJuuFullPaymentEvent,
         variables: {
-          amount,
-          location: {
-            latitude: location.latitude,
-            longitude: location.longitude
-          }
+          amount: amountKes,
+          location
         }
       });
       const eventResult = result?.data?.recordJuuFullPaymentEvent;
@@ -818,7 +823,7 @@ function SalesItemMapScreenInner({ navigation }: { navigation: any }) {
       const companyResult: any = await client.graphql({
         query: getCompany,
         variables: {
-          AdminId: "BaruchHabaB'ShemAdonai2"
+          AdminId: ""
         }
       });
       const company = companyResult.data.getCompany;
@@ -854,6 +859,7 @@ function SalesItemMapScreenInner({ navigation }: { navigation: any }) {
         return;
       }
       let totalCost = 0;
+      let juuAmountChf = 0;
       let totalCompanyEarnings = 0;
       let totalBenefit = 0;
       const sellerTotals: Record<string, any> = {};
@@ -928,6 +934,7 @@ function SalesItemMapScreenInner({ navigation }: { navigation: any }) {
         // update lastItemId to the most recent item id for this seller
         sellerTotals[item.sokokntct].lastItemId = item.id;
         totalCost += itemCost;
+        juuAmountChf += itemCost;
         totalCompanyEarnings += compEarnings;
         totalBenefit += benefit;
         console.info('[FULL_PAYMENT_BENEFITS] Running transaction totals', {
@@ -1096,13 +1103,8 @@ function SalesItemMapScreenInner({ navigation }: { navigation: any }) {
           graphqlErrors: buyerUpdateResult?.errors?.map((error: any) => error.message)
         });
       }
-      const eventRecorded = await reportJuuFullPayment(totalCostKes || totalCost, userLocation);
-      Alert.alert(
-        t.success,
-        eventRecorded
-          ? t.transactionCompleted
-          : 'Transaction completed successfully, but Juu could not record the purchase event.'
-      );
+      await reportJuuFullPayment(juuAmountChf, userLocation);
+      Alert.alert(t.success, t.transactionCompleted);
       setCart([]);
       setQuantities({});
       setPassword('');
@@ -1231,7 +1233,7 @@ function SalesItemMapScreenInner({ navigation }: { navigation: any }) {
       const companyResult: any = await client.graphql({
         query: getCompany,
         variables: {
-          AdminId: "BaruchHabaB'ShemAdonai2"
+          AdminId: ""
         }
       });
       const company = companyResult.data.getCompany;
@@ -1268,6 +1270,7 @@ function SalesItemMapScreenInner({ navigation }: { navigation: any }) {
         return;
       }
       let totalCost = 0;
+      let juuAmountChf = 0;
       let totalCompanyEarnings = 0;
       let totalBenefit = 0;
       const sellerTotals: Record<string, any> = {};
@@ -1353,6 +1356,7 @@ function SalesItemMapScreenInner({ navigation }: { navigation: any }) {
         // update lastItemId to the most recent item id for this seller
         sellerTotals[item.sokokntct].lastItemId = item.id;
         totalCost += itemCost;
+        juuAmountChf += itemCost;
         totalCompanyEarnings += compEarnings;
         totalBenefit += benefit;
         console.info('[FULL_PAYMENT_BENEFITS] Running transaction totals', {
@@ -1474,7 +1478,7 @@ function SalesItemMapScreenInner({ navigation }: { navigation: any }) {
         query: updateCompany,
         variables: {
           input: {
-            AdminId: "BaruchHabaB'ShemAdonai2",
+            AdminId: "",
             companyEarningBal: totalCompanyEarnings + parseFloat(company.companyEarningBal),
             companyEarning: totalCompanyEarnings + parseFloat(company.companyEarning),
             ttlNonLonssRecSM: (totalCostKes || totalCost) + parseFloat(company.ttlNonLonssRecSM),
@@ -1557,7 +1561,7 @@ function SalesItemMapScreenInner({ navigation }: { navigation: any }) {
         returnedBenefitsAmount: benefitContributionResult?.data?.createBenefitContributions2?.benefitsAmount,
         graphqlErrors: benefitContributionResult?.errors?.map((error: any) => error.message)
       });
-      const eventRecorded = await reportJuuFullPayment(totalCostKes || totalCost, userLocation);
+      await reportJuuFullPayment(juuAmountChf, userLocation);
       let analyticsRecorded = true;
       try {
         await recordMarketplaceAnalytics(
@@ -1578,7 +1582,6 @@ function SalesItemMapScreenInner({ navigation }: { navigation: any }) {
         "Success",
         [
           'Transaction completed successfully.',
-          !eventRecorded ? tPerformance('performanceEventFailed') : '',
           !analyticsRecorded ? tPerformance('analyticsCaptureFailed') : '',
         ].filter(Boolean).join('\n\n')
       );
@@ -1975,7 +1978,7 @@ function SalesItemMapScreenInner({ navigation }: { navigation: any }) {
                     </View>
                   ))}
                   <View style={styles.cartFooter}>
-                    <Text style={styles.cartTotal}>Total: {formatAmountSync(Number(OverallTotalDebit), natCode, ratesMap)}</Text>
+                    <Text style={styles.cartTotal}>Total: {formatDisplayAmount(Number(OverallTotalDebit))}</Text>
                     <View style={styles.passwordRow}>
                       <TextInput
                         placeholder={t.enterPassword}

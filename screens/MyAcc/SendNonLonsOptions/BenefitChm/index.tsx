@@ -228,7 +228,7 @@ const SMASendNonLns = props => {
                       const CompDtls: any = await client.graphql({
                         query: getCompany,
                         variables: {
-                          AdminId: "BaruchHabaB'ShemAdonai2"
+                          AdminId: ""
                         }
                       });
                       const p2pBenCom = CompDtls.data.getCompany.p2pBenCom;
@@ -550,7 +550,7 @@ const SMASendNonLns = props => {
                                             query: updateCompany,
                                             variables: {
                                               input: {
-                                                AdminId: "BaruchHabaB'ShemAdonai2",
+                                                AdminId: "",
                                                 companyEarningBal: CompEarnings + parseFloat(companyEarningBals),
                                                 companyEarning: CompEarnings + parseFloat(companyEarnings),
                                                 ttlNonLonssRecSM: amountInKES + parseFloat(ttlNonLonssRecSMs),
@@ -830,7 +830,7 @@ const SMASendNonLns = props => {
                                             query: updateCompany,
                                             variables: {
                                               input: {
-                                                AdminId: "BaruchHabaB'ShemAdonai2",
+                                                AdminId: "",
                                                 companyEarningBal: CompEarnings + parseFloat(companyEarningBals),
                                                 companyEarning: CompEarnings + parseFloat(companyEarnings),
                                                 ttlNonLonssRecSM: amountInKES + parseFloat(ttlNonLonssRecSMs),

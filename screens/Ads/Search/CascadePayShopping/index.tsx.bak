@@ -435,7 +435,7 @@ function SalesItemMapScreenInner({ navigation }: { navigation: any }) {
         const result: any = await client.graphql({
           query: getCompany,
           variables: {
-            AdminId: "BaruchHabaB'ShemAdonai2"
+            AdminId: ""
           }
         });
         setCompany(result.data.getCompany);

@@ -19,7 +19,7 @@ const FetchSMNonCovLns = props => {
         const Lones: any = await client.graphql({
           query: getCompany,
           variables: {
-            AdminId: "BaruchHabaB'ShemAdonai2"
+            AdminId: ""
           }
         });
         const CompOner = Lones.data.getCompany.owner;
@@ -32,7 +32,7 @@ const FetchSMNonCovLns = props => {
                 filter: {
                   and: {
                     AdminId: {
-                      eq: "BaruchHabaB'ShemAdonai2"
+                      eq: ""
                     }
                   }
                 }

@@ -68,7 +68,7 @@ const FetchSMNonCovLns = props => {
                   filter: {
                     and: {
                       AdminId: {
-                        eq: "BaruchHabaB'ShemAdonai2"
+                        eq: ""
                       }
                     }
                   }

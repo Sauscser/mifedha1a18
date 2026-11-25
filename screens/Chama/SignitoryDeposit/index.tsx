@@ -117,7 +117,7 @@ const SMADepositForm = props => {
       const compDtls: any = await client.graphql({
         query: getCompany,
         variables: {
-          AdminId: "BaruchHabaB'ShemAdonai2"
+          AdminId: ""
         }
       });
       const {
@@ -181,7 +181,7 @@ const SMADepositForm = props => {
           query: updateCompany,
           variables: {
             input: {
-              AdminId: "BaruchHabaB'ShemAdonai2",
+              AdminId: "",
               ttlUsrDep: parseFloat(ttlUsrDep) + amountInKES,
               agentFloatOut: parseFloat(agentFloatOut) + amountInKES
             }

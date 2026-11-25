@@ -131,7 +131,7 @@ const RepayCovChmLnsss = () => {
       const compResp: any = await client.graphql({
         query: getCompany,
         variables: {
-          AdminId: "BaruchHabaB'ShemAdonai2"
+          AdminId: ""
         }
       });
       const company = compResp.data.getCompany;
@@ -265,7 +265,7 @@ const RepayCovChmLnsss = () => {
           query: updateCompany,
           variables: {
             input: {
-              AdminId: "BaruchHabaB'ShemAdonai2",
+              AdminId: "",
               companyEarningBal: parseFloat(chmLnRpymntFee) * amountKes,
               companyEarning: parseFloat(chmLnRpymntFee) * amountKes
             }

@@ -17,7 +17,7 @@ const BLUsrForm = props => {
       const compDtls: any = await client.graphql({
         query: getCompany,
         variables: {
-          AdminId: "BaruchHabaB'ShemAdonai2"
+          AdminId: ""
         }
       });
       const ttlBLUsrss = compDtls.data.getCompany.ttlBLUsrs;
@@ -56,7 +56,7 @@ const BLUsrForm = props => {
             query: updateCompany,
             variables: {
               input: {
-                AdminId: "BaruchHabaB'ShemAdonai2",
+                AdminId: "",
                 ttlBLUsrs: parseFloat(ttlBLUsrss) + 1
               }
             }

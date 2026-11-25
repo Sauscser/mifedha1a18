@@ -80,7 +80,7 @@ const RegisterKFNdgAcForm = props => {
           const compDtls: any = await client.graphql({
             query: getCompany,
             variables: {
-              AdminId: "BaruchHabaB'ShemAdonai2"
+              AdminId: ""
             }
           });
           const actvNdg = compDtls.data.getCompany.ttlKFNdgActv;
@@ -178,7 +178,7 @@ const RegisterKFNdgAcForm = props => {
                         query: updateCompany,
                         variables: {
                           input: {
-                            AdminId: "BaruchHabaB'ShemAdonai2",
+                            AdminId: "",
                             ttlKFNdgActv: parseFloat(actvNdg) + 1
                           }
                         }

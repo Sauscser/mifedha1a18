@@ -52,7 +52,7 @@ const SMASendNonLns = (props: any) => {
           const CompDtls: any = await client.graphql({
             query: getCompany,
             variables: {
-              AdminId: "BaruchHabaB'ShemAdonai2"
+              AdminId: ""
             }
           });
           const UsrTransferFee = CompDtls.data.getCompany.biznaTransferFee;
@@ -132,7 +132,7 @@ const SMASendNonLns = (props: any) => {
                 query: updateCompany,
                 variables: {
                   input: {
-                    AdminId: "BaruchHabaB'ShemAdonai2",
+                    AdminId: "",
                     companyEarningBal: UsrTransferFee * amountKes + parseFloat(companyEarningBals),
                     companyEarning: UsrTransferFee * amountKes + parseFloat(companyEarnings),
                     ttlNonLonssRecSM: amountKes + parseFloat(ttlNonLonssRecSMs),

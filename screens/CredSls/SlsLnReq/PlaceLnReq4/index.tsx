@@ -61,7 +61,7 @@ const CreateBiz = props => {
           const compDtls: any = await client.graphql({
             query: getCompany,
             variables: {
-              AdminId: "BaruchHabaB'ShemAdonai2"
+              AdminId: ""
             }
           });
           const maxDefaultPen = compDtls.data.getCompany.maxDfltPen;

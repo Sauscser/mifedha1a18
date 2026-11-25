@@ -94,7 +94,7 @@ const CreateAdminForm = () => {
                 query: updateCompany,
                 variables: {
                   input: {
-                    AdminId: "BaruchHabaB'ShemAdonai2"
+                    AdminId: ""
                   }
                 }
               });

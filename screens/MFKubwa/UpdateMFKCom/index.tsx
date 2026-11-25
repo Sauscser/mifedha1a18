@@ -42,7 +42,7 @@ const UpdtMFKPW = props => {
           const CompDtls: any = await client.graphql({
             query: getCompany,
             variables: {
-              AdminId: "BaruchHabaB'ShemAdonai2"
+              AdminId: ""
             }
           });
           const sagentComs = CompDtls.data.getCompany.sagentCom;

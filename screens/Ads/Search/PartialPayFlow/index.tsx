@@ -219,7 +219,7 @@ function PartialPayFlowInner({ navigation, route }: { navigation: any; route: an
       try {
         const res: any = await client.graphql({
           query: getCompany,
-          variables: { AdminId: "BaruchHabaB'ShemAdonai2" }
+          variables: { AdminId: "" }
         });
         setCompany(res?.data?.getCompany || null);
       } catch (err) {
@@ -815,7 +815,7 @@ function PartialPayFlowInner({ navigation, route }: { navigation: any; route: an
 
     const companyRecord = company || (await client.graphql({
       query: getCompany,
-      variables: { AdminId: "BaruchHabaB'ShemAdonai2" }
+      variables: { AdminId: "" }
     })).data.getCompany;
     if (!companyRecord) {
       throw new Error('Company record not found');
@@ -850,7 +850,7 @@ function PartialPayFlowInner({ navigation, route }: { navigation: any; route: an
       query: updateCompany,
       variables: {
         input: {
-          AdminId: "BaruchHabaB'ShemAdonai2",
+          AdminId: "",
           companyEarningBal: companyEarnings + parseFloat(companyRecord.companyEarningBal || '0'),
           companyEarning: companyEarnings + parseFloat(companyRecord.companyEarning || '0'),
           ttlNonLonssRecSM: amountPaid + parseFloat(companyRecord.ttlNonLonssRecSM || '0'),
@@ -960,7 +960,7 @@ function PartialPayFlowInner({ navigation, route }: { navigation: any; route: an
 
       const companyRecord = company || (await client.graphql({
         query: getCompany,
-        variables: { AdminId: "BaruchHabaB'ShemAdonai2" }
+        variables: { AdminId: "" }
       })).data.getCompany;
       const feeRate = parseFloat(companyRecord?.biznaCashSaleFee || '0') || 0;
       const accumulatedFees = Number(selectedEntry.partialfees || 0);

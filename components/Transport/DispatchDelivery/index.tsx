@@ -111,7 +111,7 @@ const ViewSMDeposts = ({ SMAc }: SMAccount) => {
 
       const CompDtls: any = await client.graphql({
         query: getCompany,
-        variables: { AdminId: "BaruchHabaB'ShemAdonai2" }
+        variables: { AdminId: "" }
       });
 
       const compDtls = CompDtls.data.getCompany;

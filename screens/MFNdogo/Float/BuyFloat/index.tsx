@@ -55,7 +55,7 @@ const BuyFlt = (props: buyAgntFlts) => {
           const CompFltBal: any = await client.graphql({
             query: getCompany,
             variables: {
-              AdminId: "BaruchHabaB'ShemAdonai2"
+              AdminId: ""
             }
           });
           const CompFtBal = CompFltBal.data.getCompany.agentFloatIn;
@@ -140,7 +140,7 @@ const BuyFlt = (props: buyAgntFlts) => {
                     query: updateCompany,
                     variables: {
                       input: {
-                        AdminId: "BaruchHabaB'ShemAdonai2",
+                        AdminId: "",
                         agentFloatIn: amountKsh + parseFloat(CompFtBal)
                       }
                     }

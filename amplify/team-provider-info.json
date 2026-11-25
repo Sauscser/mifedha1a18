@@ -31,7 +31,7 @@
           "juuProductId": "5a86c3e0-08d0-4fee-a4a4-655484ece5a5",
           "secretsPathAmplifyAppId": "duggqbbklrwc0",
           "deploymentBucketName": "amplify-mifedha1a-dev-ce075-deployment",
-          "s3Key": "amplify-builds/mifedhaJuuFullPayment-704859494d4a68664432-build.zip",
+          "s3Key": "amplify-builds/mifedhaJuuFullPayment-2f6875703958786d344b-build.zip",
           "juuGroupProductId": "4670ed4a-88ee-48ef-a045-421dbec0770d"
         },
         "mifedha1a": {},

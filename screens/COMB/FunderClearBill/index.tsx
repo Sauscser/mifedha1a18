@@ -541,7 +541,7 @@ const FunderClearApprovedVoucherScreen = () => {
       const companyRes: any = await client.graphql({
         query: getCompany,
         variables: {
-          AdminId: "BaruchHabaB'ShemAdonai2"
+          AdminId: ""
         }
       });
       const company = companyRes.data.getCompany;
@@ -650,7 +650,7 @@ const FunderClearApprovedVoucherScreen = () => {
         query: updateCompany,
         variables: {
           input: {
-            AdminId: "BaruchHabaB'ShemAdonai2",
+            AdminId: "",
             companyEarningBal: Number(company.companyEarningBal) + companyEarnings,
             companyEarning: Number(company.companyEarning) + companyEarnings
           }

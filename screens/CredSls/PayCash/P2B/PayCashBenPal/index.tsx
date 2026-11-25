@@ -119,7 +119,7 @@ const SMASendNonLns = () => {
       const compRes = await client.graphql({
         query: getCompany,
         variables: {
-          AdminId: "BaruchHabaB'ShemAdonai2"
+          AdminId: ""
         }
       });
       const company = compRes.data.getCompany;
@@ -185,7 +185,7 @@ const SMASendNonLns = () => {
         query: updateCompany,
         variables: {
           input: {
-            AdminId: "BaruchHabaB'ShemAdonai2",
+            AdminId: "",
             companyEarningBal: fee + parseFloat(companyEarningBal),
             companyEarning: fee + parseFloat(companyEarning),
             ttlNonLonssRecSM: amountKes + parseFloat(ttlNonLonssRecSM),
