@@ -97,74 +97,55 @@ const MyLoanAccount = props => {
   const DissolveBizsss = () => {
     safeNavigateFrom(navigation, 'DissolveBizss');
   };
-  return <SafeAreaView>
-      <ScrollView>
- 
+  return (
+    <SafeAreaView style={styles.safeArea}>
+      <ScrollView contentContainerStyle={styles.content}>
+        <Text style={styles.screenTitle}>{t.updateBizAccount}</Text>
 
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>{t.accountAccess}</Text>
+          <Pressable
+            onPress={BizAddAdmin}
+            style={({ pressed }) => [styles.actionButton, styles.primaryButton, pressed && styles.pressedButton]}
+            accessibilityRole="button"
+          >
+            <Text style={styles.primaryButtonText}>{t.addAdmin}</Text>
+          </Pressable>
+          <Pressable
+            onPress={BizUpdatePW}
+            style={({ pressed }) => [styles.actionButton, styles.secondaryButton, pressed && styles.pressedButton]}
+            accessibilityRole="button"
+          >
+            <Text style={styles.secondaryButtonText}>{t.changePassword}</Text>
+          </Pressable>
+        </View>
 
-
-            <View style={styles.clientsView}>
-              <Text style={styles.salesText}>{t.updateBizAccount}</Text>
-
-              <View style={styles.viewForClientsAndTitle}>
-              <View style={styles.viewForClientsCategories7}>
-                  
-                  <Pressable onPress={BizAddAdmin} style={styles.viewForClientsPressables}>
-                  <Text style={styles.salesPressableText}>{t.addAdmin}</Text>
-                  </Pressable>
-                </View>
-
-            
-
-               
-              
-                <View style={styles.viewForClientsCategories7}>
-                <Pressable onPress={BizUpdatePW} style={styles.viewForClientsPressables}>
-                  <Text style={styles.salesPressableText}>{t.changePassword}</Text>
-
-                  </Pressable>
-                </View>
-
-             
-
-              </View>
-            </View>
-
-       
-            <View style={styles.clientsView}>
-              <Text style={styles.salesText}>{t.updateBizAccount}</Text>
-
-              <View style={styles.viewForClientsAndTitle}>
-             
-
-                <View style={styles.viewForClientsCategories7}>
-                <Pressable onPress={BizObject} style={styles.viewForClientsPressables}>
-                  <Text style={styles.salesPressableText}>{t.stopOperations}</Text>
-
-                  </Pressable>
-                </View>
-
-                <View style={styles.viewForClientsCategories7}>
-                <Pressable onPress={BizCancelObjection} style={styles.viewForClientsPressables}>
-                  <Text style={styles.salesPressableText}>{t.allowOperations}</Text>
-
-                  </Pressable>
-                </View>
-
-               
-
-                <View style={styles.viewForClientsCategories7}>
-                <Pressable onPress={DissolveBizsss} style={styles.viewForClientsPressables}>
-                  <Text style={styles.salesPressableText}>{t.dissolveBusiness}</Text>
-
-                  </Pressable>
-                </View>
-
-              </View>
-            </View>
-
-
-    </ScrollView>
-    </SafeAreaView>;
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>{t.businessOperations}</Text>
+          <Pressable
+            onPress={BizObject}
+            style={({ pressed }) => [styles.actionButton, styles.secondaryButton, pressed && styles.pressedButton]}
+            accessibilityRole="button"
+          >
+            <Text style={styles.secondaryButtonText}>{t.stopOperations}</Text>
+          </Pressable>
+          <Pressable
+            onPress={BizCancelObjection}
+            style={({ pressed }) => [styles.actionButton, styles.primaryButton, pressed && styles.pressedButton]}
+            accessibilityRole="button"
+          >
+            <Text style={styles.primaryButtonText}>{t.allowOperations}</Text>
+          </Pressable>
+          <Pressable
+            onPress={DissolveBizsss}
+            style={({ pressed }) => [styles.actionButton, styles.destructiveButton, pressed && styles.pressedButton]}
+            accessibilityRole="button"
+          >
+            <Text style={styles.destructiveButtonText}>{t.dissolveBusiness}</Text>
+          </Pressable>
+        </View>
+      </ScrollView>
+    </SafeAreaView>
+  );
 };
 export default MyLoanAccount;

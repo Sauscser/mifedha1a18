@@ -1747,7 +1747,7 @@ type Bizna
   organizationId: ID
     @auth(
       rules: [
-        { allow: private, operations: [read] }
+        { allow: private, operations: [read, update] }
         { allow: owner, ownerField: "email", identityClaim: "email", operations: [update] }
       ]
     )
@@ -3998,7 +3998,7 @@ type BusinessOrganization
   @model
   @auth(
     rules: [
-      { allow: private, operations: [read] }
+      { allow: private, operations: [read, create] }
       {
         allow: owner
         ownerField: "createdByEmail"

@@ -1,97 +1,134 @@
-import { StyleSheet, Dimensions } from 'react-native';
+import { StyleSheet } from 'react-native';
+
 const styles = StyleSheet.create({
-  image: {
-    width: '100%',
-    height: "100%",
-    resizeMode: 'cover',
+  screen: {
+    flex: 1,
+  },
+  keyboardAvoidingView: {
+    flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
     justifyContent: 'center',
+    paddingHorizontal: 22,
+    paddingVertical: 36,
+  },
+  header: {
     alignItems: 'center',
-    flexDirection: 'column',
-    marginTop: 1,
-    flexWrap: "wrap"
+    marginBottom: 24,
   },
-  title: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: 'black'
-  },
-  loanTitleView: {
-    backgroundColor: 'white',
-    marginHorizontal: 10,
-    width: Dimensions.get('screen').width - 20,
-    height: 40,
-    borderRadius: 5,
-    marginTop: 30,
+  headerIcon: {
+    width: 58,
+    height: 58,
+    borderRadius: 29,
+    alignItems: 'center',
     justifyContent: 'center',
-    alignItems: 'center',
-    flexDirection: 'column',
-    top: 10
+    backgroundColor: 'rgba(255,255,255,0.92)',
+    marginBottom: 14,
+    elevation: 3,
   },
-  sendLoanView: {
-    backgroundColor: '#72ebd8',
-    marginHorizontal: 10,
-    width: Dimensions.get('screen').width - 20,
-    height: 90,
-    borderRadius: 20,
-    marginTop: 30,
-    justifyContent: 'center',
-    alignItems: 'center',
-    flexDirection: 'column',
-    marginBottom: 20
+  headerIconText: {
+    color: '#1688a8',
+    fontSize: 36,
+    fontWeight: '700',
+    lineHeight: 40,
   },
-  sendLoanText: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: 'white',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginLeft: 30
+  headerTitle: {
+    color: '#103b4a',
+    fontSize: 25,
+    fontWeight: '800',
+    textAlign: 'center',
   },
-  sendLoanButton: {
-    backgroundColor: '#fff',
-    height: 45,
-    borderRadius: 30,
-    marginHorizontal: 10,
-    width: Dimensions.get('screen').width - 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 30,
-    marginBottom: 400
-  },
-  sendLoanButtonText: {
+  headerSubtitle: {
+    color: '#235b69',
     fontSize: 15,
-    fontWeight: 'bold',
-    color: 'black'
+    marginTop: 7,
+    textAlign: 'center',
   },
-  sendLoanInput: {
-    backgroundColor: 'white',
-    width: 300,
-    height: 45,
-    borderRadius: 10,
-    marginTop: 15,
-    justifyContent: 'center',
-    alignItems: 'center'
+  formCard: {
+    width: '100%',
+    maxWidth: 520,
+    alignSelf: 'center',
+    backgroundColor: '#fff',
+    borderRadius: 22,
+    padding: 22,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.8)',
+    shadowColor: '#164b5c',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.16,
+    shadowRadius: 16,
+    elevation: 6,
   },
-  loanSpecificationsTextInput: {
-    backgroundColor: 'white',
-    width: 300,
-    height: 200,
-    borderRadius: 10,
-    marginTop: 15,
-    justifyContent: 'center',
-    alignItems: 'center'
+  formIntro: {
+    color: '#4d6470',
+    fontSize: 14,
+    marginBottom: 8,
   },
-  loanSpecificationView: {
-    backgroundColor: '#72ebd8',
-    marginHorizontal: 10,
-    width: Dimensions.get('screen').width - 20,
-    height: 250,
-    borderRadius: 20,
-    marginTop: 30,
-    justifyContent: 'center',
+  fieldGroup: {
+    marginTop: 16,
+  },
+  fieldLabel: {
+    color: '#244653',
+    fontSize: 14,
+    fontWeight: '700',
+    marginBottom: 8,
+  },
+  input: {
+    minHeight: 52,
+    borderWidth: 1,
+    borderColor: '#c9e6ef',
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    color: '#183943',
+    backgroundColor: '#f8fcfd',
+    fontSize: 16,
+  },
+  passwordInputRow: {
+    minHeight: 52,
+    flexDirection: 'row',
     alignItems: 'center',
-    flexDirection: 'column',
-    marginBottom: 20
-  }
+    borderWidth: 1,
+    borderColor: '#c9e6ef',
+    borderRadius: 12,
+    backgroundColor: '#f8fcfd',
+  },
+  passwordInput: {
+    flex: 1,
+    minHeight: 50,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    color: '#183943',
+    fontSize: 16,
+  },
+  passwordVisibilityButton: {
+    minWidth: 48,
+    minHeight: 50,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  submitButton: {
+    minHeight: 54,
+    borderRadius: 14,
+    backgroundColor: '#29e58d',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 26,
+    shadowColor: '#128d58',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 7,
+    elevation: 3,
+  },
+  submitButtonDisabled: {
+    opacity: 0.7,
+  },
+  submitButtonText: {
+    color: '#103b31',
+    fontSize: 16,
+    fontWeight: '800',
+  },
 });
+
 export default styles;

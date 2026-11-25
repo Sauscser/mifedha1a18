@@ -13,7 +13,7 @@ import { createAveragePrices, createSokoAd } from '../../../src/graphql/mutation
 import { getSMAccount, getBizna, listPersonels, listAveragePrices } from '../../../src/graphql/queries';
 import { useRoute } from '@react-navigation/native';
 import { useExchange } from '../../../src/contexts/ExchangeContext';
-import { formatAmountSync } from '../../../src/utils/exchange';
+import { formatAmountSync, getExRatesForNationality } from '../../../src/utils/exchange';
 import { nationalityToCode } from '../../../src/utils/nationalityToCode';
 import { convertForeignToKsh } from '../../../src/utils/exchange';
 
@@ -307,7 +307,7 @@ const CreateBiz = () => {
             itemSpecifications: itemSpecifications || '',
             itemCodeBar: ItemCode,
             itemPhoto: itemPhotoKey,
-            // Prices are stored in CHF and formatted in the owner's currency for display.
+            // Keep the backend price in CHF; format user-facing amounts in the signed-in user's currency.
             sokoprice: priceInChf,
             latitude: business.latitude,
             longitude: business.longitude,
@@ -356,15 +356,31 @@ const CreateBiz = () => {
           }
         });
       }
-      // Format price for display in business owner's currency
-      const ownerCode = nationalityToCode(businessOwnerNationality);
-      const priceInOwnerCurrency = ownerCode
-        ? formatAmountSync(priceInChf, ownerCode, ratesMap)
-        : `CHF ${priceInChf.toFixed(2)}`;
+      const signedInNationality = typeof nationality === 'string'
+        ? nationality
+        : nationality && typeof nationality === 'object' && 'nationality' in nationality
+          ? (nationality as any).nationality
+          : account.nationality;
+      const userCurrencyCode = nationalityToCode(signedInNationality);
+      let priceInUserCurrency: string;
+      const userRate = userCurrencyCode ? ratesMap?.[userCurrencyCode] : null;
+      if (userCurrencyCode && userRate) {
+        priceInUserCurrency = formatAmountSync(priceInChf, userCurrencyCode, ratesMap);
+      } else if (signedInNationality) {
+        const fetchedRate = await getExRatesForNationality(signedInNationality);
+        const buyingPrice = Number(fetchedRate?.buyingPrice);
+        if (Number.isFinite(buyingPrice) && buyingPrice > 0) {
+          priceInUserCurrency = `${fetchedRate?.symbol || userCurrencyCode || ''} ${(priceInChf * buyingPrice).toFixed(2)}`;
+        } else {
+          console.error('Item ad was created, but the signed-in user currency rate is unavailable:', signedInNationality);
+          priceInUserCurrency = t.userCurrencyUnavailable || 'Unavailable (exchange rate unavailable)';
+        }
+      } else {
+        console.error('Item ad was created, but the signed-in user currency is unavailable.');
+        priceInUserCurrency = t.userCurrencyUnavailable || 'Unavailable (exchange rate unavailable)';
+      }
 
-        console.log(itemPrice);
-      
-      Alert.alert(t.success, `${t.itemAdvertised}\n\nPrice: ${priceInOwnerCurrency}`);
+      Alert.alert(t.success, `${t.itemAdvertised}\n\nPrice: ${priceInUserCurrency}`);
       clearForm();
     } catch (err) {
       console.error(err);

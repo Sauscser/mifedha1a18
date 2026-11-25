@@ -4,7 +4,7 @@ const translations = {
     businessPhonePlaceholder: '+2547xxxxxxxx',
     businessPhone: 'Business Phone',
     personnelWorkId: 'Personnel Work ID',
-    businessACPW: 'Business AC PW',
+    businessACPW: 'Business Password',
     clickToDeregister: 'Click to DeRegister',
     removalUnsuccessfulRetry: 'Removal unsuccessful; Retry',
     workerRemoved: 'Worker Removed',

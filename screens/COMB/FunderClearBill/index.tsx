@@ -703,18 +703,18 @@ const FunderClearApprovedVoucherScreen = () => {
             console.warn('COMB settlement completed, but seller business analytics owner is unavailable.');
           }
         }
-        if (voucher.consumerType === 'consumerTypeBiz') {
+        if (voucher.funderType === 'funderTypeBiz') {
           const buyerRes: any = await client.graphql({
             query: getBizna,
-            variables: { BusKntct: voucher.consumerAccount },
+            variables: { BusKntct: voucher.funderAccount },
           });
           const buyer = buyerRes?.data?.getBizna;
           if (buyer?.owner) {
             await saveBusinessPerformanceEntry({
               ownerSub: buyer.owner,
-              businessAccount: voucher.consumerAccount,
+              businessAccount: voucher.funderAccount,
               recordType: 'EXPENSE',
-              amountKes: totalAmountInKes,
+              amountKes: totalDebit,
               occurredAt,
               source: 'COMB_SETTLEMENT',
               sourceReference: String(voucher.id),
@@ -724,7 +724,7 @@ const FunderClearApprovedVoucherScreen = () => {
               ...(hasBuyerLocation ? buyerLocation : {}),
             });
           } else {
-            console.warn('COMB settlement completed, but buyer business analytics owner is unavailable.');
+            console.warn('COMB settlement completed, but funder business analytics owner is unavailable.');
           }
         }
       } catch (analyticsError) {

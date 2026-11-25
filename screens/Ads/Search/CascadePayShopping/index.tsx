@@ -506,7 +506,13 @@ function SalesItemMapScreenInner({ navigation }: { navigation: any }) {
       const sellerBreakdown: Array<any> = [];
       let totalCost = 0;
       let totalFees = 0;
-      const sellersMap = new Map<string, { totalCost: number; totalFees: number; description: string[]; itemCount: number }>();
+      const sellersMap = new Map<string, {
+        totalCost: number;
+        totalFees: number;
+        description: string[];
+        itemCount: number;
+        items: Array<{ id: string; itemName: string; category: string; quantity: number; amount: number; fee: number }>;
+      }>();
 
       for (const item of cart) {
         const qty = quantities[item.id] || 1;
@@ -517,12 +523,20 @@ function SalesItemMapScreenInner({ navigation }: { navigation: any }) {
           continue;
         }
         if (!sellersMap.has(sellerKey)) {
-          sellersMap.set(sellerKey, { totalCost: 0, totalFees: 0, description: [], itemCount: 0 });
+          sellersMap.set(sellerKey, { totalCost: 0, totalFees: 0, description: [], itemCount: 0, items: [] });
         }
         const bucket = sellersMap.get(sellerKey)!;
         bucket.totalCost += itemCost;
         bucket.totalFees += fee;
         bucket.itemCount += 1;
+        bucket.items.push({
+          id: item.id,
+          itemName: item.sokoname || '',
+          category: item.businessType || '',
+          quantity: qty,
+          amount: itemCost,
+          fee,
+        });
         bucket.description.push(`${qty} ${item.itemUnit || ''} of ${item.sokoname || ''} @ ${item.sokoprice || 0} from ${item.bizName || ''}`.trim());
         totalCost += itemCost;
         totalFees += fee;
@@ -535,6 +549,7 @@ function SalesItemMapScreenInner({ navigation }: { navigation: any }) {
           totalFees: Number(bucket.totalFees || 0),
           description: bucket.description.join('; '),
           itemCount: bucket.itemCount,
+          items: bucket.items,
         });
       }
 

@@ -9,6 +9,7 @@ import { createMessages, updateCombContractVoucher, sendNotification, updateSMAc
 import { useExchange } from '../../../src/contexts/ExchangeContext';
 import { formatAmountSync, convertKshToUserCurrency } from '../../../src/utils/exchange';
 import { nationalityToCode } from '../../../src/utils/nationalityToCode';
+import { saveBusinessPerformanceEntry } from '../../../src/utils/businessPerformance';
 import { useTranslation } from 'react-i18next';
 import translations from './translation';
 
@@ -691,6 +692,67 @@ const ConsumerApproveVoucherScreen = () => {
             }
           }
         });
+        try {
+          const occurredAt = new Date().toISOString();
+          const buyerLocation = {
+            latitude: Number(voucher.buyerLatitude),
+            longitude: Number(voucher.buyerLongitude),
+          };
+          const hasBuyerLocation =
+            Number.isFinite(buyerLocation.latitude)
+            && Number.isFinite(buyerLocation.longitude)
+            && buyerLocation.latitude >= -90
+            && buyerLocation.latitude <= 90
+            && buyerLocation.longitude >= -180
+            && buyerLocation.longitude <= 180;
+          const commonRecord = {
+            occurredAt,
+            source: 'COMB_AUTO_SETTLEMENT',
+            sourceReference: String(voucher.id),
+            itemName: String(voucher.itemName || 'COMB purchase'),
+            quantity: Number(voucher.numberOfItems) || 1,
+            fulfillmentType: 'COMB',
+            ...(hasBuyerLocation ? buyerLocation : {}),
+          };
+
+          if (voucher.sellerType === 'sellerTypeBiz') {
+            const sellerRes: any = await client.graphql({
+              query: getBizna,
+              variables: { BusKntct: voucher.sellerAccount },
+            });
+            const seller = sellerRes?.data?.getBizna;
+            if (!seller?.owner) {
+              throw new Error('COMB seller business analytics owner is unavailable.');
+            }
+            await saveBusinessPerformanceEntry({
+              ...commonRecord,
+              ownerSub: seller.owner,
+              businessAccount: voucher.sellerAccount,
+              recordType: 'REVENUE',
+              amountKes: totalAmount,
+            });
+          }
+
+          if (voucher.funderType === 'funderTypeBiz') {
+            const funderRes: any = await client.graphql({
+              query: getBizna,
+              variables: { BusKntct: voucher.funderAccount },
+            });
+            const funder = funderRes?.data?.getBizna;
+            if (!funder?.owner) {
+              throw new Error('COMB funder business analytics owner is unavailable.');
+            }
+            await saveBusinessPerformanceEntry({
+              ...commonRecord,
+              ownerSub: funder.owner,
+              businessAccount: voucher.funderAccount,
+              recordType: 'EXPENSE',
+              amountKes: totalDebited,
+            });
+          }
+        } catch (analyticsError) {
+          console.error('COMB automatic settlement completed, but business analytics capture failed:', analyticsError);
+        }
 
         // Notify all parties
         const sellerNat = voucher.sellerNationality || nationality;

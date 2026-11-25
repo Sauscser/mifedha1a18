@@ -9,12 +9,14 @@ import { getCurrentUser, fetchUserAttributes } from "aws-amplify/auth";
 import { generateClient } from "aws-amplify/api";
 import { useTranslation } from 'react-i18next';
 import translations from './translation';
+import { Ionicons } from '@expo/vector-icons';
 const client = generateClient();
 const CreateBiz = props => {
   const [ChmPhn, setChmPhn] = useState('');
   const [awsEmail, setAWSEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [pword, setPW] = useState('');
+  const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [ChmDesc, setChmDesc] = useState('');
   const [ChmRegNo, setChmRegNo] = useState('');
   const [Sign2Phn, setSign2Phn] = useState("");
@@ -389,9 +391,9 @@ const CreateBiz = props => {
     }
     setSign2Phn(Sign2Phns);
   }, [Sign2Phn]);
-  return <View>
+  return <View style={{ flex: 1 }}>
               <View style={styles.image}>
-                <ScrollView>
+                <ScrollView style={{ flex: 1, width: '100%' }} contentContainerStyle={styles.formContent}>
            
                   <View style={styles.loanTitleView}>
                     <Text style={styles.title}>{t.fillDetailsBelow}</Text>
@@ -414,7 +416,7 @@ const CreateBiz = props => {
                   </View>
 
                   <View style={styles.sendLoanView}>
-                    <TextInput placeholder={t.loanDescriptionPlaceholder} value={ChmNm} multiline={true} onChangeText={setChmNm} style={styles.sendLoanInput} editable={true}></TextInput>
+                    <TextInput placeholder={t.loanDescriptionPlaceholder} value={ChmNm} multiline={true} onChangeText={setChmNm} style={[styles.sendLoanInput, styles.loanSpecificationsTextInput]} editable={true}></TextInput>
                     <Text style={styles.sendLoanText}>{t.loanDescription}</Text>
                   </View>
 
@@ -454,7 +456,17 @@ const CreateBiz = props => {
                  
 
                   <View style={styles.sendLoanView}>
-                    <TextInput value={pword} onChangeText={setPW} secureTextEntry={true} style={styles.sendLoanInput} editable={true}></TextInput>
+                    <View style={styles.passwordInputRow}>
+                      <TextInput value={pword} onChangeText={setPW} secureTextEntry={!isPasswordVisible} style={styles.passwordInput} editable={true}></TextInput>
+                      <TouchableOpacity
+                        onPress={() => setIsPasswordVisible(visible => !visible)}
+                        style={styles.passwordVisibilityButton}
+                        accessibilityRole="button"
+                        accessibilityLabel={isPasswordVisible ? 'Hide password' : 'Show password'}
+                      >
+                        <Ionicons name={isPasswordVisible ? 'eye-off-outline' : 'eye-outline'} size={22} color="#1688a8" />
+                      </TouchableOpacity>
+                    </View>
                     <Text style={styles.sendLoanText}>{t.userMainAcPassword}</Text>
                   </View>
 

@@ -97,127 +97,80 @@ const MyLoanAccount = props => {
   const B2BPayCashReq = () => {
     safeNavigateFrom(navigation, 'B2BPayCashReq');
   };
-  return <SafeAreaView style={{
-    height: "100%"
-  }}>
-    
- 
+  const transferActions = [
+    { label: t.biz2biz, onPress: B2BPayCashReq },
+    { label: t.biz2pal, onPress: B2PPayCashReq },
+  ];
+  const approvalActions = [
+    { label: t.biz2biz, onPress: B2BPayCashVw2Grant },
+    { label: t.biz2pal, onPress: B2PPayCashVw2Grant },
+    { label: t.pal2biz, onPress: P2BPayCash },
+  ];
+  const historyActions = [
+    { label: t.biz2biz, onSent: ViewBiznaShareSentB2B, onReceived: ViewBiznaShareRecB2B },
+    { label: t.biz2pal, onSent: ViewBiznaShareSentB2P, onReceived: ViewBiznaShareRecB2P },
+    { label: t.pal2biz, onSent: ViewBiznaShareSentP2B, onReceived: ViewBiznaShareRecP2B },
+  ];
 
+  return (
+    <SafeAreaView style={styles.safeArea}>
+      <ScrollView contentContainerStyle={styles.content}>
+        <Text style={styles.screenTitle}>{t.cashSalesTitle}</Text>
 
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>{t.requestCashTransfer}</Text>
+          {transferActions.map(action => (
+            <Pressable
+              key={action.label}
+              onPress={action.onPress}
+              style={({ pressed }) => [styles.actionButton, styles.primaryButton, pressed && styles.pressedButton]}
+              accessibilityRole="button"
+            >
+              <Text style={styles.primaryButtonText}>{action.label}</Text>
+            </Pressable>
+          ))}
+        </View>
 
-            <View style={styles.clientsView}>
-              <Text style={styles.salesText}>{t.requestCashTransfer}</Text>
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>{t.grantingCashTransfers}</Text>
+          {approvalActions.map(action => (
+            <Pressable
+              key={action.label}
+              onPress={action.onPress}
+              style={({ pressed }) => [styles.actionButton, styles.secondaryButton, pressed && styles.pressedButton]}
+              accessibilityRole="button"
+            >
+              <Text style={styles.secondaryButtonText}>{action.label}</Text>
+            </Pressable>
+          ))}
+        </View>
 
-              <View style={styles.viewForClientsAndTitle}>
-              <View style={styles.viewForClientsCategories7}>
-                  
-                  <Pressable onPress={B2BPayCashReq} style={styles.viewForClientsPressables}>
-                  <Text style={styles.salesPressableText}>{t.biz2biz}</Text>
-                  </Pressable>
-                </View>
-
-            
-
-                <View style={styles.viewForClientsCategories7}>
-                  
-                  <Pressable onPress={B2PPayCashReq} style={styles.viewForClientsPressables}>
-                  <Text style={styles.salesPressableText}>{t.biz2pal}</Text>
-
-                  </Pressable>
-                </View>
-
-               
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>{t.viewCashSent}</Text>
+          {historyActions.map(action => (
+            <View key={action.label} style={styles.historyRow}>
+              <Text style={styles.historyLabel}>{action.label}</Text>
+              <View style={styles.historyButtons}>
+                <Pressable
+                  onPress={action.onSent}
+                  style={({ pressed }) => [styles.historyButton, styles.secondaryButton, pressed && styles.pressedButton]}
+                  accessibilityRole="button"
+                >
+                  <Text style={styles.secondaryButtonText}>{t.sent}</Text>
+                </Pressable>
+                <Pressable
+                  onPress={action.onReceived}
+                  style={({ pressed }) => [styles.historyButton, styles.primaryButton, pressed && styles.pressedButton]}
+                  accessibilityRole="button"
+                >
+                  <Text style={styles.primaryButtonText}>{t.received}</Text>
+                </Pressable>
               </View>
             </View>
-
-            <View style={styles.clientsView}>
-              <Text style={styles.salesText}>{t.grantingCashTransfers}</Text>
-
-              <View style={styles.viewForClientsAndTitle}>
-              <View style={styles.viewForClientsCategories7}>
-                  
-                  <Pressable onPress={B2BPayCashVw2Grant} style={styles.viewForClientsPressables}>
-                  <Text style={styles.salesPressableText}>{t.biz2biz}</Text>
-                  </Pressable>
-                </View>
-
-            
-
-                <View style={styles.viewForClientsCategories7}>
-                  
-                  <Pressable onPress={B2PPayCashVw2Grant} style={styles.viewForClientsPressables}>
-                  <Text style={styles.salesPressableText}>{t.biz2pal}</Text>
-
-                  </Pressable>
-                </View>
-
-                <View style={styles.viewForClientsCategories7}>
-                <Pressable onPress={P2BPayCash} style={styles.viewForClientsPressables}>
-                  <Text style={styles.salesPressableText}>{t.pal2biz}</Text>
-
-                  </Pressable>
-                </View>
-
-              </View>
-            </View>
-
-            <View style={styles.clientsView}>
-              <Text style={styles.salesText}>{t.viewCashSent}</Text>
-
-              <View style={styles.viewForClientsAndTitle}>
-              <View style={styles.viewForClientsCategories}>
-                  <Text style={styles.salesPressableText}>{t.biz2biz}</Text>
-
-                  <View style={styles.viewForClientsPressables}>
-                    <Pressable onPress={ViewBiznaShareSentB2B} style={styles.ClientsPressables}>
-                      <Text style={styles.clientsPressableText}>{t.sent}</Text>
-                    </Pressable>
-
-                    <Pressable onPress={ViewBiznaShareRecB2B} style={styles.ClientsPressables}>
-                      <Text style={styles.clientsPressableText}>
-                        {t.received}
-                      </Text>
-                    </Pressable>
-                  </View>
-                </View>
-
-            
-
-                <View style={styles.viewForClientsCategories}>
-                  <Text style={styles.salesPressableText}>{t.biz2pal}</Text>
-
-                  <View style={styles.viewForClientsPressables}>
-                    <Pressable onPress={ViewBiznaShareSentB2P} style={styles.ClientsPressables}>
-                      <Text style={styles.clientsPressableText}>{t.sent}</Text>
-                    </Pressable>
-
-                    <Pressable onPress={ViewBiznaShareRecB2P} style={styles.ClientsPressables}>
-                      <Text style={styles.clientsPressableText}>
-                       {t.received}
-                      </Text>
-                    </Pressable>
-                  </View>
-                </View>
-
-                <View style={styles.viewForClientsCategories}>
-                  <Text style={styles.salesPressableText}>{t.pal2biz}</Text>
-
-                  <View style={styles.viewForClientsPressables}>
-                    <Pressable onPress={ViewBiznaShareSentP2B} style={styles.ClientsPressables}>
-                      <Text style={styles.clientsPressableText}>{t.sent}</Text>
-                    </Pressable>
-
-                    <Pressable onPress={ViewBiznaShareRecP2B} style={styles.ClientsPressables}>
-                      <Text style={styles.clientsPressableText}>
-                      {t.received}
-                      </Text>
-                    </Pressable>
-                  </View>
-                </View>
-              </View>
-            </View>
-
-  
-    </SafeAreaView>;
+          ))}
+        </View>
+      </ScrollView>
+    </SafeAreaView>
+  );
 };
 export default MyLoanAccount;

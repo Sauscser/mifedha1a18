@@ -2,7 +2,9 @@ import React, { useEffect, useState } from 'react';
 import { deleteChamaMembers, deletePersonel, updateGroup } from '../../../src/graphql/mutations';
 import { getBizna, getChamaMembers, getGroup, getSMAccount } from '../../../src/graphql/queries';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import { View, Text, ImageBackground, Pressable, TextInput, ScrollView, ActivityIndicator, KeyboardAvoidingView, Platform, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, TextInput, ScrollView, ActivityIndicator, KeyboardAvoidingView, Platform, TouchableOpacity, Alert } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 import styles from './styles';
 import { updateBankAdmin } from '../../../src/graphql/mutations';
 import { getCurrentUser, fetchUserAttributes } from "aws-amplify/auth";
@@ -23,6 +25,7 @@ const DeregChmMmbr = props => {
   const [awsEmail, setAWSEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [pword, setPW] = useState('');
+  const [isBusinessPasswordVisible, setIsBusinessPasswordVisible] = useState(false);
   const [MmberId, setMmberId] = useState('');
   const [ChmDesc, setChmDesc] = useState('');
   const [memberPhn, setmemberPhn] = useState('');
@@ -145,37 +148,102 @@ const DeregChmMmbr = props => {
     }
     setPW(pws);
   }, [pword]);
-  return <View>
-                      <View style={styles.image}>
-                        <ScrollView>
-                   
-                          <View style={styles.loanTitleView}>
-                            <Text style={styles.title}>{t.fillDetailsBelow}</Text>
-                          </View>
-                
-                          <View style={styles.sendLoanView}>
-                            <TextInput placeholder={t.businessPhonePlaceholder} value={grpContact} onChangeText={setChmPhn} style={styles.sendLoanInput} editable={true}></TextInput>
-                            <Text style={styles.sendLoanText}>{t.businessPhone}</Text>
-                          </View>
-        
-                          <View style={styles.sendLoanView}>
-                            <TextInput value={MmberId} onChangeText={setMmberId} style={styles.sendLoanInput} editable={true}></TextInput>
-                            <Text style={styles.sendLoanText}>{t.personnelWorkId}</Text>
-                          </View>
-        
-                          <View style={styles.sendLoanView}>
-                            <TextInput value={pword} onChangeText={setPW} secureTextEntry={true} style={styles.sendLoanInput} editable={true}></TextInput>
-                            <Text style={styles.sendLoanText}>{t.businessACPW}</Text>
-                          </View>
-        
-                          <TouchableOpacity onPress={ftchChmDtls} style={styles.sendLoanButton}>
-                            <Text style={styles.sendLoanButtonText}>
-                              {t.clickToDeregister}
-                            </Text>
-                            {isLoading && <ActivityIndicator size="large" color="blue" />}
-                          </TouchableOpacity>
-                        </ScrollView>
-                      </View>
-                    </View>;
+  return (
+    <LinearGradient colors={['#87ceeb', '#29e58d']} style={styles.screen}>
+      <KeyboardAvoidingView
+        style={styles.keyboardAvoidingView}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+        >
+          <View style={styles.header}>
+            <View style={styles.headerIcon}>
+              <Text style={styles.headerIconText}>−</Text>
+            </View>
+            <Text style={styles.headerTitle}>{t.clickToDeregister}</Text>
+            <Text style={styles.headerSubtitle}>{t.fillDetailsBelow}</Text>
+          </View>
+
+          <View style={styles.formCard}>
+            <Text style={styles.formIntro}>{t.fillDetailsBelow}</Text>
+
+            <View style={styles.fieldGroup}>
+              <Text style={styles.fieldLabel}>{t.businessPhone}</Text>
+              <TextInput
+                placeholder={t.businessPhonePlaceholder}
+                placeholderTextColor="#8a98a5"
+                value={grpContact}
+                onChangeText={setChmPhn}
+                style={styles.input}
+                editable={!isLoading}
+                autoCapitalize="none"
+                keyboardType="phone-pad"
+                returnKeyType="next"
+              />
+            </View>
+
+            <View style={styles.fieldGroup}>
+              <Text style={styles.fieldLabel}>{t.personnelWorkId}</Text>
+              <TextInput
+                placeholder={t.personnelWorkId}
+                placeholderTextColor="#8a98a5"
+                value={MmberId}
+                onChangeText={setMmberId}
+                style={styles.input}
+                editable={!isLoading}
+                autoCapitalize="none"
+                returnKeyType="next"
+              />
+            </View>
+
+            <View style={styles.fieldGroup}>
+              <Text style={styles.fieldLabel}>{t.businessACPW}</Text>
+              <View style={styles.passwordInputRow}>
+                <TextInput
+                  placeholder={t.businessACPW}
+                  placeholderTextColor="#8a98a5"
+                  value={pword}
+                  onChangeText={setPW}
+                  secureTextEntry={!isBusinessPasswordVisible}
+                  style={styles.passwordInput}
+                  editable={!isLoading}
+                  autoCapitalize="none"
+                  returnKeyType="done"
+                />
+                <TouchableOpacity
+                  onPress={() => setIsBusinessPasswordVisible(visible => !visible)}
+                  style={styles.passwordVisibilityButton}
+                  accessibilityRole="button"
+                  accessibilityLabel={isBusinessPasswordVisible ? 'Hide password' : 'Show password'}
+                  disabled={isLoading}
+                >
+                  <Ionicons
+                    name={isBusinessPasswordVisible ? 'eye-off-outline' : 'eye-outline'}
+                    size={22}
+                    color="#1688a8"
+                  />
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            <TouchableOpacity
+              onPress={ftchChmDtls}
+              style={[styles.submitButton, isLoading && styles.submitButtonDisabled]}
+              disabled={isLoading}
+              activeOpacity={0.85}
+            >
+              {isLoading ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <Text style={styles.submitButtonText}>{t.clickToDeregister}</Text>
+              )}
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </LinearGradient>
+  );
 };
 export default DeregChmMmbr;

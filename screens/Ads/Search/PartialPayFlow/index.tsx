@@ -12,7 +12,7 @@ import { generateClient } from 'aws-amplify/api';
 import { getCurrentUser, fetchUserAttributes } from 'aws-amplify/auth';
 import { getUrl } from 'aws-amplify/storage';
 import { listPartialPays, listSokoAds, getSMAccount, getBizna, getCompany, listBiznas, listPartialPayContributions } from '../../../../src/graphql/queries';
-import { createPartialPay, updatePartialPay, createPartialPayContributions, updateSMAccount, updateBizna, createBenefitContributions2, createNonLoans, updateCompany, createMarketConsumption } from '../../../../src/graphql/mutations';
+import { createPartialPay, updatePartialPay, createPartialPayContributions, updateSMAccount, updateBizna, createBenefitContributions2, createNonLoans, createBizSls, updateCompany, createMarketConsumption } from '../../../../src/graphql/mutations';
 import { useTranslation } from 'react-i18next';
 import { translations } from './translation';
 import { ShoppingModeProvider, useShoppingMode } from '../ShoppingModeContext';
@@ -713,7 +713,7 @@ function PartialPayFlowInner({ navigation, route }: { navigation: any; route: an
         buyerType: 'Biz',
         buyerEmail: selectedBizna.BusKntct,
         buyerAccount: selectedBizna.BusKntct,
-        buyerName: buyerBiz.busName,
+        buyerName: buyerBiz.busName?.trim() || selectedBizna.busName?.trim() || attrs.email,
         currentBalance: Number(buyerBiz.earningsBal || 0),
         account: buyerBiz
       };
@@ -726,7 +726,7 @@ function PartialPayFlowInner({ navigation, route }: { navigation: any; route: an
       buyerType: 'Pal',
       buyerEmail: attrs.email,
       buyerAccount: attrs.email,
-      buyerName: buyerSm.name,
+      buyerName: buyerSm.name?.trim() || attrs.email,
       currentBalance: Number(buyerSm.balance || 0),
       account: buyerSm
     };
@@ -948,6 +948,13 @@ function PartialPayFlowInner({ navigation, route }: { navigation: any; route: an
       if (!sellerAccount) {
         throw new Error('Seller account missing');
       }
+      const buyerAccount = selectedEntry.buyerAccount || selectedEntry.buyerEmail || attrs.email || user.username;
+      const buyerName = selectedEntry.buyerName?.trim() || selectedEntry.buyerEmail || attrs.email || user.username;
+      const sellerName = selectedEntry.sellerName?.trim() || sellerAccount;
+      const attendingAdmin = attrs.email || user.username || buyerAccount;
+      if (!buyerAccount || !buyerName || !attendingAdmin || !selectedEntry.id) {
+        throw new Error('Required buyer or transaction details are missing');
+      }
 
       const sellerResult: any = await client.graphql({
         query: getBizna,
@@ -985,14 +992,14 @@ function PartialPayFlowInner({ navigation, route }: { navigation: any; route: an
         variables: {
           input: {
             recPhn: sellerAccount,
-            senderPhn: selectedEntry.buyerAccount || attrs.email,
-            amount: itemCost.toFixed(0),
+            senderPhn: buyerAccount,
+            amount: Number(itemCost.toFixed(0)),
             description: selectedEntry.itemDesc || selectedEntry.itemName || '',
-            RecName: selectedEntry.sellerName || '',
-            SenderName: selectedEntry.buyerName || attrs.email,
+            RecName: seller.busName?.trim() || sellerName,
+            SenderName: buyerName,
             status: nonLoanStatus,
             owner: selectedEntry.itemUrl || selectedEntry.id,
-            fees: accumulatedFees.toFixed(0)
+            fees: Number(accumulatedFees.toFixed(0))
           }
         }
       });
@@ -1003,44 +1010,46 @@ function PartialPayFlowInner({ navigation, route }: { navigation: any; route: an
                                 input: {
                                   saleId: selectedEntry.id,
                                   recPhn: sellerAccount,
-                                  senderPhn: selectedEntry.buyerAccount || attrs.email,
-                                  amount: itemCost.toFixed(0),
+                                  senderPhn: buyerAccount,
+                                  amount: Number(itemCost.toFixed(0)),
                                   description: selectedEntry.itemDesc || selectedEntry.itemName || 'Cascade payment checkout',
-                                  RecName: seller.busName || selectedEntry.sellerName ,
-                                  SenderName: selectedEntry.buyerName || attrs.email,
+                                  RecName: seller.busName?.trim() || sellerName,
+                                  SenderName: buyerName,
                                   status: "cashSales",
-                                  owner: attrs.email,
-                                  attendingAdmin: attrs.email,
+                                  owner: attendingAdmin,
+                                  attendingAdmin,
                                 }
                               }
                             });
 
-      let analyticsRecorded = true;
-      if (modeParam === 'quick') {
-        let buyerAccountDetails: any = null;
-        if (selectedEntry.buyerType === 'Biz') {
-          const buyerRes: any = await client.graphql({
-            query: getBizna,
-            variables: { BusKntct: selectedEntry.buyerAccount || selectedEntry.buyerEmail }
-          });
-          buyerAccountDetails = buyerRes?.data?.getBizna;
-        } else {
-          const buyerRes: any = await client.graphql({
-            query: getSMAccount,
-            variables: { awsemail: selectedEntry.buyerEmail }
-          });
-          buyerAccountDetails = buyerRes?.data?.getSMAccount;
+      let buyerAccountDetails: any = null;
+      if (modeParam === 'quick' && selectedEntry.buyerType === 'Biz') {
+        const buyerRes: any = await client.graphql({
+          query: getBizna,
+          variables: { BusKntct: buyerAccount }
+        });
+        buyerAccountDetails = buyerRes?.data?.getBizna;
+        if (!buyerAccountDetails) {
+          throw new Error('Business buyer record not found for completed partial payment.');
         }
+      } else if (modeParam === 'quick') {
+        const buyerRes: any = await client.graphql({
+          query: getSMAccount,
+          variables: { awsemail: selectedEntry.buyerEmail }
+        });
+        buyerAccountDetails = buyerRes?.data?.getSMAccount;
+      }
 
+      if (modeParam === 'quick') {
         await transferPartialPayCompanyFee({
           amountPaid: itemCost,
           sellerAccount,
           sellerName: selectedEntry.sellerName || selectedEntry.sellerEmail || '',
           buyer: {
             buyerType: selectedEntry.buyerType,
-            buyerAccount: selectedEntry.buyerAccount || selectedEntry.buyerEmail,
+            buyerAccount,
             buyerEmail: selectedEntry.buyerEmail,
-            buyerName: selectedEntry.buyerName || attrs.email,
+            buyerName,
             account: buyerAccountDetails
           },
           creatorEmail: attrs.email,
@@ -1062,7 +1071,10 @@ function PartialPayFlowInner({ navigation, route }: { navigation: any; route: an
           itemUrl: selectedEntry.itemUrl || '',
           sellerNationality: seller.Nationality || ''
         });
+      }
 
+      let analyticsRecorded = true;
+      if (modeParam === 'quick') {
         try {
           const occurredAt = new Date().toISOString();
           const location = userLocation
@@ -1087,10 +1099,13 @@ function PartialPayFlowInner({ navigation, route }: { navigation: any; route: an
             ...(location || {}),
             description: selectedEntry.itemDesc || selectedEntry.itemName || ''
           });
-          if (selectedEntry.buyerType === 'Biz' && buyerAccountDetails?.owner) {
+          if (selectedEntry.buyerType === 'Biz') {
+            if (!buyerAccountDetails?.owner) {
+              throw new Error('Business buyer owner is missing for partial-payment analytics.');
+            }
             await saveBusinessPerformanceEntry({
               ownerSub: buyerAccountDetails.owner,
-              businessAccount: selectedEntry.buyerAccount,
+              businessAccount: buyerAccount,
               recordType: 'EXPENSE',
               amountKes: itemCost,
               feesKes: accumulatedFees,

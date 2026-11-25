@@ -1,5 +1,6 @@
 const translations = {
   en: {
+    cashSalesTitle: 'Cash Sales',
     requestCashTransfer: 'Request Cash Transfer',
     grantingCashTransfers: 'Granting Cash Transfers',
     viewCashSent: 'View Cash Sent',
@@ -10,6 +11,7 @@ const translations = {
     received: 'Received',
   },
   ar: {
+    cashSalesTitle: 'مبيعات نقدية',
     requestCashTransfer: 'طلب تحويل نقدي',
     grantingCashTransfers: 'منح تحويلات نقدية',
     viewCashSent: 'عرض التحويلات النقدية المرسلة',
@@ -20,6 +22,7 @@ const translations = {
     received: 'مستلم',
   },
   zh: {
+    cashSalesTitle: '现金销售',
     requestCashTransfer: '申请现金转账',
     grantingCashTransfers: '授予现金转账',
     viewCashSent: '查看已发送的现金',
@@ -30,6 +33,7 @@ const translations = {
     received: '已接收',
   },
   ru: {
+    cashSalesTitle: 'Продажи за наличные',
     requestCashTransfer: 'Запросить перевод денег',
     grantingCashTransfers: 'Предоставление переводов наличных',
     viewCashSent: 'Просмотр отправленных наличных',
@@ -40,6 +44,7 @@ const translations = {
     received: 'Получено',
   },
   sw: {
+    cashSalesTitle: 'Mauzo ya Pesa Taslimu',
     requestCashTransfer: 'Omba Uhamisho wa Fedha Taslimu',
     grantingCashTransfers: 'Kuidhinisha Uhamisho wa Fedha Taslimu',
     viewCashSent: 'Tazama Fedha Taslimu Zilizotumwa',
@@ -50,6 +55,7 @@ const translations = {
     received: 'Zilizopokelewa',
   },
   fr: {
+    cashSalesTitle: 'Ventes en espèces',
     requestCashTransfer: 'Demander un transfert d\'argent',
     grantingCashTransfers: 'Accorder des transferts de fonds',
     viewCashSent: 'Voir les fonds envoyés',
@@ -60,6 +66,7 @@ const translations = {
     received: 'Reçu',
   },
   es: {
+    cashSalesTitle: 'Ventas en efectivo',
     requestCashTransfer: 'Solicitar transferencia de efectivo',
     grantingCashTransfers: 'Otorgar transferencias de efectivo',
     viewCashSent: 'Ver efectivo enviado',
@@ -70,6 +77,7 @@ const translations = {
     received: 'Recibido',
   },
   de: {
+    cashSalesTitle: 'Barverkäufe',
     requestCashTransfer: 'Bargeldüberweisung anfordern',
     grantingCashTransfers: 'Bargeldüberweisungen gewähren',
     viewCashSent: 'Gesendete Bargeldbeträge ansehen',
@@ -80,6 +88,7 @@ const translations = {
     received: 'Empfangen',
   },
   pt: {
+    cashSalesTitle: 'Vendas em dinheiro',
     requestCashTransfer: 'Solicitar transferência de dinheiro',
     grantingCashTransfers: 'Conceder transferências de dinheiro',
     viewCashSent: 'Ver dinheiro enviado',
@@ -90,6 +99,7 @@ const translations = {
     received: 'Recebido',
   },
   it: {
+    cashSalesTitle: 'Vendite in contanti',
     requestCashTransfer: 'Richiedi trasferimento contanti',
     grantingCashTransfers: 'Concedere trasferimenti di contanti',
     viewCashSent: 'Visualizza contanti inviati',
@@ -100,6 +110,7 @@ const translations = {
     received: 'Ricevuto',
   },
   he: {
+    cashSalesTitle: 'מכירות מזומן',
     requestCashTransfer: 'בקש העברת מזומנים',
     grantingCashTransfers: 'הענקת העברות מזומן',
     viewCashSent: 'הצג מזומנים שנשלחו',
@@ -110,6 +121,7 @@ const translations = {
     received: 'התקבל',
   },
   hi: {
+    cashSalesTitle: 'नकद बिक्री',
     requestCashTransfer: 'नकद अंतरण का अनुरोध करें',
     grantingCashTransfers: 'नकद अंतरण देना',
     viewCashSent: 'भेजे गए नकद देखें',
@@ -120,6 +132,7 @@ const translations = {
     received: 'प्राप्त हुआ',
   },
   am: {
+    cashSalesTitle: 'የገንዘብ ሽያጭ',
     requestCashTransfer: 'የገንዘብ ማስተላለፍ ይጠይቁ',
     grantingCashTransfers: 'የገንዘብ ማስተላለፍ መስጠት',
     viewCashSent: 'የተላከ ገንዘብ ይመልከቱ',

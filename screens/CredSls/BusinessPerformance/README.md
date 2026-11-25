@@ -13,12 +13,12 @@ This document describes the business performance analytics currently implemented
 - A branch is a Bizna record, uniquely identified by `Bizna.BusKntct`.
 - An organization is a `BusinessOrganization` record with a name and creator email.
 - `Bizna.organizationId` is optional: unlinked branches continue to work as standalone businesses. Since it is a single field, a branch can point to at most one organization.
-- The signed-in creator can create an organization by selecting at least two unlinked businesses created by their account. They can add unlinked businesses they created to an existing organization.
+- Any authenticated private user can create an organization by selecting at least two unlinked businesses and can link unlinked businesses to an existing organization.
 - A branch admin can view their branch report and the consolidated report for any organization containing a branch they administer. The organization creator can also view the organization report.
 - Consolidated reports load analytics separately for each linked branch, then aggregate records for the selected date range. Individual branches remain identifiable in their records.
 - Organization-level targets use `organizationId`; branch targets use `businessAccount`. These scopes are not conflated.
 
-The UI branch selector checks the signed-in email against `Admin1` through `Admin50`. The creator's branch lookup uses the indexed Bizna creator `email` field.
+The UI branch selector checks the signed-in email against `Admin1` through `Admin50`. The creator's branch lookup uses the indexed Bizna creator `email` field. Organization linking is allowed by backend authorization for any authenticated user; the UI's branch filtering is not a security boundary and does not ensure the user administers a selected branch.
 
 ## What is captured
 
@@ -66,7 +66,7 @@ Analytics writes are separate from the payment settlement flow. If a transaction
 
 - The UI uses Bizna admin emails to decide which branch and organization options to show. UI filtering is not, on its own, a backend authorization boundary.
 - In the current GraphQL schema, authenticated (`private`) users can read and create `BusinessPerformanceRecord` records. The record owner can read, update, and delete records where their `ownerSub` matches. Targets also allow authenticated users to create, read, update, and delete.
-- `BusinessOrganization` creation and updates are owner-authorized against `createdByEmail` and the email identity claim. Organization metadata is readable by authenticated users. The `organizationId` field on Bizna is readable by authenticated users and updates are owner-authorized against the Bizna creator email.
+- `BusinessOrganization` metadata is readable by authenticated users, and any authenticated user can create organizations. Organization updates/deletes remain owner-authorized against `createdByEmail` and the email identity claim. The `organizationId` field on Bizna is readable and updateable by authenticated users so any private user can link branches. Backend authorization therefore does not prevent linking a branch the user does not administer; add a server-side authorization check if that restriction is required.
 - Before relying on analytics as confidential business data, review and tighten AppSync authorization so callers can only read/write records and targets for businesses they are authorized to administer. The current client-side business selection should not be treated as sufficient protection.
 - GPS coordinates are sensitive location data even though buyer identity is not included. Collect and retain only what the product requires, and provide appropriate notice and controls.
 

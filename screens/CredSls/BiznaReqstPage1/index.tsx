@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigation } from '@react-navigation/native';
-import { View, Text, Pressable, SafeAreaView } from 'react-native';
+import { View, Text, Pressable, SafeAreaView, ScrollView } from 'react-native';
 import styles from './styles';
 import { useTranslation } from 'react-i18next';
 import translations from './translation';
@@ -12,32 +12,41 @@ const MyAccount = () => {
   const goToScreen = (screen: string) => {
     navigation.navigate(screen);
   };
-  return <SafeAreaView style={{
-    flex: 1
-  }}>
-      <View style={styles.image}>
-        <View style={styles.accountView}>
+  const requestTypes = [
+    { label: t.biz2Pal, screen: 'PlaceLnReq' },
+    { label: t.biz2Biz, screen: 'PlaceLnReq2' },
+    { label: t.pal2Biz, screen: 'PlaceLnReq3' },
+    { label: t.pal2Pal, screen: 'PlaceLnReq4' },
+  ];
+
+  return (
+    <SafeAreaView style={styles.safeArea}>
+      <ScrollView contentContainerStyle={styles.content}>
+        <View style={styles.header}>
           <Text style={styles.accountText}>{t.requestLoans}</Text>
-
-          <View style={styles.viewForSalesPressables}>
-            <Pressable onPress={() => goToScreen('PlaceLnReq')} style={styles.acPressables}>
-              <Text style={styles.acPressableText}>{t.biz2Pal}</Text>
-            </Pressable>
-
-            <Pressable onPress={() => goToScreen('PlaceLnReq2')} style={styles.acPressables}>
-              <Text style={styles.acPressableText}>{t.biz2Biz}</Text>
-            </Pressable>
-
-            <Pressable onPress={() => goToScreen('PlaceLnReq3')} style={styles.acPressables}>
-              <Text style={styles.acPressableText}>{t.pal2Biz}</Text>
-            </Pressable>
-
-            <Pressable onPress={() => goToScreen('PlaceLnReq4')} style={styles.acPressables}>
-              <Text style={styles.acPressableText}>{t.pal2Pal}</Text>
-            </Pressable>
-          </View>
+          <Text style={styles.subtitle}>{t.chooseRequestType}</Text>
         </View>
-      </View>
-    </SafeAreaView>;
+
+        <View style={styles.options}>
+          {requestTypes.map((option, index) => (
+            <Pressable
+              key={option.screen}
+              onPress={() => goToScreen(option.screen)}
+              style={({ pressed }) => [styles.optionButton, pressed && styles.pressedButton]}
+              accessibilityRole="button"
+            >
+              <View style={[styles.numberBadge, index % 2 === 0 ? styles.greenBadge : styles.blueBadge]}>
+                <Text style={styles.numberText}>{String(index + 1).padStart(2, '0')}</Text>
+              </View>
+              <Text style={styles.optionText}>{option.label}</Text>
+              <Text style={styles.chevron} accessibilityElementsHidden>
+                {'>'}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
+      </ScrollView>
+    </SafeAreaView>
+  );
 };
 export default MyAccount;

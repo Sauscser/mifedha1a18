@@ -1,6 +1,8 @@
 const translations = {
   en: {
     updateBizAccount: 'Update Biz Account',
+    accountAccess: 'Account access',
+    businessOperations: 'Business operations',
     addAdmin: 'Add Admin',
     changePassword: 'Change PassWord',
     stopOperations: 'Stop Operations',
@@ -9,6 +11,8 @@ const translations = {
   },
   sw: {
     updateBizAccount: 'Sasisha Akaunti ya Biashara',
+    accountAccess: 'Ufikiaji wa akaunti',
+    businessOperations: 'Uendeshaji wa biashara',
     addAdmin: 'Ongeza Msimamizi',
     changePassword: 'Badilisha Nenosiri',
     stopOperations: 'Zima Operesheni',
@@ -17,6 +21,8 @@ const translations = {
   },
   he: {
     updateBizAccount: 'עדכן חשבון עסק',
+    accountAccess: 'גישה לחשבון',
+    businessOperations: 'פעילות עסקית',
     addAdmin: 'הוסף מנהל',
     changePassword: 'שנה סיסמה',
     stopOperations: 'עצור פעולות',
@@ -25,6 +31,8 @@ const translations = {
   },
   hi: {
     updateBizAccount: 'व्यापार खाता अपडेट करें',
+    accountAccess: 'खाता पहुंच',
+    businessOperations: 'व्यापार संचालन',
     addAdmin: 'व्यवस्थापक जोड़ें',
     changePassword: 'पासवर्ड बदलें',
     stopOperations: 'ऑपरेशन रोकें',
@@ -33,6 +41,8 @@ const translations = {
   },
   zh: {
     updateBizAccount: '更新商业账户',
+    accountAccess: '账户访问',
+    businessOperations: '业务运营',
     addAdmin: '添加管理员',
     changePassword: '更改密码',
     stopOperations: '停止运营',
@@ -41,6 +51,8 @@ const translations = {
   },
   fr: {
     updateBizAccount: 'Mettre à jour le compte Biz',
+    accountAccess: 'Accès au compte',
+    businessOperations: 'Opérations commerciales',
     addAdmin: 'Ajouter un administrateur',
     changePassword: 'Changer le mot de passe',
     stopOperations: 'Arrêter les opérations',
@@ -49,6 +61,8 @@ const translations = {
   },
   pt: {
     updateBizAccount: 'Atualizar conta comercial',
+    accountAccess: 'Acesso à conta',
+    businessOperations: 'Operações comerciais',
     addAdmin: 'Adicionar administrador',
     changePassword: 'Alterar senha',
     stopOperations: 'Parar operações',
@@ -57,6 +71,8 @@ const translations = {
   },
   it: {
     updateBizAccount: 'Aggiorna account aziendale',
+    accountAccess: 'Accesso all’account',
+    businessOperations: 'Operazioni aziendali',
     addAdmin: 'Aggiungi amministratore',
     changePassword: 'Cambia password',
     stopOperations: 'Blocca operazioni',
@@ -65,6 +81,8 @@ const translations = {
   },
   am: {
     updateBizAccount: 'የንግድ መለያ አዘምን',
+    accountAccess: 'የመለያ መዳረሻ',
+    businessOperations: 'የንግድ ሥራዎች',
     addAdmin: 'አስተዳዳሪ ጨምር',
     changePassword: 'የይለፍ ቃል ቀይር',
     stopOperations: 'ክወናዎችን አቁም',
@@ -73,6 +91,8 @@ const translations = {
   },
   ar: {
     updateBizAccount: 'تحديث حساب العمل',
+    accountAccess: 'الوصول إلى الحساب',
+    businessOperations: 'عمليات الأعمال',
     addAdmin: 'إضافة مسؤول',
     changePassword: 'تغيير كلمة المرور',
     stopOperations: 'إيقاف العمليات',
@@ -81,6 +101,8 @@ const translations = {
   },
   de: {
     updateBizAccount: 'Geschäftskonto aktualisieren',
+    accountAccess: 'Kontozugriff',
+    businessOperations: 'Geschäftsbetrieb',
     addAdmin: 'Administrator hinzufügen',
     changePassword: 'Passwort ändern',
     stopOperations: 'Operationen stoppen',
@@ -89,6 +111,8 @@ const translations = {
   },
   es: {
     updateBizAccount: 'Actualizar cuenta comercial',
+    accountAccess: 'Acceso a la cuenta',
+    businessOperations: 'Operaciones comerciales',
     addAdmin: 'Agregar administrador',
     changePassword: 'Cambiar contraseña',
     stopOperations: 'Detener operaciones',
@@ -97,6 +121,8 @@ const translations = {
   },
   ru: {
     updateBizAccount: 'Обновить бизнес-аккаунт',
+    accountAccess: 'Доступ к аккаунту',
+    businessOperations: 'Работа бизнеса',
     addAdmin: 'Добавить администратора',
     changePassword: 'Изменить пароль',
     stopOperations: 'Остановить операции',

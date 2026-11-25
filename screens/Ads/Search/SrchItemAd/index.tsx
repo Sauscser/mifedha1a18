@@ -893,7 +893,8 @@ function SalesItemMapScreenInner({ navigation }: { navigation: any }) {
           Alert.alert(t.error, t.somethingWentWrong);
           return;
         }
-        if (parseFloat(sender.balance) < totalDebit) {
+        const availableBuyerBalance = Number(mode === 'B2B' ? sender.earningsBal : sender.balance);
+        if (!Number.isFinite(availableBuyerBalance) || availableBuyerBalance < totalDebit) {
           if (modeParam === 'transport') setIsLoadingTransport(false); else setIsLoading2(false);
           Alert.alert(t.insufficientFundsTitle, t.insufficientFunds);
           return;
@@ -1057,7 +1058,9 @@ function SalesItemMapScreenInner({ navigation }: { navigation: any }) {
               amount: Number(totals.totalItemCost).toFixed(0),
               description: totals.description.join('\n'),
               RecName: biz ? biz.busName : '',
-              SenderName: mode === 'B2B' && selectedBizna && selectedBizna.busName ? selectedBizna.busName : usrDtlsx.name,
+              SenderName: mode === 'B2B'
+                ? selectedBizna?.busName?.trim() || usrDtlsx?.busName?.trim() || attributes.email
+                : usrDtlsx?.name?.trim() || attributes.email,
               status: mode === 'B2B' ? 'Biz2Biz' : 'Biz2Pal',
               owner: allItemsID,
               fees: feeForSeller
@@ -1306,7 +1309,8 @@ function SalesItemMapScreenInner({ navigation }: { navigation: any }) {
           Alert.alert(t.error, t.somethingWentWrong);
           return;
         }
-        if (parseFloat(sender.balance) < totalDebit) {
+        const availableBuyerBalance = Number(mode === 'B2B' ? sender.earningsBal : sender.balance);
+        if (!Number.isFinite(availableBuyerBalance) || availableBuyerBalance < totalDebit) {
           setIsLoading(false);
           Alert.alert("Insufficient Funds");
           return;
@@ -1542,7 +1546,7 @@ function SalesItemMapScreenInner({ navigation }: { navigation: any }) {
             beneficiaryPhone: attributes.phone_number || "String",
             creatorEmail: attributes.email,
             prodName: cart.map(item => item.sokoname).join(", "),
-            creatorName: sender.name,
+            creatorName: sender.name?.trim() || sender.busName?.trim() || selectedBizna?.busName?.trim() || attributes.email,
             owner: user.userId,
             prodCost: 0,
             benefitsAmount: totalBenefit,

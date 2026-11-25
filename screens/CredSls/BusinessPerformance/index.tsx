@@ -30,7 +30,6 @@ import { nationalityToCode } from '../../../src/utils/nationalityToCode';
 import {
   createBusinessOrganization,
   createBusinessPerformanceRecord,
-  updateBiznaOrganization,
 } from '../../../src/graphql/mutations';
 import {
   businessOrganizationsByCreator,
@@ -53,6 +52,17 @@ const REPORT_BIZNA_BALANCE_QUERY = /* GraphQL */ `
       busName
       earningsBal
       netEarnings
+    }
+  }
+`;
+const UPDATE_BIZNA_ORGANIZATION = /* GraphQL */ `
+  mutation UpdateBiznaOrganization(
+    $input: UpdateBiznaInput!
+    $condition: ModelBiznaConditionInput
+  ) {
+    updateBizna(input: $input, condition: $condition) {
+      BusKntct
+      organizationId
     }
   }
 `;
@@ -1723,7 +1733,7 @@ const BusinessPerformanceScreen = () => {
 
       for (const BusKntct of selectedBranchIds) {
         const result: any = await client.graphql({
-          query: updateBiznaOrganization,
+          query: UPDATE_BIZNA_ORGANIZATION,
           variables: {
             input: { BusKntct, organizationId },
             condition: { organizationId: { attributeExists: false } },

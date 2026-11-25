@@ -1,6 +1,7 @@
 const translations = {
   en: {
     requestLoans: 'Request Loans',
+    chooseRequestType: 'Choose the type of credit sales request to make.',
     biz2Pal: 'Business to Individual',
     biz2Biz: 'Business to Business',
     pal2Biz: 'Individual to Business',
@@ -8,6 +9,7 @@ const translations = {
   },
   sw: {
     requestLoans: 'Omba Mikopo',
+    chooseRequestType: 'Chagua aina ya ombi la mauzo ya mkopo unalotaka kufanya.',
     biz2Pal: 'Biashara kwenda kwa Mtu',
     biz2Biz: 'Biashara kwenda Biashara',
     pal2Biz: 'Mtu kwenda Biashara',
@@ -15,6 +17,7 @@ const translations = {
   },
   he: {
     requestLoans: 'בקש הלוואות',
+    chooseRequestType: 'בחר את סוג בקשת מכירת האשראי שברצונך לבצע.',
     biz2Pal: 'עסק לאדם',
     biz2Biz: 'עסק לעסק',
     pal2Biz: 'אדם לעסק',
@@ -22,6 +25,7 @@ const translations = {
   },
   hi: {
     requestLoans: 'ऋण मांगें',
+    chooseRequestType: 'क्रेडिट बिक्री अनुरोध का प्रकार चुनें।',
     biz2Pal: 'व्यापार से व्यक्ति',
     biz2Biz: 'व्यापार से व्यापार',
     pal2Biz: 'व्यक्ति से व्यापार',
@@ -29,6 +33,7 @@ const translations = {
   },
   zh: {
     requestLoans: '申请贷款',
+    chooseRequestType: '选择要发起的赊销请求类型。',
     biz2Pal: '企业到个人',
     biz2Biz: '企业到企业',
     pal2Biz: '个人到企业',
@@ -36,6 +41,7 @@ const translations = {
   },
   fr: {
     requestLoans: 'Demander des prêts',
+    chooseRequestType: 'Choisissez le type de demande de vente à crédit à effectuer.',
     biz2Pal: 'Entreprise vers particulier',
     biz2Biz: 'Entreprise vers entreprise',
     pal2Biz: 'Particulier vers entreprise',
@@ -43,6 +49,7 @@ const translations = {
   },
   pt: {
     requestLoans: 'Solicitar empréstimos',
+    chooseRequestType: 'Escolha o tipo de solicitação de venda a crédito.',
     biz2Pal: 'Negócio para pessoa',
     biz2Biz: 'Negócio para negócio',
     pal2Biz: 'Pessoa para negócio',
@@ -50,6 +57,7 @@ const translations = {
   },
   it: {
     requestLoans: 'Richiedi prestiti',
+    chooseRequestType: 'Scegli il tipo di richiesta di vendita a credito da effettuare.',
     biz2Pal: 'Impresa a persona',
     biz2Biz: 'Impresa a impresa',
     pal2Biz: 'Persona a impresa',
@@ -57,6 +65,7 @@ const translations = {
   },
   am: {
     requestLoans: 'ብድር ይጠይቁ',
+    chooseRequestType: 'የሚፈልጉትን የብድር ሽያጭ ጥያቄ ዓይነት ይምረጡ።',
     biz2Pal: 'ንግድ እስከ ግለሰብ',
     biz2Biz: 'ንግድ እስከ ንግድ',
     pal2Biz: 'ግለሰብ እስከ ንግድ',
@@ -64,6 +73,7 @@ const translations = {
   },
   ar: {
     requestLoans: 'طلب القروض',
+    chooseRequestType: 'اختر نوع طلب البيع الآجل الذي تريد تقديمه.',
     biz2Pal: 'عمل إلى فرد',
     biz2Biz: 'عمل إلى عمل',
     pal2Biz: 'فرد إلى عمل',
@@ -71,6 +81,7 @@ const translations = {
   },
   de: {
     requestLoans: 'Kredite anfordern',
+    chooseRequestType: 'Wählen Sie die Art der Kreditanfrage aus.',
     biz2Pal: 'Unternehmen an Privatperson',
     biz2Biz: 'Unternehmen an Unternehmen',
     pal2Biz: 'Privatperson an Unternehmen',
@@ -78,6 +89,7 @@ const translations = {
   },
   es: {
     requestLoans: 'Solicitar préstamos',
+    chooseRequestType: 'Elija el tipo de solicitud de venta a crédito que desea realizar.',
     biz2Pal: 'Negocio a persona',
     biz2Biz: 'Negocio a negocio',
     pal2Biz: 'Persona a negocio',
@@ -85,6 +97,7 @@ const translations = {
   },
   ru: {
     requestLoans: 'Запросить кредиты',
+    chooseRequestType: 'Выберите тип запроса на продажу в кредит.',
     biz2Pal: 'Бизнес физическому лицу',
     biz2Biz: 'Бизнес бизнесу',
     pal2Biz: 'Физическое лицо бизнесу',

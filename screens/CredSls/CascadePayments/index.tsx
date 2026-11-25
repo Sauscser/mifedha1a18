@@ -12,6 +12,7 @@ import { formatAmountSync, convertForeignToKsh } from '../../../src/utils/exchan
 import { nationalityToCode } from '../../../src/utils/nationalityToCode';
 import { translations } from './translation';
 import { safeNavigateFrom } from '../../../src/utils/navigationHelper';
+import { saveBusinessPerformanceEntry } from '../../../src/utils/businessPerformance';
 
 
 const client = generateClient();
@@ -48,6 +49,14 @@ type CheckoutSellerBreakdown = {
   totalFees: number;
   description: string;
   itemCount: number;
+  items?: Array<{
+    id: string;
+    itemName: string;
+    category: string;
+    quantity: number;
+    amount: number;
+    fee: number;
+  }>;
 };
 
 const createAccountId = () => `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -712,6 +721,87 @@ const CascadePaymentsScreen = () => {
             },
           },
         });
+      }
+      try {
+        const occurredAt = new Date().toISOString();
+        let buyerBusiness: any = null;
+        if (senderRef) {
+          try {
+            const buyerResponse: any = await client.graphql({
+              query: getBizna,
+              variables: { BusKntct: senderRef },
+            });
+            buyerBusiness = buyerResponse?.data?.getBizna;
+          } catch (buyerLookupError) {
+            console.warn('Cascade checkout completed, but the buyer business could not be resolved for analytics:', buyerLookupError);
+          }
+        }
+
+        for (const seller of sellerBreakdown) {
+          const sellerContact = `${seller.sokokntct || ''}`.trim();
+          if (!sellerContact) continue;
+
+          const sellerResponse: any = await client.graphql({
+            query: getBizna,
+            variables: { BusKntct: sellerContact },
+          });
+          const sellerBusiness = sellerResponse?.data?.getBizna;
+          if (!sellerBusiness?.owner) {
+            console.warn('Cascade checkout completed, but seller analytics owner is unavailable:', sellerContact);
+            continue;
+          }
+
+          const items = Array.isArray(seller.items) && seller.items.length > 0
+            ? seller.items
+            : [{
+                id: sellerContact,
+                itemName: seller.description || t.cascadeCheckoutDescription,
+                category: '',
+                quantity: Number(seller.itemCount) || 1,
+                amount: Number(seller.totalCost || 0),
+                fee: Number(seller.totalFees || 0),
+              }];
+
+          for (const item of items) {
+            const itemAmount = Number(item.amount || 0);
+            const itemFee = Number(item.fee || 0);
+            const sellerRevenue = Math.max(0, itemAmount - itemFee);
+            const analyticsDetails = {
+              occurredAt,
+              source: 'CASCADE_SHOPPING',
+              sourceReference: `${senderFlowId}:${sellerContact}:${item.id}`,
+              itemName: item.itemName || seller.description || t.cascadeCheckoutDescription,
+              category: item.category || undefined,
+              quantity: Number(item.quantity) || 1,
+              fulfillmentType: 'CASCADE',
+            };
+
+            if (sellerRevenue > 0) {
+              await saveBusinessPerformanceEntry({
+                ...analyticsDetails,
+                ownerSub: sellerBusiness.owner,
+                businessAccount: sellerContact,
+                recordType: 'REVENUE',
+                amountKes: sellerRevenue,
+              });
+            }
+
+            if (buyerBusiness?.owner) {
+              const buyerExpense = itemAmount + itemFee;
+              if (buyerExpense > 0) {
+                await saveBusinessPerformanceEntry({
+                  ...analyticsDetails,
+                  ownerSub: buyerBusiness.owner,
+                  businessAccount: senderRef,
+                  recordType: 'EXPENSE',
+                  amountKes: buyerExpense,
+                });
+              }
+            }
+          }
+        }
+      } catch (analyticsError) {
+        console.error('Cascade checkout completed, but business analytics capture failed:', analyticsError);
       }
       const notificationTarget = ownerEmail || userEmail || '';
       const notificationBody = t.businessCheckoutNotification.replace('{amount}', formatMoneyForUser(totalAmountDue)).replace('{count}', String(sellerBreakdown.length));
