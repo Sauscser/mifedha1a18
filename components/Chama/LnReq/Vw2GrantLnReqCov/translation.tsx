@@ -19,6 +19,7 @@ const translations = {
     alertSuccessWithdraw2: 'Withdraw confirmation 2 submitted.',
     alertSuccessWithdraw3: 'Withdraw confirmation 3 submitted.',
     alertErrorGeneric: 'Something went wrong.',
+    currencyUnavailable: 'User currency unavailable',
   },
   sw: {
     loanerDetails: 'Habari! Ni {name}. Tafadhali nikopeshe {amount}. Ninaahidi kulipa kwa riba ya {interest}% kwa mwaka ndani ya siku {days}. Kila malipo ni {installment} baada ya kila siku {frequency}. Unaweza kunipata kupitia {phone}.',
@@ -39,6 +40,7 @@ const translations = {
     alertSuccessWithdraw2: 'Uthibitisho wa kutoa 2 umetumwa.',
     alertSuccessWithdraw3: 'Uthibitisho wa kutoa 3 umetumwa.',
     alertErrorGeneric: 'Hitilafu imetokea.',
+    currencyUnavailable: 'Sarafu ya mtumiaji haipatikani',
   },
   fr: {
     loanerDetails: 'Salut! C’est {name}. Veuillez me prêter {amount}. Je m’engage à rembourser à un taux d’intérêt composé de {interest}% par an dans un délai de {days} jours. Chaque versement est de {installment} tous les {frequency} jours. Vous pouvez me joindre au {phone}.',
@@ -59,6 +61,7 @@ const translations = {
     alertSuccessWithdraw2: 'Confirmation de retrait 2 soumise.',
     alertSuccessWithdraw3: 'Confirmation de retrait 3 soumise.',
     alertErrorGeneric: 'Une erreur s’est produite.',
+    currencyUnavailable: 'Devise de l’utilisateur indisponible',
   },
   ar: {
     loanerDetails: 'مرحبًا! أنا {name}. يرجى إقراضي {amount}. أتعهد بالسداد بفائدة مركبة {interest}% سنويًا خلال {days} يومًا. كل قسط هو {installment} بعد كل {frequency} يوم. يمكنك التواصل معي عبر {phone}.',
@@ -79,6 +82,7 @@ const translations = {
     alertSuccessWithdraw2: 'تم إرسال تأكيد السحب 2.',
     alertSuccessWithdraw3: 'تم إرسال تأكيد السحب 3.',
     alertErrorGeneric: 'حدث خطأ ما.',
+    currencyUnavailable: 'عملة المستخدم غير متاحة',
   },
   ru: {
     loanerDetails: 'Привет! Это {name}. Пожалуйста, одолжи мне {amount}. Обязуюсь вернуть с процентной ставкой {interest}% в год в течение {days} дней. Каждый платеж составляет {installment} каждые {frequency} дней. Связаться со мной можно по {phone}.',
@@ -99,6 +103,7 @@ const translations = {
     alertSuccessWithdraw2: 'Подтверждение вывода 2 отправлено.',
     alertSuccessWithdraw3: 'Подтверждение вывода 3 отправлено.',
     alertErrorGeneric: 'Произошла ошибка.',
+    currencyUnavailable: 'Валюта пользователя недоступна',
   },
   zh: {
     loanerDetails: '你好！我是{name}。请借给我{amount}。我承诺在{days}天内以每年{interest}%的复利偿还。每期还款为{installment}，每{frequency}天一次。你可以通过{phone}联系我。',
@@ -119,6 +124,7 @@ const translations = {
     alertSuccessWithdraw2: '提现确认2已提交。',
     alertSuccessWithdraw3: '提现确认3已提交。',
     alertErrorGeneric: '发生错误。',
+    currencyUnavailable: '用户货币不可用',
   },
   es: {
     loanerDetails: '¡Hola! Soy {name}. Por favor, préstame {amount}. Me comprometo a devolverlo con un interés compuesto del {interest}% anual en {days} días. Cada cuota es de {installment} cada {frequency} días. Puedes contactarme al {phone}.',
@@ -139,6 +145,7 @@ const translations = {
     alertSuccessWithdraw2: 'Confirmación de retiro 2 enviada.',
     alertSuccessWithdraw3: 'Confirmación de retiro 3 enviada.',
     alertErrorGeneric: 'Algo salió mal.',
+    currencyUnavailable: 'Moneda del usuario no disponible',
   },
   de: {
     loanerDetails: 'Hallo! Ich bin {name}. Bitte leihe mir {amount}. Ich verpflichte mich, innerhalb von {days} Tagen mit einem Zins von {interest}% pro Jahr zurückzuzahlen. Jede Rate beträgt {installment} alle {frequency} Tage. Du erreichst mich unter {phone}.',
@@ -159,6 +166,7 @@ const translations = {
     alertSuccessWithdraw2: 'Auszahlungsbestätigung 2 gesendet.',
     alertSuccessWithdraw3: 'Auszahlungsbestätigung 3 gesendet.',
     alertErrorGeneric: 'Etwas ist schief gelaufen.',
+    currencyUnavailable: 'Benutzerwährung nicht verfügbar',
   },
   pt: {
     loanerDetails: 'Olá! Sou {name}. Por favor, me empreste {amount}. Comprometo-me a pagar com juros compostos de {interest}% ao ano em {days} dias. Cada parcela é {installment} a cada {frequency} dias. Você pode me contatar pelo {phone}.',
@@ -179,6 +187,7 @@ const translations = {
     alertSuccessWithdraw2: 'Confirmação de retirada 2 enviada.',
     alertSuccessWithdraw3: 'Confirmação de retirada 3 enviada.',
     alertErrorGeneric: 'Algo deu errado.',
+    currencyUnavailable: 'Moeda do usuário indisponível',
   },
   it: {
     loanerDetails: 'Ciao! Sono {name}. Per favore, prestami {amount}. Mi impegno a restituire con un interesse composto del {interest}% all’anno entro {days} giorni. Ogni rata è di {installment} ogni {frequency} giorni. Puoi contattarmi al {phone}.',
@@ -199,6 +208,7 @@ const translations = {
     alertSuccessWithdraw2: 'Conferma di prelievo 2 inviata.',
     alertSuccessWithdraw3: 'Conferma di prelievo 3 inviata.',
     alertErrorGeneric: 'Si è verificato un errore.',
+    currencyUnavailable: 'Valuta dell’utente non disponibile',
   },
   he: {
     loanerDetails: 'שלום! זה {name}. אנא תן לי הלוואה של {amount}. אני מתחייב להחזיר בריבית דריבית של {interest}% לשנה בתוך {days} ימים. כל תשלום הוא {installment} כל {frequency} ימים. ניתן ליצור איתי קשר ב-{phone}.',
@@ -219,6 +229,7 @@ const translations = {
     alertSuccessWithdraw2: 'אישור משיכה 2 נשלח.',
     alertSuccessWithdraw3: 'אישור משיכה 3 נשלח.',
     alertErrorGeneric: 'משהו השתבש.',
+    currencyUnavailable: 'מטבע המשתמש אינו זמין',
   },
   hi: {
     loanerDetails: 'नमस्ते! मैं {name} हूँ। कृपया मुझे {amount} उधार दें। मैं {days} दिनों में {interest}% वार्षिक चक्रवृद्धि ब्याज के साथ चुकाने का वादा करता हूँ। प्रत्येक किस्त {installment} है, हर {frequency} दिनों में। आप मुझसे {phone} पर संपर्क कर सकते हैं।',
@@ -239,6 +250,7 @@ const translations = {
     alertSuccessWithdraw2: 'निकासी पुष्टि 2 सबमिट की गई।',
     alertSuccessWithdraw3: 'निकासी पुष्टि 3 सबमिट की गई।',
     alertErrorGeneric: 'कुछ गलत हो गया।',
+    currencyUnavailable: 'उपयोगकर्ता की मुद्रा उपलब्ध नहीं है',
   },
   am: {
     loanerDetails: 'ሰላም! እኔ {name} ነኝ። እባክህ {amount} አበድልኝ። በ{days} ቀናት ውስጥ በዓመት {interest}% የተያያዘ የውህድ ወጪ እከፍላለሁ። እያንዳንዱ ክፍያ {installment} ነው ከ{frequency} ቀናት በኋላ። በ{phone} ማግኘት ትችላላችሁ።',
@@ -259,6 +271,7 @@ const translations = {
     alertSuccessWithdraw2: 'የመውጫ ማረጋገጫ 2 ተልኳል።',
     alertSuccessWithdraw3: 'የመውጫ ማረጋገጫ 3 ተልኳል።',
     alertErrorGeneric: 'ስህተት ተፈጥሯል።',
+    currencyUnavailable: 'የተጠቃሚው ገንዘብ አይገኝም',
   },
 };
 export default translations;

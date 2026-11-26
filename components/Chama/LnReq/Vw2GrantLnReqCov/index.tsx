@@ -12,7 +12,7 @@ import {
 import { getCurrentUser, fetchUserAttributes } from 'aws-amplify/auth';
 
 import React, {useEffect, useState} from 'react';
-import { formatAmountSync } from '../../../../src/utils/exchange';
+import { BASE_EXCHANGE_SYMBOL, countryToCurrency, formatAmountSync, getExRatesForNationality } from '../../../../src/utils/exchange';
 import { nationalityToCode } from '../../../../src/utils/nationalityToCode';
 import {useExchange} from '../../../../src/contexts/ExchangeContext';
 import { generateClient } from 'aws-amplify/api';  
@@ -71,10 +71,11 @@ const SMCvLnStts = (props: SMAccount) => {
   const SndChmMmbrMny2 = () => {
     safeNavigateFrom(navigation, 'DeclChamaReq', { id });
   };
-  const [Uzer, setUzer] = useState<string>(null);
   const [userNationality, setUserNationality] = useState<string>(null);
   const userCode = nationalityToCode(userNationality);
+  const currencyIso = userCode ? countryToCurrency[userCode] : undefined;
   const { ratesMap } = useExchange();
+  const [fallbackRate, setFallbackRate] = useState<{ buyingPrice: number; symbol?: string } | null>(null);
 
   // Translation wiring
   const { i18n } = useTranslation();
@@ -83,21 +84,82 @@ const SMCvLnStts = (props: SMAccount) => {
 
   useEffect(() => {
     const fetchUserData = async () => {
-      const user = await fetchUserAttributes();
-      setUzer(user.email);
       try {
+        const user = await fetchUserAttributes();
+        if (!user.email) throw new Error('Signed-in user email is unavailable');
         const userData: any = await client.graphql({
           query: getSMAccount,
           variables: { awsemail: user.email },
         });
-        setUserNationality(userData?.data?.getSMAccount?.nationality);
-        console.log('User Data:', userData);
+        const nationality = userData?.data?.getSMAccount?.nationality;
+        if (!nationality) throw new Error('Signed-in user nationality is unavailable');
+        setUserNationality(nationality);
       } catch (error) {
         console.error('Error fetching user data:', error);
       }
     };
     fetchUserData();
-  }, [Uzer]);
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+    const fetchFallbackRate = async () => {
+      if (!userNationality || currencyIso === 'CHF') {
+        if (active) setFallbackRate(null);
+        return;
+      }
+
+      const rateKeyCandidates = [userCode, currencyIso, userNationality].filter(Boolean) as string[];
+      const rate = ratesMap
+        ? Object.entries(ratesMap).find(([key]) =>
+            rateKeyCandidates.some(candidate => candidate.toUpperCase() === key.trim().toUpperCase())
+          )?.[1]
+        : undefined;
+      const mappedBuyingPrice = Number(rate?.buyingPrice);
+      if (Number.isFinite(mappedBuyingPrice) && mappedBuyingPrice > 0) {
+        if (active) setFallbackRate(null);
+        return;
+      }
+
+      try {
+        const fetchedRate = await getExRatesForNationality(userNationality);
+        const buyingPrice = Number(fetchedRate?.buyingPrice);
+        if (!fetchedRate || !Number.isFinite(buyingPrice) || buyingPrice <= 0) {
+          throw new Error(`No valid display rate for nationality "${userNationality}"`);
+        }
+        if (active) setFallbackRate({ buyingPrice, symbol: fetchedRate.symbol });
+      } catch (error) {
+        console.error('Failed to fetch signed-in user exchange rate:', error);
+        if (active) setFallbackRate(null);
+      }
+    };
+
+    fetchFallbackRate();
+    return () => {
+      active = false;
+    };
+  }, [userNationality, userCode, currencyIso, ratesMap]);
+
+  const formatUserMoney = (amount: number) => {
+    const chfAmount = Number(amount);
+    if (!Number.isFinite(chfAmount) || !userNationality) return t.currencyUnavailable;
+    if (currencyIso === 'CHF') return `${BASE_EXCHANGE_SYMBOL} ${chfAmount.toFixed(2)}`;
+
+    const rateKeyCandidates = [userCode, currencyIso, userNationality].filter(Boolean) as string[];
+    const rateEntry = ratesMap
+      ? Object.entries(ratesMap).find(([key]) =>
+          rateKeyCandidates.some(candidate => candidate.toUpperCase() === key.trim().toUpperCase())
+        )
+      : undefined;
+    const rate = rateEntry?.[1];
+    if (Number.isFinite(Number(rate?.buyingPrice)) && Number(rate?.buyingPrice) > 0) {
+      return formatAmountSync(chfAmount, rateEntry?.[0], ratesMap || undefined, currencyIso || BASE_EXCHANGE_SYMBOL);
+    }
+    if (fallbackRate) {
+      return `${fallbackRate.symbol || currencyIso || userCode} ${(chfAmount * fallbackRate.buyingPrice).toFixed(2)}`;
+    }
+    return t.currencyUnavailable;
+  };
 
   const FetchSign4 = async () => {
     const user = await getCurrentUser();
@@ -167,6 +229,11 @@ const SMCvLnStts = (props: SMAccount) => {
 
       const { signatory3, confirm1, confirm2 } = result.data.getReqLoanChama;
 
+      console.log('Signatory 3 email comparison:', {
+        signedInEmail: attributes.email,
+        loanSignatory3: signatory3,
+      });
+
       if (attributes.email !== signatory3) {
         Alert.alert('Error', t.alertErrorNotSignatory3);
       } else if (confirm1 !== 'YES') {
@@ -222,11 +289,11 @@ const SMCvLnStts = (props: SMAccount) => {
   // Interpolate variables into the translation string
   const loanerDetails = t.loanerDetails
     .replace('{name}', loaneeName)
-    .replace('{amount}', formatAmountSync(Math.floor(amount), userCode, ratesMap))
-    .replace('{interest}', formatAmountSync(Math.ceil(repaymentAmt), userCode, ratesMap))
-    .replace('{days}', repaymentPeriod)
-    .replace('{installment}', formatAmountSync(Math.ceil(installmentAmount), userCode, ratesMap))
-    .replace('{frequency}', formatAmountSync(Math.ceil(paymentFrequency), userCode, ratesMap))
+    .replace('{amount}', formatUserMoney(Number(amount)))
+    .replace('{interest}', String(repaymentAmt))
+    .replace('{days}', String(repaymentPeriod))
+    .replace('{installment}', formatUserMoney(Number(installmentAmount)))
+    .replace('{frequency}', String(paymentFrequency))
     .replace('{phone}', loaneePhone);
   const confirmation1 = t.confirmation1.replace('{confirm1}', confirm1);
   const confirmation2 = t.confirmation2.replace('{confirm2}', confirm2);

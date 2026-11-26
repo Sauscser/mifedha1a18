@@ -17,9 +17,9 @@ import {
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { generateClient } from 'aws-amplify/api';
-import { getCurrentUser, fetchUserAttributes } from 'aws-amplify/auth';
+import { fetchUserAttributes } from 'aws-amplify/auth';
 import { useExchange } from '../../../src/contexts/ExchangeContext';
-import { formatAmountSync } from '../../../src/utils/exchange';
+import { BASE_EXCHANGE_SYMBOL, countryToCurrency, formatAmountSync, getExRatesForNationality } from '../../../src/utils/exchange';
 import { getUrl } from '@aws-amplify/storage';
 import ImageViewer from 'react-native-image-zoom-viewer';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -38,6 +38,7 @@ import {
   listMinuteItemsByMinutes,
   listAttendanceByMinutes,
   listChamaMinutes,
+  getSMAccount,
 } from '../../../src/graphql/queries';
 import { createMessages, sendNotification, updateReqLoanChama } from '../../../src/graphql/mutations';
 
@@ -58,11 +59,24 @@ const AdminClearLoans = () => {
   const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
   const t = translations[lang] || translations.en;
   const client = generateClient();
-  const { nationality, ratesMap } = useExchange();
-  // Currency pattern: always use nationalityToCode for currency key
-  const userCurrencyKey = nationalityToCode(nationality);
-  // Helper for all money display
-  const formatMoney = (amount: number) => formatAmountSync(Number(amount || 0), userCurrencyKey, ratesMap);
+  const { ratesMap } = useExchange();
+  const [adminNationality, setAdminNationality] = useState<string | null>(null);
+  const [adminFallbackRate, setAdminFallbackRate] = useState<{ buyingPrice: number; symbol?: string } | null>(null);
+  const adminCountryCode = nationalityToCode(adminNationality);
+  const adminCurrencyIso = adminCountryCode ? countryToCurrency[adminCountryCode] : undefined;
+  const adminRate = ratesMap?.[adminCountryCode || ''] || ratesMap?.[adminCurrencyIso || ''] ||
+    ratesMap?.[adminNationality || ''];
+  const formatMoney = (amount: number) => {
+    const chfAmount = Number(amount || 0);
+    if (adminCurrencyIso === 'CHF') return `${BASE_EXCHANGE_SYMBOL} ${chfAmount.toFixed(2)}`;
+    if (adminRate && Number.isFinite(Number(adminRate.buyingPrice)) && Number(adminRate.buyingPrice) > 0) {
+      return formatAmountSync(chfAmount, adminCountryCode || adminNationality || undefined, ratesMap || undefined);
+    }
+    if (adminFallbackRate) {
+      return `${adminFallbackRate.symbol || adminCurrencyIso || adminCountryCode} ${(chfAmount * adminFallbackRate.buyingPrice).toFixed(2)}`;
+    }
+    return t.currencyUnavailable;
+  };
 
   // Groups
   const [adminGroups, setAdminGroups] = useState<any[]>([]);
@@ -110,9 +124,16 @@ const AdminClearLoans = () => {
   useEffect(() => {
     const fetchAdminGroups = async () => {
       try {
-        const user = await getCurrentUser();
         const attributes = await fetchUserAttributes();
         const email = attributes?.email;
+        if (!email) throw new Error('Signed-in admin email is unavailable');
+        const accountRes: any = await client.graphql({
+          query: getSMAccount,
+          variables: { awsemail: email }
+        });
+        const signedInAdminNationality = accountRes?.data?.getSMAccount?.nationality;
+        if (!signedInAdminNationality) throw new Error('Signed-in admin nationality is unavailable');
+        setAdminNationality(signedInAdminNationality);
         const res: any = await client.graphql({ query: listGroups, variables: { filter: { BankAdminEmail: { eq: email } } } });
         setAdminGroups(res?.data?.listGroups?.items || []);
       } catch (err) {
@@ -122,6 +143,33 @@ const AdminClearLoans = () => {
     };
     fetchAdminGroups();
   }, []);
+
+  useEffect(() => {
+    let active = true;
+    const fetchAdminCurrencyRate = async () => {
+      if (!adminNationality || adminCurrencyIso === 'CHF' || adminRate) {
+        if (active) setAdminFallbackRate(null);
+        return;
+      }
+
+      try {
+        const rate = await getExRatesForNationality(adminNationality);
+        const buyingPrice = Number(rate?.buyingPrice);
+        if (!rate || !Number.isFinite(buyingPrice) || buyingPrice <= 0) {
+          throw new Error(`No valid display rate for admin nationality "${adminNationality}"`);
+        }
+        if (active) setAdminFallbackRate({ buyingPrice, symbol: rate.symbol });
+      } catch (err) {
+        console.error('Failed to load signed-in admin currency rate', err);
+        if (active) setAdminFallbackRate(null);
+      }
+    };
+
+    fetchAdminCurrencyRate();
+    return () => {
+      active = false;
+    };
+  }, [adminNationality, adminCurrencyIso, adminRate]);
 
   // Fetch loans + member names + group size
   const fetchLoans = async (groupContact: string) => {
@@ -134,7 +182,7 @@ const AdminClearLoans = () => {
       const members = membersRes?.data?.listChamaMembers?.items || [];
       setGroupSize(members.length);
 
-      const loansWithNames = loansRaw.map((loan: any) => {
+      const loansWithMembers = loansRaw.map((loan: any) => {
         const member = members.find((m: any) => m.memberContact === loan.loaneeEmail);
         return {
           ...loan,
@@ -142,7 +190,7 @@ const AdminClearLoans = () => {
         };
       });
 
-      setLoans(loansWithNames);
+      setLoans(loansWithMembers);
     } catch (err) {
       console.error(err);
       Alert.alert(t.errorTitle, t.failedToFetchLoansMessage);
@@ -580,13 +628,13 @@ return fullMinutes;
 
     <h2>Loan Summary</h2>
     <p><strong>Loanee:</strong> ${selectedLoan.loaneeName} (${selectedLoan.loaneeEmail})</p>
-    <p><strong>Amount:</strong> ${formatAmountSync(Number(selectedLoan.amount || 0), userCurrencyKey, ratesMap)}</p>
+    <p><strong>Amount:</strong> ${formatMoney(Number(selectedLoan.amount || 0))}</p>
     <p><strong>Status:</strong> ${selectedLoan.status}</p>
     <p><strong>Interest:</strong> ${selectedLoan.repaymentAmt}%</p>
     <p><strong>Repayment Period:</strong> ${selectedLoan.repaymentPeriod} days</p>
-    <p><strong>Installment:</strong> ${formatAmountSync(Number(selectedLoan.installmentAmount || 0), userCurrencyKey, ratesMap)}</p>
+    <p><strong>Installment:</strong> ${formatMoney(Number(selectedLoan.installmentAmount || 0))}</p>
     <p><strong>Frequency:</strong> ${selectedLoan.paymentFrequency} days</p>
-    <p><strong>Default Penalty:</strong> ${selectedLoan.defaultPenalty}</p>
+    <p><strong>Default Penalty:</strong> ${formatMoney(Number(selectedLoan.defaultPenalty || 0))}</p>
     <p><strong>Description:</strong> ${selectedLoan.description || "-"}</p>
     <p><strong>Owner:</strong> ${selectedLoan.owner}</p>
     ${selectedLoan.AdvEmail && selectedLoan.AdvEmail !== 'None' ? `<p><strong>Advocate:</strong> ${selectedLoan.advLicNo}</p>` : ""}
@@ -598,24 +646,24 @@ return fullMinutes;
 
     <h2>Credit Score Breakdown</h2>
     <p><strong>Blended Score:</strong> ${creditInfo?.creditScore || 0}%</p>
-    <p>Group Balance: ${formatAmountSync(Number(creditInfo?.grpBal || 0), userCurrencyKey, ratesMap)}</p>
-    <p>Balance: ${formatAmountSync(Number(creditInfo?.balance || 0), userCurrencyKey, ratesMap)}</p>
-    <p>Benefits Amount: ${formatAmountSync(Number(creditInfo?.benefitsAmount || 0), userCurrencyKey, ratesMap)}</p>
-    <p>P2P Chama Benefits: ${formatAmountSync(Number(creditInfo?.p2pchmBenefits || 0), userCurrencyKey, ratesMap)}</p>
-    <p>Total Deposits (SM): ${formatAmountSync(Number(creditInfo?.ttlDpstSM || 0), userCurrencyKey, ratesMap)}</p>
+    <p>Group Balance: ${formatMoney(Number(creditInfo?.grpBal || 0))}</p>
+    <p>Balance: ${formatMoney(Number(creditInfo?.balance || 0))}</p>
+    <p>Benefits Amount: ${formatMoney(Number(creditInfo?.benefitsAmount || 0))}</p>
+    <p>P2P Chama Benefits: ${formatMoney(Number(creditInfo?.p2pchmBenefits || 0))}</p>
+    <p>Total Deposits (SM): ${formatMoney(Number(creditInfo?.ttlDpstSM || 0))}</p>
     <p>Max Times Borrowed Late: ${creditInfo?.MaxTymsBL}</p>
-    <p>Loans Issued (Group): ${formatAmountSync(Number(creditInfo?.amountGiven_group || 0), userCurrencyKey, ratesMap)}</p>
-    <p>Loans Issued (Global): ${formatAmountSync(Number(creditInfo?.amountGiven_global || 0), userCurrencyKey, ratesMap)}</p>
-    <p>Outstanding Balance (Group): ${formatAmountSync(Number(creditInfo?.lonBala_group || 0), userCurrencyKey, ratesMap)}</p>
-    <p>Outstanding Balance (Global): ${formatAmountSync(Number(creditInfo?.lonBala_global || 0), userCurrencyKey, ratesMap)}</p>
-    <p>Amount Repaid (Group): ${formatAmountSync(Number(creditInfo?.amountRepaid_group || 0), userCurrencyKey, ratesMap)}</p>
-    <p>Amount Repaid (Global): ${formatAmountSync(Number(creditInfo?.amountRepaid_global || 0), userCurrencyKey, ratesMap)}</p>
-    <p>Non-Loan Support (Group): ${formatAmountSync(Number(creditInfo?.amountSent_group || 0), userCurrencyKey, ratesMap)}</p>
-    <p>Non-Loan Support (Global): ${formatAmountSync(Number(creditInfo?.amountSent_global || 0), userCurrencyKey, ratesMap)}</p>
-    <p>Contributions (Group): ${formatAmountSync(Number(creditInfo?.contriAmount_group || 0), userCurrencyKey, ratesMap)}</p>
-    <p>Contributions (Global): ${formatAmountSync(Number(creditInfo?.contriAmount_global || 0), userCurrencyKey, ratesMap)}</p>
-    <p>Group liquidity: ${formatAmountSync(Number(creditInfo?.L_group || 0), userCurrencyKey, ratesMap)}</p>
-    <p>Global Liquidity: ${formatAmountSync(Number(creditInfo?.L_global || 0), userCurrencyKey, ratesMap)}</p>
+    <p>Loans Issued (Group): ${formatMoney(Number(creditInfo?.amountGiven_group || 0))}</p>
+    <p>Loans Issued (Global): ${formatMoney(Number(creditInfo?.amountGiven_global || 0))}</p>
+    <p>Outstanding Balance (Group): ${formatMoney(Number(creditInfo?.lonBala_group || 0))}</p>
+    <p>Outstanding Balance (Global): ${formatMoney(Number(creditInfo?.lonBala_global || 0))}</p>
+    <p>Amount Repaid (Group): ${formatMoney(Number(creditInfo?.amountRepaid_group || 0))}</p>
+    <p>Amount Repaid (Global): ${formatMoney(Number(creditInfo?.amountRepaid_global || 0))}</p>
+    <p>Non-Loan Support (Group): ${formatMoney(Number(creditInfo?.amountSent_group || 0))}</p>
+    <p>Non-Loan Support (Global): ${formatMoney(Number(creditInfo?.amountSent_global || 0))}</p>
+    <p>Contributions (Group): ${formatMoney(Number(creditInfo?.contriAmount_group || 0))}</p>
+    <p>Contributions (Global): ${formatMoney(Number(creditInfo?.contriAmount_global || 0))}</p>
+    <p>Group liquidity: ${formatMoney(Number(creditInfo?.L_group || 0))}</p>
+    <p>Global Liquidity: ${formatMoney(Number(creditInfo?.L_global || 0))}</p>
     <p>Group Exposure Ratio: ${creditInfo?.E_group}</p>
     <p>Global Exposure ratio: ${creditInfo?.E_global}</p>
     <p>Group repayment strength: ${creditInfo?.R_group}</p>
@@ -783,7 +831,7 @@ ${minutes ? `
         return (
           <View key={loan.id} style={styles.card}>
             <Text style={{ fontWeight: '700', fontSize: 16, marginBottom: 4 }}>{t.loanee}: {loan.loaneeName}</Text>
-            <Text style={styles.amount}>{formatAmountSync(Number(loan.amount || 0), userCurrencyKey, ratesMap)}</Text>
+            <Text style={styles.amount}>{formatMoney(Number(loan.amount || 0))}</Text>
             <Text style={styles.purpose}>{loan.description || t.noDescription}</Text>
 
             <View style={styles.row}>
@@ -796,7 +844,7 @@ ${minutes ? `
             </View>
             <View style={styles.row}>
               <Text style={styles.detail}>{t.installment}:</Text>
-              <Text style={styles.value}>{formatAmountSync(Number(loan.installmentAmount || 0), userCurrencyKey, ratesMap)}</Text>
+              <Text style={styles.value}>{formatMoney(Number(loan.installmentAmount || 0))}</Text>
             </View>
             <View style={styles.row}>
               <Text style={styles.detail}>{t.installmentFrequency}:</Text>
@@ -804,7 +852,7 @@ ${minutes ? `
             </View>
             <View style={styles.row}>
               <Text style={styles.detail}>{t.defaultPenalty}:</Text>
-              <Text style={styles.value}>{loan.defaultPenalty}</Text>
+              <Text style={styles.value}>{formatMoney(Number(loan.defaultPenalty || 0))}</Text>
             </View>
             {loan.AdvEmail && loan.AdvEmail !== 'None' && <Text style={styles.advocate}>{t.advocate}: {loan.advLicNo}</Text>}
 

@@ -282,7 +282,7 @@ const CreateChama = (props: UserReg) => {
     if (!confirmed) return;
     setIsLoading(true);
     try {
-      if (!MmbaID || !ChmNm || !Sign2Phn || !Sign3Phn || !loanApprovalThreshHold || !pword || !SubFreq || !SubAmt || !lateSub || !ventures || !ChmDesc) {
+      if (!MmbaID || !ChmNm || !Sign2Phn.trim() || !Sign3Phn.trim() || !loanApprovalThreshHold || !pword || !SubFreq || !SubAmt || !lateSub || !ventures || !ChmDesc) {
         setIsLoading(false);
         Alert.alert(t.missingRequired || 'Missing required fields');
         return;
@@ -319,9 +319,35 @@ const CreateChama = (props: UserReg) => {
       const sign2Res: any = await client.graphql({
         query: getSMAccount,
         variables: {
-          awsemail: Sign2Phn
+          awsemail: Sign2Phn.trim()
         }
       });
+      const signatory2Account = sign2Res.data?.getSMAccount;
+      if (!signatory2Account?.awsemail) {
+        setIsLoading(false);
+        Alert.alert(
+          t.errorOccurred || 'Error',
+          (t.signatoryAccountNotFound || 'No NiSenti account was found for {email}. Ask the signatory to create an account first.')
+            .replace('{email}', Sign2Phn.trim())
+        );
+        return;
+      }
+      const sign3Res: any = await client.graphql({
+        query: getSMAccount,
+        variables: {
+          awsemail: Sign3Phn.trim()
+        }
+      });
+      const signatory3Account = sign3Res.data?.getSMAccount;
+      if (!signatory3Account?.awsemail) {
+        setIsLoading(false);
+        Alert.alert(
+          t.errorOccurred || 'Error',
+          (t.signatoryAccountNotFound || 'No NiSenti account was found for {email}. Ask the signatory to create an account first.')
+            .replace('{email}', Sign3Phn.trim())
+        );
+        return;
+      }
       const compRes: any = await client.graphql({
         query: getCompany,
         variables: {
@@ -362,10 +388,10 @@ const CreateChama = (props: UserReg) => {
             signitoryName: namess,
             grpName: ChmNm,
             signitoryPW: pword,
-            signitory2Sub: Sign2Phn,
-            signatory2Email: Sign2Phn,
-            Signatory3Email: Sign3Phn,
-            signitory3Sub2: Sign3Phn,
+            signitory2Sub: signatory2Account.awsemail,
+            signatory2Email: signatory2Account.awsemail,
+            Signatory3Email: signatory3Account.awsemail,
+            signitory3Sub2: signatory3Account.awsemail,
             WithdrawCnfrmtn2: 'NO',
             WithdrawCnfrmtnAmt2: 0,
             WithdrawCnfrmtn: 'NO',

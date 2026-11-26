@@ -95,6 +95,9 @@ const ChmCovLns = () => {
         awsemail: attributes.email
       });
       setUserNationality(senderAccount?.nationality || null);
+      const senderCurrencyKey =
+        nationalityToCode(senderAccount?.nationality) || senderAccount?.nationality || 'KE';
+      const formatSenderMoney = (amt: number) => formatAmountSync(amt || 0, senderCurrencyKey, ratesMap);
       if (state.SnderPW !== senderAccount.pw) {
         Alert.alert(t.alerts.wrongPassword);
         setField('isLoading', false);
@@ -374,10 +377,10 @@ const ChmCovLns = () => {
       // Feedback to sender using translations
       const senderSuccessMsg = advLicNo !== 'None'
         ? t.alerts.successWithAdv
-            .replace('{{transFee}}', formatRecipientMoney(transFee))
-            .replace('{{advFee}}', formatRecipientMoney(ttlCovFeeAmount * parseFloat(company.AdvCom)))
+            .replace('{{transFee}}', formatSenderMoney(transFee))
+            .replace('{{advFee}}', formatSenderMoney(ttlCovFeeAmount * parseFloat(company.AdvCom)))
         : t.alerts.successNoAdv
-            .replace('{{transFee}}', formatRecipientMoney(transFee));
+            .replace('{{transFee}}', formatSenderMoney(transFee));
       Alert.alert(t.labels.header, senderSuccessMsg);
       setField('amount', '');
       setField('AmtExp', '');
