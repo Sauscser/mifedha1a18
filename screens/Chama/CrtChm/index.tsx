@@ -246,24 +246,31 @@ const CreateChama = (props: UserReg) => {
     // Convert amounts to KES first, ensure valid numbers (async)
     const subAmtForeign = parseAmountInput(SubAmt);
     const lateSubForeign = parseAmountInput(lateSub);
-    const loanThresholdForeign = parseAmountInput(loanApprovalThreshHold);
-    if (!subAmtForeign || !lateSubForeign || !loanThresholdForeign) {
+    const loanThresholdPercent = Number(loanApprovalThreshHold.trim());
+    if (!subAmtForeign || !lateSubForeign) {
       Alert.alert('Missing or invalid amounts', 'Please enter valid values for subscription amount, late penalty, and threshold.');
+      return;
+    }
+    if (
+      !loanApprovalThreshHold.trim() ||
+      !Number.isFinite(loanThresholdPercent) ||
+      loanThresholdPercent < 0 ||
+      loanThresholdPercent > 100
+    ) {
+      Alert.alert(t.invalidLoanThreshold);
       return;
     }
     let subAmtInKES = await convertForeignToKsh(subAmtForeign, userCurrencyKey);
     let lateSubInKES = await convertForeignToKsh(lateSubForeign, userCurrencyKey);
-    let loanThresholdInKES = await convertForeignToKsh(loanThresholdForeign, userCurrencyKey);
     subAmtInKES = typeof subAmtInKES === 'number' && !isNaN(subAmtInKES) ? subAmtInKES : 0;
     lateSubInKES = typeof lateSubInKES === 'number' && !isNaN(lateSubInKES) ? lateSubInKES : 0;
-    loanThresholdInKES = typeof loanThresholdInKES === 'number' && !isNaN(loanThresholdInKES) ? loanThresholdInKES : 0;
     // Confirmation prompt
     console.log('About to show confirmation Alert');
     const confirmed = await new Promise<boolean>((resolve) => {
       setTimeout(() => {
         Alert.alert(
           tConfirmGroupCreation,
-          `${tSubscriptionAmount}: ${formatAmountSync(subAmtInKES, userCurrencyKey, ratesMap)}\n${tLatePenalty}: ${formatAmountSync(lateSubInKES, userCurrencyKey, ratesMap)}\n${tLoanThreshold}: ${formatAmountSync(loanThresholdInKES, userCurrencyKey, ratesMap)}\n\n${tProceed}`,
+          `${tSubscriptionAmount}: ${formatAmountSync(subAmtInKES, userCurrencyKey, ratesMap)}\n${tLatePenalty}: ${formatAmountSync(lateSubInKES, userCurrencyKey, ratesMap)}\n${tLoanThreshold}: ${loanThresholdPercent}%\n\n${tProceed}`,
           [
             { text: tCancel, style: 'cancel', onPress: () => { console.log('User cancelled'); resolve(false); } },
             { text: tConfirm, onPress: () => { console.log('User confirmed'); resolve(true); } }
@@ -427,7 +434,7 @@ const CreateChama = (props: UserReg) => {
             status: 'AccountActive',
             owner: userInfo.userId,
             chamaBenSync: 0,
-            loanApprovalThreshHold: loanThresholdInKES.toFixed(0),
+            loanApprovalThreshHold: loanThresholdPercent,
             chairSign: chairSignKey ? chairSignKey : 'NoChairSignUploaded',
             secSign: secSignKey ? secSignKey : 'NoSecSignUploaded'
           }

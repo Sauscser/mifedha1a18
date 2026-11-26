@@ -50,6 +50,24 @@ const unique = (items: (string | undefined | null)[]) => {
   return Array.from(set);
 };
 
+const parseExchangeRate = (rates: {
+  sellingPrice?: unknown;
+  buyingPrice?: unknown;
+  symbol?: unknown;
+} | null | undefined) => {
+  const sellingPrice = Number(rates?.sellingPrice);
+  const buyingPrice = Number(rates?.buyingPrice);
+  if (!Number.isFinite(sellingPrice) || sellingPrice <= 0 ||
+      !Number.isFinite(buyingPrice) || buyingPrice <= 0) {
+    return null;
+  }
+  return {
+    sellingPrice,
+    buyingPrice,
+    symbol: typeof rates?.symbol === 'string' && rates.symbol ? rates.symbol : 'CHF'
+  };
+};
+
 const buildLookupCandidates = (raw: string) => {
   const key = raw.trim();
   const upper = key.toUpperCase();
@@ -107,17 +125,8 @@ export async function getExRatesForNationality(nationality: string): Promise<{ s
       });
       const rates = res?.data?.getExRates;
       if (rates) {
-        const sellingPrice = Number(rates.sellingPrice);
-        const buyingPrice = Number(rates.buyingPrice);
-        if (!Number.isFinite(sellingPrice) || sellingPrice <= 0
-          || !Number.isFinite(buyingPrice) || buyingPrice <= 0) {
-          continue;
-        }
-        return {
-          sellingPrice,
-          buyingPrice,
-          symbol: rates.symbol || 'Ksh'
-        };
+        const validRates = parseExchangeRate(rates);
+        if (validRates) return validRates;
       }
     }
 
@@ -127,34 +136,38 @@ export async function getExRatesForNationality(nationality: string): Promise<{ s
     const found = items.find((item: any) => {
       const curNorm = normalizeKey(String(item?.cur || ''));
       const symbolNorm = normalizeKey(String(item?.symbol || ''));
-      return normalizedCandidates.includes(curNorm) || normalizedCandidates.includes(symbolNorm);
+      return (normalizedCandidates.includes(curNorm) || normalizedCandidates.includes(symbolNorm)) &&
+        parseExchangeRate(item) !== null;
     });
 
     if (!found) return null;
-    const sellingPrice = Number(found.sellingPrice);
-    const buyingPrice = Number(found.buyingPrice);
-    if (!Number.isFinite(sellingPrice) || sellingPrice <= 0
-      || !Number.isFinite(buyingPrice) || buyingPrice <= 0) {
-      return null;
-    }
-    return {
-      sellingPrice,
-      buyingPrice,
-      symbol: found.symbol || 'Ksh'
-    };
+    return parseExchangeRate(found);
   } catch (e) {
     console.warn('getExRatesForNationality error', e);
     return null;
   }
 }
 
-// Backend values are already stored in the app's base currency. Only user-entered amounts should be converted.
-export async function convertKshToUserCurrency(amountKsh: number, nationality: string): Promise<number> {
+// Backend money values are CHF; use this only when a numeric UI value is needed.
+export async function convertCHFToUserCurrency(amountCHF: number, nationality: string): Promise<number> {
+  if (!Number.isFinite(amountCHF)) {
+    throw new Error('A finite CHF amount is required for conversion');
+  }
   const rates = await getExRatesForNationality(nationality);
-  if (!rates) return amountKsh; // fallback: treat as KSH
-  // For display: convert KES to user's currency using buyingPrice
-  // (what the user gets if they sell KES back to the bank)
-  return amountKsh * rates.buyingPrice;
+  if (!rates || !Number.isFinite(rates.buyingPrice) || rates.buyingPrice <= 0) {
+    throw new Error(`Missing valid CHF-to-user-currency rate for nationality "${nationality}"`);
+  }
+  return amountCHF * rates.buyingPrice;
+}
+
+// Legacy name retained for existing call sites; the stored base currency is CHF, not KES.
+export async function convertKshToUserCurrency(amountKsh: number, nationality: string): Promise<number> {
+  try {
+    return await convertCHFToUserCurrency(amountKsh, nationality);
+  } catch (e) {
+    console.warn('convertKshToUserCurrency error', e);
+    return amountKsh;
+  }
 }
 
 export async function formatAmountForUser(amountKsh: number, nationality?: string, symbolFallback = 'Ksh'): Promise<string> {
@@ -177,29 +190,53 @@ export async function formatAmountForUser(amountKsh: number, nationality?: strin
 export function formatAmountSync(amountKsh: number, nationality?: string, ratesMap?: Record<string, any>, symbolFallback = BASE_EXCHANGE_SYMBOL): string {
   try {
     if (!nationality || !ratesMap) return `${symbolFallback} ${amountKsh.toFixed(2)}`;
-    const r = ratesMap[nationality];
+    const trimmedNationality = nationality.trim();
+    const countryCode = nationalityToCode(trimmedNationality) ||
+      (trimmedNationality.length === 2 ? trimmedNationality.toUpperCase() : undefined);
+    const currencyIso = countryCode ? countryToCurrency[countryCode] : undefined;
+    const candidates = [trimmedNationality, countryCode, currencyIso].filter(Boolean) as string[];
+    const normalizedCandidates = candidates.map((candidate) => candidate.toUpperCase());
+    const rateKey = Object.keys(ratesMap).find((key) =>
+      normalizedCandidates.includes(key.trim().toUpperCase())
+    );
+    const r = rateKey ? ratesMap[rateKey] : undefined;
     if (!r) return `${symbolFallback} ${amountKsh.toFixed(2)}`;
     // Display: convert base CHF amount to user's home currency using buyingPrice
-    const converted = amountKsh * (parseFloat(String(r.buyingPrice)) || 1);
-    const symbol = r.symbol || symbolFallback;
+    const buyingPrice = Number(r.buyingPrice);
+    if (!Number.isFinite(buyingPrice) || buyingPrice <= 0) {
+      return `${symbolFallback} ${amountKsh.toFixed(2)}`;
+    }
+    const converted = amountKsh * buyingPrice;
+    const symbol = r.symbol || currencyIso || symbolFallback;
     return `${symbol} ${converted.toFixed(2)}`;
   } catch (e) {
     return `${symbolFallback} ${amountKsh.toFixed(2)}`;
   }
 }
 
-// Convert an amount in a foreign currency (identified by nationality) into Kenyan Shillings (KES)
-// For deposits: use sellingPrice (what the bank charges for the foreign currency = what it costs to acquire it)
-// sellingPrice = 1 KES in foreign currency => foreign = KES * sellingPrice
-// therefore KES = foreign / sellingPrice
+// Convert a user-entered amount into the CHF base currency used by backend records.
+export async function convertUserCurrencyToCHF(amountUserCurrency: number, nationality: string): Promise<number> {
+  if (!Number.isFinite(amountUserCurrency)) {
+    throw new Error('A finite user-currency amount is required for conversion');
+  }
+  if (!nationality) {
+    throw new Error('Nationality is required to convert user currency to CHF');
+  }
+
+  const rates = await getExRatesForNationality(nationality);
+  if (!rates || !Number.isFinite(rates.sellingPrice) || rates.sellingPrice <= 0) {
+    throw new Error(`Missing valid user-currency-to-CHF rate for nationality "${nationality}"`);
+  }
+
+  // Rate values are foreign-currency units per CHF, so divide to convert back to CHF.
+  return amountUserCurrency / rates.sellingPrice;
+}
+
+// Legacy name retained for existing call sites; this helper returns CHF, not KES.
 export async function convertForeignToKsh(amountForeign: number, nationality?: string): Promise<number> {
   try {
-    if (!nationality) return amountForeign; // assume already base currency if unknown
-    const rates = await getExRatesForNationality(nationality);
-    if (!rates || !rates.sellingPrice || Number(rates.sellingPrice) === 0) return amountForeign;
-    // Depositor sells foreign currency to app at sellingPrice rate
-    // CHF = foreign / sellingPrice
-    return amountForeign / rates.sellingPrice;
+    if (!nationality) return amountForeign;
+    return await convertUserCurrencyToCHF(amountForeign, nationality);
   } catch (e) {
     console.warn('convertForeignToKsh error', e);
     return amountForeign;

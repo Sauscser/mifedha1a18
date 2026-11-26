@@ -36,7 +36,7 @@ import { getUrl } from 'aws-amplify/storage';
 
 
 import { useExchange } from '../../../../src/contexts/ExchangeContext';
-import { convertForeignToKsh, formatAmountSync } from '../../../../src/utils/exchange';
+import { BASE_EXCHANGE_SYMBOL, convertUserCurrencyToCHF, formatAmountSync, getCurrencyIsoFromCountryCode } from '../../../../src/utils/exchange';
 import { nationalityToCode } from '../../../../src/utils/nationalityToCode';
 import { useTranslation } from 'react-i18next';
 import translations from './translation';
@@ -97,6 +97,7 @@ const CreateBiz = () => {
   const [totalRepay, setTotalRepay] = useState(0);
   const [totalInterest, setTotalInterest] = useState(0);
   const [totalFee, setTotalFee] = useState(0);
+  const [calculationError, setCalculationError] = useState(false);
 
   // --- Helper: Annual Compounding Reducing Balance ---
   // Calculate number of installments needed to pay off the loan
@@ -105,7 +106,7 @@ const CreateBiz = () => {
     // rate: annual interest in percent
     // installmentDays: days between installments
     // installment: amount per payment
-    if (!principal || !rate || !installment || !installmentDays) return { n: 0, totalRepay: 0, totalInterest: 0 };
+    if (!principal || !Number.isFinite(rate) || !installment || !installmentDays) return { n: 0, totalRepay: 0, totalInterest: 0 };
     const r = rate / 100;
     // Compounding: effective periodic rate for the interval
     const periodRate = Math.pow(1 + r, installmentDays / 365) - 1;
@@ -147,23 +148,50 @@ const CreateBiz = () => {
   const [calculatedInstallments, setCalculatedInstallments] = useState(0);
   const [calculatedRepaymentPeriod, setCalculatedRepaymentPeriod] = useState(0);
   useEffect(() => {
-    // All calculations in user currency
-    const principal = parseAmountInput(itemPrys);
-    const installment = parseAmountInput(InstAmt);
-    const installmentDays = parseInt(rpymntPrd) || 0;
-    const interest = parseFloat(appDetails?.loanInterest || '0');
-    // For company fees, use groupDetails?.company or groupDetails
+    const principalUserCurrency = parseAmountInput(itemPrys);
+    const installmentUserCurrency = parseAmountInput(InstAmt);
+    const installmentDays = Number(rpymntPrd);
+    const interest = Number(appDetails?.loanInterest || 0);
+    const currencyIso = userCurrencyKey ? getCurrencyIsoFromCountryCode(userCurrencyKey) : null;
+    const userRate = ratesMap?.[userCurrencyKey] ||
+      (currencyIso ? ratesMap?.[currencyIso] : undefined) ||
+      (userNationality ? ratesMap?.[userNationality] : undefined);
+    const sellingPrice = Number(userRate?.sellingPrice);
+
+    if (!principalUserCurrency || !installmentUserCurrency || !Number.isInteger(installmentDays) || installmentDays < 1) {
+      setTotalRepay(0);
+      setTotalInterest(0);
+      setTotalFee(0);
+      setCalculatedInstallments(0);
+      setCalculatedRepaymentPeriod(0);
+      setCalculationError(false);
+      return;
+    }
+
+    if (!Number.isFinite(sellingPrice) || sellingPrice <= 0) {
+      setTotalRepay(0);
+      setTotalInterest(0);
+      setTotalFee(0);
+      setCalculatedInstallments(0);
+      setCalculatedRepaymentPeriod(0);
+      setCalculationError(true);
+      return;
+    }
+
+    setCalculationError(false);
+    // Convert user input to CHF before financial calculations.
+    const principalCHF = principalUserCurrency / sellingPrice;
+    const installmentCHF = installmentUserCurrency / sellingPrice;
     const company = groupDetails;
     const advocateInvolved = !!Sign2Phn && Sign2Phn.trim() !== '' && Sign2Phn.trim().toLowerCase() !== 'none';
-    const { n, totalRepay, totalInterest } = calculateInstallments(principal, interest, installment, installmentDays);
-    // Transaction fee: compute in user currency (if company fees are in KES, you may need to convert, but for now assume user currency)
-    const fee = computeTransactionFee(principal, advocateInvolved, company); // If company fees are in KES, convertForeignToKsh(principal, userCurrencyKey) first
+    const { n, totalRepay, totalInterest } = calculateInstallments(principalCHF, interest, installmentCHF, installmentDays);
+    const feeCHF = computeTransactionFee(principalCHF, advocateInvolved, company);
     setTotalRepay(totalRepay);
     setTotalInterest(totalInterest);
-    setTotalFee(fee);
+    setTotalFee(feeCHF);
     setCalculatedInstallments(n);
     setCalculatedRepaymentPeriod(n * installmentDays);
-  }, [itemPrys, InstAmt, rpymntPrd, appDetails?.loanInterest, groupDetails, Sign2Phn]);
+  }, [itemPrys, InstAmt, rpymntPrd, appDetails?.loanInterest, groupDetails, Sign2Phn, userCurrencyKey, userNationality, ratesMap]);
 
   // Handle money input with 2-decimal enforcement
   const handleMoneyInput = (setter: (value: string) => void) => (value: string) => {
@@ -339,8 +367,8 @@ const CreateBiz = () => {
     if (isLoading) return;
     setIsLoading(true);
 
-    const attributes = await fetchUserAttributes();
     try {
+      const attributes = await fetchUserAttributes();
       // validation
       if (
         !itemPrys.trim() ||
@@ -353,15 +381,9 @@ const CreateBiz = () => {
         return;
       }
 
-      const defaultPenaltyAmount = Number(defaultPenalty);
-      if (!Number.isFinite(defaultPenaltyAmount) || defaultPenaltyAmount < 0) {
+      const defaultPenaltyUserAmount = parseAmountInput(defaultPenalty);
+      if (!Number.isFinite(defaultPenaltyUserAmount) || defaultPenaltyUserAmount < 0) {
         Alert.alert(t.fillAllFields);
-        return;
-      }
-
-      const installmentDays = Number(rpymntPrd);
-      if (!Number.isInteger(installmentDays) || installmentDays < 1) {
-        Alert.alert(t.enterRepaymentPeriod);
         return;
       }
 
@@ -379,6 +401,13 @@ const CreateBiz = () => {
       // validate password
       if (pword !== pws) {
         Alert.alert(t.wrongPassword);
+        return;
+      }
+
+      // validate installment interval
+      const installmentDays = Number(rpymntPrd);
+      if (!Number.isInteger(installmentDays) || installmentDays < 1) {
+        Alert.alert(t.enterRepaymentPeriod);
         return;
       }
 
@@ -423,17 +452,17 @@ const CreateBiz = () => {
       const Signatory3Email = grpDtls.Signatory3Email;
       const SignatoryEmail = grpDtls.SignatoryEmail;
 
-      // Convert amounts to KES
-      const loanAmountForeign = parseAmountInput(itemPrys);
-      const installmentAmtForeign = parseAmountInput(InstAmt);
-
-      const loanAmountInKES = await convertForeignToKsh(loanAmountForeign, userCurrencyKey);
-      const installmentAmtInKES = await convertForeignToKsh(installmentAmtForeign, userCurrencyKey);
+      // Convert user-entered money to CHF before comparing amounts or saving backend values.
+      const loanAmountCHF = await convertUserCurrencyToCHF(parseAmountInput(itemPrys), userCurrencyKey);
+      const installmentAmountCHF = await convertUserCurrencyToCHF(parseAmountInput(InstAmt), userCurrencyKey);
+      const defaultPenaltyCHF = await convertUserCurrencyToCHF(defaultPenaltyUserAmount, userCurrencyKey);
 
       // Confirmation prompt
       // Compute transaction fee and summary for confirmation dialog
-      const principal = parseAmountInput(itemPrys);
-      const installment = parseAmountInput(InstAmt);
+      const principalUserCurrency = parseAmountInput(itemPrys);
+      const installmentUserCurrency = parseAmountInput(InstAmt);
+      const principal = loanAmountCHF;
+      const installment = installmentAmountCHF;
       const company = groupDetails;
       const advocateInvolved = !!Sign2Phn && Sign2Phn.trim() !== '' && Sign2Phn.trim().toLowerCase() !== 'none';
       const { n, totalRepay, totalInterest } = calculateInstallments(principal, interest, installment, installmentDays);
@@ -443,12 +472,12 @@ const CreateBiz = () => {
       }
       const fee = computeTransactionFee(principal, advocateInvolved, company);
       const summary =
-        `${t.principalAmount || 'Principal'}: ${currencySymbol} ${principal.toFixed(2)}\n` +
-        `${t.installmentAmountPlaceholder || 'Installment'}: ${currencySymbol} ${installment.toFixed(2)}\n` +
+        `${t.principalAmount || 'Principal'}: ${currencySymbol} ${principalUserCurrency.toFixed(2)}\n` +
+        `${t.installmentAmountPlaceholder || 'Installment'}: ${currencySymbol} ${installmentUserCurrency.toFixed(2)}\n` +
         `${t.interestPerYear || 'Interest Rate'}: ${interest}%\n` +
-        `${t.totalRepayable || 'Total Repayable'}: ${currencySymbol} ${totalRepay.toFixed(2)}\n` +
-        `${t.totalInterest || 'Total Interest'}: ${currencySymbol} ${totalInterest.toFixed(2)}\n` +
-        `${t.totalTransactionFee || 'Total Transaction Fee'}: ${currencySymbol} ${fee.toFixed(2)}\n` +
+        `${t.totalRepayable || 'Total Repayable'}: ${formatAmountSync(totalRepay, userCurrencyKey, ratesMap, BASE_EXCHANGE_SYMBOL)}\n` +
+        `${t.totalInterest || 'Total Interest'}: ${formatAmountSync(totalInterest, userCurrencyKey, ratesMap, BASE_EXCHANGE_SYMBOL)}\n` +
+        `${t.totalTransactionFee || 'Total Transaction Fee'}: ${formatAmountSync(fee, userCurrencyKey, ratesMap, BASE_EXCHANGE_SYMBOL)}\n` +
         `${t.numberOfInstallments || 'Number of Installments'}: ${n}\n` +
         `${t.totalRepaymentDuration || 'Total Repayment Duration'}: ${n * installmentDays} ${(t.days || 'days')}`;
       const confirmed = await new Promise<boolean>((resolve) => {
@@ -496,7 +525,7 @@ const CreateBiz = () => {
             confirm1: "NO",
             confirm2: "NO",
             loaneePhone: phonecontacts,
-            amount: Math.round(loanAmountInKES).toString(),
+            amount: Math.round(loanAmountCHF).toString(),
             repaymentAmt: interest,
             repaymentPeriod: n * installmentDays,
             loaneeMemberId: MembaId,
@@ -509,8 +538,8 @@ const CreateBiz = () => {
             loanerName: grpName,
             loanerPhone: signitoryContact,
             description: ChmNm ? ChmNm : "No description",
-            defaultPenalty: defaultPenaltyAmount,
-            installmentAmount: Math.round(installmentAmtInKES).toString(),
+            defaultPenalty: defaultPenaltyCHF,
+            installmentAmount: Math.round(installmentAmountCHF).toString(),
             paymentFrequency: installmentDays,
             signatory2: signitory2Sub,
             signatory3: Signatory3Email,
@@ -653,15 +682,19 @@ const CreateBiz = () => {
 
           {/* Default Penalty */}
           <View style={styles.inputGroup}>
-            <TextInput
-              placeholder={t.defaultPenaltyPlaceholder}
-              placeholderTextColor="#333"
-              keyboardType="decimal-pad"
-              value={defaultPenalty}
-              onChangeText={setDefaultPenalty}
-              style={styles.input}
-            />
-            <Text style={styles.helperText}>{t.penaltyOnDefault}</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <Text style={{ marginRight: 6, fontWeight: 'bold', fontSize: 16 }}>{currencySymbol}</Text>
+              <TextInput
+                placeholder={t.defaultPenaltyPlaceholder}
+                placeholderTextColor="#333"
+                keyboardType="decimal-pad"
+                value={defaultPenalty}
+                onChangeText={handleMoneyInput(setDefaultPenalty)}
+                onBlur={() => formatMoneyOnBlur(defaultPenalty, setDefaultPenalty)}
+                style={[styles.input, { flex: 1 }]}
+              />
+            </View>
+            <Text style={styles.helperText}>{t.penaltyOnDefault} ({currencySymbol})</Text>
           </View>
 
           {/* Calculated Number of Installments (output only) */}
@@ -710,9 +743,10 @@ const CreateBiz = () => {
           {/* Dynamic Calculation Output */}
           <View style={{ marginTop: 18, marginBottom: 8 }}>
             <Text style={{ fontWeight: 'bold', fontSize: 16 }}>{t.calculationSummary || 'Calculation Summary'}</Text>
-            <Text>{t.totalRepayable || 'Total Repayable'}: {currencySymbol} {totalRepay.toFixed(2)}</Text>
-            <Text>{t.totalInterest || 'Total Interest'}: {currencySymbol} {totalInterest.toFixed(2)}</Text>
-            <Text>{t.totalTransactionFee || 'Total Transaction Fee'}: {currencySymbol} {totalFee.toFixed(2)}</Text>
+            <Text>{t.totalRepayable || 'Total Repayable'}: {formatAmountSync(totalRepay, userCurrencyKey, ratesMap, BASE_EXCHANGE_SYMBOL)}</Text>
+            <Text>{t.totalInterest || 'Total Interest'}: {formatAmountSync(totalInterest, userCurrencyKey, ratesMap, BASE_EXCHANGE_SYMBOL)}</Text>
+            <Text>{t.totalTransactionFee || 'Total Transaction Fee'}: {formatAmountSync(totalFee, userCurrencyKey, ratesMap, BASE_EXCHANGE_SYMBOL)}</Text>
+            {calculationError && <Text style={styles.helperText}>{t.errorSupport}</Text>}
             <Text>{t.interestPerYear || 'Interest Rate'}: {appDetails?.loanInterest || 0}%</Text>
             <Text>{t.numberOfInstallments || 'Number of Installments'}: {calculatedInstallments > 0 ? calculatedInstallments : '-'}</Text>
             <Text>{t.totalRepaymentDuration || 'Total Repayment Duration'}: {calculatedRepaymentPeriod > 0 ? calculatedRepaymentPeriod + ' ' + (t.days || 'days') : '-'}</Text>

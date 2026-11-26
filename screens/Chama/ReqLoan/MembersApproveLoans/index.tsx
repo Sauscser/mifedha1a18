@@ -2,22 +2,61 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet, ActivityIndicator, Alert, Modal, Image } from 'react-native';
 import translations from './translation';
 import { useExchange } from '../../../../src/contexts/ExchangeContext';
-import { formatAmountSync } from '../../../../src/utils/exchange';
+import {
+  BASE_EXCHANGE_SYMBOL,
+  countryToCurrency,
+  formatAmountSync,
+  getExRatesForNationality
+} from '../../../../src/utils/exchange';
 import { nationalityToCode } from '../../../../src/utils/nationalityToCode';
 import { useTranslation } from 'react-i18next';
 import { useRoute } from '@react-navigation/native';
 import { printAsync, printToFileAsync } from '../../../../src/utils/print';
 import { shareFile } from '../../../../src/utils/share';
-import { listReqLoanChamas, listChamaMembers, listChamaLnApprovals, listChamaMinutes, listMinuteItemsByMinutes, listAttendanceByMinutes } from '../../../../src/graphql/queries';
+import { getGroup, listReqLoanChamas, listChamaMembers, listChamaLnApprovals, listChamaMinutes, listMinuteItemsByMinutes, listAttendanceByMinutes } from '../../../../src/graphql/queries';
 import { createChamaLnApproval, updateReqLoanChama } from '../../../../src/graphql/mutations';
 import { generateClient } from 'aws-amplify/api';
 import { getUrl } from 'aws-amplify/storage';
 
 const client = generateClient();
 
+const normalizeRateKey = (value: string) => value.trim().toUpperCase();
+
+const resolveRateKey = (
+  nationality: string | null | undefined,
+  ratesMap?: Record<string, any>
+): string | undefined => {
+  if (!nationality || !ratesMap) return undefined;
+
+  const trimmed = nationality.trim();
+  const countryCode = nationalityToCode(trimmed) ||
+    (trimmed.length === 2 ? trimmed.toUpperCase() : undefined);
+  const currencyIso = countryCode ? countryToCurrency[countryCode] : undefined;
+  const candidates = [trimmed, trimmed.toUpperCase(), countryCode, currencyIso]
+    .filter(Boolean) as string[];
+
+  for (const candidate of candidates) {
+    if (ratesMap[candidate]) return candidate;
+  }
+
+  const normalizedRates = Object.keys(ratesMap).reduce<Record<string, string>>((acc, key) => {
+    acc[normalizeRateKey(key)] = key;
+    return acc;
+  }, {});
+
+  for (const candidate of candidates) {
+    const resolved = normalizedRates[normalizeRateKey(candidate)];
+    if (resolved) return resolved;
+  }
+
+  return undefined;
+};
+
 const FloatedLoansList = () => {
   const { nationality, ratesMap } = useExchange();
-  const userCurrencyKey = nationalityToCode(nationality);
+  const [resolvedRate, setResolvedRate] = useState<{ buyingPrice: number; symbol?: string } | null>(null);
+  const displayNationality = nationality || undefined;
+  const rateKey = resolveRateKey(displayNationality, ratesMap || undefined);
   const { i18n } = useTranslation();
   const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
   const t = translations[lang] || translations.en;
@@ -31,6 +70,7 @@ const FloatedLoansList = () => {
   const [loans, setLoans] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [groupSize, setGroupSize] = useState(0);
+  const [approvalThreshold, setApprovalThreshold] = useState<number | null>(null);
   const [approvalsMap, setApprovalsMap] = useState<Record<string, any[]>>({});
   const [selectedMinutes, setSelectedMinutes] = useState<any | null>(null);
   const [loadingMinutes, setLoadingMinutes] = useState(false);
@@ -44,6 +84,19 @@ const FloatedLoansList = () => {
       }
     });
     setGroupSize(res.data.listChamaMembers.items.length);
+  };
+
+  const fetchApprovalThreshold = async () => {
+    try {
+      const res: any = await client.graphql({
+        query: getGroup,
+        variables: { grpContact: groupContact }
+      });
+      const threshold = Number(res?.data?.getGroup?.loanApprovalThreshHold);
+      setApprovalThreshold(Number.isFinite(threshold) && threshold > 0 && threshold <= 100 ? threshold : null);
+    } catch {
+      Alert.alert(t.error, t.failedFetchGroup);
+    }
   };
 
   /* ---------------- FETCH LOANS ---------------- */
@@ -65,6 +118,50 @@ const FloatedLoansList = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  useEffect(() => {
+    let mounted = true;
+
+    const fetchFallbackRate = async () => {
+      if (!displayNationality || rateKey) {
+        if (mounted) setResolvedRate(null);
+        return;
+      }
+
+      try {
+        const rate = await getExRatesForNationality(displayNationality);
+        if (mounted && rate) {
+          setResolvedRate({
+            buyingPrice: Number(rate.buyingPrice || 1),
+            symbol: rate.symbol
+          });
+        } else if (mounted) {
+          setResolvedRate(null);
+        }
+      } catch {
+        if (mounted) setResolvedRate(null);
+      }
+    };
+
+    fetchFallbackRate();
+    return () => {
+      mounted = false;
+    };
+  }, [displayNationality, rateKey]);
+
+  const formatDisplayAmount = (amount: number) => {
+    if (rateKey && ratesMap) {
+      return formatAmountSync(amount, rateKey, ratesMap);
+    }
+
+    if (resolvedRate) {
+      const converted = amount * (Number(resolvedRate.buyingPrice) || 1);
+      const symbol = resolvedRate.symbol || BASE_EXCHANGE_SYMBOL;
+      return `${symbol} ${converted.toFixed(2)}`;
+    }
+
+    return `${BASE_EXCHANGE_SYMBOL} ${amount.toFixed(2)}`;
   };
 
   /* ---------------- FETCH APPROVALS ---------------- */
@@ -216,6 +313,7 @@ const FloatedLoansList = () => {
   /* ---------------- EFFECTS ---------------- */
   useEffect(() => {
     fetchGroupSize();
+    fetchApprovalThreshold();
     fetchLoans();
   }, []);
   useEffect(() => {
@@ -233,11 +331,12 @@ const FloatedLoansList = () => {
         const approvals = approvalsMap[loan.id] || [];
         const approved = approvals.length;
         const percent = groupSize > 0 ? Math.round(approved / groupSize * 100) : 0;
+        const thresholdMet = approvalThreshold !== null && percent >= approvalThreshold;
         const alreadyApproved = approvals.some(a => a.MemberEmail === memberEmail);
         return (
                     <View key={loan.id} style={styles.card}>
             <Text style={styles.amount}>
-              {formatAmountSync(Number(loan.amount), userCurrencyKey, ratesMap)}
+              {formatDisplayAmount(Number(loan.amount))}
             </Text>
 
             <Text style={styles.amount}>
@@ -261,7 +360,7 @@ const FloatedLoansList = () => {
             <View style={styles.row}>
               <Text style={styles.detail}>{t.installment}</Text>
               <Text style={styles.value}>
-                {formatAmountSync(Number(loan.installmentAmount), userCurrencyKey, ratesMap)}
+                {formatDisplayAmount(Number(loan.installmentAmount))}
               </Text>
             </View>
 
@@ -272,7 +371,9 @@ const FloatedLoansList = () => {
 
             <View style={styles.row}>
               <Text style={styles.detail}>{t.defaultPenalty}</Text>
-              <Text style={styles.value}>{loan.defaultPenalty}</Text>
+              <Text style={styles.value}>
+                {formatDisplayAmount(Number(loan.defaultPenalty))}
+              </Text>
             </View>
 
             {loan.AdvEmail !== 'None' && (
@@ -283,8 +384,11 @@ const FloatedLoansList = () => {
             <Text style={styles.approvalText}>
               {approved}/{groupSize} {t.approvals} ({percent}%)
             </Text>
+            <Text style={styles.approvalText}>
+              {t.required}: {approvalThreshold === null ? t.thresholdUnavailable : `${approvalThreshold}%`}
+            </Text>
             <View style={styles.progressBg}>
-              <View style={[styles.progressFill, { width: `${percent}%` }]} />
+              <View style={[styles.progressFill, thresholdMet && styles.progressFillThresholdMet, { width: `${percent}%` }]} />
             </View>
 
             {/* Approve button */}
@@ -480,6 +584,9 @@ const styles = StyleSheet.create({
   progressFill: {
     height: '100%',
     backgroundColor: '#22c55e',
+  },
+  progressFillThresholdMet: {
+    backgroundColor: 'skyblue',
   },
   approveBtn: {
     backgroundColor: '#e58d29',
