@@ -27,6 +27,7 @@ import { getCurrentUser, fetchUserAttributes } from 'aws-amplify/auth';
 import { uploadData, getUrl } from 'aws-amplify/storage';
 import translations from './translation';
 import { useTranslation } from 'react-i18next';
+import { Ionicons } from '@expo/vector-icons';
 
 const client = generateClient();
 const MAX_IMAGE_SIZE_MB = 5;
@@ -183,6 +184,8 @@ const ViewMinutesModal = ({ visible, onClose, grpContact, onSelect }) => {
  *  ===================== */
 const CreateBiz = () => {
   const [pword, setPW] = useState('');
+  const [loanInterest, setLoanInterest] = useState('');
+  const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [grpMinutes, setGrpMinutes] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [minutesFileKey, setMinutesFileKey] = useState<string | null>(null);
@@ -226,6 +229,13 @@ const CreateBiz = () => {
   /** SUBMIT LOGIC **/
   const gtUser = async () => {
     if (isLoading) return;
+
+    const interest = Number(loanInterest);
+    if (loanInterest.trim() === '' || !Number.isFinite(interest) || interest < 0) {
+      Alert.alert(t.error, t.enterLoanInterest || 'Enter a valid annual loan interest rate');
+      return;
+    }
+
     setIsLoading(true);
     try {
       const user = await getCurrentUser();
@@ -262,6 +272,7 @@ const CreateBiz = () => {
             GrpAccount: GrpDtls.grpContact,
             MemberEmail: minutesFileKey ? minutesFileKey : 'NoMinutesUploaded',
             grpMinutes: grpMinutes ? grpMinutes : 'NoMinutesProvided',
+            loanInterest: interest,
             status: 'AccountActive'
           }
         }
@@ -269,6 +280,8 @@ const CreateBiz = () => {
 
       Alert.alert(t.success, t.loanFloatedSuccessfully);
       setPW('');
+      setLoanInterest('');
+      setIsPasswordVisible(false);
       setGrpMinutes(null);
       clearMinutesFile();
     } catch (e) {
@@ -314,16 +327,48 @@ const CreateBiz = () => {
             <Text style={styles.helperText}>Loan Minutes</Text>
           </View>
 
-          {/* PASSWORD */}
+          {/* LOAN INTEREST */}
           <View style={styles.inputGroup}>
             <TextInput
-              placeholder={t.userPassword}
+              placeholder={t.loanInterestPlaceholder || 'Annual Loan Interest (%)'}
               placeholderTextColor="#333"
-              secureTextEntry
-              value={pword}
-              onChangeText={setPW}
+              value={loanInterest}
+              onChangeText={setLoanInterest}
+              keyboardType="decimal-pad"
               style={styles.input}
+              accessibilityLabel={t.loanInterestPlaceholder || 'Annual Loan Interest'}
             />
+            <Text style={styles.helperText}>
+              {t.loanInterestHelper || 'Enter the annual interest rate, for example 1, 2 or 15'}
+            </Text>
+          </View>
+
+          {/* PASSWORD */}
+          <View style={styles.inputGroup}>
+            <View style={styles.passwordContainer}>
+              <TextInput
+                placeholder={t.userPassword}
+                placeholderTextColor="#333"
+                secureTextEntry={!isPasswordVisible}
+                value={pword}
+                onChangeText={setPW}
+                style={styles.passwordInput}
+                autoCapitalize="none"
+                accessibilityLabel={t.enterMainAccountPassword}
+              />
+              <TouchableOpacity
+                onPress={() => setIsPasswordVisible((visible) => !visible)}
+                style={styles.passwordToggle}
+                accessibilityRole="button"
+                accessibilityLabel={isPasswordVisible ? 'Hide password' : 'Show password'}
+              >
+                <Ionicons
+                  name={isPasswordVisible ? 'eye-off' : 'eye'}
+                  size={22}
+                  color="#385466"
+                />
+              </TouchableOpacity>
+            </View>
             <Text style={styles.helperText}>{t.enterMainAccountPassword}</Text>
           </View>
 
@@ -447,6 +492,25 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#e5e7eb',
     color: '#111827'
+  },
+  passwordContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f9fafb',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#e5e7eb'
+  },
+  passwordInput: {
+    flex: 1,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    fontSize: 15,
+    color: '#111827'
+  },
+  passwordToggle: {
+    paddingHorizontal: 14,
+    paddingVertical: 12
   },
   helperText: {
     fontSize: 12,

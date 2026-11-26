@@ -31,6 +31,9 @@ const translations = {
     attachOrUploadMinutes: 'Please either attach minutes or upload a minutes image',
     success: 'Success',
     loanFloatedSuccessfully: 'Loan floated successfully.',
+    loanInterestPlaceholder: 'Annual Loan Interest (%)',
+    loanInterestHelper: 'Enter the annual interest rate, for example 1, 2 or 15',
+    enterLoanInterest: 'Enter a valid annual loan interest rate',
     retryOrUpdateApp: 'Retry or update app or call customer care'
   },
   sw: {
@@ -64,6 +67,9 @@ const translations = {
     attachOrUploadMinutes: 'Tafadhali ambatisha au pakia picha ya muhtasari',
     success: 'Mafanikio',
     loanFloatedSuccessfully: 'Mkopo umetolewa kwa mafanikio.',
+    loanInterestPlaceholder: 'Kiwango cha Riba cha Mwaka (%)',
+    loanInterestHelper: 'Weka kiwango cha riba cha mwaka, kwa mfano 1, 2 au 15',
+    enterLoanInterest: 'Weka kiwango sahihi cha riba ya mkopo cha mwaka',
     retryOrUpdateApp: 'Jaribu tena au sasisha programu au wasiliana na huduma kwa wateja'
   },
   fr: {
@@ -97,6 +103,9 @@ const translations = {
     attachOrUploadMinutes: 'Veuillez joindre ou télécharger un procès-verbal',
     success: 'Succès',
     loanFloatedSuccessfully: 'Prêt octroyé avec succès.',
+    loanInterestPlaceholder: 'Taux annuel du prêt (%)',
+    loanInterestHelper: 'Entrez le taux d’intérêt annuel, par exemple 1, 2 ou 15',
+    enterLoanInterest: 'Entrez un taux d’intérêt annuel valide',
     retryOrUpdateApp: 'Réessayez, mettez à jour l’application ou contactez le service client'
   },
   ar: {
@@ -130,6 +139,9 @@ const translations = {
     attachOrUploadMinutes: 'يرجى إرفاق أو تحميل صورة المحضر',
     success: 'نجاح',
     loanFloatedSuccessfully: 'تم صرف القرض بنجاح.',
+    loanInterestPlaceholder: 'فائدة القرض السنوية (%)',
+    loanInterestHelper: 'أدخل معدل الفائدة السنوي، مثل 1 أو 2 أو 15',
+    enterLoanInterest: 'أدخل معدل فائدة سنوي صحيحا للقرض',
     retryOrUpdateApp: 'أعد المحاولة أو قم بتحديث التطبيق أو اتصل بخدمة العملاء'
   },
   ru: {
@@ -163,6 +175,9 @@ const translations = {
     attachOrUploadMinutes: 'Пожалуйста, прикрепите или загрузите изображение протокола',
     success: 'Успех',
     loanFloatedSuccessfully: 'Займ успешно выдан.',
+    loanInterestPlaceholder: 'Годовая процентная ставка по кредиту (%)',
+    loanInterestHelper: 'Введите годовую процентную ставку, например 1, 2 или 15',
+    enterLoanInterest: 'Введите корректную годовую процентную ставку по кредиту',
     retryOrUpdateApp: 'Повторите попытку, обновите приложение или обратитесь в службу поддержки'
   },
   zh: {
@@ -196,6 +211,9 @@ const translations = {
     attachOrUploadMinutes: '请附加或上传会议记录图片',
     success: '成功',
     loanFloatedSuccessfully: '贷款发放成功。',
+    loanInterestPlaceholder: '年度贷款利率 (%)',
+    loanInterestHelper: '请输入年度利率，例如 1、2 或 15',
+    enterLoanInterest: '请输入有效的年度贷款利率',
     retryOrUpdateApp: '请重试、更新应用或联系客服'
   },
   es: {
@@ -229,6 +247,9 @@ const translations = {
     attachOrUploadMinutes: 'Por favor, adjunte o suba una imagen del acta',
     success: 'Éxito',
     loanFloatedSuccessfully: 'Préstamo otorgado con éxito.',
+    loanInterestPlaceholder: 'Interés anual del préstamo (%)',
+    loanInterestHelper: 'Ingrese la tasa de interés anual, por ejemplo 1, 2 o 15',
+    enterLoanInterest: 'Ingrese una tasa de interés anual válida',
     retryOrUpdateApp: 'Vuelva a intentarlo, actualice la aplicación o contacte al servicio al cliente'
   },
   de: {
@@ -262,6 +283,9 @@ const translations = {
     attachOrUploadMinutes: 'Bitte fügen Sie ein Protokoll an oder laden Sie ein Bild hoch',
     success: 'Erfolg',
     loanFloatedSuccessfully: 'Darlehen erfolgreich vergeben.',
+    loanInterestPlaceholder: 'Jährlicher Darlehenszins (%)',
+    loanInterestHelper: 'Geben Sie den jährlichen Zinssatz ein, zum Beispiel 1, 2 oder 15',
+    enterLoanInterest: 'Geben Sie einen gültigen jährlichen Darlehenszins ein',
     retryOrUpdateApp: 'Bitte versuchen Sie es erneut, aktualisieren Sie die App oder wenden Sie sich an den Kundendienst'
   },
   pt: {
@@ -295,6 +319,9 @@ const translations = {
     attachOrUploadMinutes: 'Por favor, anexe ou carregue uma imagem da ata',
     success: 'Sucesso',
     loanFloatedSuccessfully: 'Empréstimo concedido com sucesso.',
+    loanInterestPlaceholder: 'Juros anuais do empréstimo (%)',
+    loanInterestHelper: 'Insira a taxa anual de juros, por exemplo 1, 2 ou 15',
+    enterLoanInterest: 'Insira uma taxa anual de juros válida',
     retryOrUpdateApp: 'Tente novamente, atualize o aplicativo ou entre em contato com o suporte ao cliente'
   },
   it: {
@@ -328,6 +355,9 @@ const translations = {
     attachOrUploadMinutes: 'Si prega di allegare o caricare un’immagine del verbale',
     success: 'Successo',
     loanFloatedSuccessfully: 'Prestito erogato con successo.',
+    loanInterestPlaceholder: 'Tasso annuo del prestito (%)',
+    loanInterestHelper: 'Inserisci il tasso di interesse annuo, per esempio 1, 2 o 15',
+    enterLoanInterest: 'Inserisci un tasso di interesse annuo valido',
     retryOrUpdateApp: 'Riprova, aggiorna l’app o contatta l’assistenza clienti'
   },
   he: {
@@ -361,6 +391,9 @@ const translations = {
     attachOrUploadMinutes: 'אנא צרף או העלה תמונת פרוטוקול',
     success: 'הצלחה',
     loanFloatedSuccessfully: 'הלוואה הועברה בהצלחה.',
+    loanInterestPlaceholder: 'ריבית שנתית על ההלוואה (%)',
+    loanInterestHelper: 'הזן את שיעור הריבית השנתי, למשל 1, 2 או 15',
+    enterLoanInterest: 'הזן שיעור ריבית שנתית תקין',
     retryOrUpdateApp: 'נסה שוב, עדכן את האפליקציה או פנה לשירות לקוחות'
   },
   hi: {
@@ -394,6 +427,9 @@ const translations = {
     attachOrUploadMinutes: 'कृपया मिनट संलग्न करें या छवि अपलोड करें',
     success: 'सफलता',
     loanFloatedSuccessfully: 'ऋण सफलतापूर्वक वितरित किया गया।',
+    loanInterestPlaceholder: 'वार्षिक ऋण ब्याज (%)',
+    loanInterestHelper: 'वार्षिक ब्याज दर दर्ज करें, उदाहरण के लिए 1, 2 या 15',
+    enterLoanInterest: 'मान्य वार्षिक ऋण ब्याज दर दर्ज करें',
     retryOrUpdateApp: 'कृपया पुनः प्रयास करें, ऐप अपडेट करें या ग्राहक सेवा से संपर्क करें'
   },
   am: {
@@ -427,6 +463,9 @@ const translations = {
     attachOrUploadMinutes: 'እባክዎ ደብዳቤ ያካትቱ ወይም ምስል ያስገቡ',
     success: 'ስኬት',
     loanFloatedSuccessfully: 'ብድሩ በተሳካ ሁኔታ ተሰጥቷል።',
+    loanInterestPlaceholder: 'ዓመታዊ የብድር ወለድ (%)',
+    loanInterestHelper: 'ዓመታዊ የወለድ መጠን ያስገቡ፣ ለምሳሌ 1፣ 2 ወይም 15',
+    enterLoanInterest: 'ትክክለኛ ዓመታዊ የብድር ወለድ ያስገቡ',
     retryOrUpdateApp: 'እባክዎ ደግመው ይሞክሩ፣ መተግበሪያውን ያዘምኑ ወይም ደንበኞች አገልግሎትን ያነጋግሩ'
   }
 };

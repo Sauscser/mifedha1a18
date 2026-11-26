@@ -63,10 +63,10 @@ const CreateBiz = () => {
   const [rpymntPrd, setrpymntPrd] = useState(''); // Installment interval in days
   // Remove user input for number of installments; it will be calculated
   const [pword, setPW] = useState('');
-  // Remove lnPrsntg and InstFreq from user input, interest comes from appDetails.loanInterest
+  // The group admin sets interest; the member chooses installment amount and interval.
   const [isLoading, setIsLoading] = useState(false);
   const [ChmNm, setChmNm] = useState('');
-  const [ChmDesc, setChmDesc] = useState('');
+  const [defaultPenalty, setDefaultPenalty] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [userNationality, setUserNationality] = useState<string>(null);
   const navigation = useNavigation();
@@ -344,17 +344,28 @@ const CreateBiz = () => {
       // validation
       if (
         !itemPrys.trim() ||
-        !lnPrsntg.trim() ||
         !rpymntPrd.trim() ||
         !InstAmt.trim() ||
-        !InstFreq.trim() ||
+        !defaultPenalty.trim() ||
         !pword.trim()
       ) {
         Alert.alert(t.fillAllFields);
         return;
       }
 
-           const smRes: any = await client.graphql({
+      const defaultPenaltyAmount = Number(defaultPenalty);
+      if (!Number.isFinite(defaultPenaltyAmount) || defaultPenaltyAmount < 0) {
+        Alert.alert(t.fillAllFields);
+        return;
+      }
+
+      const installmentDays = Number(rpymntPrd);
+      if (!Number.isInteger(installmentDays) || installmentDays < 1) {
+        Alert.alert(t.enterRepaymentPeriod);
+        return;
+      }
+
+      const smRes: any = await client.graphql({
         query: getSMAccount,
         variables: {
           awsemail: attributes.email
@@ -368,18 +379,6 @@ const CreateBiz = () => {
       // validate password
       if (pword !== pws) {
         Alert.alert(t.wrongPassword);
-        return;
-      }
-
-      // validate repayment period
-      if (parseFloat(rpymntPrd) < 1) {
-        Alert.alert(t.enterRepaymentPeriod);
-        return;
-      }
-
-      // validate interest
-      if (parseFloat(lnPrsntg) > 100) {
-        Alert.alert(t.interestExploits);
         return;
       }
 
@@ -403,6 +402,15 @@ const CreateBiz = () => {
         variables: { id }
       });
       const AppDtls = appRes.data.getChamaAdminLnApply;
+      const interest = Number(AppDtls?.loanInterest);
+      if (!Number.isFinite(interest) || interest < 0) {
+        Alert.alert(t.errorSupport);
+        return;
+      }
+      if (interest > 100) {
+        Alert.alert(t.interestExploits);
+        return;
+      }
 
       const groupRes: any = await client.graphql({
         query: getGroup,
@@ -415,7 +423,7 @@ const CreateBiz = () => {
       const Signatory3Email = grpDtls.Signatory3Email;
       const SignatoryEmail = grpDtls.SignatoryEmail;
 
-      // Convert amounts to KES (lnPrsntg is interest rate %, not amount)
+      // Convert amounts to KES
       const loanAmountForeign = parseAmountInput(itemPrys);
       const installmentAmtForeign = parseAmountInput(InstAmt);
 
@@ -426,11 +434,13 @@ const CreateBiz = () => {
       // Compute transaction fee and summary for confirmation dialog
       const principal = parseAmountInput(itemPrys);
       const installment = parseAmountInput(InstAmt);
-      const installmentDays = parseInt(rpymntPrd) || 0;
-      const interest = parseFloat(appDetails?.loanInterest || '0');
       const company = groupDetails;
       const advocateInvolved = !!Sign2Phn && Sign2Phn.trim() !== '' && Sign2Phn.trim().toLowerCase() !== 'none';
       const { n, totalRepay, totalInterest } = calculateInstallments(principal, interest, installment, installmentDays);
+      if (n <= 0) {
+        Alert.alert(t.enterInstallment);
+        return;
+      }
       const fee = computeTransactionFee(principal, advocateInvolved, company);
       const summary =
         `${t.principalAmount || 'Principal'}: ${currencySymbol} ${principal.toFixed(2)}\n` +
@@ -454,13 +464,6 @@ const CreateBiz = () => {
 
       if (!confirmed) {
         setIsLoading(false);
-        return;
-      }
-
-      // validate installment amount
-      const ExpInstmnt = loanAmountInKES / parseFloat(rpymntPrd);
-      if (ExpInstmnt > installmentAmtInKES) {
-        Alert.alert(t.enterInstallment + ' ' + (ExpInstmnt + 1).toFixed(0));
         return;
       }
 
@@ -494,8 +497,8 @@ const CreateBiz = () => {
             confirm2: "NO",
             loaneePhone: phonecontacts,
             amount: Math.round(loanAmountInKES).toString(),
-            repaymentAmt: lnPrsntg,
-            repaymentPeriod: rpymntPrd,
+            repaymentAmt: interest,
+            repaymentPeriod: n * installmentDays,
             loaneeMemberId: MembaId,
             status: "AwaitingResponse",
             statusNumber: 0,
@@ -506,9 +509,9 @@ const CreateBiz = () => {
             loanerName: grpName,
             loanerPhone: signitoryContact,
             description: ChmNm ? ChmNm : "No description",
-            defaultPenalty: ChmDesc,
+            defaultPenalty: defaultPenaltyAmount,
             installmentAmount: Math.round(installmentAmtInKES).toString(),
-            paymentFrequency: InstFreq,
+            paymentFrequency: installmentDays,
             signatory2: signitory2Sub,
             signatory3: Signatory3Email,
             membersApprove: 0,
@@ -648,7 +651,18 @@ const CreateBiz = () => {
             <Text style={styles.helperText}>{t.installmentAmountPlaceholder} ({currencySymbol})</Text>
           </View>
 
-
+          {/* Default Penalty */}
+          <View style={styles.inputGroup}>
+            <TextInput
+              placeholder={t.defaultPenaltyPlaceholder}
+              placeholderTextColor="#333"
+              keyboardType="decimal-pad"
+              value={defaultPenalty}
+              onChangeText={setDefaultPenalty}
+              style={styles.input}
+            />
+            <Text style={styles.helperText}>{t.penaltyOnDefault}</Text>
+          </View>
 
           {/* Calculated Number of Installments (output only) */}
           <View style={styles.inputGroup}>
@@ -1022,4 +1036,3 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
 });
-
