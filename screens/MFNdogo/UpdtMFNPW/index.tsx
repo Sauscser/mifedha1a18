@@ -1,29 +1,27 @@
-import React, { useEffect, useState } from 'react';
-import { updateAgent, updateCompany, updateGroup, updateGrpMembers, updateSAgent, updateSMAccount } from '../../../src/graphql/mutations';
-import { getAgent, getBankAdmin, getCompany, getGroup, getGrpMembers, getSAgent, getSMAccount } from '../../../src/graphql/queries';
-import { useNavigation } from '@react-navigation/native';
-import { View, Text, ImageBackground, Pressable, TextInput, ScrollView, ActivityIndicator, KeyboardAvoidingView, Platform, TouchableOpacity, Alert } from 'react-native';
+import React, { useState } from 'react';
+import { updateAgent } from '../../../src/graphql/mutations';
+import { getAgent, getSMAccount } from '../../../src/graphql/queries';
+import { View, Text, TextInput, ActivityIndicator, TouchableOpacity, Alert } from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import styles from './styles';
-import { updateBankAdmin } from '../../../src/graphql/mutations';
 import { getCurrentUser, fetchUserAttributes } from "aws-amplify/auth";
 import { generateClient } from "aws-amplify/api";
 const client = generateClient();
 const UpdtMFNPW = props => {
-  const navigation = useNavigation();
-  const [SigntryPW, setSigntryPW] = useState("");
   const [AdminID, setAdminId] = useState("");
-  const [LnAcCod, setLnAcCod] = useState("");
   const [NewAdmnPW, setNewAdmnPW] = useState("");
   const [OldAdmnPW, setOldAdmnPW] = useState("");
+  const [showOldPassword, setShowOldPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const fetchMFNDtls = async () => {
     if (isLoading) {
       return;
     }
     setIsLoading(true);
-    const userInfo = await getCurrentUser();
-    const attributes = await fetchUserAttributes();
     try {
+      const userInfo = await getCurrentUser();
+      const attributes = await fetchUserAttributes();
       const MFNDtls: any = await client.graphql({
         query: getAgent,
         variables: {
@@ -40,11 +38,13 @@ const UpdtMFNPW = props => {
         }
       });
       const UserDtls = userDtls.data.getSMAccount;
-      const updtMFNDtls = async () => {
-        if (isLoading) {
-          return;
-        }
-        setIsLoading(true);
+      if (pws !== OldAdmnPW) {
+        Alert.alert("Wrong Old Password; call HR");
+      } else if (userInfo.sub !== owners) {
+        Alert.alert("You are not the owner of this NSNdogo A/c");
+      } else if (acStatuss !== "AccountActive") {
+        Alert.alert("This NSNdogo Account is inactive");
+      } else {
         try {
           await client.graphql({
             query: updateAgent,
@@ -56,104 +56,112 @@ const UpdtMFNPW = props => {
             }
           });
         } catch (error) {
-          if (error) {
-            if (error) {
-              Alert.alert("Update unsuccessful; Retry");
-              return;
-            }
-          }
+          console.log(error);
+          Alert.alert("Update unsuccessful; Retry");
+          return;
         }
-        setIsLoading(false);
         Alert.alert(UserDtls.name + ", You have successfully updated your PassWord");
-      };
-      if (pws !== OldAdmnPW) {
-        Alert.alert("Wrong Old Password; call HR");
-      } else if (userInfo.sub !== owners) {
-        Alert.alert("You are not the owner of this NSNdogo A/c");
-      } else if (acStatuss !== "AccountActive") {
-        Alert.alert("This NSNdogo Account is inactive");
-      } else {
-        updtMFNDtls();
       }
     } catch (error) {
-      if (error) {
-        Alert.alert("Retry or update app or call customer care");
-        return;
-      }
-    }
-    setIsLoading(false);
-    setNewAdmnPW("");
-    setSigntryPW("");
-    setOldAdmnPW("");
-    setAdminId("");
-  };
-  useEffect(() => {
-    const NewAdmnPWs = NewAdmnPW;
-    if (!NewAdmnPWs && NewAdmnPWs !== "") {
+      console.log(error);
+      Alert.alert("Retry or update app or call customer care");
+    } finally {
+      setIsLoading(false);
       setNewAdmnPW("");
-      return;
-    }
-    setNewAdmnPW(NewAdmnPWs);
-  }, [NewAdmnPW]);
-  useEffect(() => {
-    const OldAdmnPWs = OldAdmnPW;
-    if (!OldAdmnPWs && OldAdmnPWs !== "") {
       setOldAdmnPW("");
-      return;
-    }
-    setOldAdmnPW(OldAdmnPWs);
-  }, [OldAdmnPW]);
-  useEffect(() => {
-    const LnAcCods = LnAcCod;
-    if (!LnAcCods && LnAcCods !== "") {
-      setLnAcCod("");
-      return;
-    }
-    setLnAcCod(LnAcCods);
-  }, [LnAcCod]);
-  useEffect(() => {
-    const AdminIDs = AdminID;
-    if (!AdminIDs && AdminIDs !== "") {
       setAdminId("");
-      return;
     }
-    setAdminId(AdminIDs);
-  }, [AdminID]);
-  return <View>
-              <View style={styles.image}>
-                <ScrollView>
-           
-                  <View style={styles.loanTitleView}>
-                    <Text style={styles.title}>Fill MFN Details Below</Text>
-                  </View>
+  };
+  return (
+    <KeyboardAwareScrollView
+      style={styles.screen}
+      contentContainerStyle={styles.content}
+      enableOnAndroid
+      enableAutomaticScroll
+      extraScrollHeight={48}
+      keyboardShouldPersistTaps="handled"
+    >
+      <View style={styles.card}>
+        <View style={styles.accent} />
+        <Text style={styles.title}>Update NiSenti Ndogo Account</Text>
+        <Text style={styles.subtitle}>Verify your account and enter a new password.</Text>
 
-                  <View style={styles.sendLoanView}>
-                    <TextInput placeholder="+2547xxxxxxxx" value={AdminID} onChangeText={setAdminId} style={styles.sendLoanInput} editable={true}></TextInput>
-                    <Text style={styles.sendLoanText}>NSNdogo Phone</Text>
-                  </View> 
-        
-                  <View style={styles.sendLoanView}>
-                    <TextInput value={OldAdmnPW} onChangeText={setOldAdmnPW} secureTextEntry={true} style={styles.sendLoanInput} editable={true}></TextInput>
-                    <Text style={styles.sendLoanText}>Old NSNdogo PW</Text>
-                  </View>   
+        <View style={styles.field}>
+          <Text style={styles.label}>NSNdogo Phone</Text>
+          <TextInput
+            placeholder="+2547xxxxxxxx"
+            placeholderTextColor="#829DA8"
+            value={AdminID}
+            onChangeText={setAdminId}
+            style={styles.input}
+            keyboardType="phone-pad"
+            editable={!isLoading}
+          />
+        </View>
 
-                       
+        <View style={styles.field}>
+          <Text style={styles.label}>Current password</Text>
+          <View style={styles.passwordContainer}>
+            <TextInput
+              value={OldAdmnPW}
+              onChangeText={setOldAdmnPW}
+              secureTextEntry={!showOldPassword}
+              style={[styles.input, styles.passwordInput]}
+              placeholder="Enter your current password"
+              placeholderTextColor="#829DA8"
+              autoCapitalize="none"
+              autoCorrect={false}
+              editable={!isLoading}
+            />
+            <TouchableOpacity
+              onPress={() => setShowOldPassword(visible => !visible)}
+              style={styles.passwordToggle}
+              accessibilityRole="button"
+              accessibilityLabel={showOldPassword ? 'Hide current password' : 'Show current password'}
+            >
+              <Text style={styles.passwordToggleText}>{showOldPassword ? 'Hide' : 'Show'}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
 
-                  <View style={styles.sendLoanView}>
-                    <TextInput value={NewAdmnPW} onChangeText={setNewAdmnPW} secureTextEntry={true} style={styles.sendLoanInput} editable={true}></TextInput>
-                    <Text style={styles.sendLoanText}>New MFN PW</Text>
-                  </View>     
+        <View style={styles.field}>
+          <Text style={styles.label}>New password</Text>
+          <View style={styles.passwordContainer}>
+            <TextInput
+              value={NewAdmnPW}
+              onChangeText={setNewAdmnPW}
+              secureTextEntry={!showNewPassword}
+              style={[styles.input, styles.passwordInput]}
+              placeholder="Enter a new password"
+              placeholderTextColor="#829DA8"
+              autoCapitalize="none"
+              autoCorrect={false}
+              editable={!isLoading}
+            />
+            <TouchableOpacity
+              onPress={() => setShowNewPassword(visible => !visible)}
+              style={styles.passwordToggle}
+              accessibilityRole="button"
+              accessibilityLabel={showNewPassword ? 'Hide new password' : 'Show new password'}
+            >
+              <Text style={styles.passwordToggleText}>{showNewPassword ? 'Hide' : 'Show'}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
 
-                                   
-        
-                  <TouchableOpacity onPress={fetchMFNDtls} style={styles.sendLoanButton}>
-                    <Text style={styles.sendLoanButtonText}>
-                      Click to Update MFN Details
-                    </Text>
-                    {isLoading && <ActivityIndicator color={'Blue'} size="large" />}
-                  </TouchableOpacity>
-                </ScrollView>
-              </View>
-            </View>;
+        <TouchableOpacity
+          onPress={fetchMFNDtls}
+          style={[styles.button, isLoading && styles.buttonDisabled]}
+          disabled={isLoading}
+          activeOpacity={0.8}
+          accessibilityRole="button"
+          accessibilityState={{ busy: isLoading, disabled: isLoading }}
+        >
+          {isLoading && <ActivityIndicator color="#143D4D" size="small" style={styles.buttonIndicator} />}
+          <Text style={styles.buttonText}>{isLoading ? 'Updating...' : 'Update Account'}</Text>
+        </TouchableOpacity>
+      </View>
+    </KeyboardAwareScrollView>
+  );
 };
 export default UpdtMFNPW;

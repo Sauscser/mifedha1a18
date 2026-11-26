@@ -1,11 +1,12 @@
-import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
-import { View, FlatList, useWindowDimensions, Alert, TextInput, Text } from 'react-native';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { View, FlatList, useWindowDimensions, Alert, TextInput, Text, TouchableOpacity } from 'react-native';
 import MapView, { PROVIDER_GOOGLE, Polyline } from 'react-native-maps';
+import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { listAgents } from '../../../src/graphql/queries';
 import * as Location from 'expo-location';
 import { useRoute } from '@react-navigation/core';
-import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import { useNavigation } from '@react-navigation/native';
 import CustomMarker from '../../../components/MFNdogo/CustomMarkr';
 import Carousels from '../../../components/MFNdogo/MFNCarousel';
 import { buildOsrmRouteUrl } from '../../../src/config/osrm';
@@ -13,18 +14,15 @@ import { generateClient } from "aws-amplify/api";
 import { safeNavigateFrom } from '../../../src/utils/navigationHelper';
 
 const client = generateClient();
-const dbg = (...args) => {
-  console.log(...args);
-};
-dbg('SMFDBG SearchMFN module loaded');
 const GenralShpMpViewThree = props => {
-  dbg('SMFDBG SearchMFN render');
   const [selectedPlaceId, setSelectedPlaceId] = useState(null);
   const [MFN, setMFN] = useState([]);
   const [location, setLocation] = useState(null);
   const [errorMsg, setErrorMsg] = useState(null);
   const [routePolyline, setRoutePolyline] = useState([]);
   const [radiusKmText, setRadiusKmText] = useState('25');
+  const [isFilterExpanded, setIsFilterExpanded] = useState(true);
+  const [isCarouselExpanded, setIsCarouselExpanded] = useState(true);
   const route = useRoute<any>();
   const navigation = useNavigation<any>();
   const flatlist = useRef<any>(null);
@@ -40,12 +38,6 @@ const GenralShpMpViewThree = props => {
     return [String(agentKey), start.latitude.toFixed(4), start.longitude.toFixed(4), end.latitude.toFixed(4), end.longitude.toFixed(4)].join('|');
   };
 
-  useEffect(() => {
-    dbg('SMFDBG SearchMFN mounted');
-    return () => {
-      dbg('SMFDBG SearchMFN unmounted');
-    };
-  }, []);
   const fetchMFN = async () => {
     try {
       const town = route?.params?.town;
@@ -95,10 +87,6 @@ const GenralShpMpViewThree = props => {
     }
   };
 
-  useEffect(() => {
-    console.error(`SMFDBG fetched agents count=${MFN.length}`);
-  }, [MFN]);
-
   const distanceKm = (lat1, lon1, lat2, lon2) => {
     const toRad = deg => deg * Math.PI / 180;
     const R = 6371;
@@ -131,13 +119,6 @@ const GenralShpMpViewThree = props => {
     });
   }, [MFN, location, radiusKmText]);
 
-  useFocusEffect(useCallback(() => {
-    dbg(`SMFDBG SearchMFN focused | selected=${String(selectedPlaceId)} | filtered=${filteredMFN.length} | hasLocation=${Boolean(location?.coords)}`);
-    return () => {
-      dbg('SMFDBG SearchMFN blurred');
-    };
-  }, [selectedPlaceId, filteredMFN.length, location]));
-
   const selectedPlaceForRender = useMemo(() => {
     return filteredMFN.find(place => getPlaceKey(place) === selectedPlaceId) || null;
   }, [filteredMFN, selectedPlaceId]);
@@ -167,14 +148,12 @@ const GenralShpMpViewThree = props => {
     if (filteredMFN.length === 0) {
       setSelectedPlaceId(null);
       setRoutePolyline([]);
-      console.error('SMFDBG filtered list empty');
       return;
     }
 
     const stillVisible = filteredMFN.some(place => getPlaceKey(place) === selectedPlaceId);
     if (!stillVisible) {
       const fallbackKey = getPlaceKey(filteredMFN[0]);
-      console.error(`SMFDBG selected key reset -> ${String(fallbackKey)} | filtered=${filteredMFN.length}`);
       setSelectedPlaceId(fallbackKey);
     }
   }, [filteredMFN, selectedPlaceId]);
@@ -187,14 +166,10 @@ const GenralShpMpViewThree = props => {
     if (viewableItems.length > 0) {
       const selectedPlace = viewableItems[0].item;
       const key = getPlaceKey(selectedPlace);
-      console.error(`SMFDBG carousel view changed -> ${String(key)}`);
       setSelectedPlaceId(key);
     }
   });
 
-  useEffect(() => {
-    console.error(`SMFDBG selected=${String(selectedPlaceId)} | filtered=${filteredMFN.length} | radiusKm=${radiusKmText}`);
-  }, [selectedPlaceId, filteredMFN.length, radiusKmText]);
   useEffect(() => {
     if (!selectedPlaceId || !flatlist.current || filteredMFN.length === 0) {
       return;
@@ -206,7 +181,8 @@ const GenralShpMpViewThree = props => {
     try {
       flatlist.current?.scrollToIndex?.({
         index,
-        animated: true
+        animated: true,
+        viewPosition: 0.5
       });
     } catch (_) {
       // Ignore transient out-of-range errors while list data is being recalculated.
@@ -217,22 +193,25 @@ const GenralShpMpViewThree = props => {
     if (!Number.isFinite(placeLat) || !Number.isFinite(placeLng)) {
       return;
     }
+    const radiusKm = Number(radiusKmText);
+    const visibleRadiusKm = Number.isFinite(radiusKm) && radiusKm > 0 ? radiusKm : 25;
+    const latitudeRadians = placeLat * Math.PI / 180;
     const region = {
       latitude: placeLat,
       longitude: placeLng,
-      latitudeDelta: 0.8,
-      longitudeDelta: 0.8
+      latitudeDelta: Math.min(180, Math.max(0.02, (visibleRadiusKm * 2) / 111.32)),
+      longitudeDelta: Math.min(
+        360,
+        Math.max(0.02, (visibleRadiusKm * 2) / (111.32 * Math.max(Math.cos(latitudeRadians), 0.01)))
+      )
     };
-    map.current.animateToRegion(region);
-  }, [selectedPlaceId, filteredMFN]);
+    map.current?.animateToRegion?.(region);
+  }, [selectedPlaceId, filteredMFN, radiusKmText]);
 
   useEffect(() => {
-    dbg(`SMFDBG polyline effect run | selected=${String(selectedPlaceId)} | filtered=${filteredMFN.length} | hasLocation=${Boolean(location?.coords)}`);
     const selectedPlace = filteredMFN.find(place => getPlaceKey(place) === selectedPlaceId);
     if (!selectedPlace || !location?.coords) {
       setRoutePolyline([]);
-      dbg(`SMFDBG polyline skipped (no-route) | selected=${String(selectedPlaceId)} | hasLocation=${Boolean(location?.coords)} | filtered=${filteredMFN.length}`);
-      console.error(`SMFDBG no route | selected=${String(selectedPlaceId)} | hasLocation=${Boolean(location?.coords)} | filtered=${filteredMFN.length}`);
       return;
     }
 
@@ -247,8 +226,6 @@ const GenralShpMpViewThree = props => {
 
     if (!Number.isFinite(start.latitude) || !Number.isFinite(start.longitude) || !Number.isFinite(end.latitude) || !Number.isFinite(end.longitude)) {
       setRoutePolyline([]);
-      dbg(`SMFDBG polyline skipped (invalid-coordinates) | selected=${String(selectedPlaceId)} | start=${start.latitude},${start.longitude} | end=${end.latitude},${end.longitude}`);
-      console.error(`SMFDBG invalid coordinates | selected=${String(selectedPlaceId)} | start=${start.latitude},${start.longitude} | end=${end.latitude},${end.longitude}`);
       return;
     }
 
@@ -256,18 +233,6 @@ const GenralShpMpViewThree = props => {
     const cachedPolyline = routeCacheRef.current[cacheKey];
     if (Array.isArray(cachedPolyline) && cachedPolyline.length > 1) {
       setRoutePolyline(cachedPolyline);
-      dbg(`SMFDBG polyline drawn (cache-hit) | selected=${String(selectedPlaceId)} | points=${cachedPolyline.length}`);
-      if (map.current?.fitToCoordinates) {
-        map.current.fitToCoordinates(cachedPolyline, {
-          edgePadding: {
-            top: 100,
-            right: 50,
-            bottom: 280,
-            left: 50
-          },
-          animated: true
-        });
-      }
       return;
     }
 
@@ -278,8 +243,6 @@ const GenralShpMpViewThree = props => {
     const startChangedEnough = !previousStart || Math.abs(previousStart.latitude - start.latitude) > 0.0004 || Math.abs(previousStart.longitude - start.longitude) > 0.0004;
     const cooledDown = now - lastRouteFetchAtRef.current > 5000;
     if (!movedEnough && !startChangedEnough && !cooledDown) {
-      dbg(`SMFDBG polyline skipped (throttled) | selected=${String(selectedPlaceId)} | points=${routePolyline.length} | start=${start.latitude.toFixed(6)},${start.longitude.toFixed(6)} | end=${end.latitude.toFixed(6)},${end.longitude.toFixed(6)}`);
-      console.error(`SMFDBG throttled | selected=${String(selectedPlaceId)} | points=${routePolyline.length} | start=${start.latitude.toFixed(6)},${start.longitude.toFixed(6)} | end=${end.latitude.toFixed(6)},${end.longitude.toFixed(6)}`);
       return;
     }
 
@@ -310,27 +273,14 @@ const GenralShpMpViewThree = props => {
           setRoutePolyline(lineToDraw);
           routeCacheRef.current[cacheKey] = lineToDraw;
           saveRouteCache();
-          const source = decoded.length > 1 ? 'osrm' : 'fallback-direct';
-          dbg(`SMFDBG polyline drawn (${source}) | selected=${String(selectedPlaceId)} | points=${lineToDraw.length} | start=${start.latitude.toFixed(6)},${start.longitude.toFixed(6)} | end=${end.latitude.toFixed(6)},${end.longitude.toFixed(6)}`);
-          if (lineToDraw.length > 1 && map.current?.fitToCoordinates) {
-            map.current.fitToCoordinates(lineToDraw, {
-              edgePadding: {
-                top: 100,
-                right: 50,
-                bottom: 280,
-                left: 50
-              },
-              animated: true
-            });
-          }
         }
       } catch (error) {
         if (!isCancelled) {
+          console.warn('SearchMFN: route request failed; drawing a direct fallback', error);
           const fallbackLine = [start, end];
           setRoutePolyline(fallbackLine);
           routeCacheRef.current[cacheKey] = fallbackLine;
           saveRouteCache();
-          dbg(`SMFDBG polyline drawn (fetch-error-fallback) | selected=${String(selectedPlaceId)} | points=2 | start=${start.latitude.toFixed(6)},${start.longitude.toFixed(6)} | end=${end.latitude.toFixed(6)},${end.longitude.toFixed(6)} | error=${String(error)}`);
         }
       }
     };
@@ -342,9 +292,6 @@ const GenralShpMpViewThree = props => {
     };
   }, [selectedPlaceId, location, filteredMFN]);
 
-  useEffect(() => {
-    dbg(`SMFDBG polyline points=${routePolyline.length}`);
-  }, [routePolyline]);
   useEffect(() => {
     let mounted = true;
 
@@ -390,90 +337,202 @@ const GenralShpMpViewThree = props => {
       }
     };
   }, []);
-  return <View style={{
-    flex: 1
-  }}>
-      <View style={{
-      position: 'absolute',
-      top: 12,
-      left: 12,
-      right: 12,
-      zIndex: 20,
-      backgroundColor: 'rgba(255,255,255,0.95)',
-      borderRadius: 12,
-      paddingHorizontal: 12,
-      paddingVertical: 10
-    }}>
-        <Text style={{
-        fontWeight: '700',
-        color: '#222',
-        marginBottom: 6
-      }}>Radius filter (KM)</Text>
-        <TextInput value={radiusKmText} onChangeText={setRadiusKmText} keyboardType="numeric" placeholder="Enter radius in KM" placeholderTextColor="#444" style={{
-        borderWidth: 1,
-        borderColor: '#ddd',
-        borderRadius: 8,
-        paddingHorizontal: 12,
-        paddingVertical: 10,
-        fontWeight: 'bold',
-        color: '#222'
-      }} />
-        <Text style={{
-        marginTop: 6,
-        color: '#444',
-        fontWeight: '600'
-      }}>{filteredMFN.length} agents in range</Text>
-      </View>
+  return (
+    <View style={{ flex: 1 }}>
+      {isFilterExpanded ? (
+        <View
+          style={{
+            position: 'absolute',
+            top: 12,
+            left: 12,
+            right: 12,
+            zIndex: 20,
+            backgroundColor: 'rgba(255,255,255,0.95)',
+            borderRadius: 12,
+            paddingHorizontal: 12,
+            paddingVertical: 10
+          }}
+        >
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+            <Text style={{ fontWeight: '700', color: '#222' }}>Radius filter (KM)</Text>
+            <TouchableOpacity
+              onPress={() => setIsFilterExpanded(false)}
+              style={{ padding: 6 }}
+              accessibilityRole="button"
+              accessibilityLabel="Collapse radius filter"
+            >
+              <Ionicons name="close" size={20} color="#164458" />
+            </TouchableOpacity>
+          </View>
+          <TextInput
+            value={radiusKmText}
+            onChangeText={setRadiusKmText}
+            keyboardType="numeric"
+            placeholder="Enter radius in KM"
+            placeholderTextColor="#444"
+            style={{
+              borderWidth: 1,
+              borderColor: '#ddd',
+              borderRadius: 8,
+              paddingHorizontal: 12,
+              paddingVertical: 10,
+              fontWeight: 'bold',
+              color: '#222'
+            }}
+          />
+          <Text style={{ marginTop: 6, color: '#444', fontWeight: '600' }}>
+            {filteredMFN.length} agents in range
+          </Text>
+        </View>
+      ) : (
+        <TouchableOpacity
+          onPress={() => setIsFilterExpanded(true)}
+          style={{
+            position: 'absolute',
+            top: 16,
+            right: 16,
+            zIndex: 20,
+            width: 48,
+            height: 48,
+            borderRadius: 24,
+            backgroundColor: 'rgba(255,255,255,0.96)',
+            alignItems: 'center',
+            justifyContent: 'center',
+            elevation: 4
+          }}
+          accessibilityRole="button"
+          accessibilityLabel="Open radius search filter"
+        >
+          <Ionicons name="search" size={22} color="#164458" />
+        </TouchableOpacity>
+      )}
 
-      <MapView ref={map} style={{
-      width: '100%',
-      height: '100%'
-    }} provider={PROVIDER_GOOGLE} showsUserLocation={true} initialRegion={{
-      latitude: -0.5261561709274195,
-      longitude: 37.58980744767201,
-      latitudeDelta: 0.8,
-      longitudeDelta: 0.8
-    }}>
-        {filteredMFN.map(place => <CustomMarker key={place.phonecontact} coordinate={{
-        latitude: Number(place.latitude),
-        longitude: Number(place.longitude)
-      }} totalDiscount={Number(place.totalDiscount || 0)} isSelected={getPlaceKey(place) === selectedPlaceId} onPress={() => {
-        const key = getPlaceKey(place);
-        console.error(`SMFDBG marker press -> ${String(key)}`);
-        setSelectedPlaceId(key);
-      }} />)}
-
-        {routePolyline.length > 1 ? <Polyline coordinates={routePolyline} strokeColor="#0066ff" strokeWidth={6} geodesic zIndex={999} /> : directFallbackLine.length > 1 ? <Polyline coordinates={directFallbackLine} strokeColor="#ff3b30" strokeWidth={4} geodesic lineDashPattern={[8, 8]} zIndex={998} /> : null}
+      <MapView
+        ref={map}
+        style={{ width: '100%', height: '100%' }}
+        provider={PROVIDER_GOOGLE}
+        showsUserLocation={true}
+        initialRegion={{
+          latitude: -0.5261561709274195,
+          longitude: 37.58980744767201,
+          latitudeDelta: 0.8,
+          longitudeDelta: 0.8
+        }}
+      >
+        {filteredMFN.map(place => (
+          <CustomMarker
+            key={place.phonecontact}
+            coordinate={{
+              latitude: Number(place.latitude),
+              longitude: Number(place.longitude)
+            }}
+            totalDiscount={Number(place.totalDiscount || 0)}
+            isSelected={getPlaceKey(place) === selectedPlaceId}
+            onPress={() => setSelectedPlaceId(getPlaceKey(place))}
+          />
+        ))}
+        {routePolyline.length > 1 ? (
+          <Polyline coordinates={routePolyline} strokeColor="#0066ff" strokeWidth={6} geodesic zIndex={999} />
+        ) : directFallbackLine.length > 1 ? (
+          <Polyline
+            coordinates={directFallbackLine}
+            strokeColor="#ff3b30"
+            strokeWidth={4}
+            geodesic
+            lineDashPattern={[8, 8]}
+            zIndex={998}
+          />
+        ) : null}
       </MapView>
 
-      <View style={{
-      position: 'absolute',
-      bottom: 20
-    }}>
-        <FlatList ref={flatlist} data={filteredMFN} horizontal pagingEnabled snapToAlignment="center" showsHorizontalScrollIndicator={false} keyExtractor={item => String(getPlaceKey(item))} renderItem={item => <Carousels Agent={item.item} isSelected={getPlaceKey(item.item) === selectedPlaceId} onPress={() => {
-        const key = getPlaceKey(item.item);
-        console.error(`SMFDBG card press -> ${String(key)}`);
-        setSelectedPlaceId(key);
-      }} onLongPress={() => safeNavigateFrom(navigation, 'WithdrawFundsFromMap', {
-        phonecontact: item.item.phonecontact
-      })} />} onViewableItemsChanged={onViewChanged.current} viewabilityConfig={viewConfig.current} getItemLayout={(_, index) => ({
-        length: width,
-        offset: width * index,
-        index
-      })} onScrollToIndexFailed={info => {
-        const safeIndex = Math.min(info.index, Math.max(filteredMFN.length - 1, 0));
-        if (filteredMFN.length > 0 && safeIndex >= 0) {
-          setTimeout(() => {
-            try {
-              flatlist.current?.scrollToIndex?.({
-                index: safeIndex,
-                animated: true
-              });
-            } catch (_) {}
-          }, 120);
-        }
-      }} />
-      </View>
-    </View>;
+      {isCarouselExpanded ? (
+        <>
+          <TouchableOpacity
+            onPress={() => setIsCarouselExpanded(false)}
+            style={{
+              position: 'absolute',
+              bottom: 174,
+              left: 16,
+              zIndex: 20,
+              width: 44,
+              height: 44,
+              borderRadius: 22,
+              backgroundColor: 'rgba(255,255,255,0.96)',
+              alignItems: 'center',
+              justifyContent: 'center',
+              elevation: 4
+            }}
+            accessibilityRole="button"
+            accessibilityLabel="Collapse agent cards"
+          >
+            <Ionicons name="chevron-down" size={22} color="#164458" />
+          </TouchableOpacity>
+          <View style={{ position: 'absolute', bottom: 20, left: 0, right: 0 }}>
+            <FlatList
+              ref={flatlist}
+              data={filteredMFN}
+              horizontal
+              pagingEnabled
+              snapToAlignment="center"
+              showsHorizontalScrollIndicator={false}
+              keyExtractor={item => String(getPlaceKey(item))}
+              renderItem={item => (
+                <Carousels
+                  Agent={item.item}
+                  isSelected={getPlaceKey(item.item) === selectedPlaceId}
+                  onPress={() => setSelectedPlaceId(getPlaceKey(item.item))}
+                  onLongPress={() => safeNavigateFrom(navigation, 'WithdrawFundsFromMap', {
+                    phonecontact: item.item.phonecontact
+                  })}
+                />
+              )}
+              onViewableItemsChanged={onViewChanged.current}
+              viewabilityConfig={viewConfig.current}
+              getItemLayout={(_, index) => ({
+                length: width,
+                offset: width * index,
+                index
+              })}
+              onScrollToIndexFailed={info => {
+                const safeIndex = Math.min(info.index, Math.max(filteredMFN.length - 1, 0));
+                if (filteredMFN.length > 0 && safeIndex >= 0) {
+                  setTimeout(() => {
+                    try {
+                      flatlist.current?.scrollToIndex?.({
+                        index: safeIndex,
+                        animated: true,
+                        viewPosition: 0.5
+                      });
+                    } catch (_) {}
+                  }, 120);
+                }
+              }}
+            />
+          </View>
+        </>
+      ) : (
+        <TouchableOpacity
+          onPress={() => setIsCarouselExpanded(true)}
+          style={{
+            position: 'absolute',
+            bottom: 20,
+            left: 16,
+            zIndex: 20,
+            width: 48,
+            height: 48,
+            borderRadius: 24,
+            backgroundColor: 'rgba(255,255,255,0.96)',
+            alignItems: 'center',
+            justifyContent: 'center',
+            elevation: 4
+          }}
+          accessibilityRole="button"
+          accessibilityLabel="Open agent cards"
+        >
+          <Ionicons name="albums-outline" size={22} color="#164458" />
+        </TouchableOpacity>
+      )}
+    </View>
+  );
 };
 export default GenralShpMpViewThree;

@@ -2,7 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { updateCompany, updateGroup, updateMiFedhaBankAdmin, updateSMAccount } from '../../../src/graphql/mutations';
 import { getBankAdmin, getCompany, getSMAccount } from '../../../src/graphql/queries';
 import { useNavigation } from '@react-navigation/native';
-import { View, Text, ImageBackground, Pressable, TextInput, ScrollView, ActivityIndicator, KeyboardAvoidingView, Platform, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, TextInput, ActivityIndicator, TouchableOpacity, Alert } from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import styles from './styles';
 import { updateBankAdmin } from '../../../src/graphql/mutations';
 import { getCurrentUser, fetchUserAttributes } from "aws-amplify/auth";
@@ -15,6 +16,8 @@ const UpdtMFAdmPW = props => {
   const [LnAcCod, setLnAcCod] = useState("");
   const [NewAdmnPW, setNewAdmnPW] = useState("");
   const [OldAdmnPW, setOldAdmnPW] = useState("");
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const fetchAdmnDtls = async () => {
     if (isLoading) {
@@ -83,73 +86,96 @@ const UpdtMFAdmPW = props => {
     setOldAdmnPW("");
     setAdminId("");
   };
-  useEffect(() => {
-    const NewAdmnPWs = NewAdmnPW;
-    if (!NewAdmnPWs && NewAdmnPWs !== "") {
-      setNewAdmnPW("");
-      return;
-    }
-    setNewAdmnPW(NewAdmnPWs);
-  }, [NewAdmnPW]);
-  useEffect(() => {
-    const OldAdmnPWs = OldAdmnPW;
-    if (!OldAdmnPWs && OldAdmnPWs !== "") {
-      setOldAdmnPW("");
-      return;
-    }
-    setOldAdmnPW(OldAdmnPWs);
-  }, [OldAdmnPW]);
-  useEffect(() => {
-    const LnAcCods = LnAcCod;
-    if (!LnAcCods && LnAcCods !== "") {
-      setLnAcCod("");
-      return;
-    }
-    setLnAcCod(LnAcCods);
-  }, [LnAcCod]);
-  useEffect(() => {
-    const AdminIDs = AdminID;
-    if (!AdminIDs && AdminIDs !== "") {
-      setAdminId("");
-      return;
-    }
-    setAdminId(AdminIDs);
-  }, [AdminID]);
-  return <View>
-              <View style={styles.image}>
-                <ScrollView>
-           
-                  <View style={styles.loanTitleView}>
-                    <Text style={styles.title}>Fill Admin Details Below</Text>
-                  </View>
+  return (
+    <KeyboardAwareScrollView
+      style={styles.screen}
+      contentContainerStyle={styles.content}
+      enableOnAndroid
+      enableAutomaticScroll
+      extraScrollHeight={90}
+      keyboardShouldPersistTaps="handled"
+    >
+      <View style={styles.card}>
+          <View style={styles.accent} />
+          <Text style={styles.title}>Update Bank Admin Account</Text>
 
-                  <View style={styles.sendLoanView}>
-                    <TextInput value={AdminID} onChangeText={setAdminId} style={styles.sendLoanInput} editable={true}></TextInput>
-                    <Text style={styles.sendLoanText}>Admin ID</Text>
-                  </View> 
-        
-                  <View style={styles.sendLoanView}>
-                    <TextInput value={OldAdmnPW} onChangeText={setOldAdmnPW} secureTextEntry={true} style={styles.sendLoanInput} editable={true}></TextInput>
-                    <Text style={styles.sendLoanText}>Old Admin PW</Text>
-                  </View>   
+          <View style={styles.field}>
+            <Text style={styles.label}>Admin ID</Text>
+            <TextInput
+              value={AdminID}
+              onChangeText={setAdminId}
+              style={styles.input}
+              placeholder="Enter your admin ID"
+              placeholderTextColor="#829DA8"
+              autoCapitalize="none"
+              autoCorrect={false}
+              editable={!isLoading}
+            />
+          </View>
 
-                       
+          <View style={styles.field}>
+            <Text style={styles.label}>Current password</Text>
+            <View style={styles.passwordContainer}>
+              <TextInput
+                value={OldAdmnPW}
+                onChangeText={setOldAdmnPW}
+                secureTextEntry={!showCurrentPassword}
+                style={[styles.input, styles.passwordInput]}
+                placeholder="Enter your current password"
+                placeholderTextColor="#829DA8"
+                autoCapitalize="none"
+                autoCorrect={false}
+                editable={!isLoading}
+              />
+              <TouchableOpacity
+                onPress={() => setShowCurrentPassword(visible => !visible)}
+                style={styles.passwordToggle}
+                accessibilityRole="button"
+                accessibilityLabel={showCurrentPassword ? 'Hide current password' : 'Show current password'}
+              >
+                <Text style={styles.passwordToggleText}>{showCurrentPassword ? 'Hide' : 'Show'}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
 
-                  <View style={styles.sendLoanView}>
-                    <TextInput value={NewAdmnPW} onChangeText={setNewAdmnPW} secureTextEntry={true} style={styles.sendLoanInput} editable={true}></TextInput>
-                    <Text style={styles.sendLoanText}>New Admin PW</Text>
-                  </View>     
+          <View style={styles.field}>
+            <Text style={styles.label}>New password</Text>
+            <View style={styles.passwordContainer}>
+              <TextInput
+                value={NewAdmnPW}
+                onChangeText={setNewAdmnPW}
+                secureTextEntry={!showNewPassword}
+                style={[styles.input, styles.passwordInput]}
+                placeholder="Enter a new password"
+                placeholderTextColor="#829DA8"
+                autoCapitalize="none"
+                autoCorrect={false}
+                editable={!isLoading}
+              />
+              <TouchableOpacity
+                onPress={() => setShowNewPassword(visible => !visible)}
+                style={styles.passwordToggle}
+                accessibilityRole="button"
+                accessibilityLabel={showNewPassword ? 'Hide new password' : 'Show new password'}
+              >
+                <Text style={styles.passwordToggleText}>{showNewPassword ? 'Hide' : 'Show'}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
 
-                                   
-        
-                  <TouchableOpacity onPress={fetchAdmnDtls} style={styles.sendLoanButton}>
-                    <Text style={styles.sendLoanButtonText}>
-                      Click to Update Admin Details
-                    </Text>
-                    {isLoading && <ActivityIndicator color={'Blue'} size="large" />}
-                  </TouchableOpacity>
-                </ScrollView>
-              </View>
-            </View>;
+          <TouchableOpacity
+            onPress={fetchAdmnDtls}
+            style={[styles.button, isLoading && styles.buttonDisabled]}
+            disabled={isLoading}
+            activeOpacity={0.8}
+            accessibilityRole="button"
+            accessibilityState={{ busy: isLoading, disabled: isLoading }}
+          >
+            {isLoading && <ActivityIndicator color="#143D4D" size="small" style={{ marginRight: 10 }} />}
+            <Text style={styles.buttonText}>{isLoading ? 'Updating...' : 'Update Account'}</Text>
+          </TouchableOpacity>
+      </View>
+    </KeyboardAwareScrollView>
+  );
 };
 export default UpdtMFAdmPW;

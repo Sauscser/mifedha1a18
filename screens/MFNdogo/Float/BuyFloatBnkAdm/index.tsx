@@ -1,10 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { createFloatPurchase, updateAgent, updateCompany } from '../../../../src/graphql/mutations';
-import { View, Text, TextInput, ScrollView, ActivityIndicator, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, TextInput, ActivityIndicator, TouchableOpacity, Alert } from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import styles from './styles';
 import { getAgent, getBankAdmin, getCompany, getMiFedhaBankAdmin } from '../../../../src/graphql/queries';
 import { getCurrentUser, fetchUserAttributes } from "aws-amplify/auth";
 import { generateClient } from "aws-amplify/api";
+import { convertForeignToChf, countryToCurrency, getExRatesForNationality } from '../../../../src/utils/exchange';
+import { useExchange } from '../../../../src/contexts/ExchangeContext';
+import { nationalityToCode } from '../../../../src/utils/nationalityToCode';
 const client = generateClient();
 export type buyAgntFlts = {
   amt: number;
@@ -12,21 +16,66 @@ export type buyAgntFlts = {
   ttlFltBal1: number;
 };
 const BuyFlt = (props: buyAgntFlts) => {
+  const { nationality } = useExchange();
+  const countryCode = nationalityToCode(nationality)
+    || (nationality?.trim().length === 2 ? nationality.trim().toUpperCase() : undefined);
+  const currencyIso = countryCode ? countryToCurrency[countryCode] : undefined;
+  const defaultCurrencySymbol = currencyIso === 'KES' ? 'KSh'
+    : currencyIso === 'USD' ? '$'
+      : currencyIso === 'GBP' ? '£'
+        : currencyIso === 'EUR' ? '€'
+          : currencyIso === 'CHF' ? 'CHF'
+            : currencyIso || '';
+  const [currencySymbol, setCurrencySymbol] = useState(defaultCurrencySymbol);
   const [amt, setAmt] = useState("");
   const [phoneContact, setPhoneContact] = useState("");
   const [bankAdminId, setBankAdminId] = useState("");
   const [transId, setTransId] = useState("");
   const [pwss, setpwss] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  useEffect(() => {
+    let isCurrent = true;
+    setCurrencySymbol(defaultCurrencySymbol);
+    if (nationality) {
+      getExRatesForNationality(nationality).then(rates => {
+        if (!isCurrent || !rates?.symbol) return;
+        const symbol = rates.symbol === 'Ksh' && currencyIso !== 'KES'
+          ? defaultCurrencySymbol
+          : rates.symbol;
+        setCurrencySymbol(symbol || defaultCurrencySymbol);
+      });
+    }
+    return () => {
+      isCurrent = false;
+    };
+  }, [defaultCurrencySymbol, currencyIso, nationality]);
   const ftchAgInfo = async () => {
     if (isLoading) {
       return;
     }
     setIsLoading(true);
     const userInfo = await getCurrentUser();
-    const amountKsh = Number(amt);
-    if (!Number.isFinite(amountKsh) || amountKsh <= 0) {
+    const amountEntered = Number(amt);
+    if (!Number.isFinite(amountEntered) || amountEntered <= 0) {
       Alert.alert("Invalid amount", "Enter a valid float amount");
+      setIsLoading(false);
+      return;
+    }
+    if (!nationality) {
+      Alert.alert("Currency unavailable", "Your account currency is not available yet. Please try again.");
+      setIsLoading(false);
+      return;
+    }
+    let amountChf: number;
+    try {
+      const convertedAmount = currencyIso === 'CHF'
+        ? amountEntered
+        : await convertForeignToChf(amountEntered, nationality);
+      amountChf = Number(convertedAmount.toFixed(2));
+    } catch (error) {
+      console.log(error);
+      Alert.alert("Currency unavailable", "A valid CHF exchange rate could not be found. Please try again.");
       setIsLoading(false);
       return;
     }
@@ -84,7 +133,7 @@ const BuyFlt = (props: buyAgntFlts) => {
                     variables: {
                       input: {
                         agentphone: phoneContact,
-                        amount: String(Math.round(amountKsh)),
+                        amount: String(amountChf),
                         transactId: transId,
                         bankAdminID: bankAdminId,
                         status: "AccountActive",
@@ -120,8 +169,8 @@ const BuyFlt = (props: buyAgntFlts) => {
                     variables: {
                       input: {
                         phonecontact: phoneContact,
-                        floatBal: amountKsh + parseFloat(fltBal),
-                        TtlFltIn: amountKsh + parseFloat(ttlFltIn)
+                        floatBal: amountChf + parseFloat(fltBal),
+                        TtlFltIn: amountChf + parseFloat(ttlFltIn)
                       }
                     }
                   });
@@ -141,7 +190,7 @@ const BuyFlt = (props: buyAgntFlts) => {
                     variables: {
                       input: {
                         AdminId: "",
-                        agentFloatIn: amountKsh + parseFloat(CompFtBal)
+                        agentFloatIn: amountChf + parseFloat(CompFtBal)
                       }
                     }
                   });
@@ -152,7 +201,7 @@ const BuyFlt = (props: buyAgntFlts) => {
                   }
                   ;
                 }
-                Alert.alert("Float purchase successful", names + " has loaded Ksh. " + amountKsh.toFixed(2));
+                Alert.alert("Float purchase successful", names + " has loaded " + (currencySymbol || currencyIso || '') + " " + amountEntered.toFixed(2));
                 setIsLoading(false);
               };
             } catch (error) {
@@ -187,87 +236,111 @@ const BuyFlt = (props: buyAgntFlts) => {
     setpwss("");
     setIsLoading(false);
   };
-  useEffect(() => {
-    const bnkId = bankAdminId;
-    if (!bnkId && bnkId !== "") {
-      setBankAdminId("");
-      return;
-    }
-    setBankAdminId(bnkId);
-  }, [bankAdminId]);
-  useEffect(() => {
-    const trId = transId;
-    if (!trId && trId !== "") {
-      setTransId("");
-      return;
-    }
-    setTransId(trId);
-  }, [transId]);
-  useEffect(() => {
-    const phn = phoneContact;
-    if (!phn && phn !== "") {
-      setPhoneContact("");
-      return;
-    }
-    setPhoneContact(phn);
-  }, [phoneContact]);
-  useEffect(() => {
-    const amount = amt;
-    if (!amount && amount !== "") {
-      setAmt("");
-      return;
-    }
-    setAmt(amount);
-  }, [amt]);
-  useEffect(() => {
-    const pwssss = pwss;
-    if (!pwssss && pwssss !== "") {
-      setpwss("");
-      return;
-    }
-    setpwss(pwssss);
-  }, [pwss]);
-  return <View>
-      <View style={styles.image}>
-        <ScrollView>
-          <View style={styles.loanTitleView}>
-            <Text style={styles.title}>Fill NSNdogo Account Details Below</Text>
+  return (
+    <KeyboardAwareScrollView
+      style={styles.screen}
+      contentContainerStyle={styles.content}
+      enableOnAndroid
+      enableAutomaticScroll
+      extraScrollHeight={90}
+      keyboardShouldPersistTaps="handled"
+    >
+        <View style={styles.card}>
+          <View style={styles.accent} />
+          <Text style={styles.title}>Top Up Float</Text>
+
+          <View style={styles.field}>
+            <Text style={styles.label}>NiSenti Ndogo phone</Text>
+            <TextInput
+              placeholder="+2547xxxxxxxx"
+              placeholderTextColor="#829DA8"
+              value={phoneContact}
+              onChangeText={setPhoneContact}
+              style={styles.input}
+              keyboardType="phone-pad"
+              editable={!isLoading}
+            />
           </View>
 
-          <View style={styles.sendLoanView}>
-            <TextInput placeholder="+2547xxxxxxxx" value={phoneContact} onChangeText={setPhoneContact} style={styles.sendLoanInput} editable={true}></TextInput>
-            <Text style={styles.sendLoanText}>NSNdogo Phone Contact</Text>
-          </View>
-          
-          <View style={styles.sendLoanView}>
-            <TextInput keyboardType={"decimal-pad"} value={amt} onChangeText={setAmt} style={styles.sendLoanInput} editable={true}></TextInput>
-            <Text style={styles.sendLoanText}>Amount</Text>
-          </View>
-
-          <View style={styles.sendLoanView}>
-            <TextInput value={bankAdminId} onChangeText={setBankAdminId} style={styles.sendLoanInput} editable={true}></TextInput>
-            <Text style={styles.sendLoanText}>Admin Id</Text>
+          <View style={styles.field}>
+            <Text style={styles.label}>Amount ({currencySymbol || '...'})</Text>
+            <TextInput
+              placeholder={`Enter float amount (${currencySymbol || '...'})`}
+              placeholderTextColor="#829DA8"
+              keyboardType="decimal-pad"
+              value={amt}
+              onChangeText={setAmt}
+              style={styles.input}
+              editable={!isLoading}
+            />
           </View>
 
-          <View style={styles.sendLoanView}>
-            <TextInput value={pwss} onChangeText={setpwss} secureTextEntry={true} style={styles.sendLoanInput} editable={true}></TextInput>
-            <Text style={styles.sendLoanText}>Admin PassWord</Text>
+          <View style={styles.field}>
+            <Text style={styles.label}>Bank Admin ID</Text>
+            <TextInput
+              placeholder="Enter admin ID"
+              placeholderTextColor="#829DA8"
+              value={bankAdminId}
+              onChangeText={setBankAdminId}
+              style={styles.input}
+              autoCapitalize="none"
+              autoCorrect={false}
+              editable={!isLoading}
+            />
           </View>
 
-          <View style={styles.sendLoanView}>
-            <TextInput value={transId} onChangeText={setTransId} style={styles.sendLoanInput} editable={true}></TextInput>
-            <Text style={styles.sendLoanText}>Transaction Id</Text>
-          </View>          
+          <View style={styles.field}>
+            <Text style={styles.label}>Admin password</Text>
+            <View style={styles.passwordContainer}>
+              <TextInput
+                placeholder="Enter admin password"
+                placeholderTextColor="#829DA8"
+                value={pwss}
+                onChangeText={setpwss}
+                secureTextEntry={!showPassword}
+                style={[styles.input, styles.passwordInput]}
+                autoCapitalize="none"
+                autoCorrect={false}
+                editable={!isLoading}
+              />
+              <TouchableOpacity
+                onPress={() => setShowPassword(visible => !visible)}
+                style={styles.passwordToggle}
+                accessibilityRole="button"
+                accessibilityLabel={showPassword ? 'Hide admin password' : 'Show admin password'}
+              >
+                <Text style={styles.passwordToggleText}>{showPassword ? 'Hide' : 'Show'}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
 
-          
-          <TouchableOpacity onPress={ftchAgInfo} style={styles.sendLoanButton}>
-            <Text style={styles.sendLoanButtonText}>
-              Click to Buy
-            </Text>
-            {isLoading && <ActivityIndicator color={'blue'} size="large" />}
+          <View style={styles.field}>
+            <Text style={styles.label}>Transaction ID</Text>
+            <TextInput
+              placeholder="Enter transaction ID"
+              placeholderTextColor="#829DA8"
+              value={transId}
+              onChangeText={setTransId}
+              style={styles.input}
+              autoCapitalize="characters"
+              autoCorrect={false}
+              editable={!isLoading}
+            />
+          </View>
+
+          <TouchableOpacity
+            onPress={ftchAgInfo}
+            style={[styles.button, isLoading && styles.buttonDisabled]}
+            disabled={isLoading}
+            activeOpacity={0.8}
+            accessibilityRole="button"
+            accessibilityState={{ busy: isLoading, disabled: isLoading }}
+          >
+            {isLoading && <ActivityIndicator color="#143D4D" size="small" style={{ marginRight: 10 }} />}
+            <Text style={styles.buttonText}>{isLoading ? 'Processing...' : 'Buy Float'}</Text>
           </TouchableOpacity>
-        </ScrollView>
-      </View>
-    </View>;
+        </View>
+    </KeyboardAwareScrollView>
+  );
 };
 export default BuyFlt;

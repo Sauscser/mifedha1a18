@@ -1,93 +1,126 @@
-import { StyleSheet, Dimensions } from 'react-native';
+import { StyleSheet } from 'react-native';
+
 const styles = StyleSheet.create({
-  image: {
+  screen: {
+    flex: 1,
+    backgroundColor: '#EFF9FD'
+  },
+  content: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    paddingHorizontal: 24,
+    paddingVertical: 28
+  },
+  homeButton: {
+    alignSelf: 'flex-start',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    marginBottom: 28,
+    borderRadius: 22,
+    backgroundColor: '#DDF5FE',
+    borderWidth: 1,
+    borderColor: '#B8E8F8'
+  },
+  homeButtonText: {
+    color: '#126782',
+    fontSize: 14,
+    fontWeight: '700'
+  },
+  heading: {
+    color: '#123B4A',
+    fontSize: 30,
+    fontWeight: '800',
+    letterSpacing: 0.2
+  },
+  card: {
     width: '100%',
-    height: 670,
-    resizeMode: 'cover',
+    padding: 22,
+    borderRadius: 24,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#DCEFF5',
+    shadowColor: '#17637B',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.1,
+    shadowRadius: 18,
+    elevation: 4
+  },
+  accent: {
+    width: 46,
+    height: 5,
+    borderRadius: 3,
+    backgroundColor: '#29e58d',
+    marginBottom: 22
+  },
+  field: {
+    marginBottom: 18
+  },
+  fieldLabel: {
+    color: '#244C5B',
+    fontSize: 14,
+    fontWeight: '700',
+    marginBottom: 8
+  },
+  input: {
+    width: '100%',
+    minHeight: 52,
+    paddingHorizontal: 15,
+    borderRadius: 13,
+    borderWidth: 1,
+    borderColor: '#B8E3F2',
+    backgroundColor: '#F7FCFE',
+    color: '#123B4A',
+    fontSize: 16
+  },
+  passwordContainer: {
+    position: 'relative',
     justifyContent: 'center'
   },
-  title: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: 'black'
+  passwordInput: {
+    paddingRight: 76
   },
-  loanTitleView: {
-    backgroundColor: 'white',
-    marginHorizontal: 10,
-    width: Dimensions.get('screen').width - 20,
-    height: 40,
-    borderRadius: 5,
-    marginTop: 30,
+  passwordToggle: {
+    position: 'absolute',
+    right: 12,
+    padding: 8
+  },
+  passwordToggleText: {
+    color: '#126782',
+    fontSize: 13,
+    fontWeight: '700'
+  },
+  signInButton: {
+    minHeight: 54,
+    flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    flexDirection: 'column',
-    top: 10
+    marginTop: 6,
+    borderRadius: 15,
+    backgroundColor: '#29e58d',
+    shadowColor: '#168A58',
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.2,
+    shadowRadius: 9,
+    elevation: 3
   },
-  sendLoanView: {
-    backgroundColor: 'skyblue',
-    marginHorizontal: 10,
-    width: Dimensions.get('screen').width - 20,
-    height: 90,
-    borderRadius: 20,
-    marginTop: 30,
-    justifyContent: 'center',
-    alignItems: 'center',
-    flexDirection: 'column',
-    marginBottom: 20
+  signInButtonDisabled: {
+    opacity: 0.75
   },
-  sendLoanText: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: 'white',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginLeft: 30
+  signInIndicator: {
+    marginRight: 10
   },
-  sendLoanButton: {
-    backgroundColor: '#fff',
-    height: 45,
-    borderRadius: 30,
-    marginHorizontal: 10,
-    width: Dimensions.get('screen').width - 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 30,
-    marginBottom: 400
+  signInButtonText: {
+    color: '#123B4A',
+    fontSize: 16,
+    fontWeight: '800',
+    letterSpacing: 0.2
   },
-  sendLoanButtonText: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: 'black'
-  },
-  sendLoanInput: {
-    backgroundColor: 'white',
-    width: 300,
-    height: 45,
-    borderRadius: 10,
-    marginTop: 15,
-    justifyContent: 'center',
-    alignItems: 'center'
-  },
-  loanSpecificationsTextInput: {
-    backgroundColor: 'white',
-    width: 300,
-    height: 200,
-    borderRadius: 10,
-    marginTop: 15,
-    justifyContent: 'center',
-    alignItems: 'center'
-  },
-  loanSpecificationView: {
-    backgroundColor: 'skyblue',
-    marginHorizontal: 10,
-    width: Dimensions.get('screen').width - 20,
-    height: 250,
-    borderRadius: 20,
-    marginTop: 30,
-    justifyContent: 'center',
-    alignItems: 'center',
-    flexDirection: 'column',
-    marginBottom: 20
+  footer: {
+    color: '#64808A',
+    fontSize: 12,
+    textAlign: 'center',
+    marginTop: 18
   }
 });
+
 export default styles;

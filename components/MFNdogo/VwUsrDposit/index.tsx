@@ -1,50 +1,53 @@
 import React from 'react';
-import {View, Text,   ScrollView} from 'react-native';
-
-
+import { View, Text } from 'react-native';
 import styles from './styles';
 
-
 export interface SMAccount {
-    SMAc: {
-      id: string,
-      
-      depositerid: string,  
-      agContact: string,
-      amount: number,
-      userName:string,
-      
-      createdAt:string,
-      updatedAt:string,
-    }}
+  SMAc: {
+    id: string;
+    depositerid: string;
+    agContact: string;
+    amount: number | string;
+    userName: string;
+    agentName?: string;
+    createdAt: string;
+    updatedAt: string;
+  };
+}
 
-const ViewSMDeposts = (props:SMAccount) => {
-   const {
-      SMAc: {
-         id,
-         depositerid,  
-         agContact,
-         amount,
-         userName,
-         createdAt,
-         updatedAt,
-                 
-   }} = props ;
+const ViewSMDeposts = ({ SMAc }: SMAccount) => {
+  const amount = Number(SMAc.amount);
+  const formattedAmount = Number.isFinite(amount) ? amount.toFixed(2) : String(SMAc.amount ?? '—');
+  const createdAt = SMAc.createdAt ? new Date(SMAc.createdAt).toLocaleString() : '—';
 
- 
-    return (
-        <View style = {styles.pageContainer}> 
-            <View style = {styles.card}>
-
-            <Text style={styles.prodInfo}><Text style={styles.label}>Name:</Text> {userName}</Text>
-            <Text style={styles.prodInfo}><Text style={styles.label}>Transaction ID:</Text> {id}</Text>
-            <Text style={styles.prodInfo}><Text style={styles.label}> Amount:</Text> KES {amount.toFixed(2)}</Text>
-            <Text style={styles.prodInfo}><Text style={styles.label}> User Contact:</Text> {depositerid}</Text>
-            <Text style={styles.prodInfo}><Text style={styles.label}>Created At:</Text> {createdAt}</Text>
-        
+  return (
+    <View style={styles.pageContainer}>
+      <View style={styles.card}>
+        <View style={styles.cardHeader}>
+          <View style={styles.accent} />
+          <Text style={styles.amount}>{formattedAmount}</Text>
+          <Text style={styles.currency}>Amount</Text>
         </View>
-        </View>
-    );
-}; 
 
-export default ViewSMDeposts
+        <View style={styles.details}>
+          <Text style={styles.detailLabel}>Deposited by</Text>
+          <Text style={styles.detailValue}>{SMAc.userName || '—'}</Text>
+        </View>
+        <View style={styles.details}>
+          <Text style={styles.detailLabel}>Depositer contact</Text>
+          <Text style={styles.detailValue}>{SMAc.depositerid || '—'}</Text>
+        </View>
+        <View style={styles.details}>
+          <Text style={styles.detailLabel}>Transaction ID</Text>
+          <Text style={styles.detailValue}>{SMAc.id || '—'}</Text>
+        </View>
+        <View style={[styles.details, styles.lastDetail]}>
+          <Text style={styles.detailLabel}>Date and time</Text>
+          <Text style={styles.detailValue}>{createdAt}</Text>
+        </View>
+      </View>
+    </View>
+  );
+};
+
+export default ViewSMDeposts;

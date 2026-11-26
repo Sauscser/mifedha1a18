@@ -37,6 +37,9 @@ const styles = StyleSheet.create({
     fontSize: 16,
     backgroundColor: '#f7fafc',
   },
+  passwordInput: {
+    paddingRight: 76,
+  },
   label: {
     alignSelf: 'flex-start',
     fontSize: 14,
@@ -52,6 +55,11 @@ const styles = StyleSheet.create({
     marginTop: 12,
     width: '100%',
     alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'center',
+  },
+  buttonDisabled: {
+    opacity: 0.7,
   },
   buttonText: {
     color: '#fff',

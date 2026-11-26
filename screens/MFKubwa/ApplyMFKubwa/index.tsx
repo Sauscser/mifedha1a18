@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { createChamasNPwnBrkrs, createSAgent, updateCompany, updateSMAccount } from '../../../src/graphql/mutations';
 import { useNavigation } from '@react-navigation/native';
-import { View, Text, ImageBackground, Pressable, TextInput, ScrollView, KeyboardAvoidingView, Platform, ActivityIndicator, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, TextInput, KeyboardAvoidingView, Platform, ActivityIndicator, TouchableOpacity, Alert, ScrollView } from 'react-native';
 import styles from './styles';
 import { getCompany, getSMAccount, listSMAccounts } from '../../../src/graphql/queries';
 import { getCurrentUser, fetchUserAttributes } from "aws-amplify/auth";
@@ -149,34 +149,60 @@ const RegisterMFKubwaAcForm = props => {
     }
     setEml(mfkeml);
   }, [eml]);
-  return <View>
-      <View style={styles.image}>
-        <ScrollView>
-          <View style={styles.loanTitleView}>
-            <Text style={styles.title}>Fill Details Below</Text>
+  return (
+    <KeyboardAvoidingView
+      style={styles.screen}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    >
+      <ScrollView
+        contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps="handled"
+      >
+        <View style={styles.card}>
+          <View style={styles.accent} />
+          <Text style={styles.title}>Apply for an NSKubwa Account</Text>
+
+          <View style={styles.field}>
+            <Text style={styles.label}>Nationality / Country</Text>
+            <TextInput
+              value={nam}
+              onChangeText={setName}
+              style={styles.input}
+              placeholder="Enter your nationality or country"
+              placeholderTextColor="#829DA8"
+              editable={!isLoading}
+            />
           </View>
 
-          
-          
-          <View style={styles.sendLoanView}>
-            <TextInput value={nam} onChangeText={setName} style={styles.sendLoanInput} editable={true}></TextInput>
-            <Text style={styles.sendLoanText}>Nationality/Country</Text>
+          <View style={styles.field}>
+            <Text style={styles.label}>Main account password</Text>
+            <TextInput
+              value={pword}
+              onChangeText={setPW}
+              secureTextEntry
+              style={styles.input}
+              placeholder="Enter your password"
+              placeholderTextColor="#829DA8"
+              autoCapitalize="none"
+              autoCorrect={false}
+              editable={!isLoading}
+            />
           </View>
 
-          <View style={styles.sendLoanView}>
-            <TextInput value={pword} onChangeText={setPW} secureTextEntry={true} style={styles.sendLoanInput} editable={true}></TextInput>
-            <Text style={styles.sendLoanText}>User Pass Word</Text>
-          </View>
-
-
-          <TouchableOpacity onPress={ChckPhnUse} style={styles.sendLoanButton}>
-            <Text style={styles.sendLoanButtonText}>
-              Click to Create Account
-            </Text>
-            {isLoading && <ActivityIndicator size="large" color="blue" />}
+          <TouchableOpacity
+            onPress={ChckPhnUse}
+            style={[styles.button, isLoading && styles.buttonDisabled]}
+            disabled={isLoading}
+            activeOpacity={0.8}
+            accessibilityRole="button"
+            accessibilityState={{ busy: isLoading, disabled: isLoading }}
+          >
+            {isLoading && <ActivityIndicator size="small" color="#143D4D" style={{ marginRight: 10 }} />}
+            <Text style={styles.buttonText}>{isLoading ? 'Submitting application...' : 'Apply for Account'}</Text>
           </TouchableOpacity>
-        </ScrollView>
-      </View>
-    </View>;
+        </View>
+      </ScrollView>
+    </KeyboardAvoidingView>
+  );
 };
 export default RegisterMFKubwaAcForm;

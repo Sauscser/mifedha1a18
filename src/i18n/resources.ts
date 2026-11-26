@@ -32,8 +32,8 @@ export const resources = {
           mfnDogos: 'Ndogo',
           kubwa: 'Kubwa',
           advocate: 'Money Advocate',
-          admin2: 'Money Admin 2',
-          bankAdmin: 'Money Bank Admin',
+          admin2: 'NiSenti Admin',
+          bankAdmin: 'Bank Admin',
           admin1: 'Money Admin 1'
         }
       },
@@ -132,8 +132,8 @@ export const resources = {
           mfnDogos: 'ندوقو',
           kubwa: 'كوبا',
           advocate: 'محامي المال',
-          admin2: 'مسؤول المال 2',
-          bankAdmin: 'مسؤول بنك المال',
+          admin2: 'مسؤول NiSenti',
+          bankAdmin: 'مسؤول البنك',
           admin1: 'مسؤول المال 1'
         }
       },
@@ -175,8 +175,8 @@ export const resources = {
           mfnDogos: '恩多戈',
           kubwa: '库巴',
           advocate: '资金倡导者',
-          admin2: '资金管理员 2',
-          bankAdmin: '资金银行管理员',
+          admin2: 'NiSenti 管理员',
+          bankAdmin: '银行管理员',
           admin1: '资金管理员 1'
         }
       },
@@ -218,8 +218,8 @@ export const resources = {
           mfnDogos: 'Ндого',
           kubwa: 'Кубва',
           advocate: 'Адвокат денег',
-          admin2: 'Админ денег 2',
-          bankAdmin: 'Админ банка денег',
+          admin2: 'Администратор NiSenti',
+          bankAdmin: 'Администратор банка',
           admin1: 'Админ денег 1'
         }
       },
@@ -261,8 +261,8 @@ export const resources = {
           mfnDogos: 'Ndogo',
           kubwa: 'Kubwa',
           advocate: 'Wakili wa Fedha',
-          admin2: 'Msimamizi wa Fedha 2',
-          bankAdmin: 'Msimamizi wa Benki ya Fedha',
+          admin2: 'Msimamizi wa NiSenti',
+          bankAdmin: 'Msimamizi wa Benki',
           admin1: 'Msimamizi wa Fedha 1'
         }
       },
@@ -323,8 +323,8 @@ export const resources = {
           mfnDogos: 'Ndogo',
             kubwa: 'Kubwa',
           advocate: 'Avocat de l’Argent',
-          admin2: 'Admin d’Argent 2',
-          bankAdmin: 'Admin Banque d’Argent',
+          admin2: 'Administrateur NiSenti',
+          bankAdmin: 'Administrateur bancaire',
           admin1: 'Admin d’Argent 1'
         }
       },
@@ -362,8 +362,8 @@ export const resources = {
           mfnDogos: 'Ndogo',
             kubwa: 'Kubwa',
           advocate: 'Abogado de Dinero',
-          admin2: 'Admin de Dinero 2',
-          bankAdmin: 'Admin Banco de Dinero',
+          admin2: 'Administrador de NiSenti',
+          bankAdmin: 'Administrador del banco',
           admin1: 'Admin de Dinero 1'
         }
       },
@@ -401,8 +401,8 @@ export const resources = {
           mfnDogos: 'Ndogo',
           kubwa: 'Kubwa',
           advocate: 'Geldanwalt',
-          admin2: 'Geldadmin 2',
-          bankAdmin: 'Geldbankadmin',
+          admin2: 'NiSenti-Administrator',
+          bankAdmin: 'Bankadministrator',
           admin1: 'Geldadmin 1'
         }
       },
@@ -440,8 +440,8 @@ export const resources = {
           mfnDogos: 'Ndogo',
           kubwa: 'Kubwa',
           advocate: 'Advogado de Dinheiro',
-          admin2: 'Admin de Dinheiro 2',
-          bankAdmin: 'Admin Banco de Dinheiro',
+          admin2: 'Administrador NiSenti',
+          bankAdmin: 'Administrador do banco',
           admin1: 'Admin de Dinheiro 1'
         }
       },
@@ -479,8 +479,8 @@ export const resources = {
             mfnDogos: 'नडोगो',
             kubwa: 'Kubwa',
           advocate: 'Avvocato dei Soldi',
-          admin2: 'Admin dei Soldi 2',
-          bankAdmin: 'Admin Banca dei Soldi',
+          admin2: 'Amministratore NiSenti',
+          bankAdmin: 'Amministratore della banca',
           admin1: 'Admin dei Soldi 1'
         }
       },
@@ -518,8 +518,8 @@ export const resources = {
           mfnDogos: 'Ndogo',
           kubwa: 'קובה',
           advocate: 'עורך דין הכסף',
-          admin2: 'מנהל הכסף 2',
-          bankAdmin: 'מנהל בנק הכסף',
+          admin2: 'מנהל NiSenti',
+          bankAdmin: 'מנהל הבנק',
           admin1: 'מנהל הכסף 1'
         }
       },
@@ -557,8 +557,8 @@ export const resources = {
           mfnDogos: 'Ndogo',
           kubwa: 'कुबवा',
           advocate: 'पैसे का वकील',
-          admin2: 'पैसे का एडमिन 2',
-          bankAdmin: 'पैसे का बैंक एडमिन',
+          admin2: 'NiSenti एडमिन',
+          bankAdmin: 'बैंक एडमिन',
           admin1: 'पैसे का एडमिन 1'
         }
       },
@@ -596,8 +596,8 @@ export const resources = {
           mfnDogos: 'נדוגו',
           kubwa: 'ኩባ',
           advocate: 'ገንዘብ ጠበቃ',
-          admin2: 'ገንዘብ አስተዳዳሪ 2',
-          bankAdmin: 'ገንዘብ ባንክ አስተዳዳሪ',
+          admin2: 'የNiSenti አስተዳዳሪ',
+          bankAdmin: 'የባንክ አስተዳዳሪ',
           admin1: 'ገንዘብ አስተዳዳሪ 1'
         }
       },
@@ -609,6 +609,3 @@ export const resources = {
     }
   }
 };
-
-
-

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { createFloatAdd, createFloatReduction, createMFBankWithdrawals, updateAgent, updateCompany, updateSAgent, updateSMAccount } from '../../../src/graphql/mutations';
 import { getAgent, getBankAdmin, getCompany, getMiFedhaBankAdmin, getSAgent, getSMAccount } from '../../../src/graphql/queries';
-import { View, Text, TextInput, ScrollView, ActivityIndicator, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, TextInput, ScrollView, ActivityIndicator, TouchableOpacity, Alert, KeyboardAvoidingView, Platform } from 'react-native';
 import styles from './styles';
 import { getCurrentUser, fetchUserAttributes } from "aws-amplify/auth";
 import { generateClient } from "aws-amplify/api";
@@ -138,36 +138,72 @@ const AdminWthdwl = props => {
     }
     setBnkkAdmNatId(BnkkAdmNatIds);
   }, [BnkkAdmNatId]);
-  return <View>
-      <View>
-        
-        <ScrollView>
-          <View style={styles.amountTitleView}>
-            <Text style={styles.title}>Fill Account Details Below</Text>
-          </View>
-      
+  return (
+    <KeyboardAvoidingView
+      style={styles.screen}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    >
+      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+        <View style={styles.card}>
+          <View style={styles.accent} />
+          <Text style={styles.title}>Withdraw Earnings</Text>
 
-          <View style={styles.sendAmtView}>
-            <TextInput value={BnkkAdmNatId} onChangeText={setBnkkAdmNatId} style={styles.sendAmtInput} editable={true}></TextInput>
-            <Text style={styles.sendAmtText}>Agent Phone</Text>
+          <View style={styles.field}>
+            <Text style={styles.label}>Bank Admin ID</Text>
+            <TextInput
+              value={BnkkAdmNatId}
+              onChangeText={setBnkkAdmNatId}
+              style={styles.input}
+              placeholder="Enter bank admin ID"
+              placeholderTextColor="#829DA8"
+              autoCapitalize="none"
+              autoCorrect={false}
+              editable={!isLoading}
+            />
           </View>
 
-          <View style={styles.sendAmtView}>
-            <TextInput keyboardType={"decimal-pad"} value={amount} onChangeText={setAmount} style={styles.sendAmtInput} editable={true}></TextInput>
-            <Text style={styles.sendAmtText}>Amount</Text>
+          <View style={styles.field}>
+            <Text style={styles.label}>Amount</Text>
+            <TextInput
+              keyboardType="decimal-pad"
+              value={amount}
+              onChangeText={setAmount}
+              style={styles.input}
+              placeholder="Enter amount"
+              placeholderTextColor="#829DA8"
+              editable={!isLoading}
+            />
           </View>
 
-          <View style={styles.sendAmtView}>
-            <TextInput value={UsrPWd} onChangeText={setUsrPWd} secureTextEntry={true} style={styles.sendAmtInput} editable={true}></TextInput>
-            <Text style={styles.sendAmtText}>User PW</Text>
+          <View style={styles.field}>
+            <Text style={styles.label}>Main account password</Text>
+            <TextInput
+              value={UsrPWd}
+              onChangeText={setUsrPWd}
+              secureTextEntry
+              style={styles.input}
+              placeholder="Enter your password"
+              placeholderTextColor="#829DA8"
+              autoCapitalize="none"
+              autoCorrect={false}
+              editable={!isLoading}
+            />
           </View>
 
-          <TouchableOpacity onPress={fetchAcDtls} style={styles.sendAmtButton}>
-            <Text style={styles.sendAmtButtonText}>Click to Withdraw</Text>
-            {isLoading && <ActivityIndicator size="large" color="blue" />}
+          <TouchableOpacity
+            onPress={fetchAcDtls}
+            style={[styles.button, isLoading && styles.buttonDisabled]}
+            disabled={isLoading}
+            activeOpacity={0.8}
+            accessibilityRole="button"
+            accessibilityState={{ busy: isLoading, disabled: isLoading }}
+          >
+            {isLoading && <ActivityIndicator size="small" color="#143D4D" style={{ marginRight: 10 }} />}
+            <Text style={styles.buttonText}>{isLoading ? 'Processing...' : 'Withdraw Earnings'}</Text>
           </TouchableOpacity>
-        </ScrollView>
-      </View>
-    </View>;
+        </View>
+      </ScrollView>
+    </KeyboardAvoidingView>
+  );
 };
 export default AdminWthdwl;

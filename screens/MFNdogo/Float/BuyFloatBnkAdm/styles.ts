@@ -1,73 +1,100 @@
-import { StyleSheet, Dimensions } from 'react-native';
+import { StyleSheet } from 'react-native';
+
 const styles = StyleSheet.create({
-  image: {
-    width: '100%',
-    height: "100%",
-    resizeMode: 'cover',
+  screen: {
+    flex: 1,
+    backgroundColor: '#EAF7FC'
+  },
+  content: {
+    flexGrow: 1,
     justifyContent: 'center',
-    alignItems: 'center',
-    flexDirection: 'column',
-    marginTop: 1
+    paddingHorizontal: 22,
+    paddingVertical: 28
+  },
+  card: {
+    width: '100%',
+    maxWidth: 480,
+    alignSelf: 'center',
+    padding: 22,
+    borderRadius: 22,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#D5EDF7',
+    shadowColor: '#25677F',
+    shadowOffset: { width: 0, height: 7 },
+    shadowOpacity: 0.1,
+    shadowRadius: 16,
+    elevation: 4
+  },
+  accent: {
+    width: 44,
+    height: 5,
+    borderRadius: 3,
+    backgroundColor: '#87CEEB',
+    marginBottom: 20
   },
   title: {
+    color: '#164458',
+    fontSize: 24,
+    fontWeight: '800',
+    marginBottom: 22
+  },
+  field: {
+    marginBottom: 18
+  },
+  label: {
+    color: '#315969',
     fontSize: 14,
-    fontWeight: 'bold',
-    color: 'black'
+    fontWeight: '700',
+    marginBottom: 8
   },
-  loanTitleView: {
-    backgroundColor: 'white',
-    marginHorizontal: 10,
-    width: Dimensions.get('screen').width - 20,
-    height: "4%",
-    borderRadius: 5,
-    marginTop: "2%",
+  input: {
+    width: '100%',
+    minHeight: 52,
+    paddingHorizontal: 15,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#B7E2F2',
+    backgroundColor: '#F7FCFE',
+    color: '#173E4E',
+    fontSize: 16
+  },
+  passwordContainer: {
+    position: 'relative',
+    justifyContent: 'center'
+  },
+  passwordInput: {
+    paddingRight: 76
+  },
+  passwordToggle: {
+    position: 'absolute',
+    right: 12,
+    padding: 8
+  },
+  passwordToggleText: {
+    color: '#126782',
+    fontSize: 13,
+    fontWeight: '700'
+  },
+  button: {
+    minHeight: 54,
+    flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    flexDirection: 'column'
+    marginTop: 8,
+    borderRadius: 14,
+    backgroundColor: '#87CEEB',
+    elevation: 2
   },
-  sendLoanView: {
-    backgroundColor: '#72ebd8',
-    marginHorizontal: 10,
-    width: Dimensions.get('screen').width - 20,
-    height: "9%",
-    borderRadius: 20,
-    marginTop: "2%",
-    justifyContent: 'center',
-    alignItems: 'center',
-    flexDirection: 'column'
+  buttonDisabled: {
+    opacity: 0.7
   },
-  sendLoanText: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: 'white',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginLeft: "10%",
-    marginRight: "10%"
-  },
-  sendLoanButton: {
-    backgroundColor: 'white',
-    height: "4%",
-    borderRadius: 5,
-    marginHorizontal: 10,
-    width: Dimensions.get('screen').width - 20,
-    marginTop: "5%",
-    justifyContent: 'center',
-    alignItems: 'center',
-    flexDirection: 'column',
-    marginBottom: "99%"
-  },
-  sendLoanButtonText: {
+  buttonText: {
+    color: '#143D4D',
     fontSize: 16,
-    fontWeight: 'bold',
-    color: 'black'
-  },
-  sendLoanInput: {
-    backgroundColor: 'white',
-    width: "95%",
-    height: "60%",
-    borderRadius: 5,
-    marginTop: "2%"
+    fontWeight: '800',
+    textAlign: 'center'
   }
 });
+
 export default styles;

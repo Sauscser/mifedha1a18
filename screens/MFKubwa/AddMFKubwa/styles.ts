@@ -1,93 +1,92 @@
-import { StyleSheet, Dimensions } from 'react-native';
+import { StyleSheet } from 'react-native';
+
 const styles = StyleSheet.create({
-  image: {
+  screen: {
+    flex: 1,
+    backgroundColor: '#EAF7FC'
+  },
+  content: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    paddingHorizontal: 22,
+    paddingVertical: 28
+  },
+  card: {
     width: '100%',
-    height: 670,
-    resizeMode: 'cover',
-    justifyContent: 'center'
+    maxWidth: 500,
+    alignSelf: 'center',
+    padding: 22,
+    borderRadius: 22,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#D5EDF7',
+    shadowColor: '#25677F',
+    shadowOffset: { width: 0, height: 7 },
+    shadowOpacity: 0.1,
+    shadowRadius: 16,
+    elevation: 4
+  },
+  accent: {
+    width: 44,
+    height: 5,
+    borderRadius: 3,
+    backgroundColor: '#87CEEB',
+    marginBottom: 20
   },
   title: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: 'black'
+    color: '#164458',
+    fontSize: 24,
+    fontWeight: '800'
   },
-  loanTitleView: {
-    backgroundColor: 'white',
-    marginHorizontal: 10,
-    width: Dimensions.get('screen').width - 20,
-    height: 40,
-    borderRadius: 5,
-    marginTop: 30,
-    justifyContent: 'center',
-    alignItems: 'center',
-    flexDirection: 'column',
-    top: 10
-  },
-  sendLoanView: {
-    backgroundColor: 'skyblue',
-    marginHorizontal: 10,
-    width: Dimensions.get('screen').width - 20,
-    height: 90,
-    borderRadius: 20,
-    marginTop: 30,
-    justifyContent: 'center',
-    alignItems: 'center',
-    flexDirection: 'column',
-    marginBottom: 20
-  },
-  sendLoanText: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: 'white',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginLeft: 30
-  },
-  sendLoanButton: {
-    backgroundColor: '#fff',
-    height: 45,
-    borderRadius: 30,
-    marginHorizontal: 10,
-    width: Dimensions.get('screen').width - 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 30,
-    marginBottom: 400
-  },
-  sendLoanButtonText: {
+  subtitle: {
+    color: '#55727E',
     fontSize: 15,
-    fontWeight: 'bold',
-    color: 'black'
+    lineHeight: 22,
+    marginTop: 8,
+    marginBottom: 22
   },
-  sendLoanInput: {
-    backgroundColor: 'white',
-    width: 300,
-    height: 45,
-    borderRadius: 10,
-    marginTop: 15,
-    justifyContent: 'center',
-    alignItems: 'center'
+  field: {
+    marginBottom: 16
   },
-  loanSpecificationsTextInput: {
-    backgroundColor: 'white',
-    width: 300,
-    height: 200,
-    borderRadius: 10,
-    marginTop: 15,
-    justifyContent: 'center',
-    alignItems: 'center'
+  label: {
+    color: '#315969',
+    fontSize: 14,
+    fontWeight: '700',
+    marginBottom: 8
   },
-  loanSpecificationView: {
-    backgroundColor: 'skyblue',
-    marginHorizontal: 10,
-    width: Dimensions.get('screen').width - 20,
-    height: 250,
-    borderRadius: 20,
-    marginTop: 30,
+  input: {
+    width: '100%',
+    minHeight: 52,
+    paddingHorizontal: 15,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#B7E2F2',
+    backgroundColor: '#F7FCFE',
+    color: '#173E4E',
+    fontSize: 16
+  },
+  button: {
+    minHeight: 54,
+    flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    flexDirection: 'column',
-    marginBottom: 20
+    marginTop: 8,
+    borderRadius: 14,
+    backgroundColor: '#87CEEB',
+    elevation: 2
+  },
+  buttonDisabled: {
+    opacity: 0.7
+  },
+  buttonIndicator: {
+    marginRight: 10
+  },
+  buttonText: {
+    color: '#143D4D',
+    fontSize: 16,
+    fontWeight: '800',
+    textAlign: 'center'
   }
 });
+
 export default styles;

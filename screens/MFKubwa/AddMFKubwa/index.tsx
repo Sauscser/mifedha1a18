@@ -2,16 +2,33 @@ import React, { useEffect, useState } from 'react';
 import { createMFKOfferz, updateSMAccount } from '../../../src/graphql/mutations';
 import { getAgent, getGroup, getSMAccount } from '../../../src/graphql/queries';
 import Communications from 'react-native-communications';
-import { useNavigation } from '@react-navigation/native';
-import { View, Text, TextInput, ScrollView, ActivityIndicator, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, TextInput, ActivityIndicator, TouchableOpacity, Alert, KeyboardAvoidingView, Platform } from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import styles from './styles';
 import { updateBankAdmin } from '../../../src/graphql/mutations';
 import { getCurrentUser, fetchUserAttributes } from "aws-amplify/auth";
-import { convertForeignToKsh } from '../../../src/utils/exchange';
+import { convertForeignToChf, countryToCurrency, getExRatesForNationality } from '../../../src/utils/exchange';
 import { generateClient } from "aws-amplify/api";
+import { useTranslation } from 'react-i18next';
+import { translations } from './translation';
+import { useExchange } from '../../../src/contexts/ExchangeContext';
+import { nationalityToCode } from '../../../src/utils/nationalityToCode';
 const client = generateClient();
 const UpdtMFNPW = props => {
-  const navigation = useNavigation();
+  const { i18n } = useTranslation();
+  const lang = i18n.language ? i18n.language.split(/[-_]/)[0] : 'en';
+  const t = translations[lang] || translations.en;
+  const { nationality } = useExchange();
+  const countryCode = nationalityToCode(nationality)
+    || (nationality?.trim().length === 2 ? nationality.trim().toUpperCase() : undefined);
+  const currencyIso = countryCode ? countryToCurrency[countryCode] : undefined;
+  const defaultCurrencySymbol = currencyIso === 'KES' ? 'KSh'
+    : currencyIso === 'USD' ? '$'
+      : currencyIso === 'GBP' ? '£'
+        : currencyIso === 'EUR' ? '€'
+          : currencyIso === 'CHF' ? 'CHF'
+            : currencyIso || '';
+  const [currencySymbol, setCurrencySymbol] = useState(defaultCurrencySymbol);
   const [SigntryPW, setSigntryPW] = useState("");
   const [AdminID, setAdminId] = useState("");
   const [LnAcCod, setLnAcCod] = useState("");
@@ -23,6 +40,22 @@ const UpdtMFNPW = props => {
   const [isLoading, setIsLoading] = useState(false);
   const [ownr, setownr] = useState(null);
   const [names, setName] = useState(null);
+  useEffect(() => {
+    let isCurrent = true;
+    setCurrencySymbol(defaultCurrencySymbol);
+    if (nationality) {
+      getExRatesForNationality(nationality).then(rates => {
+        if (!isCurrent || !rates?.symbol) return;
+        const symbol = rates.symbol === 'Ksh' && currencyIso !== 'KES'
+          ? defaultCurrencySymbol
+          : rates.symbol;
+        setCurrencySymbol(symbol || defaultCurrencySymbol);
+      });
+    }
+    return () => {
+      isCurrent = false;
+    };
+  }, [defaultCurrencySymbol, currencyIso, nationality]);
   const fetchMFNDtls = async () => {
     if (isLoading) {
       return;
@@ -31,6 +64,11 @@ const UpdtMFNPW = props => {
     const userInfo = await getCurrentUser();
     const attributes = await fetchUserAttributes();
     try {
+      if (!nationality) {
+        Alert.alert(t.currencyUnavailable);
+        setIsLoading(false);
+        return;
+      }
       const MFNDtls: any = await client.graphql({
         query: getSMAccount,
         variables: {
@@ -42,7 +80,6 @@ const UpdtMFNPW = props => {
       const MFKubwaNetCosts = MFNDtls.data.getSMAccount.MFKubwaNetCost;
       const namezs = MFNDtls.data.getSMAccount.name;
       const phonecontact = MFNDtls.data.getSMAccount.phonecontact;
-      const adminNationality = MFNDtls.data.getSMAccount.nationality;
       const costInput = Number(NewAdmnPW);
       const paidInput = Number(SigntryPW);
       const mfnOfferedInput = Number(MFNS);
@@ -61,8 +98,21 @@ const UpdtMFNPW = props => {
         setIsLoading(false);
         return;
       }
-      const costKsh = await convertForeignToKsh(costInput, adminNationality || undefined);
-      const paidKsh = await convertForeignToKsh(paidInput, adminNationality || undefined);
+      let costChf = 0;
+      let paidChf = 0;
+      try {
+        costChf = costInput === 0 || currencyIso === 'CHF'
+          ? costInput
+          : await convertForeignToChf(costInput, nationality);
+        paidChf = paidInput === 0 || currencyIso === 'CHF'
+          ? paidInput
+          : await convertForeignToChf(paidInput, nationality);
+      } catch (error) {
+        console.log(error);
+        Alert.alert(t.currencyUnavailable);
+        setIsLoading(false);
+        return;
+      }
       const fetchBankAdminDtls = async () => {
         if (isLoading) {
           return;
@@ -87,8 +137,8 @@ const UpdtMFNPW = props => {
                 variables: {
                   input: {
                     awsemail: AdminID,
-                    MFKubwaCost: costKsh + parseFloat(MFKubwaCosts),
-                    MFKubwaNetCost: paidKsh + parseFloat(MFKubwaNetCosts),
+                    MFKubwaCost: costChf + parseFloat(MFKubwaCosts),
+                    MFKubwaNetCost: paidChf + parseFloat(MFKubwaNetCosts),
                     TtlClrdLonsAmtSllrCov: parseFloat(TtlClrdLonsAmtSllrCovs) + 1
                   }
                 }
@@ -114,8 +164,8 @@ const UpdtMFNPW = props => {
                 variables: {
                   input: {
                     offerStatus: "OnOffer",
-                    acCost: costKsh,
-                    amtPaid: paidKsh,
+                    acCost: costChf,
+                    amtPaid: paidChf,
                     mfnOffered: mfnOfferedInput,
                     /* group account number */
                     acChamp: MFChamp,
@@ -157,6 +207,7 @@ const UpdtMFNPW = props => {
       console.log(error);
       if (error) {
         Alert.alert("Error2! Retry or update app or call customer care");
+        setIsLoading(false);
         return;
       }
     }
@@ -170,121 +221,118 @@ const UpdtMFNPW = props => {
     setMFChamp("");
     setOfferStatus("");
   };
-  useEffect(() => {
-    const MFChamps = MFChamp;
-    if (!MFChamps && MFChamps !== "") {
-      setMFChamp("");
-      return;
-    }
-    setMFChamp(MFChamps);
-  }, [MFChamp]);
-  useEffect(() => {
-    const OfferStatuss = OfferStatus;
-    if (!OfferStatuss && OfferStatuss !== "") {
-      setOfferStatus("");
-      return;
-    }
-    setOfferStatus(OfferStatuss);
-  }, [OfferStatus]);
-  useEffect(() => {
-    const LnAcCods = LnAcCod;
-    if (!LnAcCods && LnAcCods !== "") {
-      setLnAcCod("");
-      return;
-    }
-    setLnAcCod(LnAcCods);
-  }, [LnAcCod]);
-  useEffect(() => {
-    const NewAdmnPWs = NewAdmnPW;
-    if (!NewAdmnPWs && NewAdmnPWs !== "") {
-      setNewAdmnPW("");
-      return;
-    }
-    setNewAdmnPW(NewAdmnPWs);
-  }, [NewAdmnPW]);
-  useEffect(() => {
-    const OldAdmnPWs = OldAdmnPW;
-    if (!OldAdmnPWs && OldAdmnPWs !== "") {
-      setOldAdmnPW("");
-      return;
-    }
-    setOldAdmnPW(OldAdmnPWs);
-  }, [OldAdmnPW]);
-  useEffect(() => {
-    const LnAcCods = SigntryPW;
-    if (!LnAcCods && LnAcCods !== "") {
-      setSigntryPW("");
-      return;
-    }
-    setSigntryPW(LnAcCods);
-  }, [SigntryPW]);
-  useEffect(() => {
-    const AdminIDs = AdminID;
-    if (!AdminIDs && AdminIDs !== "") {
-      setAdminId("");
-      return;
-    }
-    setAdminId(AdminIDs);
-  }, [AdminID]);
-  useEffect(() => {
-    const MFNSs = MFNS;
-    if (!MFNSs && MFNSs !== "") {
-      setMFNS("");
-      return;
-    }
-    setMFNS(MFNSs);
-  }, [MFNS]);
-  return <View>
-              <View style={styles.image}>
-                <ScrollView>
-           
-                  <View style={styles.loanTitleView}>
-                    <Text style={styles.title}>Fill MFN Details Below</Text>
-                  </View>
+  return (
+    <KeyboardAvoidingView
+      style={styles.screen}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    >
+      <KeyboardAwareScrollView
+        contentContainerStyle={styles.content}
+        enableOnAndroid
+        enableAutomaticScroll
+        extraScrollHeight={48}
+        keyboardShouldPersistTaps="handled"
+      >
+        <View style={styles.card}>
+          <View style={styles.accent} />
+          <Text style={styles.title}>{t.title}</Text>
+          <Text style={styles.subtitle}>{t.description}</Text>
 
-                  <View style={styles.sendLoanView}>
-                    <TextInput placeholder="MFK Phone" value={LnAcCod} onChangeText={setLnAcCod} style={styles.sendLoanInput} editable={true}></TextInput>
-                    <Text style={styles.sendLoanText}>MFK Phone</Text>
-                  </View> 
+          <View style={styles.field}>
+            <Text style={styles.label}>{t.phoneLabel}</Text>
+            <TextInput
+              placeholder={t.phonePlaceholder}
+              placeholderTextColor="#829DA8"
+              value={LnAcCod}
+              onChangeText={setLnAcCod}
+              style={styles.input}
+              keyboardType="phone-pad"
+              editable={!isLoading}
+            />
+          </View>
 
-                  <View style={styles.sendLoanView}>
-                    <TextInput value={MFChamp} onChangeText={setMFChamp} style={styles.sendLoanInput} editable={true}></TextInput>
-                    <Text style={styles.sendLoanText}>Beneficiary Group Account</Text>
-                  </View> 
+          <View style={styles.field}>
+            <Text style={styles.label}>{t.groupAccountLabel}</Text>
+            <TextInput
+              placeholder={t.groupAccountPlaceholder}
+              placeholderTextColor="#829DA8"
+              value={MFChamp}
+              onChangeText={setMFChamp}
+              style={styles.input}
+              autoCapitalize="none"
+              autoCorrect={false}
+              editable={!isLoading}
+            />
+          </View>
 
-                  <View style={styles.sendLoanView}>
-                    <TextInput placeholder="User Email" value={AdminID} onChangeText={setAdminId} style={styles.sendLoanInput} editable={true}></TextInput>
-                    <Text style={styles.sendLoanText}>Group Admin Email</Text>
-                  </View> 
+          <View style={styles.field}>
+            <Text style={styles.label}>{t.adminEmailLabel}</Text>
+            <TextInput
+              placeholder={t.adminEmailPlaceholder}
+              placeholderTextColor="#829DA8"
+              value={AdminID}
+              onChangeText={setAdminId}
+              style={styles.input}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              autoCorrect={false}
+              editable={!isLoading}
+            />
+          </View>
 
-                
-        
-                  
-                  <View style={styles.sendLoanView}>
-                    <TextInput placeholder="Cost" value={NewAdmnPW} keyboardType={'decimal-pad'} onChangeText={setNewAdmnPW} style={styles.sendLoanInput} editable={true}></TextInput>
-                    <Text style={styles.sendLoanText}>Cost</Text>
-                  </View> 
-        
-                  <View style={styles.sendLoanView}>
-                    <TextInput value={SigntryPW} onChangeText={setSigntryPW} keyboardType={'decimal-pad'} style={styles.sendLoanInput} editable={true}></TextInput>
-                    <Text style={styles.sendLoanText}>Amount Paid</Text>
-                  </View>   
+          <View style={styles.field}>
+            <Text style={styles.label}>{`${t.accountCostLabel} (${currencySymbol || '...'})`}</Text>
+            <TextInput
+              placeholder={`${t.accountCostPlaceholder} (${currencySymbol || '...'})`}
+              placeholderTextColor="#829DA8"
+              value={NewAdmnPW}
+              keyboardType="decimal-pad"
+              onChangeText={setNewAdmnPW}
+              style={styles.input}
+              editable={!isLoading}
+            />
+          </View>
 
-                  <View style={styles.sendLoanView}>
-                    <TextInput placeholder="MFNS" value={MFNS} onChangeText={setMFNS} style={styles.sendLoanInput} keyboardType={'decimal-pad'} editable={true}></TextInput>
-                    <Text style={styles.sendLoanText}>Number of MFNS</Text>
-                  </View> 
-                  
-                                   
-        
-                  <TouchableOpacity onPress={fetchMFNDtls} style={styles.sendLoanButton}>
-                    <Text style={styles.sendLoanButtonText}>
-                      Click to Add
-                    </Text>
-                    {isLoading && <ActivityIndicator color={'Blue'} size="large" />}
-                  </TouchableOpacity>
-                </ScrollView>
-              </View>
-            </View>;
+          <View style={styles.field}>
+            <Text style={styles.label}>{`${t.amountPaidLabel} (${currencySymbol || '...'})`}</Text>
+            <TextInput
+              placeholder={`${t.amountPaidPlaceholder} (${currencySymbol || '...'})`}
+              placeholderTextColor="#829DA8"
+              value={SigntryPW}
+              onChangeText={setSigntryPW}
+              keyboardType="decimal-pad"
+              style={styles.input}
+              editable={!isLoading}
+            />
+          </View>
+
+          <View style={styles.field}>
+            <Text style={styles.label}>{t.ndogoCountLabel}</Text>
+            <TextInput
+              placeholder={t.ndogoCountPlaceholder}
+              placeholderTextColor="#829DA8"
+              value={MFNS}
+              onChangeText={setMFNS}
+              style={styles.input}
+              keyboardType="decimal-pad"
+              editable={!isLoading}
+            />
+          </View>
+
+          <TouchableOpacity
+            onPress={fetchMFNDtls}
+            style={[styles.button, isLoading && styles.buttonDisabled]}
+            disabled={isLoading}
+            activeOpacity={0.8}
+            accessibilityRole="button"
+            accessibilityState={{ busy: isLoading, disabled: isLoading }}
+          >
+            {isLoading && <ActivityIndicator size="small" color="#143D4D" style={styles.buttonIndicator} />}
+            <Text style={styles.buttonText}>{isLoading ? t.approvingButton : t.approveButton}</Text>
+          </TouchableOpacity>
+        </View>
+      </KeyboardAwareScrollView>
+    </KeyboardAvoidingView>
+  );
 };
 export default UpdtMFNPW;

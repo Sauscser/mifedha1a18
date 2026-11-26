@@ -2,13 +2,13 @@
 import React, { useEffect, useState } from 'react';
 import { createFloatReduction, updateAgent, updateCompany, updateGroup } from '../../../src/graphql/mutations';
 import { getAgent, getCompany, getGroup, getSMAccount } from '../../../src/graphql/queries';
-import { View, Text, TextInput, ScrollView, ActivityIndicator, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, TextInput, ActivityIndicator, TouchableOpacity, Alert } from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import styles from './styles';
 import { generateClient } from 'aws-amplify/api';
 import { getCurrentUser, fetchUserAttributes } from 'aws-amplify/auth';
 
-import { useExchange } from '../../../src/contexts/ExchangeContext';
-import { convertForeignToKsh, formatAmountSync } from '../../../src/utils/exchange';
+import { convertForeignToChf, countryToCurrency, getExRatesForNationality } from '../../../src/utils/exchange';
 import { nationalityToCode } from '../../../src/utils/nationalityToCode';
 
 const client = generateClient();
@@ -18,12 +18,31 @@ const SMADepositForm = props => {
   const [AgentPhn, setAgentPhn] = useState("");
   const [amount, setAmount] = useState("");
   const [UsrId, setUsrId] = useState("");
+  const [showSignatoryId, setShowSignatoryId] = useState(false);
+  const [showAgentPassword, setShowAgentPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [ownr, setownr] = useState(null);
   const [userNationality, setUserNationality] = useState<string>(null);
+  const [currencySymbol, setCurrencySymbol] = useState('');
+  const [foreignPerChf, setForeignPerChf] = useState<number | null>(null);
   
-  const { ratesMap } = useExchange();
-  const userCurrencyKey = nationalityToCode(userNationality);
+  const userCountryCode = nationalityToCode(userNationality)
+    || (userNationality?.trim().length === 2 ? userNationality.trim().toUpperCase() : undefined);
+  const currencyIso = userCountryCode ? countryToCurrency[userCountryCode] : undefined;
+  const defaultCurrencySymbol = currencyIso === 'KES' ? 'KSh'
+    : currencyIso === 'USD' ? '$'
+      : currencyIso === 'GBP' ? '£'
+        : currencyIso === 'EUR' ? '€'
+          : currencyIso === 'CHF' ? 'CHF'
+            : currencyIso || '';
+
+  const formatChfInUserCurrency = (amountChf: number) => {
+    if (currencyIso === 'CHF') return `CHF ${amountChf.toFixed(2)}`;
+    if (!Number.isFinite(foreignPerChf) || foreignPerChf === null) {
+      return `${currencySymbol || currencyIso || ''} ${amountChf.toFixed(2)}`.trim();
+    }
+    return `${currencySymbol || currencyIso} ${(amountChf * foreignPerChf).toFixed(2)}`;
+  };
 
   // Parse amount input
   const parseAmountInput = (value: string): number => {
@@ -65,18 +84,65 @@ const SMADepositForm = props => {
     };
     fetchUser();
   }, []);
+  useEffect(() => {
+    let isCurrent = true;
+    setCurrencySymbol(defaultCurrencySymbol);
+    setForeignPerChf(currencyIso === 'CHF' ? 1 : null);
+    if (userNationality && currencyIso && currencyIso !== 'CHF') {
+      getExRatesForNationality(userNationality).then(rates => {
+        if (!isCurrent || !rates) return;
+        const rate = Number(rates.buyingPrice);
+        if (Number.isFinite(rate) && rate > 0) setForeignPerChf(rate);
+        if (rates.symbol && !(rates.symbol === 'Ksh' && currencyIso !== 'KES')) {
+          setCurrencySymbol(rates.symbol);
+        }
+      }).catch(error => {
+        console.warn('Unable to load currency display rate for Chama deposit:', error);
+      });
+    }
+    return () => {
+      isCurrent = false;
+    };
+  }, [userNationality, currencyIso, defaultCurrencySymbol]);
   const fetchAcDtls = async () => {
     if (isLoading) return;
     
-    // Convert amount to KES
     const amountForeign = parseAmountInput(amount);
-    const amountInKES = convertForeignToKsh(amountForeign, userCurrencyKey, ratesMap);
+    if (!Number.isFinite(amountForeign) || amountForeign <= 0) {
+      Alert.alert('Invalid amount', 'Enter a deposit amount greater than zero.');
+      return;
+    }
+    if (!userNationality) {
+      Alert.alert('Currency unavailable', 'Your account currency is not available yet. Please try again.');
+      return;
+    }
+
+    if (!currencyIso) {
+      Alert.alert('Currency unavailable', 'Your account currency could not be identified. Please try again.');
+      return;
+    }
+
+    let amountChf: number;
+    try {
+      amountChf = currencyIso === 'CHF'
+        ? amountForeign
+        : await convertForeignToChf(amountForeign, userNationality);
+      if (!Number.isFinite(amountChf) || amountChf <= 0) throw new Error('The converted deposit amount is invalid.');
+    } catch (error) {
+      console.error('Failed to convert Chama deposit amount:', error);
+      Alert.alert('Currency conversion failed', 'Please check your exchange rate and try again.');
+      return;
+    }
+    if (currencyIso !== 'CHF' && (!Number.isFinite(foreignPerChf) || foreignPerChf === null)) {
+      Alert.alert('Currency unavailable', 'A display exchange rate is not available yet. Please try again.');
+      return;
+    }
 
     // Confirmation prompt
     const confirmed = await new Promise<boolean>((resolve) => {
       Alert.alert(
         'Confirm Deposit',
-        `You are about to deposit ${formatAmountSync(amountInKES, userCurrencyKey, ratesMap)} to the chama account. Continue?`,
+        `You are about to deposit ${currencySymbol || currencyIso} ${amountForeign.toFixed(2)} to the Chama account. Continue?`,
         [
           { text: 'Cancel', style: 'cancel', onPress: () => resolve(false) },
           { text: 'Deposit', onPress: () => resolve(true) }
@@ -132,8 +198,8 @@ const SMADepositForm = props => {
         Alert.alert("Depositer ID is wrong");
       } else if (AgStatus === "AccountInactive") {
         Alert.alert("NSNdogo Account is Inactive");
-      } else if (parseFloat(floatBal) < amountInKES) {
-        Alert.alert(`Insufficient NSNdogo Balance: ${formatAmountSync(parseFloat(floatBal), userCurrencyKey, ratesMap)}`);
+      } else if (parseFloat(floatBal) < amountChf) {
+        Alert.alert(`Insufficient NSNdogo Balance: ${formatChfInUserCurrency(parseFloat(floatBal))}`);
       } else if (pw !== agPWd) {
         Alert.alert("NSNdogo access denied");
       } else {
@@ -146,7 +212,7 @@ const SMADepositForm = props => {
               agContact: AgentPhn,
               agentName: name,
               userName: grpName,
-              amount: amountInKES.toFixed(0),
+              amount: amountChf.toFixed(2),
               status: 'AccountActive'
             }
           }
@@ -158,8 +224,8 @@ const SMADepositForm = props => {
           variables: {
             input: {
               grpContact: nationalId,
-              grpBal: (parseFloat(grpBal) + amountInKES).toFixed(0),
-              ttlDpst: (parseFloat(ttlDpst) + amountInKES).toFixed(0)
+              grpBal: (parseFloat(grpBal) + amountChf).toFixed(2),
+              ttlDpst: (parseFloat(ttlDpst) + amountChf).toFixed(2)
             }
           }
         });
@@ -170,8 +236,8 @@ const SMADepositForm = props => {
           variables: {
             input: {
               phonecontact: AgentPhn,
-              TtlFltOut: (parseFloat(TtlFltOut) + amountInKES).toFixed(0),
-              floatBal: (parseFloat(floatBal) - amountInKES).toFixed(0)
+              TtlFltOut: (parseFloat(TtlFltOut) + amountChf).toFixed(2),
+              floatBal: (parseFloat(floatBal) - amountChf).toFixed(2)
             }
           }
         });
@@ -182,13 +248,13 @@ const SMADepositForm = props => {
           variables: {
             input: {
               AdminId: "",
-              ttlUsrDep: parseFloat(ttlUsrDep) + amountInKES,
-              agentFloatOut: parseFloat(agentFloatOut) + amountInKES
+              ttlUsrDep: parseFloat(ttlUsrDep) + amountChf,
+              agentFloatOut: parseFloat(agentFloatOut) + amountChf
             }
           }
         });
         
-        Alert.alert(`${formatAmountSync(amountInKES, userCurrencyKey, ratesMap)} deposited in ${grpName}'s account`);
+        Alert.alert(`${currencySymbol || currencyIso} ${amountForeign.toFixed(2)} deposited in ${grpName}'s account`);
       }
     } catch (error) {
       console.log(error);
@@ -202,89 +268,123 @@ const SMADepositForm = props => {
       setUsrId("");
     }
   };
-  useEffect(() => {
-    const UsrIds = UsrId;
-    if (!UsrIds && UsrIds !== "") {
-      setUsrId("");
-      return;
-    }
-    setUsrId(UsrIds);
-  }, [UsrId]);
-  useEffect(() => {
-    const usId = nationalId;
-    if (!usId && usId !== "") {
-      setNationalid("");
-      return;
-    }
-    setNationalid(usId);
-  }, [nationalId]);
-  useEffect(() => {
-    const amt = amount;
-    if (!amt && amt !== "") {
-      setAmount("");
-      return;
-    }
-    setAmount(amt);
-  }, [amount]);
-  useEffect(() => {
-    const pws = agPWd;
-    if (!pws && pws !== "") {
-      setAgPWd("");
-      return;
-    }
-    setAgPWd(pws);
-  }, [agPWd]);
-  useEffect(() => {
-    const agphn = AgentPhn;
-    if (!agphn && agphn !== "") {
-      setAgentPhn("");
-      return;
-    }
-    setAgentPhn(agphn);
-  }, [AgentPhn]);
-  return <View>
-      <View>
-        
-        <ScrollView>
-          <View style={styles.amountTitleView}>
-            <Text style={styles.title}>Fill Account Details Below</Text>
+  return (
+    <KeyboardAwareScrollView
+      style={styles.screen}
+      contentContainerStyle={styles.content}
+      enableOnAndroid
+      enableAutomaticScroll
+      extraScrollHeight={48}
+      keyboardShouldPersistTaps="handled"
+    >
+      <View style={styles.card}>
+        <View style={styles.accent} />
+        <Text style={styles.title}>Chama Deposit</Text>
+        <Text style={styles.subtitle}>Enter the account and deposit details below.</Text>
+
+        <View style={styles.field}>
+          <Text style={styles.label}>Chama Phone Number</Text>
+          <TextInput
+            placeholder="+2547xxxxxxxx"
+            placeholderTextColor="#829DA8"
+            value={nationalId}
+            onChangeText={setNationalid}
+            style={styles.input}
+            keyboardType="phone-pad"
+            editable={!isLoading}
+          />
+        </View>
+
+        <View style={styles.field}>
+          <Text style={styles.label}>Signatory ID</Text>
+          <View style={styles.secretInputContainer}>
+            <TextInput
+              value={UsrId}
+              onChangeText={setUsrId}
+              secureTextEntry={!showSignatoryId}
+              style={[styles.input, styles.secretInput]}
+              placeholder="Enter signatory ID"
+              placeholderTextColor="#829DA8"
+              autoCapitalize="none"
+              autoCorrect={false}
+              editable={!isLoading}
+            />
+            <TouchableOpacity
+              onPress={() => setShowSignatoryId(visible => !visible)}
+              style={styles.visibilityToggle}
+              accessibilityRole="button"
+              accessibilityLabel={showSignatoryId ? 'Hide signatory ID' : 'Show signatory ID'}
+            >
+              <Text style={styles.visibilityToggleText}>{showSignatoryId ? 'Hide' : 'Show'}</Text>
+            </TouchableOpacity>
           </View>
+        </View>
 
-         
+        <View style={styles.field}>
+          <Text style={styles.label}>NSNdogo Phone</Text>
+          <TextInput
+            placeholder="+2547xxxxxxxx"
+            placeholderTextColor="#829DA8"
+            value={AgentPhn}
+            onChangeText={setAgentPhn}
+            style={styles.input}
+            keyboardType="phone-pad"
+            editable={!isLoading}
+          />
+        </View>
 
-          <View style={styles.sendAmtView}>
-            <TextInput placeholder="+2547xxxxxxxx" value={nationalId} onChangeText={setNationalid} style={styles.sendAmtInput} editable={true}></TextInput>
-            <Text style={styles.sendAmtText}>Chama Phone Number</Text>
+        <View style={styles.field}>
+          <Text style={styles.label}>Amount ({currencySymbol || currencyIso || '...'})</Text>
+          <TextInput
+            keyboardType="decimal-pad"
+            value={amount}
+            onChangeText={handleMoneyInput(setAmount)}
+            onBlur={() => formatMoneyOnBlur(amount, setAmount)}
+            style={styles.input}
+            placeholder={`Enter deposit amount (${currencySymbol || currencyIso || '...'})`}
+            placeholderTextColor="#829DA8"
+            editable={!isLoading}
+          />
+        </View>
+
+        <View style={styles.field}>
+          <Text style={styles.label}>NSNdogo Password</Text>
+          <View style={styles.secretInputContainer}>
+            <TextInput
+              value={agPWd}
+              onChangeText={setAgPWd}
+              secureTextEntry={!showAgentPassword}
+              style={[styles.input, styles.secretInput]}
+              placeholder="Enter NSNdogo password"
+              placeholderTextColor="#829DA8"
+              autoCapitalize="none"
+              autoCorrect={false}
+              editable={!isLoading}
+            />
+            <TouchableOpacity
+              onPress={() => setShowAgentPassword(visible => !visible)}
+              style={styles.visibilityToggle}
+              accessibilityRole="button"
+              accessibilityLabel={showAgentPassword ? 'Hide NSNdogo password' : 'Show NSNdogo password'}
+            >
+              <Text style={styles.visibilityToggleText}>{showAgentPassword ? 'Hide' : 'Show'}</Text>
+            </TouchableOpacity>
           </View>
+        </View>
 
-          <View style={styles.sendAmtView}>
-            <TextInput value={UsrId} onChangeText={setUsrId} secureTextEntry={true} style={styles.sendAmtInput} editable={true}></TextInput>
-            <Text style={styles.sendAmtText}>Signatory ID</Text>
-          </View>
-
-         
-
-          <View style={styles.sendAmtView}>
-            <TextInput placeholder="+2547xxxxxxxx" value={AgentPhn} onChangeText={setAgentPhn} style={styles.sendAmtInput} editable={true}></TextInput>
-            <Text style={styles.sendAmtText}>NSNdogo Phone</Text>
-          </View>
-
-          <View style={styles.sendAmtView}>
-            <TextInput keyboardType={"decimal-pad"} value={amount} onChangeText={handleMoneyInput(setAmount)} onBlur={() => formatMoneyOnBlur(amount, setAmount)} style={styles.sendAmtInput} editable={true}></TextInput>
-            <Text style={styles.sendAmtText}>Amount</Text>
-          </View>
-
-          <View style={styles.sendAmtView}>
-            <TextInput value={agPWd} onChangeText={setAgPWd} secureTextEntry={true} style={styles.sendAmtInput} editable={true}></TextInput>
-            <Text style={styles.sendAmtText}>NSNdogo PassWord</Text>
-          </View>
-
-          <TouchableOpacity onPress={fetchAcDtls} style={styles.sendAmtButton}>
-            <Text style={styles.sendAmtButtonText}>Click to Deposit</Text>
-            {isLoading && <ActivityIndicator size="large" color="blue" />}
-          </TouchableOpacity>
-        </ScrollView>
+        <TouchableOpacity
+          onPress={fetchAcDtls}
+          style={[styles.button, isLoading && styles.buttonDisabled]}
+          disabled={isLoading}
+          activeOpacity={0.8}
+          accessibilityRole="button"
+          accessibilityState={{ busy: isLoading, disabled: isLoading }}
+        >
+          {isLoading && <ActivityIndicator size="small" color="#143D4D" style={styles.buttonIndicator} />}
+          <Text style={styles.buttonText}>{isLoading ? 'Processing...' : 'Deposit to Chama'}</Text>
+        </TouchableOpacity>
       </View>
-    </View>;
+    </KeyboardAwareScrollView>
+  );
 };
 export default SMADepositForm;

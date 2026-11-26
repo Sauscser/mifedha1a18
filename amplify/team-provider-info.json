@@ -160,13 +160,14 @@
           "projectId": "mifedha-bd808",
           "secretsPathAmplifyAppId": "duggqbbklrwc0",
           "deploymentBucketName": "amplify-mifedha1a-nisenti-2f02d-deployment",
-          "s3Key": "amplify-builds/mifedhaSendNotification-6b2b62362b4751575961-build.zip"
+          "s3Key": "amplify-builds/mifedhaSendNotification-496158737369494c4468-build.zip"
         },
         "mifedhaJuuFullPayment": {
           "juuProductId": "5a86c3e0-08d0-4fee-a4a4-655484ece5a5",
           "juuGroupProductId": "4670ed4a-88ee-48ef-a045-421dbec0770d",
           "secretsPathAmplifyAppId": "duggqbbklrwc0",
-          "deploymentBucketName": "amplify-mifedha1a-nisenti-2f02d-deployment"
+          "deploymentBucketName": "amplify-mifedha1a-nisenti-2f02d-deployment",
+          "s3Key": "amplify-builds/mifedhaJuuFullPayment-6c6b50393167364c692f-build.zip"
         },
         "mifedha1a": {},
         "mifedha1a2418a4fd": {}

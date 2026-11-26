@@ -2,9 +2,10 @@ import React, { useEffect, useState } from 'react';
 import { createCompany } from '../../../src/graphql/mutations';
 import { getBankAdmin, getCompany, getMiFedhaBankAdmin } from '../../../src/graphql/queries';
 import { useNavigation } from '@react-navigation/native';
-import { View, Text, TextInput, TouchableOpacity, Alert, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
 import styles from './styles';
 import MFBankAdmin from "../../../screens/MFBankAdmin";
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 
 import { getCurrentUser, fetchUserAttributes } from "aws-amplify/auth";
 import { generateClient } from "aws-amplify/api";
@@ -17,6 +18,7 @@ const AdminSignIn = props => {
   const [AdminPW, setAdminPW] = useState("");
   const [ownr, setownr] = useState(null);
   const [showPassword, setShowPassword] = useState(false);
+  const [isSigningIn, setIsSigningIn] = useState(false);
  
   
   const moveToAdminHm = () => {
@@ -38,56 +40,49 @@ const AdminSignIn = props => {
     fetchUser();
   }, []);
   const fetchAdmnDts = async () => {
+    if (isSigningIn) return;
+
+    setIsSigningIn(true);
     try {
-      const AdminDtls: any = await client.graphql({
-        query: getMiFedhaBankAdmin,
-        variables: {
-          nationalid: AdmnId
+      try {
+        const AdminDtls: any = await client.graphql({
+          query: getMiFedhaBankAdmin,
+          variables: {
+            nationalid: AdmnId
+          }
+        });
+        const pw1s = AdminDtls.data.getMiFedhaBankAdmin.pw;
+        const owners = AdminDtls.data.getMiFedhaBankAdmin.owner;
+        if (ownr !== owners) {
+          Alert.alert("This is not your Admin account");
+        } else if (AdminPW !== pw1s) {
+          Alert.alert("Wrong credentials; access denied");
+        } else {
+          moveToAdminHm();
         }
-      });
-      const pw1s = AdminDtls.data.getMiFedhaBankAdmin.pw;
-      const owners = AdminDtls.data.getMiFedhaBankAdmin.owner;
-      if (ownr !== owners) {
-        Alert.alert("This is not your Admin account");
-      } else if (AdminPW !== pw1s) {
-        Alert.alert("Wrong credentials; access denied");
-      } else {
-        moveToAdminHm();
+      } catch (e) {
+        if (e) console.log(e);
+        if (e) {
+          Alert.alert("Either you dont have Admin Ac or check your internet");
+          return;
+        }
       }
-    } catch (e) {
-      if (e) console.log(e);
-      if (e) {
-        Alert.alert("Either you dont have Admin Ac or check your internet");
-        return;
-      }
-    }
-    setAdminId("");
-    setAdminPW("");
-  };
-  useEffect(() => {
-    const admId = AdmnId;
-    if (!admId && admId !== "") {
       setAdminId("");
-      return;
-    }
-    setAdminId(admId);
-  }, [AdmnId]);
-  useEffect(() => {
-    const pws = AdminPW;
-    if (!pws && pws !== "") {
       setAdminPW("");
-      return;
+    } finally {
+      setIsSigningIn(false);
     }
-    setAdminPW(pws);
-  }, [AdminPW]);
+  };
   return (
-    <KeyboardAvoidingView
+    <KeyboardAwareScrollView
       style={{ flex: 1 }}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 24}
+      contentContainerStyle={{ flexGrow: 1 }}
+      enableOnAndroid
+      enableAutomaticScroll
+      extraScrollHeight={24}
+      keyboardShouldPersistTaps="handled"
     >
-      <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: 'center' }} keyboardShouldPersistTaps="handled">
-        <View style={styles.container}>
+        <View style={[styles.container, { minHeight: '100%', paddingVertical: 24 }]}>
           <TouchableOpacity onPress={GoHome} style={styles.goHome}>
             <Text style={styles.goHomeText}>Go Home</Text>
           </TouchableOpacity>
@@ -101,16 +96,23 @@ const AdminSignIn = props => {
               placeholder="Enter Admin Id"
               placeholderTextColor="#b0b0b0"
               autoCapitalize="none"
+              autoCorrect={false}
+              spellCheck={false}
+              autoComplete="off"
             />
             <Text style={styles.label}>Password</Text>
             <View style={{ width: '100%', position: 'relative', marginBottom: 16 }}>
               <TextInput
                 value={AdminPW}
                 onChangeText={setAdminPW}
-                style={styles.input}
+                style={[styles.input, styles.passwordInput]}
                 placeholder="Enter Password"
                 placeholderTextColor="#b0b0b0"
                 secureTextEntry={!showPassword}
+                autoCapitalize="none"
+                autoCorrect={false}
+                spellCheck={false}
+                autoComplete="off"
               />
               <TouchableOpacity
                 onPress={() => setShowPassword(v => !v)}
@@ -122,14 +124,20 @@ const AdminSignIn = props => {
                 </Text>
               </TouchableOpacity>
             </View>
-            <TouchableOpacity onPress={fetchAdmnDts} style={styles.button}>
-              <Text style={styles.buttonText}>Sign In</Text>
+            <TouchableOpacity
+              onPress={fetchAdmnDts}
+              style={[styles.button, isSigningIn && styles.buttonDisabled]}
+              disabled={isSigningIn}
+              activeOpacity={0.8}
+              accessibilityRole="button"
+              accessibilityState={{ busy: isSigningIn, disabled: isSigningIn }}
+            >
+              {isSigningIn && <ActivityIndicator color="#fff" size="small" style={{ marginRight: 10 }} />}
+              <Text style={styles.buttonText}>{isSigningIn ? 'Signing In...' : 'Sign In'}</Text>
             </TouchableOpacity>
           </View>
         </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+    </KeyboardAwareScrollView>
   );
 };
 export default AdminSignIn;
-

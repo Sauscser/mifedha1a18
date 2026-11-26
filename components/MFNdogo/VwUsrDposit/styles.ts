@@ -1,72 +1,75 @@
-import { StyleSheet } from "react-native";
+import { StyleSheet } from 'react-native';
 
 const styles = StyleSheet.create({
   pageContainer: {
-    flex: 1,
-    alignItems: 'center',
-    paddingTop: 50,
+    width: '100%',
+    maxWidth: 560,
+    alignSelf: 'center',
+    paddingVertical: 8
   },
-
   card: {
-    width: '90%',
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 6,
-    elevation: 5,
+    padding: 18,
+    borderRadius: 18,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#D5EDF7',
+    shadowColor: '#25677F',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    elevation: 3
   },
-
-  prodName: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 8,
-    color: '#333',
-  },
-
-  prodInfo: {
-    fontSize: 16,
-    marginBottom: 4,
-    
-  },
-
-  label: {
-    fontWeight: 'bold',
-    
-  },
-
-  prodDesc: {
-    fontSize: 16,
-    marginTop: 10,
-    color: '#666',
-  },
-
-  buttonRow: {
+  cardHeader: {
     flexDirection: 'row',
-    marginTop: 20,
-    gap: 10,
+    alignItems: 'center',
+    marginBottom: 14,
+    paddingBottom: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E4F1F6'
   },
-
-  loanFriendButton: {
-    backgroundColor: '#FFA500',
-    paddingVertical: 12,
-    paddingHorizontal: 18,
-    borderRadius: 10,
+  accent: {
+    width: 5,
+    height: 42,
+    borderRadius: 3,
+    backgroundColor: '#87CEEB',
+    marginRight: 12
   },
-
-  redeemButton: {
-    backgroundColor: '#00BFFF',
-    paddingVertical: 12,
-    paddingHorizontal: 18,
-    borderRadius: 10,
+  amount: {
+    color: '#164458',
+    fontSize: 24,
+    fontWeight: '800'
   },
-
-  buttonText: {
-    color: '#fff',
-    fontWeight: 'bold',
+  currency: {
+    color: '#64808A',
+    fontSize: 13,
+    marginLeft: 8,
+    marginTop: 6
   },
+  details: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    paddingVertical: 9,
+    borderBottomWidth: 1,
+    borderBottomColor: '#EEF5F8'
+  },
+  lastDetail: {
+    borderBottomWidth: 0,
+    paddingBottom: 0
+  },
+  detailLabel: {
+    flex: 1,
+    color: '#64808A',
+    fontSize: 13,
+    marginRight: 12
+  },
+  detailValue: {
+    flex: 1.4,
+    color: '#244C5B',
+    fontSize: 13,
+    fontWeight: '600',
+    textAlign: 'right'
+  }
 });
 
 export default styles;

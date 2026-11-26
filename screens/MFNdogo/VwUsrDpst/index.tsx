@@ -1,10 +1,9 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, ImageBackground, Pressable, FlatList, Alert } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, FlatList, ActivityIndicator } from 'react-native';
 import NonLnSent from "../../../components/MFNdogo/VwUsrDposit";
 import styles from './styles';
-import { getCompany, getSMAccount, listAgentWithdrawals, listFloatReductions, VwMFNFltDeductns, vwMFNFltDeductns } from '../../../src/graphql/queries';
+import { VwMFNFltDeductns } from '../../../src/graphql/queries';
 import { useRoute } from '@react-navigation/core';
-import { updateCompany, updateSMAccount } from '../../../src/graphql/mutations';
 import { generateClient } from "aws-amplify/api";
 const client = generateClient();
 const FetchSMNonLnsSnt = props => {
@@ -21,35 +20,51 @@ const FetchSMNonLnsSnt = props => {
           sortDirection: "DESC"
         }
       });
-      const lds = Lonees.data.VwMFNFltDeductns.items;
-      if (lds.length < 1) {
-        Alert.alert("No Deposits made");
-      }
-      setRecvrs(lds);
+      setRecvrs(Lonees.data.VwMFNFltDeductns.items || []);
     } catch (e) {
-      if (e) {
-        Alert.alert("NSNdogo does not exist; otherwise check internet connection");
-        return;
-      }
       console.log(e);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
   useEffect(() => {
     fetchLoanees();
   }, []);
-  return <View style={styles.root}>
-      <FlatList style={{
-      width: "100%"
-    }} data={Recvrs} renderItem={({
-      item
-    }) => <NonLnSent SMAc={item} />} keyExtractor={(item, index) => index.toString()} onRefresh={fetchLoanees} refreshing={loading} showsVerticalScrollIndicator={false} ListHeaderComponentStyle={{
-      alignItems: 'center'
-    }} ListHeaderComponent={() => <>
-            
-            <Text style={styles.label}> User Deposits</Text>
-            <Text style={styles.label2}> (Please swipe down to load)</Text>
-          </>} />
-    </View>;
+  return (
+    <View style={styles.root}>
+      <FlatList
+        contentContainerStyle={styles.listContent}
+        data={Recvrs}
+        renderItem={({ item }) => <NonLnSent SMAc={item} />}
+        keyExtractor={item => String(item.id)}
+        onRefresh={fetchLoanees}
+        refreshing={loading}
+        showsVerticalScrollIndicator={false}
+        ListHeaderComponent={
+          <View style={styles.header}>
+            <View style={styles.accent} />
+            <Text style={styles.title}>User Deposits</Text>
+            <Text style={styles.subtitle}>Deposit history for this NiSenti Ndogo account</Text>
+            {!loading && Recvrs.length > 0 && (
+              <Text style={styles.count}>{Recvrs.length} {Recvrs.length === 1 ? 'deposit' : 'deposits'}</Text>
+            )}
+          </View>
+        }
+        ListEmptyComponent={
+          loading ? (
+            <View style={styles.emptyState}>
+              <ActivityIndicator size="large" color="#168DB3" />
+              <Text style={styles.emptyText}>Loading deposits...</Text>
+            </View>
+          ) : (
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyTitle}>No deposits yet</Text>
+              <Text style={styles.emptyText}>Pull down to refresh the deposit history.</Text>
+            </View>
+          )
+        }
+      />
+    </View>
+  );
 };
 export default FetchSMNonLnsSnt;
