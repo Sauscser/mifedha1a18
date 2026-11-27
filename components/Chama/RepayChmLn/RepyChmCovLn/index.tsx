@@ -4,9 +4,7 @@ import { Text,  Pressable,  } from 'react-native';
 import styles from './styles';
 
 import React, {useEffect, useState} from 'react';
-import { formatAmountSync } from '../../../../src/utils/exchange';
-import { nationalityToCode } from '../../../../src/utils/nationalityToCode';
-import {useExchange} from '../../../../src/contexts/ExchangeContext';
+import { useUserCurrencyFormatter } from '../../../../src/hooks/useUserCurrencyFormatter';
 import { generateClient } from 'aws-amplify/api';  
 import { getSMAccount } from '../../../../src/graphql/queries';
 import {fetchUserAttributes} from 'aws-amplify/auth';
@@ -41,8 +39,7 @@ const ChmMbrShpInfo = (props:ChamaMmbrshpInfo) => {
    const client = generateClient();
    const [Uzer, setUzer] = useState<string>(null);
    const [userNationality, setUserNationality] = useState<string>(null);
-   const userCode = nationalityToCode(userNationality);
-   const {ratesMap} = useExchange();
+   const { formatAmount: formatDisplayAmount } = useUserCurrencyFormatter(userNationality);
 
    useEffect(() => {
      const fetchUserData = async () => {
@@ -61,7 +58,7 @@ const ChmMbrShpInfo = (props:ChamaMmbrshpInfo) => {
      };
      fetchUserData();
    }, [Uzer]);
-   
+
     return (
        <Pressable 
        onPress={SndChmMmbrMny}
@@ -70,7 +67,7 @@ const ChmMbrShpInfo = (props:ChamaMmbrshpInfo) => {
        <Text style={styles.prodInfo}><Text style={styles.label}>Group Name:</Text> {LoanerName}</Text>
         <Text style={styles.prodInfo}><Text style={styles.label}>Loan Id:</Text> {loanID}</Text>
         <Text style={styles.prodInfo}><Text style={styles.label}>Member Chama ID:</Text> {memberId}</Text>
-      <Text style={styles.prodInfo}><Text style={styles.label}>loan Balance:</Text> {formatAmountSync((lonBala), userCode, ratesMap)}</Text>
+      <Text style={styles.prodInfo}><Text style={styles.label}>loan Balance:</Text> {formatDisplayAmount(lonBala)}</Text>
             
         </Pressable>
     );

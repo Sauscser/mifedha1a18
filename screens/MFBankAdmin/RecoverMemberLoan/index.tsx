@@ -3,11 +3,11 @@ import { useTranslation } from 'react-i18next';
 import { translations } from './translation';
 import { View, Text, FlatList, TouchableOpacity, Alert, ActivityIndicator, StyleSheet } from 'react-native';
 import { generateClient } from 'aws-amplify/api';
-import { getCurrentUser, fetchUserAttributes } from 'aws-amplify/auth';
+import { fetchUserAttributes } from 'aws-amplify/auth';
 import { listGroups, listCvrdGroupLoans, getCompany, getChamaMembers, getGroup, getSMAccount, listAgents, getSAgent, listSAgents } from '../../../src/graphql/queries';
 import { updateGroup, updateCvrdGroupLoans, updateChamaMembers, updateCompany, updateSMAccount, updateAgent, updateSAgent } from '../../../src/graphql/mutations';
 import { useExchange } from '../../../src/contexts/ExchangeContext';
-import { formatAmountSync } from '../../../src/utils/exchange';
+import { BASE_EXCHANGE_SYMBOL, countryToCurrency, formatAmountSync, getExRatesForNationality } from '../../../src/utils/exchange';
 import { nationalityToCode } from '../../../src/utils/nationalityToCode';
 import { Modal, Pressable } from 'react-native';
 
@@ -33,12 +33,24 @@ const RecoverMemberLoan = () => {
   const { i18n } = useTranslation();
   const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
   const t = translations[lang] || translations.en;
-  const { nationality, ratesMap } = useExchange();
-  const userCurrencyKey = nationalityToCode(nationality || undefined);
+  const { ratesMap } = useExchange();
+  const [adminNationality, setAdminNationality] = useState<string | null>(null);
+  const [adminFallbackRate, setAdminFallbackRate] = useState<{ buyingPrice: number; symbol?: string } | null>(null);
+  const adminCountryCode = nationalityToCode(adminNationality || undefined);
+  const adminCurrencyIso = adminCountryCode ? countryToCurrency[adminCountryCode] : undefined;
+  const adminRate = ratesMap?.[adminCountryCode || ''] || ratesMap?.[adminCurrencyIso || ''] ||
+    ratesMap?.[adminNationality || ''];
 
   const formatCurrency = (value: any) => {
-    const n = Number(value || 0);
-    return formatAmountSync(n, userCurrencyKey, ratesMap);
+    const chfAmount = Number(value || 0);
+    if (adminCurrencyIso === 'CHF') return `${BASE_EXCHANGE_SYMBOL} ${chfAmount.toFixed(2)}`;
+    if (adminRate && Number.isFinite(Number(adminRate.buyingPrice)) && Number(adminRate.buyingPrice) > 0) {
+      return formatAmountSync(chfAmount, adminCountryCode || adminNationality || undefined, ratesMap);
+    }
+    if (adminFallbackRate) {
+      return `${adminFallbackRate.symbol || adminCurrencyIso || adminCountryCode} ${(chfAmount * adminFallbackRate.buyingPrice).toFixed(2)}`;
+    }
+    return tk('currencyUnavailable');
   };
 
   const tr = (template: string, vars: Record<string, string>) => {
@@ -150,10 +162,17 @@ const RecoverMemberLoan = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const user = await getCurrentUser();
         const attrs = await fetchUserAttributes();
         const email = attrs?.email;
-        if (!email) throw new Error('no email');
+        if (!email) throw new Error('Signed-in admin email is unavailable');
+
+        const accountRes: any = await client.graphql({
+          query: getSMAccount,
+          variables: { awsemail: email }
+        });
+        const signedInAdminNationality = accountRes?.data?.getSMAccount?.nationality;
+        if (!signedInAdminNationality) throw new Error('Signed-in admin nationality is unavailable');
+        setAdminNationality(signedInAdminNationality);
 
         const grpRes: any = await client.graphql({ query: listGroups, variables: { filter: { BankAdminEmail: { eq: email } } } });
         const adminGroups = grpRes?.data?.listGroups?.items || [];
@@ -173,6 +192,33 @@ const RecoverMemberLoan = () => {
     };
     fetchData();
   }, []);
+
+  useEffect(() => {
+    let active = true;
+    const fetchAdminCurrencyRate = async () => {
+      if (!adminNationality || adminCurrencyIso === 'CHF' || adminRate) {
+        if (active) setAdminFallbackRate(null);
+        return;
+      }
+
+      try {
+        const rate = await getExRatesForNationality(adminNationality);
+        const buyingPrice = Number(rate?.buyingPrice);
+        if (!rate || !Number.isFinite(buyingPrice) || buyingPrice <= 0) {
+          throw new Error(`No valid display rate for admin nationality "${adminNationality}"`);
+        }
+        if (active) setAdminFallbackRate({ buyingPrice, symbol: rate.symbol });
+      } catch (error) {
+        console.error('Failed to load signed-in admin currency rate:', error);
+        if (active) setAdminFallbackRate(null);
+      }
+    };
+
+    fetchAdminCurrencyRate();
+    return () => {
+      active = false;
+    };
+  }, [adminNationality, adminCurrencyIso, adminRate]);
 
   const parseDate = (v: any) => {
     if (!v) return null;

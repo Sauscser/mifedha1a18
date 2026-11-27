@@ -13,9 +13,8 @@ import * as DocumentPicker from 'expo-document-picker';
 import { createChamaMembers, createGroup, updateChamaApply2, updateCompany, recordJuuGroupRegistrationEvent } from '../../../src/graphql/mutations';
 import { getMiFedhaBankAdmin, getSMAccount, getCompany } from '../../../src/graphql/queries';
 
-import { useExchange } from '../../../src/contexts/ExchangeContext';
-import { convertForeignToKsh, formatAmountSync } from '../../../src/utils/exchange';
-import { nationalityToCode } from '../../../src/utils/nationalityToCode';
+import { convertUserCurrencyToCHF } from '../../../src/utils/exchange';
+import { useUserCurrencyFormatter } from '../../../src/hooks/useUserCurrencyFormatter';
 
 
 import translations from './translation';
@@ -181,8 +180,11 @@ const CreateChama = (props: UserReg) => {
     };
   const ChmPhnNphoneContact = MmbaID + ChamaAcNu;
 
-  const { ratesMap } = useExchange();
-  const userCurrencyKey = nationalityToCode(userNationality);
+  const {
+    currencyLabel,
+    formatAmount: formatUserCurrencyAmount,
+    isCurrencyAvailable
+  } = useUserCurrencyFormatter(userNationality);
 
   // Parse amount input
   const parseAmountInput = (value: string): number => {
@@ -243,11 +245,11 @@ const CreateChama = (props: UserReg) => {
     const tProceed = t.proceed || 'Proceed?';
     const tCancel = t.cancel || 'Cancel';
     const tConfirm = t.confirm || 'Confirm';
-    // Convert amounts to KES first, ensure valid numbers (async)
-    const subAmtForeign = parseAmountInput(SubAmt);
-    const lateSubForeign = parseAmountInput(lateSub);
+    // Convert user-currency inputs to CHF once before confirmation and persistence.
+    const subAmtUserCurrency = parseAmountInput(SubAmt);
+    const lateSubUserCurrency = parseAmountInput(lateSub);
     const loanThresholdPercent = Number(loanApprovalThreshHold.trim());
-    if (!subAmtForeign || !lateSubForeign) {
+    if (!subAmtUserCurrency || !lateSubUserCurrency) {
       Alert.alert('Missing or invalid amounts', 'Please enter valid values for subscription amount, late penalty, and threshold.');
       return;
     }
@@ -260,17 +262,31 @@ const CreateChama = (props: UserReg) => {
       Alert.alert(t.invalidLoanThreshold);
       return;
     }
-    let subAmtInKES = await convertForeignToKsh(subAmtForeign, userCurrencyKey);
-    let lateSubInKES = await convertForeignToKsh(lateSubForeign, userCurrencyKey);
-    subAmtInKES = typeof subAmtInKES === 'number' && !isNaN(subAmtInKES) ? subAmtInKES : 0;
-    lateSubInKES = typeof lateSubInKES === 'number' && !isNaN(lateSubInKES) ? lateSubInKES : 0;
+    if (!userNationality || !isCurrencyAvailable) {
+      Alert.alert('Currency unavailable', 'Could not determine your currency. Please retry after your account details have loaded.');
+      return;
+    }
+
+    let subAmtCHF: number;
+    let lateSubCHF: number;
+    try {
+      subAmtCHF = await convertUserCurrencyToCHF(subAmtUserCurrency, userNationality);
+      lateSubCHF = await convertUserCurrencyToCHF(lateSubUserCurrency, userNationality);
+    } catch (error) {
+      console.error('Unable to convert Chama amounts to CHF:', error);
+      Alert.alert(
+        'Currency conversion failed',
+        'The exchange rate is unavailable or invalid. No group or member amounts were saved.'
+      );
+      return;
+    }
     // Confirmation prompt
     console.log('About to show confirmation Alert');
     const confirmed = await new Promise<boolean>((resolve) => {
       setTimeout(() => {
         Alert.alert(
           tConfirmGroupCreation,
-          `${tSubscriptionAmount}: ${formatAmountSync(subAmtInKES, userCurrencyKey, ratesMap)}\n${tLatePenalty}: ${formatAmountSync(lateSubInKES, userCurrencyKey, ratesMap)}\n${tLoanThreshold}: ${loanThresholdPercent}%\n\n${tProceed}`,
+          `${tSubscriptionAmount}: ${formatUserCurrencyAmount(subAmtCHF)}\n${tLatePenalty}: ${formatUserCurrencyAmount(lateSubCHF)}\n${tLoanThreshold}: ${loanThresholdPercent}%\n\n${tProceed}`,
           [
             { text: tCancel, style: 'cancel', onPress: () => { console.log('User cancelled'); resolve(false); } },
             { text: tConfirm, onPress: () => { console.log('User confirmed'); resolve(true); } }
@@ -414,8 +430,8 @@ const CreateChama = (props: UserReg) => {
             description: ChmDesc,
             ChmBenefits: 0,
             subscriptionFrequency: SubFreq,
-            subscriptionAmt: subAmtInKES.toFixed(0),
-            lateSubscriptionPenalty: lateSubInKES.toFixed(0),
+            subscriptionAmt: subAmtCHF,
+            lateSubscriptionPenalty: lateSubCHF,
             objectionStatus: 'NotObjected',
             objOfficer: 'None',
             objReason: 'None',
@@ -494,8 +510,8 @@ const CreateChama = (props: UserReg) => {
             owner: userInfo.userId,
             ttlLateSubs: 0,
             subscriptionFrequency: SubFreq,
-            subscriptionAmt: subAmtInKES.toFixed(0),
-            lateSubscriptionPenalty: lateSubInKES.toFixed(0),
+            subscriptionAmt: subAmtCHF,
+            lateSubscriptionPenalty: lateSubCHF,
             transportApproved: 'ChamaTransportApprovedNo',
             groupRedeemedLoan: 0
           }
@@ -587,9 +603,9 @@ const CreateChama = (props: UserReg) => {
             { placeholder: t.enterGroupVenture, value: ventures, setter: setventures },
             { placeholder: t.enterGroupDescription, value: ChmDesc, setter: setChmDesc, multiline: true },
             { placeholder: t.enterLoanApprovalThreshold, value: loanApprovalThreshHold, setter: handleMoneyInput(setloanApprovalThreshHold), onBlur: () => formatMoneyOnBlur(loanApprovalThreshHold, setloanApprovalThreshHold), keyboardType: 'decimal-pad' },
-            { placeholder: t.signatorySubscriptionAmount, value: SubAmt, setter: handleMoneyInput(setSubAmt), onBlur: () => formatMoneyOnBlur(SubAmt, setSubAmt), keyboardType: 'decimal-pad' },
+            { placeholder: `${t.signatorySubscriptionAmount} (${currencyLabel || 'Currency unavailable'})`, value: SubAmt, setter: handleMoneyInput(setSubAmt), onBlur: () => formatMoneyOnBlur(SubAmt, setSubAmt), keyboardType: 'decimal-pad' },
             { placeholder: t.signatorySubscriptionFrequency, value: SubFreq, setter: setSubFreq, keyboardType: 'numeric' },
-            { placeholder: t.signatoryLateSubscriptionPenalty, value: lateSub, setter: handleMoneyInput(setlateSub), onBlur: () => formatMoneyOnBlur(lateSub, setlateSub), keyboardType: 'decimal-pad' },
+            { placeholder: `${t.signatoryLateSubscriptionPenalty} (${currencyLabel || 'Currency unavailable'})`, value: lateSub, setter: handleMoneyInput(setlateSub), onBlur: () => formatMoneyOnBlur(lateSub, setlateSub), keyboardType: 'decimal-pad' },
             { placeholder: t.enterGroupPassword, value: pword, setter: setPW, secureTextEntry: true }
           ];
           return inputConfigs.map((item, index) => {

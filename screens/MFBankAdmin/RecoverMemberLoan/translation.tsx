@@ -2,6 +2,7 @@ const recoveryFlowTranslations = {
   yesLabel: 'Yes',
   cancelLabel: 'Cancel',
   recoverLabel: 'Recover',
+  currencyUnavailable: 'Admin currency unavailable',
   closeLabel: 'Close',
   useNskubwaLabel: 'Use NSKubwa',
   errorTitle: 'Error',

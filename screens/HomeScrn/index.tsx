@@ -18,7 +18,7 @@ import { useAuthenticator } from '../../src/contexts/AuthContext';
 import { useMainAccountGuard } from '../../src/contexts/MainAccountGuardContext';
 import { Animated as RNAnimated } from 'react-native';
 import messaging from '@react-native-firebase/messaging';
-import { View, Text, SafeAreaView, TouchableOpacity, StyleSheet, Pressable, Dimensions, Linking, Animated, Alert, Image, ActivityIndicator, ScrollView } from 'react-native';
+import { View, Text, SafeAreaView, TouchableOpacity, StyleSheet, Pressable, Dimensions, Linking, Easing, Alert, Image, ActivityIndicator, ScrollView } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { generateClient } from 'aws-amplify/api';
 import { getCurrentUser, fetchUserAttributes } from 'aws-amplify/auth';
@@ -27,7 +27,9 @@ import { createNotification, updateNotification } from '../../src/graphql/mutati
 import { getUrl } from 'aws-amplify/storage';
 import { LinearGradient } from 'expo-linear-gradient';
 import { FontAwesome, MaterialCommunityIcons } from '@expo/vector-icons';
+import Svg, { Circle, Line, Path } from 'react-native-svg';
 import { screenTranslations } from '../../src/i18n/screenTranslations';
+import { translations as businessTranslations } from '../CredSls/translation';
 import i18n from '../../src/i18n';
 import { useTranslation } from 'react-i18next';
 import { safeNavigateFrom } from '../../src/utils/navigationHelper';
@@ -39,35 +41,24 @@ const {
 } = Dimensions.get('window');
 const isCompact = height < 780;
 const client = generateClient();
+const AnimatedPath = RNAnimated.createAnimatedComponent(Path);
+const performanceFireworkBursts = [
+    { key: 'first', x: 17, y: 18, radius: 12 },
+    { key: 'second', x: 47, y: 18, radius: 12 },
+    { key: 'finale', x: 32, y: 45, radius: 10 }
+];
 const HomeScreen = () => {
     const { resetTimer } = useSessionTimeout();
     const { isSignedIn, user } = useAuthenticator();
     const { setRestrictNavigation } = useMainAccountGuard();
     const { t } = useTranslation();
-    const [, setRerender] = useState(0);
     const [i18nReady, setI18nReady] = useState(i18n.isInitialized && !!i18n.language);
     useEffect(() => {
         if (i18n.isInitialized && i18n.language) {
             setI18nReady(true);
-        // Helper for company URLs (must be after setUrl/setUrl4 and before first use)
-        const getCompUrls = async () => {
-            try {
-                const compDetailsz: any = await client.graphql({
-                    query: getCompanyUrls,
-                    variables: {
-                        AdminId: "BaruchHabaB'ShemAdonai2Ulr"
-                    }
-                });
-                setUrl(compDetailsz.data.getCompanyUrls.Url1);
-                setUrl4(compDetailsz.data.getCompanyUrls.Url4);
-            } catch (error) {
-                console.error("Error fetching company URLs:", error);
-            }
-        };
         } else {
             const handleInit = () => {
                 setI18nReady(true);
-                setRerender(x => x + 1);
             };
             i18n.on('initialized', handleInit);
             return () => {
@@ -75,16 +66,9 @@ const HomeScreen = () => {
             };
         }
     }, []);
-    if (!i18nReady) {
-        return (
-            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-                <ActivityIndicator size="large" color="#e58d29" />
-                <Text>Loading translations...</Text>
-            </View>
-        );
-    }
     const lang = (i18n && i18n.language ? i18n.language.split('-')[0] : 'en');
     const screenT = screenTranslations[lang] || screenTranslations.en;
+    const businessT = businessTranslations[lang] || businessTranslations.en;
     const [alertMsg, setAlertMsg] = useState("");
     const [Url, setUrl] = useState("");
     const [Url4, setUrl4] = useState("");
@@ -97,10 +81,104 @@ const HomeScreen = () => {
     const [overlayMessage, setOverlayMessage] = useState<string>("");
     const navigation = useNavigation();
     const hornAnim = useRef(new RNAnimated.Value(0)).current;
+    const [performanceButtonStage, setPerformanceButtonStage] = useState<'graph' | 'splash' | 'label'>('graph');
+    const growthProgress = useRef(new RNAnimated.Value(0)).current;
+    const splashProgress = useRef(new RNAnimated.Value(0)).current;
+    const performanceTextPulse = useRef(new RNAnimated.Value(1)).current;
 
     useEffect(() => {
         setRestrictNavigation(profileLoading || photoRenderLoading);
     }, [profileLoading, photoRenderLoading, setRestrictNavigation]);
+
+    useFocusEffect(
+        React.useCallback(() => {
+            if (!i18nReady) return;
+
+            let isActive = true;
+            let currentAnimation: RNAnimated.CompositeAnimation | undefined;
+
+            const runCycle = () => {
+                if (!isActive) return;
+                setPerformanceButtonStage('graph');
+                growthProgress.setValue(0);
+                splashProgress.setValue(0);
+                performanceTextPulse.setValue(1);
+
+                currentAnimation = RNAnimated.timing(growthProgress, {
+                    toValue: 1,
+                    duration: 1500,
+                    easing: Easing.linear,
+                    useNativeDriver: false
+                });
+                currentAnimation.start(({ finished }) => {
+                    if (!finished || !isActive) return;
+
+                    setPerformanceButtonStage('splash');
+                    currentAnimation = RNAnimated.sequence([
+                        RNAnimated.timing(splashProgress, {
+                            toValue: 1,
+                            duration: 280,
+                            useNativeDriver: false
+                        }),
+                        RNAnimated.timing(splashProgress, {
+                            toValue: 0,
+                            duration: 180,
+                            useNativeDriver: false
+                        }),
+                        RNAnimated.timing(splashProgress, {
+                            toValue: 1,
+                            duration: 280,
+                            useNativeDriver: false
+                        }),
+                        RNAnimated.timing(splashProgress, {
+                            toValue: 0,
+                            duration: 260,
+                            useNativeDriver: false
+                        })
+                    ]);
+                    currentAnimation.start(({ finished: splashFinished }) => {
+                        if (!splashFinished || !isActive) return;
+
+                        setPerformanceButtonStage('label');
+                        currentAnimation = RNAnimated.sequence([
+                            RNAnimated.timing(performanceTextPulse, {
+                                toValue: 1.06,
+                                duration: 350,
+                                useNativeDriver: true
+                            }),
+                            RNAnimated.timing(performanceTextPulse, {
+                                toValue: 1,
+                                duration: 350,
+                                useNativeDriver: true
+                            }),
+                            RNAnimated.delay(160),
+                            RNAnimated.timing(performanceTextPulse, {
+                                toValue: 1.06,
+                                duration: 350,
+                                useNativeDriver: true
+                            }),
+                            RNAnimated.timing(performanceTextPulse, {
+                                toValue: 1,
+                                duration: 350,
+                                useNativeDriver: true
+                            }),
+                            RNAnimated.delay(1000)
+                        ]);
+                        currentAnimation.start(({ finished: textFinished }) => {
+                            if (textFinished && isActive) runCycle();
+                        });
+                    });
+                });
+            };
+
+            runCycle();
+
+            return () => {
+                isActive = false;
+                currentAnimation?.stop();
+            };
+        }, [growthProgress, splashProgress, performanceTextPulse, i18nReady])
+    );
 
     // Helper for company URLs (must be after setUrl/setUrl4 and before first use)
     const getCompUrls = async () => {
@@ -276,6 +354,14 @@ const HomeScreen = () => {
             };
         }, [isSignedIn, resetTimer, user])
     );
+    if (!i18nReady) {
+        return (
+            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+                <ActivityIndicator size="large" color="#e58d29" />
+                <Text>Loading translations...</Text>
+            </View>
+        );
+    }
     // const screenT = screenTranslations[lang] || screenTranslations.en;
     // console.log('HomeScreen i18n.language:', i18n.language, 'lang:', lang, 'screenT.messages:', screenT.messages);
     console.log('Messages button translation:', screenT.messages, 'Current lang:', lang, 'i18n.language:', i18n.language);
@@ -329,14 +415,112 @@ const HomeScreen = () => {
                         </View>
                     </View>
 
-                    {/* ================= QUICK EXCHANGE RATES BUTTON ================= */}
+                    {/* ================= QUICK BUSINESS PERFORMANCE BUTTON ================= */}
                     <View style={styles.quickRatesButtonContainer}>
-                        <LinearGradient colors={['#72ebd8', '#34a4a1']} style={styles.quickRatesButton}>
-                            <TouchableOpacity style={styles.quickRatesButton} onPress={() => navigateTo('UpdateExRates2')}>
-                                <FontAwesome name="exchange" size={16} color="#ffffff" style={styles.quickRatesIcon} />
-                                <Text style={styles.quickRatesButtonText}>{screenT.viewRates}</Text>
-                            </TouchableOpacity>
-                        </LinearGradient>
+                        <TouchableOpacity
+                            activeOpacity={0.85}
+                            accessibilityRole="button"
+                            accessibilityLabel={businessT.viewMyBusinessPerformance}
+                            onPress={() => navigateTo('BusinessPerformance')}
+                        >
+                            {performanceButtonStage === 'label' ? (
+                                <LinearGradient colors={['#72ebd8', '#34a4a1']} style={styles.performanceLabelButton}>
+                                    <RNAnimated.Text style={[
+                                        styles.quickRatesButtonText,
+                                        { transform: [{ scale: performanceTextPulse }] }
+                                    ]}>
+                                        {businessT.viewMyBusinessPerformance}
+                                    </RNAnimated.Text>
+                                </LinearGradient>
+                            ) : (
+                                <LinearGradient colors={['#72ebd8', '#34a4a1']} style={styles.performanceIconButton}>
+                                    <View style={styles.performanceIconContent}>
+                                        {performanceButtonStage === 'graph' ? (
+                                            <Svg width={48} height={48} viewBox="0 0 64 64">
+                                                <Line x1="10" y1="50" x2="54" y2="50" stroke="rgba(255,255,255,0.35)" strokeWidth="2" />
+                                                <Line x1="10" y1="50" x2="10" y2="13" stroke="rgba(255,255,255,0.35)" strokeWidth="2" />
+                                                <AnimatedPath
+                                                    d="M12 45 L24 34 L34 38 L43 28 L52 17"
+                                                    fill="none"
+                                                    stroke="#ffffff"
+                                                    strokeWidth="4"
+                                                    strokeLinecap="round"
+                                                    strokeLinejoin="round"
+                                                    strokeDasharray="57 57"
+                                                    strokeDashoffset={growthProgress.interpolate({
+                                                        inputRange: [0, 1],
+                                                        outputRange: [57, 0]
+                                                    })}
+                                                />
+                                                <AnimatedPath
+                                                    d="M43 17 L52 17 L52 26"
+                                                    fill="none"
+                                                    stroke="#ffffff"
+                                                    strokeWidth="4"
+                                                    strokeLinecap="round"
+                                                    strokeLinejoin="round"
+                                                    strokeDasharray="18 18"
+                                                    strokeDashoffset={growthProgress.interpolate({
+                                                        inputRange: [0.8, 1],
+                                                        outputRange: [18, 0],
+                                                        extrapolate: 'clamp'
+                                                    })}
+                                                />
+                                            </Svg>
+                                        ) : (
+                                            <RNAnimated.View style={{
+                                                position: 'absolute',
+                                                left: 0,
+                                                top: 0,
+                                                opacity: splashProgress.interpolate({
+                                                    inputRange: [0, 0.5, 1],
+                                                    outputRange: [0.25, 1, 0.25]
+                                                }),
+                                                transform: [{
+                                                    scale: splashProgress.interpolate({
+                                                        inputRange: [0, 0.5, 1],
+                                                        outputRange: [0.72, 1.18, 0.72]
+                                                    })
+                                                }]
+                                            }}>
+                                                <Svg width={64} height={64} viewBox="0 0 64 64">
+                                                    {performanceFireworkBursts.map((burst) => (
+                                                        <React.Fragment key={`${burst.key}-rays`}>
+                                                            {Array.from({ length: 16 }, (_, index) => {
+                                                                const angle = ((index * 360) / 16) * Math.PI / 180;
+                                                                const innerRadius = burst.radius * 0.28;
+                                                                const outerRadius = burst.radius * (index % 2 === 0 ? 1 : 0.78);
+                                                                return (
+                                                                    <React.Fragment key={`${burst.key}-ray-${index}`}>
+                                                                        <Line
+                                                                            x1={burst.x + Math.cos(angle) * innerRadius}
+                                                                            y1={burst.y + Math.sin(angle) * innerRadius}
+                                                                            x2={burst.x + Math.cos(angle) * outerRadius}
+                                                                            y2={burst.y + Math.sin(angle) * outerRadius}
+                                                                            stroke={index % 3 === 0 ? '#fff8c7' : '#ffffff'}
+                                                                            strokeWidth={index % 4 === 0 ? 2 : 1.4}
+                                                                            strokeLinecap="round"
+                                                                        />
+                                                                        <Circle
+                                                                            cx={burst.x + Math.cos(angle) * outerRadius}
+                                                                            cy={burst.y + Math.sin(angle) * outerRadius}
+                                                                            r={index % 4 === 0 ? 1.5 : 1}
+                                                                            fill={index % 3 === 0 ? '#fff8c7' : '#ffffff'}
+                                                                        />
+                                                                    </React.Fragment>
+                                                                );
+                                                            })}
+                                                            <Circle cx={burst.x} cy={burst.y} r={3} fill="#ffffff" />
+                                                            <Circle cx={burst.x} cy={burst.y} r={5} fill="none" stroke="#fff8c7" strokeWidth={1} />
+                                                        </React.Fragment>
+                                                    ))}
+                                                </Svg>
+                                            </RNAnimated.View>
+                                        )}
+                                    </View>
+                                </LinearGradient>
+                            )}
+                        </TouchableOpacity>
                     </View>
 
                     {/* ================= QUOTE SECTION ================= */}
@@ -522,6 +706,25 @@ const styles = StyleSheet.create({
         fontSize: 12,
         fontWeight: '700',
         color: '#ffffff',
+    },
+    performanceIconButton: {
+        width: 64,
+        height: 64,
+        borderRadius: 18,
+        overflow: 'hidden',
+    },
+    performanceIconContent: {
+        flex: 1,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    performanceLabelButton: {
+        minHeight: 52,
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingHorizontal: 18,
+        paddingVertical: 12,
+        borderRadius: 18,
     },
     quickRatesIcon: {
         marginRight: 6,

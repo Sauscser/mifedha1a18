@@ -6,8 +6,8 @@ import { useRoute, RouteProp } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { getCurrentUser, fetchUserAttributes } from "aws-amplify/auth";
 import { useExchange } from '../../../../../../src/contexts/ExchangeContext';
-import { convertForeignToKsh, formatAmountSync } from '../../../../../../src/utils/exchange';
-import { nationalityToCode } from '../../../../../../src/utils/nationalityToCode';
+import { convertUserCurrencyToCHF } from '../../../../../../src/utils/exchange';
+import { useUserCurrencyFormatter } from '../../../../../../src/hooks/useUserCurrencyFormatter';
 import { generateClient } from "aws-amplify/api";
 import { useTranslation } from 'react-i18next';
 import translations from './translation';
@@ -30,7 +30,12 @@ const RepayCovChmLnsss = () => {
   const [Desc, setDesc] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const route = useRoute<RouteProp<RouteParams, 'RepayCovChmLnsss'>>();
-  const { nationality, ratesMap } = useExchange();
+  const { nationality } = useExchange();
+  const {
+    currencyLabel,
+    formatAmount: formatDisplayAmount,
+    isCurrencyAvailable
+  } = useUserCurrencyFormatter(nationality);
   const resetForm = () => {
     setAmount('');
     setDesc('');
@@ -45,7 +50,7 @@ const RepayCovChmLnsss = () => {
     amountPaid,
     loanBalanceAfter
   }) => {
-    const messageBody = isFullRepayment ? t.loanFullyRepaidMessage.replace('{grpName}', grpName).replace('{amountPaid}', formatAmountSync(Number(amountPaid), nationality || undefined, ratesMap)) : t.loanPartiallyRepaidMessage.replace('{grpName}', grpName).replace('{amountPaid}', formatAmountSync(Number(amountPaid), nationality || undefined, ratesMap)).replace('{loanBalanceAfter}', formatAmountSync(Number(loanBalanceAfter), nationality || undefined, ratesMap));
+    const messageBody = isFullRepayment ? t.loanFullyRepaidMessage.replace('{grpName}', grpName).replace('{amountPaid}', formatDisplayAmount(Number(amountPaid))) : t.loanPartiallyRepaidMessage.replace('{grpName}', grpName).replace('{amountPaid}', formatDisplayAmount(Number(amountPaid))).replace('{loanBalanceAfter}', formatDisplayAmount(Number(loanBalanceAfter)));
     const title = isFullRepayment ? t.loanFullyRepaidTitle : t.loanPartiallyRepaidTitle;
     await client.graphql({
       query: createMessages,
@@ -68,15 +73,33 @@ const RepayCovChmLnsss = () => {
   const ftchCvdSMLn = async () => {
     if (isLoading) return;
     setIsLoading(true);
-    const amountForeign = parseFloat(amounts);
-    if (!Number.isFinite(amountForeign) || amountForeign <= 0) {
+    const amountUserCurrency = Number(amounts.trim());
+    if (!Number.isFinite(amountUserCurrency) || amountUserCurrency <= 0) {
       Alert.alert(t.enterValidAmount);
       setIsLoading(false);
       return;
     }
-    const currencyKey = nationalityToCode(nationality);
-    const amountKes = await convertForeignToKsh(amountForeign, currencyKey);
-    if (!Number.isFinite(amountKes) || amountKes <= 0) {
+    if (!nationality) {
+      Alert.alert(t.unableToConvert);
+      setIsLoading(false);
+      return;
+    }
+    if (!isCurrencyAvailable) {
+      Alert.alert(t.unableToConvert);
+      setIsLoading(false);
+      return;
+    }
+
+    let repaymentAmountCHF: number;
+    try {
+      repaymentAmountCHF = await convertUserCurrencyToCHF(amountUserCurrency, nationality);
+    } catch (error) {
+      console.error('Unable to convert Chama loan repayment to CHF:', error);
+      Alert.alert(t.unableToConvert);
+      setIsLoading(false);
+      return;
+    }
+    if (!Number.isFinite(repaymentAmountCHF) || repaymentAmountCHF <= 0) {
       Alert.alert(t.unableToConvert);
       setIsLoading(false);
       return;
@@ -105,11 +128,11 @@ const RepayCovChmLnsss = () => {
         interest,
         crtnDate
       } = loan;
-      const ClranceAmt = parseFloat(clearanceAmt) + parseFloat(DefaultPenaltyChm2);
-      const netLnBal = amountExpectedBack - amountRepaid;
+      const clearanceAndPenaltyCHF = Number(clearanceAmt) + Number(DefaultPenaltyChm2);
+      const netLoanBalanceCHF = Number(amountExpectedBack) - Number(amountRepaid);
       const daysElapsed = (new Date().getTime() - new Date(crtnDate).getTime()) / (1000 * 60 * 60 * 24);
-      const LonBal1 = (netLnBal * Math.pow(1 + parseFloat(interest) / 36500, daysElapsed) + ClranceAmt).toFixed(0);
-      const LonBalAfter = parseFloat(LonBal1) - amountKes;
+      const loanBalanceCHF = netLoanBalanceCHF * Math.pow(1 + Number(interest) / 36500, daysElapsed) + clearanceAndPenaltyCHF;
+      const loanBalanceAfterCHF = loanBalanceCHF - repaymentAmountCHF;
 
       // 2️⃣ Fetch sender
       const senderResp: any = await client.graphql({
@@ -140,7 +163,8 @@ const RepayCovChmLnsss = () => {
         maxBLs,
         phoneContact
       } = company;
-      const totalTransacted = amountKes + parseFloat(chmLnRpymntFee) * amountKes;
+      const repaymentTransactionFeeCHF = Number(chmLnRpymntFee) * repaymentAmountCHF;
+      const totalTransactedCHF = repaymentAmountCHF + repaymentTransactionFeeCHF;
 
       // 4️⃣ Fetch receiver group
       const groupResp: any = await client.graphql({
@@ -170,6 +194,24 @@ const RepayCovChmLnsss = () => {
         AmtRepaid
       } = member;
 
+      const financialValuesCHF = [
+        clearanceAndPenaltyCHF,
+        netLoanBalanceCHF,
+        loanBalanceCHF,
+        loanBalanceAfterCHF,
+        repaymentTransactionFeeCHF,
+        totalTransactedCHF,
+        Number(senderBal),
+        Number(nonLonLimit),
+        Number(grpBal),
+        Number(GrpLoanRpymntSync),
+        Number(AmtRepaid),
+        Number(amountRepaid)
+      ];
+      if (!financialValuesCHF.every(Number.isFinite) || loanBalanceCHF <= 0 || repaymentTransactionFeeCHF < 0) {
+        throw new Error('Invalid CHF balance or fee data; repayment was not recorded');
+      }
+
       // 6️⃣ All conditional checks
       if (senderStatus === 'AccountInactive') {
         Alert.alert(t.senderInactive);
@@ -179,32 +221,32 @@ const RepayCovChmLnsss = () => {
         Alert.alert(t.receiverInactive);
         return;
       }
-      if (parseFloat(senderBal) < totalTransacted) {
+      if (parseFloat(senderBal) < totalTransactedCHF) {
         Alert.alert(t.requestedAmountTooHigh);
         return;
       }
-      if (parseFloat(nonLonLimit) < amountKes) {
+      if (parseFloat(nonLonLimit) < repaymentAmountCHF) {
         Alert.alert(t.callToAdjustLimit.replace('{phoneContact}', phoneContact));
         return;
       }
-      if (ClranceAmt > amountKes) {
-        Alert.alert(t.payClearanceAndPenalty.replace('{ClranceAmt}', String(ClranceAmt)));
+      if (clearanceAndPenaltyCHF > repaymentAmountCHF) {
+        Alert.alert(t.payClearanceAndPenalty.replace('{ClranceAmt}', formatDisplayAmount(clearanceAndPenaltyCHF)));
         return;
       }
-      if (amountKes > parseFloat(LonBal1)) {
-        Alert.alert(t.loanBalanceLesser.replace('{LonBal1}', String(LonBal1)));
+      if (repaymentAmountCHF > loanBalanceCHF) {
+        Alert.alert(t.loanBalanceLesser.replace('{LonBal1}', formatDisplayAmount(loanBalanceCHF)));
         return;
       }
 
       // 7️⃣ Repayment type
-      const isFullRepayment = amountKes === parseFloat(LonBal1);
+      const isFullRepayment = repaymentAmountCHF === loanBalanceCHF;
       const updateSenderAccountFull = async () => {
         await client.graphql({
           query: updateSMAccount,
           variables: {
             input: {
               awsemail: attributes.email,
-              balance: (parseFloat(senderBal) - totalTransacted).toFixed(0),
+              balance: Number(senderBal) - totalTransactedCHF,
               MaxTymsBL: 0
             }
           }
@@ -216,7 +258,7 @@ const RepayCovChmLnsss = () => {
           variables: {
             input: {
               awsemail: attributes.email,
-              balance: (parseFloat(senderBal) - totalTransacted).toFixed(0),
+              balance: Number(senderBal) - totalTransactedCHF,
               MaxTymsBL: parseFloat(MaxTymsBL) - 1
             }
           }
@@ -228,8 +270,8 @@ const RepayCovChmLnsss = () => {
           variables: {
             input: {
               ChamaNMember: memberId,
-              AmtRepaid: (parseFloat(AmtRepaid) + amountKes).toFixed(0),
-              LnBal: LonBalAfter.toFixed(0)
+              AmtRepaid: Number(AmtRepaid) + repaymentAmountCHF,
+              LnBal: loanBalanceAfterCHF
             }
           }
         });
@@ -240,9 +282,9 @@ const RepayCovChmLnsss = () => {
           variables: {
             input: {
               loanID: route.params.loanID,
-              amountRepaid: (amountKes + parseFloat(amountRepaid)).toFixed(0),
-              lonBala: LonBalAfter.toFixed(0),
-              amountExpectedBackWthClrnc: LonBalAfter.toFixed(0),
+              amountRepaid: repaymentAmountCHF + Number(amountRepaid),
+              lonBala: loanBalanceAfterCHF,
+              amountExpectedBackWthClrnc: loanBalanceAfterCHF,
               DefaultPenaltyChm2: 0,
               clearanceAmt: 0,
               status: isFullRepayment ? 'LoanCleared' : 'Active'
@@ -256,8 +298,8 @@ const RepayCovChmLnsss = () => {
           variables: {
             input: {
               grpContact,
-              GrpLoanRpymntSync: (parseFloat(GrpLoanRpymntSync) + amountKes).toFixed(0),
-              grpBal: (parseFloat(grpBal) + (amountKes - ClranceAmt)).toFixed(0)
+              GrpLoanRpymntSync: Number(GrpLoanRpymntSync) + repaymentAmountCHF,
+              grpBal: Number(grpBal) + (repaymentAmountCHF - clearanceAndPenaltyCHF)
             }
           }
         });
@@ -266,8 +308,8 @@ const RepayCovChmLnsss = () => {
           variables: {
             input: {
               AdminId: "",
-              companyEarningBal: parseFloat(chmLnRpymntFee) * amountKes,
-              companyEarning: parseFloat(chmLnRpymntFee) * amountKes
+              companyEarningBal: repaymentTransactionFeeCHF,
+              companyEarning: repaymentTransactionFeeCHF
             }
           }
         });
@@ -282,7 +324,7 @@ const RepayCovChmLnsss = () => {
               RecName: grpName,
               loanId3: route.params.loanID,
               SenderName: senderName,
-              amount: amountKes.toFixed(0),
+              amount: repaymentAmountCHF,
               description: Desc,
               status: 'ChmLonRepayment',
               owner: userInfo.userId
@@ -307,14 +349,14 @@ const RepayCovChmLnsss = () => {
         loaneeEmail: loaneePhn,
         // or email if different
         grpName,
-        amountPaid: amountKes.toFixed(0),
-        loanBalanceAfter: LonBalAfter.toFixed(0)
+        amountPaid: repaymentAmountCHF,
+        loanBalanceAfter: loanBalanceAfterCHF
       });
       Alert.alert(
         t.paymentSuccessful,
         isFullRepayment
-          ? t.loanFullyRepaid.replace('{fee}', formatAmountSync(Number(ClranceAmt), nationality || undefined, ratesMap)).replace('{fee}', formatAmountSync(parseFloat(chmLnRpymntFee) * amountKes, nationality || undefined, ratesMap))
-          : t.partialRepayment.replace('{balance}', formatAmountSync(Number(LonBalAfter), nationality || undefined, ratesMap))
+          ? t.loanFullyRepaid.replace('{fee}', formatDisplayAmount(clearanceAndPenaltyCHF)).replace('{fee}', formatDisplayAmount(repaymentTransactionFeeCHF))
+          : t.partialRepayment.replace('{balance}', formatDisplayAmount(loanBalanceAfterCHF))
       );
       resetForm();
     } catch (error) {
@@ -336,8 +378,8 @@ const RepayCovChmLnsss = () => {
 
           {/* Amount Input */}
           <View style={styles.inputContainer}>
-            <Text style={styles.inputLabel}>{t.amountSent}</Text>
-            <TextInput style={styles.input} keyboardType="decimal-pad" placeholder={t.enterAmount} value={amounts} onChangeText={setAmount} editable={!isLoading} />
+            <Text style={styles.inputLabel}>{`${t.amountSent} (${currencyLabel || 'Currency unavailable'})`}</Text>
+            <TextInput style={styles.input} keyboardType="decimal-pad" placeholder={`${t.enterAmount} (${currencyLabel || 'Currency unavailable'})`} value={amounts} onChangeText={setAmount} editable={!isLoading} />
           </View>
 
           {/* Description Input */}

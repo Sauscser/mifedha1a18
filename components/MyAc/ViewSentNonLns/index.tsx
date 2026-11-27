@@ -3,9 +3,7 @@ import { useEffect, useState } from 'react';
 import { View, Text, ImageBackground, Pressable, TextInput, ScrollView } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import translations from './translation';
-import { formatAmountSync } from '../../../src/utils/exchange';
-import { nationalityToCode } from '../../../src/utils/nationalityToCode';
-import {useExchange} from '../../../src/contexts/ExchangeContext';
+import { useUserCurrencyFormatter } from '../../../src/hooks/useUserCurrencyFormatter';
 import { getSMAccount } from '../../../src/graphql/queries';
 import {fetchUserAttributes} from 'aws-amplify/auth';
 import { generateClient } from 'aws-amplify/api';
@@ -47,8 +45,7 @@ const SMNonLnSnt = (props: SMAccount) => {
     const client = generateClient();
     const [Uzer, setUzer] = useState<string>(null);
     const [userNationality, setUserNationality] = useState<string>(null);
-    const userCode = nationalityToCode(userNationality);
-    const { ratesMap } = useExchange();
+    const { formatAmount: formatDisplayAmount } = useUserCurrencyFormatter(userNationality);
 
     useEffect(() => {
         const fetchUserData = async () => {
@@ -74,7 +71,7 @@ const SMNonLnSnt = (props: SMAccount) => {
                 <Text style={styles.prodName}>{t.recName}: {RecName}</Text>
                 <Text style={styles.prodInfo}><Text style={styles.label}>{t.senderName}:</Text> {SenderName}</Text>
                 <Text style={styles.prodInfo}><Text style={styles.label}>{t.transactionId}:</Text> {id}</Text>
-                <Text style={styles.prodInfo}><Text style={styles.label}>{t.amount}:</Text> {formatAmountSync(amount, userCode, ratesMap)}</Text>
+                <Text style={styles.prodInfo}><Text style={styles.label}>{t.amount}:</Text> {formatDisplayAmount(amount)}</Text>
                 <Text style={styles.prodInfo}><Text style={styles.label}>{t.recContact}:</Text> {recPhn}</Text>
                 <Text style={styles.prodInfo}><Text style={styles.label}>{t.createdAt}:</Text> {createdAt}</Text>
                 <Text style={styles.prodInfo}><Text style={styles.label}>{t.transactionType}:</Text> {status}</Text>

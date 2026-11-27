@@ -3,9 +3,7 @@ import styles from './styles';
 import { useNavigation } from '@react-navigation/native';
 
 import React, {useEffect, useState} from 'react';
-import { formatAmountSync } from '../../../../../src/utils/exchange';
-import { nationalityToCode } from '../../../../../src/utils/nationalityToCode';
-import {useExchange} from '../../../../../src/contexts/ExchangeContext';
+import { useUserCurrencyFormatter } from '../../../../../src/hooks/useUserCurrencyFormatter';
 import { generateClient } from 'aws-amplify/api';  
 import { getSMAccount } from '../../../../../src/graphql/queries';
 import {fetchUserAttributes} from 'aws-amplify/auth';
@@ -61,8 +59,7 @@ const SMCvLnStts = (props: SMCvLnSttus) => {
   const client = generateClient();
   const [Uzer, setUzer] = useState<string>(null);
   const [userNationality, setUserNationality] = useState<string>(null);
-  const userCode = nationalityToCode(userNationality);
-  const {ratesMap} = useExchange();
+  const { formatAmount: formatDisplayAmount } = useUserCurrencyFormatter(userNationality);
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -100,13 +97,13 @@ const SMCvLnStts = (props: SMCvLnSttus) => {
           <Text style={styles.label}>Loan Id:</Text> {loanID}
         </Text>
         <Text style={styles.prodInfo}>
-          <Text style={styles.label}>Amount Given:</Text> {formatAmountSync(amountGiven, userCode, ratesMap)}
+          <Text style={styles.label}>Amount Given:</Text> {formatDisplayAmount(amountGiven)}
         </Text>
         <Text style={styles.prodInfo}>
-          <Text style={styles.label}>Amount Repaid:</Text> {formatAmountSync(amountRepaid, userCode, ratesMap)}
+          <Text style={styles.label}>Amount Repaid:</Text> {formatDisplayAmount(amountRepaid)}
         </Text>
         <Text style={styles.prodInfo}>
-          <Text style={styles.label}>Loan Balance with penalties:</Text> {formatAmountSync(Math.floor(LonBal1), userCode, ratesMap)}
+          <Text style={styles.label}>Loan Balance with penalties:</Text> {formatDisplayAmount(LonBal1)}
         </Text>
         <Text style={styles.prodInfo}>
           <Text style={styles.label}>Repayment Period in days:</Text> {repaymentPeriod}

@@ -9,6 +9,9 @@ import { generateClient } from "aws-amplify/api";
 import { useTranslation } from 'react-i18next';
 import translations from './translation';
 import { safeNavigateFrom } from '../../../src/utils/navigationHelper';
+import { screenTranslations } from '../../../src/i18n/screenTranslations';
+import { LinearGradient } from 'expo-linear-gradient';
+import { FontAwesome } from '@expo/vector-icons';
 
 const client = generateClient();
 const FetchSMNonCovLns = props => {
@@ -16,6 +19,7 @@ const FetchSMNonCovLns = props => {
     const { i18n } = useTranslation();
     const lang = i18n.language ? i18n.language.split('-')[0] : 'en';
     const t = translations[lang] || translations.en;
+    const screenT = screenTranslations[lang] || screenTranslations.en;
   const [LneePhn, setLneePhn] = useState(null);
   const [loading, setLoading] = useState(false);
   const [Loanees, setLoanees] = useState([]);
@@ -92,6 +96,18 @@ const FetchSMNonCovLns = props => {
         ListHeaderComponent={() => <>
           <Text style={styles.label}>{t.myAccount}</Text>
           <Text style={styles.label2}>{t.swipeDownToLoad}</Text>
+          <Pressable
+            onPress={() => safeNavigateFrom(navigation, 'UpdateExRates2')}
+            style={styles.exchangeRatesButtonContainer}
+          >
+            <LinearGradient
+              colors={['#72ebd8', '#34a4a1']}
+              style={styles.exchangeRatesButton}
+            >
+              <FontAwesome name="exchange" size={16} color="#ffffff" />
+              <Text style={styles.exchangeRatesButtonText}>{screenT.viewRates}</Text>
+            </LinearGradient>
+          </Pressable>
         </>}
       />
     </View>;

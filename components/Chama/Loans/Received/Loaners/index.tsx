@@ -3,9 +3,7 @@ import { View, Text, Pressable } from 'react-native';
 import styles from './styles';
 
 import React, {useEffect, useState} from 'react';
-import { formatAmountSync } from '../../../../../src/utils/exchange';
-import { nationalityToCode } from '../../../../../src/utils/nationalityToCode';
-import {useExchange} from '../../../../../src/contexts/ExchangeContext';
+import { useUserCurrencyFormatter } from '../../../../../src/hooks/useUserCurrencyFormatter';
 import { generateClient } from 'aws-amplify/api';  
 import { getSMAccount } from '../../../../../src/graphql/queries';
 import {fetchUserAttributes} from 'aws-amplify/auth';
@@ -80,8 +78,7 @@ const ChmCvLnSttsRec = (props: ChmCvLnSttusRec) => {
   const client = generateClient();
   const [Uzer, setUzer] = useState<string>(null);
   const [userNationality, setUserNationality] = useState<string>(null);
-  const userCode = nationalityToCode(userNationality);
-  const {ratesMap} = useExchange();
+  const { formatAmount: formatDisplayAmount } = useUserCurrencyFormatter(userNationality);
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -125,7 +122,7 @@ const ChmCvLnSttsRec = (props: ChmCvLnSttusRec) => {
         </Text>
         <Text style={styles.prodInfo}>
           <Text style={styles.label}>{t.loanBalanceWithPenalties}</Text>{' '}
-          {formatAmountSync(Math.floor(LonBal1), userCode, ratesMap)}
+          {formatDisplayAmount(LonBal1)}
         </Text>
       </Pressable>
 

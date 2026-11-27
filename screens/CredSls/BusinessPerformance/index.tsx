@@ -779,7 +779,6 @@ const BusinessPerformanceScreen = () => {
   const { nationality, ratesMap } = useExchange();
   const [businesses, setBusinesses] = useState<Business[]>([]);
   const [createdBusinesses, setCreatedBusinesses] = useState<Business[]>([]);
-  const [businessLookupCount, setBusinessLookupCount] = useState(0);
   const [selectedBusiness, setSelectedBusiness] = useState<Business | null>(null);
   const [organizations, setOrganizations] = useState<BusinessOrganization[]>([]);
   const [selectedOrganizationId, setSelectedOrganizationId] = useState('');
@@ -976,7 +975,6 @@ const BusinessPerformanceScreen = () => {
         Array.from({ length: 50 }, (_, index) => business[`Admin${index + 1}`])
           .some(adminEmail => typeof adminEmail === 'string' && adminEmail.trim().toLowerCase() === normalizedEmail)
       );
-      setBusinessLookupCount(allBusinesses.length);
       let createdBusinessRows: Business[] = [];
       let createdBusinessToken: string | null = null;
       do {
@@ -1776,10 +1774,7 @@ const BusinessPerformanceScreen = () => {
     return <View style={{ flex: 1, justifyContent: 'center', padding: 24 }}>
       <Text style={{ fontSize: 21, fontWeight: '700', textAlign: 'center' }}>{t('businessPerformance')}</Text>
       <Text style={{ marginTop: 12, textAlign: 'center', color: '#52616b' }}>
-        {t('noBusinessRecords', { email: signedInEmail || '' })}
-      </Text>
-      <Text style={{ marginTop: 8, textAlign: 'center', color: '#63727d' }}>
-        {t('checkedRecords', { count: businessLookupCount })} {t('verifyAdminEmail')}
+        {t('noBusinessRecords')}
       </Text>
       <TouchableOpacity
         onPress={loadBusinessesAndRecords}

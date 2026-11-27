@@ -14,6 +14,27 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "normal"
   },
+  exchangeRatesButtonContainer: {
+    alignSelf: 'stretch',
+    marginTop: 16,
+    marginBottom: 8,
+    borderRadius: 16,
+    overflow: 'hidden'
+  },
+  exchangeRatesButton: {
+    minHeight: 46,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingHorizontal: 16,
+    borderRadius: 16
+  },
+  exchangeRatesButtonText: {
+    color: '#ffffff',
+    fontSize: 15,
+    fontWeight: '700'
+  },
   image: {
     width: '100%',
     height: "100%",
